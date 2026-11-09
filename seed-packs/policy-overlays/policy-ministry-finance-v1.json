@@ -1,9 +1,12 @@
 {
   "packId": "policy-ministry-finance-v1",
+  "ruleKeyPrefix": "MOF",
+  "keyRenameNote": "PLAN-48 (P-6): stored keys were '{packId}:{ruleKey}', which fails PLAN-47's key pattern ^[A-Z][A-Z0-9:-]{2,99}$ (lower case); they are now 'MOF:{ruleKey}'. renamedFrom keeps the old key.",
   "rules": [
     {
       "domain": "Contracts.Leave",
       "ruleKey": "R-FIN-LEAVE-NOTE",
+      "renamedFrom": "policy-ministry-finance-v1:R-FIN-LEAVE-NOTE",
       "name": "وزارة المالية — ملاحظة إجازة",
       "priority": 20,
       "whenJson": "{\"all\":[{\"field\":\"leaveType\",\"operator\":\"Equals\",\"value\":\"Annual\"}]}",

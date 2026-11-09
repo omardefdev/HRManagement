@@ -6,6 +6,7 @@ using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Policy;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Policy;
+using HRManagement.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -27,17 +28,19 @@ public class PolicyTemplatesController(
 {
     public async Task<IActionResult> Index()
     {
-        var templates = await db.PolicyTemplates.AsNoTracking()
+        // PLAN-48: the agency's own templates and the national ones it inherits (read-only).
+        var templates = await db.ReadablePolicyTemplates().AsNoTracking()
             .Include(t => t.Versions)
             .OrderBy(t => t.Domain)
             .ToListAsync();
         ViewBag.Domains = PolicyDomainRegistry.All;
+        ViewBag.SessionIsNational = NationalTenant.IsNational(db.CurrentTenantId);
         return View(templates);
     }
 
     public async Task<IActionResult> Details(Guid id)
     {
-        var t = await db.PolicyTemplates
+        var t = await db.ReadablePolicyTemplates()
             .AsNoTracking()
             .Include(x => x.Versions)
             .ThenInclude(v => v.Rules)
@@ -46,7 +49,10 @@ public class PolicyTemplatesController(
             .FirstOrDefaultAsync(x => x.Id == id);
         if (t is null) return NotFound();
 
-        ViewBag.CanAuthor = (await authorization.AuthorizeAsync(User, HrManagementPolicies.PolicyAuthor)).Succeeded;
+        // PLAN-48: a national template an agency inherits is shown read-only (the agency authors its override instead).
+        var inherited = db.IsInheritedNational(t.TenantId);
+        ViewBag.Inherited = inherited;
+        ViewBag.CanAuthor = !inherited && (await authorization.AuthorizeAsync(User, HrManagementPolicies.PolicyAuthor)).Succeeded;
         ViewBag.EffectiveVersionId = PolicyDraftService.EffectiveVersion(t, DateTime.UtcNow)?.Id;
         return View(t);
     }
@@ -54,7 +60,7 @@ public class PolicyTemplatesController(
     [HttpGet]
     public async Task<IActionResult> Simulate(Guid versionId)
     {
-        var version = await db.PolicyTemplateVersions
+        var version = await db.ReadablePolicyVersions()
             .Include(v => v.PolicyTemplate)
             .Include(v => v.Rules)
             .FirstOrDefaultAsync(v => v.Id == versionId);
@@ -94,7 +100,9 @@ public class PolicyTemplatesController(
 
         var request = new PolicyEnforceRequest
         {
-            Domain = (await db.PolicyTemplateVersions.Include(v => v.PolicyTemplate).FirstAsync(v => v.Id == versionId)).PolicyTemplate.Domain,
+            Domain = (await db.ReadablePolicyVersions().Include(v => v.PolicyTemplate).FirstAsync(v => v.Id == versionId)).PolicyTemplate.Domain,
+            // PLAN-48: the session's decision (the national rules and its own override, merged), as POST api/policies/evaluate.
+            TenantId = db.CurrentTenantId,
             Facts = facts,
             Mode = PolicyEnforcementMode.Enforce,
             AsOfUtc = asOf
@@ -123,32 +131,38 @@ public class PolicyTemplatesController(
     {
         ViewBag.Domain = domain;
         ViewBag.SubjectType = subjectType;
+        ViewBag.SessionIsNational = NationalTenant.IsNational(db.CurrentTenantId);
         return View();
     }
 
-    /// <summary>A draft of the domain's national template: a copy of its effective version (§5). A missing template is created.</summary>
+    /// <summary>
+    /// A draft of the domain's template: a copy of its effective version (§5); a missing template is created. PLAN-48 (§4,
+    /// D-TEN-10): outside the national tenant it is the agency's override (stricter rules only) and a request for the national scope
+    /// answers 403; inside it the national template, unless the trial agency's override is asked.
+    /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
-    public async Task<IActionResult> CreateDraft(string domain, string subjectType, string name)
+    public async Task<IActionResult> CreateDraft(string domain, string subjectType, string name, string? scope)
     {
-        var template = await db.PolicyTemplates
-            .FirstOrDefaultAsync(t => t.Domain == domain && t.Scope == PolicyTemplateScope.National);
-        if (template is null)
+        if (!PoliciesController.TryParseScope(scope, out var requested))
+            return BadRequest("النطاق غير معروف: National أو TenantOverride");
+
+        var result = await drafts.CreateDomainDraftAsync(domain, subjectType, name, requested, ParseUserId(User));
+        if (result.Outcome == PolicyDraftOutcome.Forbidden)
         {
-            template = new PolicyTemplate
-            {
-                Domain = domain,
-                Name = name,
-                SubjectType = subjectType,
-                Scope = PolicyTemplateScope.National,
-                Description = "مسودة جديدة"
-            };
-            db.PolicyTemplates.Add(template);
-            await db.SaveChangesAsync();
+            var forbidden = View("~/Views/Shared/NationalScopeError.cshtml", result.MessageAr);
+            forbidden.StatusCode = StatusCodes.Status403Forbidden;
+            return forbidden;
         }
 
-        return await CreateDraftForTemplate(template.Id);
+        if (!result.Succeeded)
+        {
+            TempData["Error"] = result.MessageAr;
+            return RedirectToAction(nameof(Index));
+        }
+
+        return RedirectToAction(nameof(EditRules), new { versionId = result.Id });
     }
 
     /// <summary>§5: a new draft of this template, a copy of its effective version.</summary>
@@ -278,6 +292,13 @@ public class PolicyTemplatesController(
         var result = await publishService.PublishAsync(new PolicyPublishCommand(versionId, new PolicyActor(ParseUserId(User), User), evidenceRef, revision));
         if (result.Outcome == PolicyPublishOutcome.NotFound)
             return NotFound();
+        if (result.Outcome == PolicyPublishOutcome.Forbidden)
+        {
+            // PLAN-48: a national version published from an agency's session; the version is not the session's to look up.
+            var forbidden = View("~/Views/Shared/NationalScopeError.cshtml", result.MessageAr);
+            forbidden.StatusCode = StatusCodes.Status403Forbidden;
+            return forbidden;
+        }
 
         var templateId = result.Version?.PolicyTemplateId
                          ?? await db.PolicyTemplateVersions.Where(v => v.Id == versionId).Select(v => v.PolicyTemplateId).FirstAsync();

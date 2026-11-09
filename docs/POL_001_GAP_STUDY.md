@@ -237,6 +237,7 @@
   - موجب: جهة B بلا تجاوز تتلقى قرار القاعدة الوطنية.
   - سالب: قاعدة جهة `SetField isPrivileged=false` أو `TriggerWorkflow` بأولوية 1 تُرفض عند النشر.
   - سالب: مستخدم جهة لا يستطيع إنشاء قالب `National`.
+- **الحالة:** ✅ عولجت في [PLAN-48](acceptance-plans/PLAN-48-ten-national-agency-scope.md) — `PolicyOrchestrator` يقرأ القالب الوطني عبر `NationalOnly` و`Scope = National` ويدمجه أولاً، فتتلقى الجهة بلا تجاوز القرار الوطني. وسقف الجهة (D-POL-4) يرفض القاعدة الأضعف عند النشر ويحذف أثرها مع شرح عند التقييم، ولا مسودة «وطنية» داخل جهة (403). AC-TEN-48d وe وf.
 
 #### G-POL-06 — النشر بأربع عيون قابل للتجاوز، والقاعدة تُنشر بلا تحقق من صحتها
 - **الحالة:** ✅ عولجت في [PLAN-47](acceptance-plans/PLAN-47-pol-rule-lifecycle.md) — لا علم تجاوز، والنشر لسياسة `Policy.Approver` والتأليف لـ`Policy.Author` (الدوران `policy-author`/`policy-approver`)، وكل محرر مسجّل في `PolicyVersionEdits` ولا ينشر ما حرّره. `PolicyRuleValidator` يرفض الشرط الفارغ والعامل المجهول والحقل خارج المخطط والأثر الخاطئ برسالة عربية تذكر المسار، والأرقام بالثقافة الثابتة، والقاعدة المخزنة التالفة لا تطابق شيئاً. الحراس `ValidateFourEyesPublish`/`ValidateInvalidPublish` موصولة (AC-POL-47a، 47b).

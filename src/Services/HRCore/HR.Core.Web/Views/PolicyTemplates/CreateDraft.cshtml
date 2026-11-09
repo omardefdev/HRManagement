@@ -1,4 +1,4 @@
-@{ ViewData["Title"] = "مسودة سياسة جديدة"; var domain = ViewBag.Domain as string; var subjectType = ViewBag.SubjectType as string; }
+@{ ViewData["Title"] = "مسودة سياسة جديدة"; var domain = ViewBag.Domain as string; var subjectType = ViewBag.SubjectType as string; var sessionIsNational = ViewBag.SessionIsNational is true; }
 <div class="card">
     <div class="card-header">مسودة — @domain</div>
     <div class="card-body">
@@ -10,6 +10,25 @@
                 <label class="form-label">الاسم</label>
                 <input name="name" class="form-control" value="مسودة @domain" required />
             </div>
+            @if (sessionIsNational)
+            {
+                @* PLAN-48 (D-TEN-10): the national tenant authors the national template, or the trial agency's override. *@
+                <div class="mb-3">
+                    <label class="form-label">النطاق</label>
+                    <select name="scope" class="form-select" data-testid="draft-scope">
+                        <option value="National" selected>وطني</option>
+                        <option value="TenantOverride">تجاوز الجهة التجريبية</option>
+                    </select>
+                </div>
+            }
+            else
+            {
+                @* PLAN-48 (D-POL-4): an agency drafts its override only; the national policy stays as it is. *@
+                <input type="hidden" name="scope" value="TenantOverride" />
+                <p class="text-muted small" data-testid="draft-scope-note">
+                    تُنشأ مسودة «تجاوز الجهة» لهذا المجال. السياسة الوطنية تسري كما هي، والتجاوز يضيف قيوداً أشد فقط (D-POL-4).
+                </p>
+            }
             <button type="submit" class="btn btn-primary">إنشاء مسودة</button>
             <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
         </form>

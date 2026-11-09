@@ -1,0 +1,12 @@
+@model string
+@{
+    ViewData["Title"] = "تعذّر إتمام العملية";
+}
+
+<div class="container py-4">
+    <div class="alert alert-danger" role="alert" data-testid="national-scope-error">
+        <h1 class="h5 mb-2">تعذّر إتمام العملية</h1>
+        <p class="mb-0">@Model</p>
+    </div>
+    <a href="javascript:history.back()" class="btn btn-outline-secondary">رجوع</a>
+</div>

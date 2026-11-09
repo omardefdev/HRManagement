@@ -1,6 +1,11 @@
 @model IEnumerable<HR.Core.Domain.Entities.CodeGeneration.CodePolicyTemplate>
+@using HR.Core.Domain.Entities.CodeGeneration
+@using HRManagement.SharedKernel.Tenancy
 @{
     ViewData["Title"] = "سياسات الترميز";
+    var sessionTenant = ViewBag.SessionTenantId as Guid?;
+    var sessionIsNational = NationalTenant.IsNational(sessionTenant);
+    var now = DateTime.UtcNow;
 }
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -12,29 +17,55 @@
         {
             <div class="alert alert-info">معاينة: <strong>@preview</strong></div>
         }
-        <table class="table table-striped">
+        @if (TempData["PreviewError"] is string previewError)
+        {
+            <div class="alert alert-warning" data-testid="code-preview-error">@previewError</div>
+        }
+        <table class="table table-striped" data-testid="code-policies">
             <thead>
                 <tr>
                     <th>النوع</th>
                     <th>الاسم</th>
-                    <th>النطاق</th>
-                    <th>إصدار منشور</th>
+                    <th>المفتاح</th>
+                    <th>المصدر</th>
+                    <th>الإصدار النافذ</th>
                     <th>معاينة</th>
                 </tr>
             </thead>
             <tbody>
             @foreach (var t in Model)
             {
-                var published = t.Versions.FirstOrDefault(v => v.Status == HR.Core.Domain.Entities.CodeGeneration.CodePolicyVersionStatus.Published);
-                <tr>
+                var inForce = t.Versions
+                    .Where(v => v.Status == CodePolicyVersionStatus.Published
+                                && (v.EffectiveFrom == null || v.EffectiveFrom <= now)
+                                && (v.EffectiveTo == null || v.EffectiveTo > now))
+                    .OrderByDescending(v => v.VersionNumber)
+                    .FirstOrDefault();
+                var inherited = t.TenantId == NationalTenant.Id && t.Scope == CodePolicyScope.National && !sessionIsNational;
+                <tr data-entity-kind="@t.EntityKind" data-policy-key="@t.PolicyKey" data-origin="@(inherited ? "inherited" : t.Scope == CodePolicyScope.TenantOverride ? "override" : "national")">
                     <td>@t.EntityKind</td>
                     <td>@t.Name</td>
-                    <td>@t.Scope</td>
-                    <td>@(published?.VersionNumber.ToString() ?? "—")</td>
+                    <td>@(t.PolicyKey ?? "افتراضي")</td>
+                    <td>
+                        @if (inherited)
+                        {
+                            <span class="badge bg-secondary" data-testid="badge-inherited">وطني (موروث — للقراءة)</span>
+                        }
+                        else if (t.Scope == CodePolicyScope.TenantOverride)
+                        {
+                            <span class="badge bg-info text-dark" data-testid="badge-override">تجاوز الجهة</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-primary" data-testid="badge-national">وطني</span>
+                        }
+                    </td>
+                    <td>@(inForce?.VersionNumber.ToString() ?? "—")</td>
                     <td>
                         <form asp-action="Preview" method="post" class="d-inline">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="entityKind" value="@t.EntityKind" />
+                            <input type="hidden" name="policyKey" value="@t.PolicyKey" />
                             @if (t.EntityKind == HRManagement.SharedKernel.CodeGeneration.CodeEntityKind.OrgUnit)
                             {
                                 <input name="parentCode" class="form-control form-control-sm d-inline-block w-auto" placeholder="ParentCode" value="00" />

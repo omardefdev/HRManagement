@@ -178,7 +178,7 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
         TimeSpan.FromSeconds(1));
 
     private static readonly System.Text.RegularExpressions.Regex PolicyApiDrafts = new(
-        @"/api/policies/templates/[0-9a-fA-F-]{36}/(drafts|rollback-drafts)/?$",
+        @"/api/policies/(templates/[0-9a-fA-F-]{36}/(drafts|rollback-drafts)|drafts)/?$",
         System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant,
         TimeSpan.FromSeconds(1));
 

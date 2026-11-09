@@ -97,19 +97,18 @@ public sealed class WorkflowStarter(
 
         if (!string.IsNullOrWhiteSpace(policyDomain))
         {
+            // PLAN-48: the national read path, the requested tenant's own rows first.
             var binding = await db.PolicyWorkflowBindings
-                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution)
+                .OwnOrNational(requestedTenantId)
                 .AsNoTracking()
-                .Where(b => b.Domain == policyDomain
-                    && b.WorkflowCode == workflowCode
-                    && (b.TenantId == requestedTenantId || b.TenantId == TenantDefaults.DefaultTenantId))
-                .OrderByDescending(b => b.TenantId == requestedTenantId)
+                .Where(b => b.Domain == policyDomain && b.WorkflowCode == workflowCode)
+                .OwnFirst(requestedTenantId)
                 .FirstOrDefaultAsync(ct);
 
             if (binding?.WorkflowDefinitionId is Guid defId)
             {
                 var bound = await db.WorkflowDefinitions
-                    .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution)
+                    .OwnOrNational(requestedTenantId)
                     .AsNoTracking()
                     .FirstOrDefaultAsync(d => d.Id == defId, ct);
                 // PLAN-25 (G-14): a binding never revives an unpublished (retired) definition.
@@ -119,14 +118,13 @@ public sealed class WorkflowStarter(
         }
 
         return await db.WorkflowDefinitions
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution)
+            .OwnOrNational(requestedTenantId)
             .AsNoTracking()
             .Where(d => d.Code == workflowCode
                 && d.IsPublished
                 && (d.ValidFrom == null || d.ValidFrom <= now)
-                && (d.ValidTo == null || d.ValidTo >= now)
-                && (d.TenantId == requestedTenantId || d.TenantId == TenantDefaults.DefaultTenantId))
-            .OrderByDescending(d => d.TenantId == requestedTenantId)
+                && (d.ValidTo == null || d.ValidTo >= now))
+            .OwnFirst(requestedTenantId)
             .ThenByDescending(d => d.Version)
             .FirstOrDefaultAsync(ct);
     }

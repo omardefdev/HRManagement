@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using HRManagement.SharedKernel.Entities;
+using HRManagement.SharedKernel.Tenancy;
 
 namespace HR.Core.Domain.Entities.Policy;
 
@@ -17,7 +18,7 @@ public enum PolicyVersionStatus
 }
 
 [Display(Name = "قالب سياسة")]
-public class PolicyTemplate : AuditableEntity
+public class PolicyTemplate : AuditableEntity, INationalShared
 {
     [Required, MaxLength(100)]
     public string Domain { get; set; } = default!;
@@ -37,7 +38,7 @@ public class PolicyTemplate : AuditableEntity
 }
 
 [Display(Name = "إصدار سياسة")]
-public class PolicyTemplateVersion : AuditableEntity
+public class PolicyTemplateVersion : AuditableEntity, INationalShared
 {
     public Guid PolicyTemplateId { get; set; }
     public PolicyTemplate PolicyTemplate { get; set; } = default!;
@@ -126,7 +127,7 @@ public class PolicySeedApplication : BaseEntity
 }
 
 [Display(Name = "قاعدة سياسة")]
-public class PolicyRule : BaseEntity
+public class PolicyRule : BaseEntity, INationalShared
 {
     public Guid PolicyTemplateVersionId { get; set; }
     public PolicyTemplateVersion PolicyTemplateVersion { get; set; } = default!;
@@ -147,7 +148,7 @@ public class PolicyRule : BaseEntity
 }
 
 [Display(Name = "مخطط حقائق السياسة")]
-public class PolicyFactsSchemaEntity : AuditableEntity
+public class PolicyFactsSchemaEntity : AuditableEntity, INationalShared
 {
     [Required, MaxLength(100)]
     public string Domain { get; set; } = default!;
@@ -250,7 +251,7 @@ public enum PolicyEnforcementModeValue
 }
 
 [Display(Name = "ربط workflow بالسياسة")]
-public class PolicyWorkflowBinding : AuditableEntity
+public class PolicyWorkflowBinding : AuditableEntity, INationalShared
 {
     [MaxLength(100)]
     public string Domain { get; set; } = default!;

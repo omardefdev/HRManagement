@@ -55,9 +55,8 @@ public class ReferenceDataController : ControllerBase
         page = page < 1 ? 1 : page;
         pageSize = Math.Clamp(pageSize, 1, SearchFilterBase.MaxPageSize);
 
-        var query = _db.ReferenceCatalogEntries
-            .AsNoTracking()
-            .Where(e => e.CatalogKind == catalogKind);
+        // PLAN-48: the national read path; the agency's own catalog of a kind still replaces the national one (COD-F).
+        var query = await CatalogOfKindAsync(catalogKind, ct);
 
         if (activeOnly)
             query = query.Where(e => e.IsActive);
@@ -77,6 +76,7 @@ public class ReferenceDataController : ControllerBase
     public async Task<ActionResult<CatalogEntryDto>> GetById(Guid id, CancellationToken ct)
     {
         var entry = await _db.ReferenceCatalogEntries
+            .OwnOrNational(_db)
             .AsNoTracking()
             .FirstOrDefaultAsync(e => e.Id == id, ct);
 
@@ -92,10 +92,25 @@ public class ReferenceDataController : ControllerBase
             return BadRequest($"Unknown CatalogKind: {kind}");
 
         var entry = await _db.ReferenceCatalogEntries
+            .OwnOrNational(_db)
             .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.CatalogKind == catalogKind && e.Code == code, ct);
+            .Where(e => e.CatalogKind == catalogKind && e.Code == code)
+            .OwnFirst(_db.CurrentTenantId)
+            .FirstOrDefaultAsync(ct);
 
         return entry is null ? NotFound() : Ok(ToDto(entry));
+    }
+
+    /// <summary>PLAN-48: the session's own entries of the kind when it has any, otherwise the national ones (either/or, COD-F).</summary>
+    private async Task<IQueryable<ReferenceCatalogEntry>> CatalogOfKindAsync(CatalogKind kind, CancellationToken ct)
+    {
+        var tenant = _db.CurrentTenantId;
+        var ofKind = _db.ReferenceCatalogEntries.OwnOrNational(tenant).AsNoTracking().Where(e => e.CatalogKind == kind);
+        var hasOwn = tenant is Guid own && !HRManagement.SharedKernel.Tenancy.NationalTenant.IsNational(own)
+                     && await ofKind.AnyAsync(e => e.TenantId == own, ct);
+        return hasOwn
+            ? ofKind.Where(e => e.TenantId == tenant)
+            : ofKind.Where(e => e.TenantId == HRManagement.SharedKernel.Tenancy.NationalTenant.Id);
     }
 
     // GET api/reference-data/effective?kind=Grade&code=GR-01&asOf=2026-01-01
@@ -108,8 +123,11 @@ public class ReferenceDataController : ControllerBase
             return BadRequest($"Unknown CatalogKind: {kind}");
 
         var current = await _db.ReferenceCatalogEntries
+            .OwnOrNational(_db)
             .AsNoTracking()
-            .FirstOrDefaultAsync(e => e.CatalogKind == catalogKind && e.Code == code, ct);
+            .Where(e => e.CatalogKind == catalogKind && e.Code == code)
+            .OwnFirst(_db.CurrentTenantId)
+            .FirstOrDefaultAsync(ct);
 
         const int maxChain = 10;
         for (var i = 0; i < maxChain && current != null; i++)
@@ -120,8 +138,11 @@ public class ReferenceDataController : ControllerBase
 
             var replacementCode = current.ReplacedByCode;
             current = await _db.ReferenceCatalogEntries
+                .OwnOrNational(_db)
                 .AsNoTracking()
-                .FirstOrDefaultAsync(e => e.CatalogKind == catalogKind && e.Code == replacementCode, ct);
+                .Where(e => e.CatalogKind == catalogKind && e.Code == replacementCode)
+                .OwnFirst(_db.CurrentTenantId)
+                .FirstOrDefaultAsync(ct);
         }
 
         return current is null ? NotFound() : Ok(ToDto(current));
@@ -203,6 +224,7 @@ public class ReferenceDataController : ControllerBase
         Guid id, CancellationToken ct)
     {
         var entry = await _db.ReferenceCatalogEntries
+            .OwnOrNational(_db)
             .AsNoTracking()
             .FirstOrDefaultAsync(e => e.Id == id, ct);
         if (entry is null) return NotFound();

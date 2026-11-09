@@ -152,7 +152,11 @@ public sealed class PolicyOrchestrator(
         // boundary). Publications clear it in every instance (PolicyPublishedCacheInvalidationConsumer).
         var now = DateTime.UtcNow;
         var asOf = asOfUtc ?? now;
-        var cacheKey = asOfUtc is null ? IPolicyPublishedSnapshotCache.BuildCacheKey(domain, tenantId) : null;
+        // PLAN-48: the entry of a tenant is written only from that tenant's own session. Another session (a platform operator with
+        // no session naming a tenant) may not see the tenant's override under row security, and its national-only snapshot must
+        // never answer the tenant's own decisions from the cache.
+        var sessionIsTenant = tenantId is null || db.BypassTenantFilter || db.CurrentTenantId == tenantId;
+        var cacheKey = asOfUtc is null && sessionIsTenant ? IPolicyPublishedSnapshotCache.BuildCacheKey(domain, tenantId) : null;
 
         if (cacheKey is not null && snapshotCache.TryGet(cacheKey, out PolicyVersionSnapshot? cached))
             return cached;
@@ -170,8 +174,11 @@ public sealed class PolicyOrchestrator(
 
         var merged = PolicyEvaluator.MergeNationalAndTenant(national, tenant) with { NextEffectiveFrom = next };
 
-        var schemaEntity = await db.PolicyFactsSchemas.AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Domain == domain, ct);
+        // PLAN-48 (§4): the tenant's own schema first, then the national one (the validator reads the same).
+        var schemaEntity = await db.PolicyFactsSchemas.OwnOrNational(tenantId).AsNoTracking()
+            .Where(s => s.Domain == domain)
+            .OwnFirst(tenantId)
+            .FirstOrDefaultAsync(ct);
         var schema = PolicyEntityMapper.ParseSchema(schemaEntity);
         if (schema is not null)
             merged = merged with { FactsSchema = schema };
@@ -200,13 +207,18 @@ public sealed class PolicyOrchestrator(
         DateTime asOf,
         CancellationToken ct)
     {
-        var template = await db.PolicyTemplates.AsNoTracking()
+        // PLAN-48 (§4, G-POL-05): the national template through the national read (an agency's EF filter hid it, and the agency
+        // fell back to PolicyStaticFallback); the override of the tenant asked, named explicitly (the server sets that tenant: the
+        // session's, or a platform operator's with no session).
+        var templates = scope == PolicyTemplateScope.National
+            ? db.PolicyTemplates.NationalOnly().Where(t => t.Scope == PolicyTemplateScope.National)
+            : db.PolicyTemplates.OwnOrNational(tenantId).Where(t => t.Scope == PolicyTemplateScope.TenantOverride && t.TenantId == tenantId);
+        var template = await templates.AsNoTracking()
             .Include(t => t.Versions.Where(v => v.Status == PolicyVersionStatus.Published))
             .ThenInclude(v => v.Rules)
-            .FirstOrDefaultAsync(t =>
-                t.Domain == domain
-                && t.Scope == scope
-                && (scope == PolicyTemplateScope.National || t.TenantId == tenantId), ct);
+            .Where(t => t.Domain == domain)
+            .OrderBy(t => t.CreatedAt).ThenBy(t => t.Id)
+            .FirstOrDefaultAsync(ct);
 
         if (template is null) return (null, null);
 

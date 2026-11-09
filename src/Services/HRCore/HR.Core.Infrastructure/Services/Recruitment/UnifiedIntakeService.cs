@@ -219,12 +219,12 @@ public sealed class UnifiedIntakeService(HRCoreDbContext db, IOptions<Recruitmen
     /// </summary>
     public async Task<IReadOnlyList<QualificationOption>> GetQualificationOptionsAsync(Guid tenantId, CancellationToken ct = default)
     {
-        var entries = db.ReferenceCatalogEntries.AsNoTracking()
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.NationalReferenceLookup)
+        // PLAN-48: the national read path. The agency's own set still replaces the national one (COD-F decides a merge).
+        var entries = db.ReferenceCatalogEntries.OwnOrNational(tenantId).AsNoTracking()
             .Where(e => e.CatalogKind == CatalogKind.Qualification && e.IsActive);
         var rows = await entries.Where(e => e.TenantId == tenantId).ToListAsync(ct);
-        if (rows.Count == 0 && tenantId != TenantDefaults.DefaultTenantId)
-            rows = await entries.Where(e => e.TenantId == TenantDefaults.DefaultTenantId).ToListAsync(ct);
+        if (rows.Count == 0 && tenantId != NationalTenant.Id)
+            rows = await entries.Where(e => e.TenantId == NationalTenant.Id).ToListAsync(ct);
 
         var ranks = options.Value.Eligibility.QualificationRanks;
         return rows

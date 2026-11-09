@@ -173,6 +173,8 @@ public sealed class Pol047FourEyesTests
     [InlineData("DELETE", "/api/hr-core/api/policies/versions/0a000000-0000-4000-8000-000000000304/rules/0a000000-0000-4000-8000-000000000001", HrManagementPolicies.PolicyAuthor)]
     [InlineData("POST", "/api/hr-core/api/policies/templates/0a000000-0000-4000-8000-000000000301/drafts", HrManagementPolicies.PolicyAuthor)]
     [InlineData("POST", "/api/hr-core/api/policies/templates/0a000000-0000-4000-8000-000000000301/rollback-drafts", HrManagementPolicies.PolicyAuthor)]
+    // PLAN-48: a draft of a domain's template (the scope rules) is the author's too.
+    [InlineData("POST", "/api/hr-core/api/policies/drafts", HrManagementPolicies.PolicyAuthor)]
     [InlineData("GET", "/ui/hr-core/PolicyTemplates/Details/0a000000-0000-4000-8000-000000000301", HrManagementPolicies.PolicyReader)]
     [InlineData("GET", "/api/hr-core/api/policies/snapshots/Assets.Custody", HrManagementPolicies.PolicyReader)]
     [InlineData("POST", "/ui/hr-core/PolicyTemplates/Simulate", HrManagementPolicies.HrCoreWrite)]
@@ -212,6 +214,7 @@ public sealed class Pol047FourEyesTests
                 $"{action.Name} has no [ValidateAntiForgeryToken]");
         }
 
-        Assert.Equal(8, writes);
+        // PLAN-48: + POST api/policies/drafts (a draft of a domain's template, with the scope rules).
+        Assert.Equal(9, writes);
     }
 }

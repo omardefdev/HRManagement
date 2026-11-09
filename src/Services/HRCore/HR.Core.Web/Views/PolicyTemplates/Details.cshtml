@@ -3,13 +3,24 @@
 @{
     ViewData["Title"] = Model.Name;
     var canAuthor = ViewBag.CanAuthor is true;
+    var inherited = ViewBag.Inherited is true;
     var effectiveId = ViewBag.EffectiveVersionId as Guid?;
     var hasDraft = Model.Versions.Any(v => v.Status == PolicyVersionStatus.Draft);
     var inv = System.Globalization.CultureInfo.InvariantCulture;
 }
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="mb-0">@Model.Name</h3>
+        <h3 class="mb-0">
+            @Model.Name
+            @if (inherited)
+            {
+                <span class="badge bg-secondary ms-1" data-testid="badge-inherited">وطني (موروث — للقراءة)</span>
+            }
+            else if (Model.Scope == PolicyTemplateScope.TenantOverride)
+            {
+                <span class="badge bg-info text-dark ms-1" data-testid="badge-override">تجاوز الجهة</span>
+            }
+        </h3>
         @if (canAuthor && !hasDraft)
         {
             <form asp-action="CreateTemplateDraft" method="post" class="mb-0">
@@ -25,6 +36,12 @@
             <dt class="col-sm-3">Subject</dt><dd class="col-sm-9">@Model.SubjectType</dd>
             <dt class="col-sm-3">Scope</dt><dd class="col-sm-9">@Model.Scope</dd>
         </dl>
+        @if (inherited)
+        {
+            <p class="text-muted small mt-2 mb-0" data-testid="inherited-note">
+                سياسة وطنية تسري على الجهة كما هي. تضيف الجهة قيوداً أشد فقط بمسودة «تجاوز الجهة» للمجال نفسه (D-POL-4).
+            </p>
+        }
     </div>
 </div>
 @foreach (var v in Model.Versions.OrderByDescending(x => x.VersionNumber))
@@ -44,7 +61,7 @@
                 }
             </span>
             <span>
-                @if (v.Status == PolicyVersionStatus.Draft)
+                @if (v.Status == PolicyVersionStatus.Draft && !inherited)
                 {
                     <a asp-action="EditRules" asp-route-versionId="@v.Id" class="btn btn-sm btn-warning me-1">@(canAuthor ? "تحرير" : "مراجعة ونشر")</a>
                 }

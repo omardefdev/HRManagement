@@ -25,7 +25,7 @@ public static class AcceptanceMdmReferencePatch
         foreach (var agency in AcceptanceSeedCatalog.Agencies)
         {
             var hasGrades = await db.ReferenceCatalogEntries
-                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+                .OwnOrNational(agency.Id)
                 .AnyAsync(
                     e => e.TenantId == agency.Id
                          && e.CatalogKind == CatalogKind.Grade
@@ -71,7 +71,7 @@ public static class AcceptanceMdmReferencePatch
             try
             {
                 var existing = await db.ReferenceCatalogEntries
-                    .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+                    .OwnOrNational(agency.Id)
                     .Where(e => e.TenantId == agency.Id && e.CatalogKind == CatalogKind.Grade)
                     .Select(e => e.Code)
                     .ToListAsync(ct);

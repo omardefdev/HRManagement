@@ -112,7 +112,11 @@ builder.Services.AddWorkflowEngine();
 builder.Services.AddHrQuestPdfDocuments();
 // HCM-031: culture-invariant decimals from number inputs (the default request culture ar-SY uses «٫»).
 builder.Services.AddControllersWithViews(options =>
-        options.ModelBinderProviders.Insert(0, new HR.Core.Web.ModelBinding.InvariantDecimalModelBinderProvider()))
+    {
+        options.ModelBinderProviders.Insert(0, new HR.Core.Web.ModelBinding.InvariantDecimalModelBinderProvider());
+        // PLAN-48: 422 for a missing or invalid code policy, 409 for a code already issued, 403 for a national row written by an agency.
+        options.Filters.Add<HR.Core.Web.Filters.NationalScopeErrorFilter>();
+    })
     .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrCore);
 builder.Services.AddHrOpenApi("HR.Core API");
 
@@ -125,6 +129,9 @@ builder.Services.AddSingleton<EmployeePiiMaterializationInterceptor>();
 builder.Services.AddSingleton<ArabicNameNormalizationInterceptor>();
 // PLAN-47 (G-POL-07): a published policy version never changes through the application.
 builder.Services.AddSingleton<HR.Core.Infrastructure.Data.Interceptors.PublishedPolicyImmutabilityInterceptor>();
+// PLAN-48 (§1): a national row is written only from the national tenant; before the tenant stamp, so an agency's insert of a
+// national row is refused by this guard (403), not by the stamp's generic refusal.
+builder.Services.AddSingleton<NationalSharedWriteGuard>();
 builder.Services.AddSignalR();
 
 var coreConn = builder.Configuration.GetConnectionString("HRCoreDb");
@@ -135,6 +142,7 @@ builder.Services.AddDbContext<HRCoreDbContext>((sp, options) =>
            .AddInterceptors(
                sp.GetRequiredService<AuditSaveChangesInterceptor>(),
                sp.GetRequiredService<HR.Core.Infrastructure.Data.Interceptors.PublishedPolicyImmutabilityInterceptor>(),
+               sp.GetRequiredService<NationalSharedWriteGuard>(),
                sp.GetRequiredService<TenantIdStampInterceptor>(),
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>(),
                sp.GetRequiredService<SignatureImmutabilityInterceptor>(),
@@ -291,7 +299,7 @@ builder.Services.AddHrPolicyEngine();
 builder.Services.AddHrOrgStructure();
 builder.Services.AddHrLegislationRegister();
 builder.Services.AddHrServiceRegimes();
-builder.Services.AddHrCodeGenerationEngine();
+builder.Services.AddHrCodeGenerationEngine(builder.Configuration, builder.Environment);
 // PLAN-37: HR.Core uses its in-process policy orchestrator and code generator; it registers no HTTP client to itself.
 builder.Services.AddOrganizationBranding(builder.Configuration);
 builder.Services.AddHrServiceHealthChecks<HRCoreDbContext>(builder.Configuration);

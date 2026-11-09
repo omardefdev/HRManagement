@@ -42,7 +42,9 @@ public class CodeGenerationConcurrencyTests : IAsyncLifetime
         Skip.IfNot(Enabled, "Set RUN_TESTCONTAINERS=true");
 
         await using var db = await MigrateHRCoreAsync();
-        await CodeGenerationSeeder.SeedAsync(db);
+        // PLAN-48: the national catalog is an explicit seed (production seeds it in the national session).
+        using (TenantStampScope.AllowExplicitTenant())
+            await CodeGenerationSeeder.SeedAsync(db);
         TenantIdFlow.Set(TenantId);
 
         var codes = new ConcurrentBag<string>();

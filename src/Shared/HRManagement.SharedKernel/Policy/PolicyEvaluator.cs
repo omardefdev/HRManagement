@@ -46,16 +46,21 @@ public static class PolicyEvaluator
         foreach (var rule in matched)
         {
             ruleIds.Add(rule.Id ?? rule.Name ?? $"P{rule.Priority}");
-            explanations.Add($"قاعدة {rule.Name ?? rule.Id ?? rule.Priority.ToString()}: تطابق");
+            explanations.Add($"قاعدة {rule.Name ?? rule.Id ?? rule.Priority.ToString(System.Globalization.CultureInfo.InvariantCulture)}: تطابق");
+        }
 
-            foreach (var effect in rule.Then)
+        // PLAN-48 (D-POL-4): the national ceiling drops an agency effect that would weaken the national decision, and says so.
+        var (kept, dropped) = PolicyCeiling.Apply(matched);
+        foreach (var drop in dropped)
+            explanations.Add($"قاعدة {drop.RuleId}: {PolicyCeiling.ExplanationAr} ({drop.Reason})");
+
+        foreach (var (_, effect) in kept)
+        {
+            effects.Add(effect);
+            if (effect.Effect == PolicyEffect.Deny)
             {
-                effects.Add(effect);
-                if (effect.Effect == PolicyEffect.Deny)
-                {
-                    denied = true;
-                    denyReason = effect.Params?.GetValueOrDefault("reason") ?? "مرفوض بالسياسة";
-                }
+                denied = true;
+                denyReason = effect.Params?.GetValueOrDefault("reason") ?? "مرفوض بالسياسة";
             }
         }
 
@@ -101,8 +106,10 @@ public static class PolicyEvaluator
         if (tenant is null)
             return national!;
 
+        // PLAN-48: an override's rules are the agency's, whatever the snapshot said, so the ceiling bounds them.
+        var agencyRules = tenant.Rules.Select(AsAgency).ToList();
         if (national is null)
-            return tenant;
+            return tenant with { Rules = agencyRules };
 
         return new PolicyVersionSnapshot
         {
@@ -111,9 +118,22 @@ public static class PolicyEvaluator
             TenantId = tenant.TenantId,
             VersionNumber = tenant.VersionNumber,
             FactsSchema = tenant.FactsSchema ?? national.FactsSchema,
-            Rules = national.Rules.Concat(tenant.Rules).OrderBy(r => r.Priority).ToList(),
+            Rules = national.Rules.Concat(agencyRules).OrderBy(r => r.Priority).ToList(),
             InvalidRuleKeys = national.InvalidRuleKeys.Concat(tenant.InvalidRuleKeys).ToList(),
             NextEffectiveFrom = Earliest(national.NextEffectiveFrom, tenant.NextEffectiveFrom)
         };
     }
+
+    private static PolicyRuleDefinition AsAgency(PolicyRuleDefinition rule) =>
+        rule.Origin == PolicyRuleOrigin.Agency
+            ? rule
+            : new PolicyRuleDefinition
+            {
+                Id = rule.Id,
+                Name = rule.Name,
+                When = rule.When,
+                Then = rule.Then,
+                Priority = rule.Priority,
+                Origin = PolicyRuleOrigin.Agency
+            };
 }

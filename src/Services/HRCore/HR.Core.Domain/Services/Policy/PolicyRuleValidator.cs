@@ -27,6 +27,18 @@ public sealed class PolicyRuleValidationContext
     public IReadOnlySet<string> CodePolicyKeys { get; init; } = new HashSet<string>();
 
     public IPolicyDomainCapabilities Capabilities { get; init; } = AllowAllPolicyDomainCapabilities.Instance;
+
+    /// <summary>
+    /// PLAN-48 (§4, D-TEN-8 = D-POL-4): the rules are an agency's override (a TenantOverride template), so the ceiling applies:
+    /// no SelectCodePolicy, no SetField of a field the national policy sets, no TriggerWorkflow where the national policy has one.
+    /// </summary>
+    public bool IsAgencyOverride { get; init; }
+
+    /// <summary>PLAN-48: the fields the domain's published national version sets with SetField (the ceiling's SetField check).</summary>
+    public IReadOnlySet<string> NationalSetFields { get; init; } = new HashSet<string>(StringComparer.Ordinal);
+
+    /// <summary>PLAN-48: the domain's published national version triggers a workflow (the ceiling's TriggerWorkflow check).</summary>
+    public bool NationalTriggersWorkflow { get; init; }
 }
 
 /// <summary>
@@ -62,7 +74,16 @@ public static class PolicyRuleValidator
 
         var then = PolicyRuleJson.ParseThenStrict(rule.ThenJson, issues);
         if (then is not null)
+        {
             ValidateEffects(then, context, issues);
+
+            // PLAN-48: the ceiling refuses at publish (and when the rule is added) what the evaluator would drop.
+            if (context.IsAgencyOverride)
+            {
+                foreach (var ceiling in PolicyCeiling.CheckAgencyRule(then, context.NationalSetFields, context.NationalTriggersWorkflow))
+                    issues.Add(new(ceiling.Code, ceiling.MessageAr, $"$.then[{ceiling.EffectIndex}].effect"));
+            }
+        }
 
         return issues;
     }

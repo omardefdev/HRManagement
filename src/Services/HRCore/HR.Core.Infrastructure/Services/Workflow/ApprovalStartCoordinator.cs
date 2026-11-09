@@ -197,8 +197,9 @@ public sealed class ApprovalStartCoordinator(
             .ToListAsync(ct);
         foreach (var candidate in candidates.Where(c => c.CurrentStepLevel == 1 && (string.IsNullOrWhiteSpace(c.StepHistoryJson) || c.StepHistoryJson.Trim() == "[]")))
         {
+            // PLAN-48: the national read path (the session tenant's or the national definition).
             var code = await db.WorkflowDefinitions
-                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution)
+                .OwnOrNational(db)
                 .AsNoTracking()
                 .Where(d => d.Id == candidate.DefinitionId)
                 .Select(d => d.Code)

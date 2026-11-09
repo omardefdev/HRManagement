@@ -88,16 +88,16 @@ public sealed partial class ExternalApprovalService(HRCoreDbContext db, IWorkflo
 
         // Rule 6: the latest valid published version of the code; a policy binding has no say here.
         var now = DateTime.UtcNow;
+        // PLAN-48: the national read path, the session tenant's own versions first.
         var definition = await db.WorkflowDefinitions
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution)
+            .OwnOrNational(tenantId)
             .AsNoTracking()
             .Where(d => d.Code == workflowCode
                 && d.DomainEntityType == type.EntityType
                 && d.IsPublished
                 && (d.ValidFrom == null || d.ValidFrom <= now)
-                && (d.ValidTo == null || d.ValidTo >= now)
-                && (d.TenantId == tenantId || d.TenantId == TenantDefaults.DefaultTenantId))
-            .OrderByDescending(d => d.TenantId == tenantId)
+                && (d.ValidTo == null || d.ValidTo >= now))
+            .OwnFirst(tenantId)
             .ThenByDescending(d => d.Version)
             .FirstOrDefaultAsync(ct);
         // PLAN-46 (review): a version that breaks its type's guardrail (a tenant's own, or one older than the guardrail) never starts a

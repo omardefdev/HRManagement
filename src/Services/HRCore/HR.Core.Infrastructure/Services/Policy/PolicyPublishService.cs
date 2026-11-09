@@ -4,6 +4,7 @@ using HR.Core.Infrastructure.Data;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.ProdPolicy;
 using HRManagement.SharedKernel.Policy;
+using HRManagement.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -20,7 +21,9 @@ public enum PolicyPublishOutcome
     /// <summary>The publisher is not an approver, is not identified, or edited the draft (403).</summary>
     FourEyes,
     /// <summary>Another publication of the same template won the race (409).</summary>
-    Conflict
+    Conflict,
+    /// <summary>PLAN-48: a national version published from an agency's session (403): national settings are read-only there.</summary>
+    Forbidden
 }
 
 /// <summary>Who publishes: the user id from the token and the principal the approver policy is checked against.</summary>
@@ -79,7 +82,9 @@ public sealed class PolicyPublishService(
     {
         var version = await LoadAsync(command.VersionId, ct);
         if (version is null)
-            return new(PolicyPublishOutcome.NotFound, "الإصدار غير موجود");
+            return await IsInheritedNationalAsync(command.VersionId, ct)
+                ? new(PolicyPublishOutcome.Forbidden, NationalSharedWriteRefusedException.MessageAr)
+                : new(PolicyPublishOutcome.NotFound, "الإصدار غير موجود");
         if (version.Status != PolicyVersionStatus.Draft)
             return new(PolicyPublishOutcome.NotDraft, "يمكن نشر المسودات فقط");
 
@@ -134,6 +139,15 @@ public sealed class PolicyPublishService(
         var version = await LoadAsync(versionId, ct);
         if (version is null)
             return new(PolicyPublishOutcome.NotFound, "الإصدار غير موجود");
+        return await PublishSystemSeedAsync(version, changeSetId, changedRuleKeys, ct);
+    }
+
+    /// <summary>
+    /// PLAN-48 (P-6): the same, for a draft the caller holds (with its template and rules): an agency overlay pack, which the
+    /// provisioning writes in the agency's tenant from another session. The validator applies the ceiling to an override.
+    /// </summary>
+    public async Task<PolicyPublishResult> PublishSystemSeedAsync(PolicyTemplateVersion version, string changeSetId, IReadOnlySet<string> changedRuleKeys, CancellationToken ct = default)
+    {
         if (version.Status != PolicyVersionStatus.Draft)
             return new(PolicyPublishOutcome.NotDraft, "يمكن نشر المسودات فقط");
 
@@ -176,8 +190,10 @@ public sealed class PolicyPublishService(
             && configuration?.GetValue<bool>(AllowRetroactiveKey) != true)
             return PolicyPublishResult.Invalid(RetroactiveMessage, "$.effectiveFrom");
 
+        // PLAN-48: an override's rules are checked against the agency ceiling too (D-TEN-8 = D-POL-4).
         var issues = await validation.ValidateVersionAsync(
             version.PolicyTemplate.Domain,
+            version.PolicyTemplate.Scope,
             version.Rules
                 .Where(r => onlyRuleKeys is null || (r.RuleKey is not null && onlyRuleKeys.Contains(r.RuleKey)))
                 .OrderBy(r => r.Priority).ThenBy(r => r.RuleKey, StringComparer.Ordinal)
@@ -237,4 +253,9 @@ public sealed class PolicyPublishService(
             .Include(v => v.PolicyTemplate)
             .Include(v => v.Rules)
             .FirstOrDefaultAsync(v => v.Id == versionId, ct);
+
+    /// <summary>PLAN-48: a national version the agency's session reads (inherited) but never publishes.</summary>
+    private async Task<bool> IsInheritedNationalAsync(Guid versionId, CancellationToken ct) =>
+        !NationalTenant.IsNational(db.CurrentTenantId)
+        && await db.ReadablePolicyVersions().AnyAsync(v => v.Id == versionId && v.TenantId == NationalTenant.Id, ct);
 }
