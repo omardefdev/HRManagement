@@ -56,3 +56,21 @@ await bootstrap.BootstrapFromObservedCodesAsync(tenantId, CodeEntityKind.AssetTa
 - [COD_001_CODE_GENERATION.md](COD_001_CODE_GENERATION.md)
 - [MIG_002_CODE_MAPS.md](MIG_002_CODE_MAPS.md)
 - [MIG_003_READINESS_CHECKLIST.md](MIG_003_READINESS_CHECKLIST.md)
+
+## One scope key, one bootstrap (PLAN-48)
+
+`CodSequenceBootstrapService` and the generator build a counter's scope key in one place, `CodeScopeKey` (tenant, kind, policy
+key, scope values, year), and parse issued numbers with one parser, `CodeFormat` (the formats in force: the tenant's overlay
+first, then the national template; the national catalog when nothing is published yet).
+
+- `BootstrapHRCoreAsync` is the reseeding of one tenant (`CodeCounterReseeder.ReseedTenantAsync`): it reads `CodeIssuances` and
+  the HR.Core number columns (positions with their unit and grade, org units with the parent's code, the job catalog,
+  requisitions, offers, citizen applications, competitions, establishment change requests).
+- `BootstrapFromObservedCodesAsync` takes the numbers a remote service exports, for one tenant and kind.
+- A counter is raised to the highest issued number of its scope and **never lowered** (`INSERT ... ON CONFLICT DO UPDATE SET
+  LastValue = GREATEST(...)`). A number no format in force can parse is reported (`Unparsed`), never guessed.
+- `CodeCounterReseeder.ReseedAllTenantsAsync` walks every tenant from the `Tenants` platform table, each in its own scope with
+  `TenantIdFlow` set before the connection opens (it never trusts a bypass to see other tenants). It runs once after
+  `ten048-code-policy-upgrade-v1`, and after the demo and acceptance seeds (they write numbers themselves).
+- Numbers issued without their prefix before PLAN-48 are reported by `scripts/ten048-find-prefixless-codes.ps1` and never
+  rewritten (D-TEN-4).

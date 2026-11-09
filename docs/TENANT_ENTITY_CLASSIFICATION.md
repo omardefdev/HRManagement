@@ -14,6 +14,12 @@
 | **tenant-owned** | صف يخص جهة واحدة (`BaseEntity` غير global) | نعم | نعم | `Employee`, `Contract`, `PayrollRun`, `ExportJob`, … |
 | **tenant-scoped (non-BaseEntity)** | يحمل `TenantId` دون وراثة `BaseEntity` | نعم (صريح) | نعم | `IdempotencyRecord`, `OrgUnitSnapshot` |
 | **infra (MassTransit)** | جداول البنية التحتية للرسائل | لا | لا | `InboxState`, `OutboxState`, `OutboxMessage` |
+| **national shared** (PLAN-48) | جدول tenant-owned تقرأ كلُّ جهة صفوفَ المستأجر الوطني منه (`PLATFORM`)، ولا يكتبها إلا المستأجر الوطني. الكيان يحمل `INationalShared`، والقائمة واحدة: `NationalTenant.TableNames` | نعم، والقراءة الوطنية عبر `OwnOrNational` و`NationalOnly` فقط | `tenant_isolation` للكتابة، وسياسة `national_shared_read` (PERMISSIVE FOR SELECT) للقراءة | `PolicyTemplates`, `PolicyTemplateVersions`, `PolicyRules`, `PolicyFactsSchemas`, `PolicyWorkflowBindings`, `WorkflowDefinitions`, `CodePolicyTemplates`, `CodePolicyVersions`, `CodePolicyRules`, `ReferenceCatalogEntries` |
+
+**القاعدة الوطنية المشتركة (PLAN-48، D-TEN-2):**
+- لا يدخل القائمةَ جدولٌ فيه بيانات شخصية. واختبار `NationalSharedArchitectureTests` يُثبت أن القوائم الثلاث واحدة (القائمة، والكيانات المعلّمة في نموذج EF، وجداول السكربت)، وأن لا قراءة لجدول وطني عبر تجاوز عام.
+- الكتابة: `NationalSharedWriteGuard` يرفض إضافة صف وطني أو تعديله أو حذفه من جلسة غير وطنية خارج نطاق بذر صريح (`TenantStampScope`)، بـ 403 (`national-shared-write`). وتحت RLS المفروض ترفض القاعدة الكتابة نفسها.
+- في الجداول ذات النطاق: «وطني» في طبقة التطبيق هو `Scope = National` فقط (D-TEN-1)؛ فتجاوزات الجهة التجريبية داخل `PLATFORM` لا تُقرأ في الجهات.
 
 ## قرارات التصميم
 

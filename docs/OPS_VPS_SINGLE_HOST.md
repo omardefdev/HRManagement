@@ -295,6 +295,10 @@ Keycloak يستورد realm العرض في أول إقلاع فقط، فلا ي
 | PLAN-47: جولة فحص الخادم: الإصداران 2 و3 من `Analytics.ETL` (نسخة من v1، ثم تراجع إليها)، والقواعد كما كانت | تُترك (التراجع إصدار جديد بالتصميم) |
 | PLAN-47: `/opt/hrm/backups/pre-plan47-20261108T144522Z` (700، الملفات 600) | حذفه بعد انتهاء الحاجة |
 | PLAN-47 بعد الدمج: الإصدار `61816ed7dda2` (current-tag؛ previous-tag `ae95ec2fec82`)، فيه التحقق من رمز antiforgery على عمليات الكتابة الثماني في `api/policies`؛ بلا ترحيل ولا تغيير إعدادات | `scripts/vps/deploy.ps1 -Rollback` (بلا SQL) |
+| PLAN-48: الإصدار `8abd5aa7fe93` (current-tag؛ previous-tag `61816ed7dda2`)، وسياسة `national_shared_read` على الجداول الوطنية العشرة (يطبّقها bootstrap)، بلا ترحيل EF | انشر إلى الأمام. وللتراجع: ارفع عدّاد `AssetTag` المشترك بنص SQL في قسم PLAN-48 ثم `scripts/vps/deploy.ps1 -Rollback`؛ والسياسة تبقى ولا تضر الإصدار السابق |
+| PLAN-48: `ten048-code-policy-upgrade-v1` في `SeedPackApplications`: v1 من `FundedPosition` و`RecruitmentRequisition` مؤرشفان وv2 منشوران، وعدّاد طلب الشاغر الجديد `{PLATFORM}\|RecruitmentRequisition\|2026` (السنة 0) من 15 | لا تراجع عن الترقية: الإصدار السابق يقرأ v2 بالمفاتيح نفسها (القسم «الإعدادات الوطنية لكل جهة والترقيم») |
+| PLAN-48: من فحص الخادم: طلبا الشاغر `REQ-2026-00016` و`REQ-2026-00017` (جولتا PLAN-43 وPLAN-44) | لا شيء |
+| PLAN-48: `/opt/hrm/backups/pre-plan48-20261109T194711Z` (700، الملفات 600) | حذفه بعد انتهاء الحاجة |
 
 ## 11. التسليم للمالك
 
@@ -607,3 +611,22 @@ DROP FUNCTION IF EXISTS public.policy_versions_guard();
 **نشر 2026-11-08.** بناء واحد لـ `ae95ec2fec82` على الخادم (نحو 22 دقيقة؛ انقطعت جلسة ssh المحلية عند 1245 ث، وأكمل الخادم البناء والدفع: 17 من 17). النشر 156 ث (السحب 2، التشغيل 91، الإقلاع 42، المطابقة 10، الصحة 12)، وأنشأ `keycloak-reconcile` الدورين. فحص الدخان 50 نجاحاً و0 فشل وتحذير واحد. البصمة: الإصدارات العشرون السابقة لم تتغير.
 
 **نشر 2026-11-09 (بعد دمج PR 45).** بناء `61816ed7dda2` على الخادم (17 من 17). فشلت المحاولة الأولى عند `keycloak-reconcile`: أعاد النشر إنشاء حاوية PostgreSQL فأُغلقت اتصالات Keycloak المجمّعة (SQLSTATE 57P01)، وفشل أول استعلام له («could not read the clients»)، وبقيت حاويات الويب في حالة Created. أعيد تشغيل النشر نفسه مباشرة فنجح: السحب 2، التشغيل 70، الإقلاع 37، المطابقة 8، الصحة 12؛ الدخان 50 نجاحاً و0 فشل وتحذير واحد. التوقف نحو 4 دقائق (12:22 إلى 12:25:40Z). **إن فشلت المطابقة بهذا الخطأ بعد إعادة إنشاء PostgreSQL فأعد النشر نفسه؛ لا حاجة إلى التراجع.**
+
+## الإعدادات الوطنية لكل جهة والترقيم (PLAN-48)
+
+- **ما تغيّر:** سياسة `national_shared_read` (قراءة فقط) على الجداول الوطنية العشرة، تطبّقها `deploy/bootstrap/bootstrap.sh` مع `hr-core` في كل نشر (`scripts/sql/ten048-national-shared-read.sql`، وكتلة فحصها تفشل النشر إن نقصت أو زادت). والخادم يتصل بـ HR.Core بحساب المسؤول، فلا تُفرض RLS عليه (OPS-D).
+- **الترقيم عند أول إقلاع:** `CodePolicyUpgrades` مرة واحدة (`ten048-code-policy-upgrade-v1` في `SeedPackApplications`، تحت قفل استشاري `4800480048`): أُرشف v1 من `FundedPosition` و`RecruitmentRequisition` ونُشر v2، ثم أُعيد بذر عدّادات كل مستأجر من الأرقام المصدَرة (`GREATEST`: لا يُخفض عدّاد، ولا يُخمَّن رقم لا يُحلَّل). لا يُعاد كتابة رقم صدر.
+- **تقرير الأرقام بلا بادئة (قراءة فقط):** `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ten048-find-prefixless-codes.ps1 -Target Server` من جهاز المالك، والتقرير في `artifacts/ten048/`.
+- **النسخة:** `/opt/hrm/backups/pre-plan48-20261109T194711Z` (700، الملفات 600): `pg_dumpall.sql` و`env.backup` و`SHA256SUMS`، و17 سطر `CREATE DATABASE`.
+- **التراجع: انشر إلى الأمام، لا إلى الخلف.** الإصدار السابق يقرأ v2 (فـ v1 مؤرشف) ويبني المفاتيح نفسها للنوعين المصحَّحين، فعدّاداتهما تستمر. لكنه يعيد العدّاد المشترك بين `AH` و`VIP` في `AssetTag`، فرقم `VIP` يصدر بعد الترقية قد يتصادم تحته متى تجاوز عدّاد `VIP` عدّاد `AH`. إن لزم التراجع، فقبل `deploy.ps1 -Rollback` ارفع العدّاد المشترك إلى عدّاد `VIP` بدور `hr_core_migrator` (لا يُخفض شيئاً):
+
+```sql
+UPDATE "CodeSequenceCounters" AS shared
+SET "LastValue" = GREATEST(shared."LastValue", vip."LastValue"), "UpdatedAt" = now()
+FROM "CodeSequenceCounters" AS vip
+WHERE vip."EntityKind" = 'AssetTag' AND vip."ScopeKey" LIKE '%|AssetTag|ASSET-PRIVILEGED|%'
+  AND shared."TenantId" = vip."TenantId" AND shared."EntityKind" = 'AssetTag' AND shared."Year" = vip."Year"
+  AND shared."ScopeKey" = replace(vip."ScopeKey", '|AssetTag|ASSET-PRIVILEGED|', '|AssetTag|');
+```
+
+**نشر 2026-11-09 (PLAN-48).** بناء واحد لـ `8abd5aa7fe93` على الخادم منفصلاً عن جلسة ssh (`setsid nohup` وملف `.done`): رفع 31.9 MB في 59 ث، والبناء 1244 ث، والدفع 16 ث، و17 من 17 صورة. النشر من المحاولة الأولى من 22:46:23 إلى 22:48:31Z (نحو دقيقتين حتى الصحة الكاملة). طبّق bootstrap السياسة وتحقق منها (`hr-core national_shared_read applied and verified (TEN-048)`)، وسجّل الإقلاع الترقية: عدّاد واحد رُفع، و621 رقماً لا يُحلَّل بالصيغ الوطنية (منها `FP-####` و`CA-2026-####`) سُجّلت ولم تُخمَّن. الدخان 50 نجاحاً و0 فشل وتحذير واحد (فحص المنافذ من جهة العميل). الأرقام بلا بادئة بعد النشر: 0.
