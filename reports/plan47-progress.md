@@ -157,3 +157,11 @@ Merged by agent on owner instruction (UTC): 2026-11-09T11:36:47Z
 - WAITING-CI total: 39 min 21 s + 49 min 37 s + 42 min 2 s + 8 min 42 s = 2 h 19 min 42 s.
 - Wall clock: Started 2026-11-08T12:06:33Z, merged 2026-11-09T11:36:47Z = 23 h 30 min, including the host's overnight sleep during local CI (its InMemory step took 14 h 5 min). Work before the PR: about 4 h 13 min (P0..P8 to the PR).
 - Post-merge run on main: 42610436415 (https://github.com/omardefdev/HRManagement/actions/runs/42610436415), push of 61816ed7, success at 2026-11-09T11:39:48Z: Gitleaks and Dedupe post-merge run passed; the other jobs were skipped by the dedupe (the PR run 42596883933 covered the same tree).
+
+## Server deploy after the merge (owner's "Yes, deploy", 2026-11-09)
+
+- Build of 61816ed7dda2 on the host: 17 of 17 tagged in the loopback registry. Schema unchanged since ae95ec2fec82 (only PoliciesController among shipped files), so no new backup; undo is scripts/vps/deploy.ps1 -Rollback to ae95ec2fec82, no SQL.
+- Deploy attempt 1 (12:22:01Z): pull, up, bootstrap 37 s passed; keycloak-reconcile exit 1 ("could not read the clients of hrmanagement"). Cause: the deploy recreated hrm-postgresql, which terminated Keycloak's pooled connections (SQLSTATE 57P01); the reconcile's first query used a dead one. The web containers stayed Created: the demo answered 502.
+- Deploy attempt 2 (12:23:53Z, same command): pull 2, up 70, bootstrap 37, keycloak-reconcile 8, healthy 12; smoke 50 pass, 0 fail, 1 warn. current-tag 61816ed7dda2, previous-tag ae95ec2fec82; 22 containers, 0 unhealthy; / 302; hr-core-web runs hr-core-web:61816ed7dda2. Demo downtime about 4 min (12:22 to 12:25:40Z).
+- Not verified on the server: a live POST to api/policies without the token answering 400. A curl sign-in as e2e-policy-author got through Keycloak and the gateway's signin-oidc, but the session did not hold for the service's own OIDC round, so the probe stopped there. The behaviour rests on the PR's checks of the same commit (CodeQL, AC-POL-47/AC-10/AC-MSG-40c with the token clients) and Pol047FourEyesTests.
+- OPS_VPS_SINGLE_HOST.md: a change row for 61816ed7dda2 and the deploy paragraph, with the reconcile retry.
