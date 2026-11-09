@@ -1,76 +1,69 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using HR.Core.Domain.Entities.CodeGeneration;
+using HR.Core.Infrastructure.Services.CodeGeneration;
+using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.CodeGeneration;
 using HRManagement.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Infrastructure.Data;
 
+/// <summary>A national code policy as COD-001 seeds it (PLAN-48: one catalog for the seeder, the upgrade and the bootstrap).</summary>
+public sealed record NationalCodePolicyDefinition(
+    CodeEntityKind Kind,
+    string Name,
+    string FallbackPrefix,
+    CodeSequenceReset Reset,
+    string SegmentsJson,
+    string? PolicyKey = null)
+{
+    public CodeFormat Format => CodeFormat.FromJson(SegmentsJson, Reset);
+}
+
 public static class CodeGenerationSeeder
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        PropertyNameCaseInsensitive = true,
-        Converters = { new JsonStringEnumConverter() }
-    };
+    /// <summary>D-TEN-6: one counter per (unit, grade), without the budget year; a carried-over position keeps its code.</summary>
+    public const string FundedPositionJson =
+        """
+        [
+          {"kind":"Field","value":"OrgUnitCode"},
+          {"kind":"Literal","value":"-"},
+          {"kind":"Field","value":"GradeCode"},
+          {"kind":"Literal","value":"-"},
+          {"kind":"Sequence","padWidth":3,"scopeFields":["OrgUnitCode","GradeCode"]}
+        ]
+        """;
 
-    public static async Task SeedAsync(HRCoreDbContext db, CancellationToken ct = default)
-    {
-        if (!await db.CodePolicyTemplates.AnyAsync(ct))
-            await SeedNationalDefaultsAsync(db, ct);
+    /// <summary>D-TEN-5: REQ-{BudgetYear}-#####, one counter per budget year.</summary>
+    public const string RecruitmentRequisitionJson =
+        """
+        [
+          {"kind":"Literal","value":"REQ-"},
+          {"kind":"Field","value":"BudgetYear"},
+          {"kind":"Literal","value":"-"},
+          {"kind":"Sequence","padWidth":5,"scopeFields":["BudgetYear"]}
+        ]
+        """;
 
-        await SeedPrivilegedAssetTagIfMissingAsync(db, ct);
-        await SeedInventorySkuIfMissingAsync(db, ct);
-        await SeedJobCatalogEntryIfMissingAsync(db, ct);
-        await SeedAdministrativeDecisionIfMissingAsync(db, ct);
-        await SeedRecruitmentCompetitionIfMissingAsync(db, ct);
-    }
-
-    /// <summary>HCM-031 (PLAN-31): CMP-YYYY-00001 for recruitment competitions.</summary>
-    private static async Task SeedRecruitmentCompetitionIfMissingAsync(HRCoreDbContext db, CancellationToken ct)
-    {
-        if (await db.CodePolicyTemplates.AnyAsync(t => t.EntityKind == CodeEntityKind.RecruitmentCompetition, ct))
-            return;
-
-        await SeedPolicyAsync(db, CodeEntityKind.RecruitmentCompetition, "ترميز مسابقات التوظيف", "CMP",
-            CodeSequenceReset.Yearly,
-            """
-            [
-              {"kind":"Literal","value":"CMP-"},
-              {"kind":"Date","value":"YYYY"},
-              {"kind":"Literal","value":"-"},
-              {"kind":"Sequence","padWidth":5}
-            ]
-            """, ct);
-    }
-
-    private static async Task SeedNationalDefaultsAsync(HRCoreDbContext db, CancellationToken ct)
-    {
-        await SeedPolicyAsync(db, CodeEntityKind.OrgUnit, "ترميز الوحدات التنظيمية", "OU",
-            CodeSequenceReset.PerScope,
+    /// <summary>
+    /// COD-001's national code policies, one per kind (and one keyed AssetTag), as a new database gets them. PLAN-48 corrected
+    /// three (G-COD-03): FundedPosition keeps one counter per (unit, grade) without the budget year (D-TEN-6); RecruitmentRequisition
+    /// shows the budget year with one counter per budget year (D-TEN-5); CostCenter is derived from the unit, with no counter
+    /// (D-TEN-7). Existing databases reach the same versions through <c>CodePolicyUpgrades</c>. Every entry passes
+    /// <see cref="CodePolicyValidator"/>.
+    /// </summary>
+    public static readonly IReadOnlyList<NationalCodePolicyDefinition> NationalPolicies =
+    [
+        new(CodeEntityKind.OrgUnit, "ترميز الوحدات التنظيمية", "OU", CodeSequenceReset.PerScope,
             """
             [
               {"kind":"Field","value":"ParentCode"},
               {"kind":"Literal","value":"."},
               {"kind":"Sequence","padWidth":2,"scopeFields":["ParentCode"]}
             ]
-            """, ct);
-
-        await SeedPolicyAsync(db, CodeEntityKind.FundedPosition, "ترميز المناصب الممولة", "POS",
-            CodeSequenceReset.PerScope,
-            """
-            [
-              {"kind":"Field","value":"OrgUnitCode"},
-              {"kind":"Literal","value":"-"},
-              {"kind":"Field","value":"GradeCode"},
-              {"kind":"Literal","value":"-"},
-              {"kind":"Sequence","padWidth":3,"scopeFields":["OrgUnitCode","GradeCode","BudgetYear"]}
-            ]
-            """, ct);
-
-        await SeedPolicyAsync(db, CodeEntityKind.AssetTag, "رقم العهدة", "AH",
-            CodeSequenceReset.Yearly,
+            """),
+        new(CodeEntityKind.FundedPosition, "ترميز المناصب الممولة", "POS", CodeSequenceReset.PerScope,
+            FundedPositionJson),
+        new(CodeEntityKind.AssetTag, "رقم العهدة", "AH", CodeSequenceReset.Yearly,
             """
             [
               {"kind":"Literal","value":"AH-"},
@@ -78,10 +71,8 @@ public static class CodeGenerationSeeder
               {"kind":"Literal","value":"-"},
               {"kind":"Sequence","padWidth":6}
             ]
-            """, ct);
-
-        await SeedPolicyAsync(db, CodeEntityKind.ItAssetTag, "رقم أصل IT", "IT",
-            CodeSequenceReset.Yearly,
+            """),
+        new(CodeEntityKind.ItAssetTag, "رقم أصل IT", "IT", CodeSequenceReset.Yearly,
             """
             [
               {"kind":"Literal","value":"IT-"},
@@ -89,10 +80,8 @@ public static class CodeGenerationSeeder
               {"kind":"Literal","value":"-"},
               {"kind":"Sequence","padWidth":6}
             ]
-            """, ct);
-
-        await SeedPolicyAsync(db, CodeEntityKind.ArchiveReference, "مرجع الأرشيف", "ARC",
-            CodeSequenceReset.Yearly,
+            """),
+        new(CodeEntityKind.ArchiveReference, "مرجع الأرشيف", "ARC", CodeSequenceReset.Yearly,
             """
             [
               {"kind":"Literal","value":"ARC-"},
@@ -102,10 +91,8 @@ public static class CodeGenerationSeeder
               {"kind":"Literal","value":"-"},
               {"kind":"Sequence","padWidth":5,"scopeFields":["EntityPrefix"]}
             ]
-            """, ct);
-
-        await SeedPolicyAsync(db, CodeEntityKind.LegalCase, "رقم القضية", "LC",
-            CodeSequenceReset.Yearly,
+            """),
+        new(CodeEntityKind.LegalCase, "رقم القضية", "LC", CodeSequenceReset.Yearly,
             """
             [
               {"kind":"Literal","value":"LC-"},
@@ -113,10 +100,8 @@ public static class CodeGenerationSeeder
               {"kind":"Literal","value":"-"},
               {"kind":"Sequence","padWidth":5}
             ]
-            """, ct);
-
-        await SeedPolicyAsync(db, CodeEntityKind.ServiceTransaction, "مرجع معاملة خدمة", "SRV",
-            CodeSequenceReset.Yearly,
+            """),
+        new(CodeEntityKind.ServiceTransaction, "مرجع معاملة خدمة", "SRV", CodeSequenceReset.Yearly,
             """
             [
               {"kind":"Literal","value":"SRV-"},
@@ -126,10 +111,8 @@ public static class CodeGenerationSeeder
               {"kind":"Literal","value":"-"},
               {"kind":"Sequence","padWidth":5,"scopeFields":["TypeCode"]}
             ]
-            """, ct);
-
-        await SeedPolicyAsync(db, CodeEntityKind.CitizenReference, "مرجع طلب مواطن", "CIT",
-            CodeSequenceReset.Yearly,
+            """),
+        new(CodeEntityKind.CitizenReference, "مرجع طلب مواطن", "CIT", CodeSequenceReset.Yearly,
             """
             [
               {"kind":"Literal","value":"CIT-"},
@@ -137,10 +120,8 @@ public static class CodeGenerationSeeder
               {"kind":"Literal","value":"-"},
               {"kind":"Sequence","padWidth":6}
             ]
-            """, ct);
-
-        await SeedPolicyAsync(db, CodeEntityKind.IdCardSerial, "الرقم التسلسلي للبطاقة", "ID",
-            CodeSequenceReset.Yearly,
+            """),
+        new(CodeEntityKind.IdCardSerial, "الرقم التسلسلي للبطاقة", "ID", CodeSequenceReset.Yearly,
             """
             [
               {"kind":"Literal","value":"ID-"},
@@ -148,18 +129,14 @@ public static class CodeGenerationSeeder
               {"kind":"Literal","value":"-"},
               {"kind":"Sequence","padWidth":7}
             ]
-            """, ct);
-
-        await SeedPolicyAsync(db, CodeEntityKind.CostCenter, "مركز التكلفة", "CC",
-            CodeSequenceReset.Never,
+            """),
+        new(CodeEntityKind.CostCenter, "مركز التكلفة", "CC", CodeSequenceReset.Never,
             """
             [
               {"kind":"Field","value":"OrgUnitCode"}
             ]
-            """, ct);
-
-        await SeedPolicyAsync(db, CodeEntityKind.InventorySku, "رمز المخزون", "SKU",
-            CodeSequenceReset.Yearly,
+            """),
+        new(CodeEntityKind.InventorySku, "رمز المخزون", "SKU", CodeSequenceReset.Yearly,
             """
             [
               {"kind":"Literal","value":"SKU-"},
@@ -167,21 +144,10 @@ public static class CodeGenerationSeeder
               {"kind":"Literal","value":"-"},
               {"kind":"Sequence","padWidth":6}
             ]
-            """, ct);
-
-        await SeedPolicyAsync(db, CodeEntityKind.RecruitmentRequisition, "ترميز طلبات الشاغر", "REQ",
-            CodeSequenceReset.Yearly,
-            """
-            [
-              {"kind":"Literal","value":"REQ-"},
-              {"kind":"Date","value":"YYYY"},
-              {"kind":"Literal","value":"-"},
-              {"kind":"Sequence","padWidth":5,"scopeFields":["BudgetYear"]}
-            ]
-            """, ct);
-
-        await SeedPolicyAsync(db, CodeEntityKind.OfferLetter, "ترميز خطابات العرض", "OFF",
-            CodeSequenceReset.Yearly,
+            """),
+        new(CodeEntityKind.RecruitmentRequisition, "ترميز طلبات الشاغر", "REQ", CodeSequenceReset.PerScope,
+            RecruitmentRequisitionJson),
+        new(CodeEntityKind.OfferLetter, "ترميز خطابات العرض", "OFF", CodeSequenceReset.Yearly,
             """
             [
               {"kind":"Literal","value":"OFF-"},
@@ -189,10 +155,8 @@ public static class CodeGenerationSeeder
               {"kind":"Literal","value":"-"},
               {"kind":"Sequence","padWidth":5}
             ]
-            """, ct);
-
-        await SeedPolicyAsync(db, CodeEntityKind.EstablishmentChangeRequest, "ترميز طلبات تغيير الملاك", "EST",
-            CodeSequenceReset.Yearly,
+            """),
+        new(CodeEntityKind.EstablishmentChangeRequest, "ترميز طلبات تغيير الملاك", "EST", CodeSequenceReset.Yearly,
             """
             [
               {"kind":"Literal","value":"EST-"},
@@ -200,10 +164,8 @@ public static class CodeGenerationSeeder
               {"kind":"Literal","value":"-"},
               {"kind":"Sequence","padWidth":5}
             ]
-            """, ct);
-
-        await SeedPolicyAsync(db, CodeEntityKind.JobCatalogEntry, "ترميز دليل الوظائف", "JC",
-            CodeSequenceReset.PerScope,
+            """),
+        new(CodeEntityKind.JobCatalogEntry, "ترميز دليل الوظائف", "JC", CodeSequenceReset.PerScope,
             """
             [
               {"kind":"Field","value":"GradeCode"},
@@ -212,54 +174,9 @@ public static class CodeGenerationSeeder
               {"kind":"Literal","value":"-"},
               {"kind":"Sequence","padWidth":3,"scopeFields":["GradeCode","JobClassificationCode"]}
             ]
-            """, ct);
-
-        await db.SaveChangesAsync(ct);
-    }
-
-    private static async Task SeedPrivilegedAssetTagIfMissingAsync(HRCoreDbContext db, CancellationToken ct)
-    {
-        if (await db.CodePolicyTemplates.AnyAsync(t => t.PolicyKey == "ASSET-PRIVILEGED", ct))
-            return;
-
-        await SeedPolicyAsync(db, CodeEntityKind.AssetTag, "رقم عهدة مميزة", "VIP",
-            CodeSequenceReset.Yearly,
-            """
-            [
-              {"kind":"Literal","value":"VIP-"},
-              {"kind":"Date","value":"YYYY"},
-              {"kind":"Literal","value":"-"},
-              {"kind":"Sequence","padWidth":6}
-            ]
-            """, ct, policyKey: "ASSET-PRIVILEGED");
-    }
-
-    private static async Task SeedJobCatalogEntryIfMissingAsync(HRCoreDbContext db, CancellationToken ct)
-    {
-        if (await db.CodePolicyTemplates.AnyAsync(t => t.EntityKind == CodeEntityKind.JobCatalogEntry, ct))
-            return;
-
-        await SeedPolicyAsync(db, CodeEntityKind.JobCatalogEntry, "ترميز دليل الوظائف", "JC",
-            CodeSequenceReset.PerScope,
-            """
-            [
-              {"kind":"Field","value":"GradeCode"},
-              {"kind":"Literal","value":"-"},
-              {"kind":"Field","value":"JobClassificationCode"},
-              {"kind":"Literal","value":"-"},
-              {"kind":"Sequence","padWidth":3,"scopeFields":["GradeCode","JobClassificationCode"]}
-            ]
-            """, ct);
-    }
-
-    /// <summary>FUN-029 (I3): DEC-{TypeCode}-YYYY-00001 for HR.Contracts administrative decisions.</summary>
-    private static async Task SeedAdministrativeDecisionIfMissingAsync(HRCoreDbContext db, CancellationToken ct)
-    {
-        if (await db.CodePolicyTemplates.AnyAsync(t => t.EntityKind == CodeEntityKind.AdministrativeDecision, ct))
-            return;
-
-        await SeedPolicyAsync(db, CodeEntityKind.AdministrativeDecision, "ترميز القرارات الإدارية", "DEC",
-            CodeSequenceReset.Yearly,
+            """),
+        // FUN-029 (I3): DEC-{TypeCode}-YYYY-00001 for HR.Contracts administrative decisions.
+        new(CodeEntityKind.AdministrativeDecision, "ترميز القرارات الإدارية", "DEC", CodeSequenceReset.Yearly,
             """
             [
               {"kind":"Literal","value":"DEC-"},
@@ -269,61 +186,87 @@ public static class CodeGenerationSeeder
               {"kind":"Literal","value":"-"},
               {"kind":"Sequence","padWidth":5,"scopeFields":["TypeCode"]}
             ]
-            """, ct);
-    }
-
-    private static async Task SeedInventorySkuIfMissingAsync(HRCoreDbContext db, CancellationToken ct)
-    {
-        if (await db.CodePolicyTemplates.AnyAsync(t => t.EntityKind == CodeEntityKind.InventorySku, ct))
-            return;
-
-        await SeedPolicyAsync(db, CodeEntityKind.InventorySku, "رمز المخزون", "SKU",
-            CodeSequenceReset.Yearly,
+            """),
+        // HCM-031 (PLAN-31): CMP-YYYY-00001 for recruitment competitions.
+        new(CodeEntityKind.RecruitmentCompetition, "ترميز مسابقات التوظيف", "CMP", CodeSequenceReset.Yearly,
             """
             [
-              {"kind":"Literal","value":"SKU-"},
+              {"kind":"Literal","value":"CMP-"},
+              {"kind":"Date","value":"YYYY"},
+              {"kind":"Literal","value":"-"},
+              {"kind":"Sequence","padWidth":5}
+            ]
+            """),
+        // The privileged asset tag: its own key, and since PLAN-48 its own counter (the key is part of the scope key).
+        new(CodeEntityKind.AssetTag, "رقم عهدة مميزة", "VIP", CodeSequenceReset.Yearly,
+            """
+            [
+              {"kind":"Literal","value":"VIP-"},
               {"kind":"Date","value":"YYYY"},
               {"kind":"Literal","value":"-"},
               {"kind":"Sequence","padWidth":6}
             ]
-            """, ct);
+            """, PolicyKey: "ASSET-PRIVILEGED")
+    ];
+
+    /// <summary>
+    /// Seeds every national policy of <see cref="NationalPolicies"/> that has no national template of the same kind and key yet
+    /// (a new database gets all of them; an existing one only what was added since). Runs in the national session.
+    /// </summary>
+    public static async Task SeedAsync(HRCoreDbContext db, CancellationToken ct = default)
+    {
+        var existing = await db.CodePolicyTemplates.NationalOnly().AsNoTracking()
+            .Where(t => t.Scope == CodePolicyScope.National)
+            .Select(t => new { t.EntityKind, t.PolicyKey })
+            .ToListAsync(ct);
+
+        var added = false;
+        foreach (var definition in NationalPolicies)
+        {
+            if (existing.Any(e => e.EntityKind == definition.Kind && e.PolicyKey == definition.PolicyKey))
+                continue;
+
+            AddNationalPolicy(db, definition);
+            added = true;
+        }
+
+        if (added)
+        {
+            await db.SaveChangesAsync(ct);
+            CodeGeneratorService.InvalidateSnapshotCache();
+        }
     }
 
-    private static async Task SeedPolicyAsync(
-        HRCoreDbContext db,
-        CodeEntityKind kind,
-        string name,
-        string fallbackPrefix,
-        CodeSequenceReset reset,
-        string segmentsJson,
-        CancellationToken ct,
-        string? policyKey = null)
+    private static void AddNationalPolicy(HRCoreDbContext db, NationalCodePolicyDefinition definition)
     {
+        var issues = CodePolicyValidator.ValidateVersion(definition.Kind, definition.Format);
+        if (issues.Count > 0)
+            throw new InvalidOperationException(
+                $"PLAN-48: the national code policy {definition.Kind} {definition.PolicyKey} fails the validator: " +
+                string.Join(", ", issues.Select(i => i.Code)));
+
         var template = new CodePolicyTemplate
         {
-            TenantId = TenantDefaults.DefaultTenantId,
-            Name = name,
-            EntityKind = kind,
+            TenantId = NationalTenant.Id,
+            Name = definition.Name,
+            EntityKind = definition.Kind,
             Scope = CodePolicyScope.National,
-            PolicyKey = policyKey,
-            Description = policyKey is null
-                ? $"COD-001 national default for {kind}"
-                : $"COD-001 policy key {policyKey} for {kind}"
+            PolicyKey = definition.PolicyKey,
+            Description = definition.PolicyKey is null
+                ? $"COD-001 national default for {definition.Kind}"
+                : $"COD-001 policy key {definition.PolicyKey} for {definition.Kind}"
         };
 
-        var version = new CodePolicyVersion
+        template.Versions.Add(new CodePolicyVersion
         {
-            TenantId = TenantDefaults.DefaultTenantId,
+            TenantId = NationalTenant.Id,
             VersionNumber = 1,
             Status = CodePolicyVersionStatus.Published,
             EffectiveFrom = DateTime.UtcNow.AddYears(-1),
-            SegmentsJson = segmentsJson,
-            SequenceReset = reset,
-            FallbackPrefix = fallbackPrefix
-        };
-
-        template.Versions.Add(version);
+            SegmentsJson = definition.SegmentsJson,
+            SequenceReset = definition.Reset,
+            FallbackPrefix = definition.FallbackPrefix
+        });
         db.CodePolicyTemplates.Add(template);
-        await db.SaveChangesAsync(ct);
     }
 }

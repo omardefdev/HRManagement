@@ -4,6 +4,7 @@ using HR.Core.Domain.Entities.Policy;
 using HR.Core.Domain.Entities.Seeding;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Seeding;
+using HR.Core.Infrastructure.Services.CodeGeneration;
 using HR.Core.Infrastructure.Services.Policy;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
@@ -303,7 +304,12 @@ public static class AgencyPolicySeeder
         SeedPackPathResolver.FindPackFile(Path.Combine(folder, $"{packId}.json"));
 }
 
-/// <summary>Applies tenant-scoped code generation overlay packs.</summary>
+/// <summary>
+/// Applies tenant-scoped code generation overlay packs. PLAN-48 (§2, §3): a policy marked <c>"default": true</c> replaces the
+/// kind's default template in the agency (it is stored with no policy key, so a request without a key gets it); every policy is
+/// validated (<see cref="CodePolicyValidator"/>: one sequence, its scope shown in the number, a yearly reset shows the year, one
+/// default overlay per kind) before anything is saved, and an invalid pack is refused whole.
+/// </summary>
 public static class AgencyCodePolicySeeder
 {
     private sealed class CodeOverlayPack
@@ -319,7 +325,15 @@ public static class AgencyCodePolicySeeder
         public string NameAr { get; set; } = "";
         public string Prefix { get; set; } = "";
         public string SegmentsJson { get; set; } = "[]";
+
+        /// <summary>PLAN-48: the overlay replaces the kind's default template in this agency.</summary>
+        public bool Default { get; set; }
+
+        /// <summary>PLAN-48: the counter reset (Never, Yearly, PerScope); a pack states it, the entity default is Yearly.</summary>
+        public string? SequenceReset { get; set; }
     }
+
+    private static readonly JsonSerializerOptions PackJson = new() { PropertyNameCaseInsensitive = true };
 
     public static async Task ApplyPackAsync(
         HRCoreDbContext db,
@@ -331,43 +345,75 @@ public static class AgencyCodePolicySeeder
         if (path is null || !File.Exists(path))
             return;
 
-        var pack = JsonSerializer.Deserialize<CodeOverlayPack>(await File.ReadAllTextAsync(path, ct))
+        var pack = JsonSerializer.Deserialize<CodeOverlayPack>(await File.ReadAllTextAsync(path, ct), PackJson)
                    ?? throw new InvalidOperationException($"Invalid code overlay: {path}");
 
+        // The agency's overlays, read with an explicit tenant predicate (the caller's ambient tenant may be none).
+        var existing = await db.CodePolicyTemplates.OwnOrNational(tenantId).AsNoTracking()
+            .Where(t => t.TenantId == tenantId && t.Scope == CodePolicyScope.TenantOverride)
+            .Select(t => new CodePolicyTemplateKey(t.TenantId, t.EntityKind, t.Scope, t.PolicyKey))
+            .ToListAsync(ct);
+
+        var planned = new List<(CodePolicyTemplate Template, CodePolicyTemplateKey Key)>();
+        var issues = new List<string>();
         foreach (var policy in pack.Policies)
         {
             if (!Enum.TryParse<CodeEntityKind>(policy.EntityKind, ignoreCase: true, out var entityKind))
+            {
+                issues.Add($"{policy.PolicyKey}: unknown kind {policy.EntityKind}");
                 continue;
+            }
 
-            if (await db.CodePolicyTemplates.AnyAsync(
-                    t => t.TenantId == tenantId && t.PolicyKey == policy.PolicyKey, ct))
+            var reset = CodeSequenceReset.Yearly;
+            if (!string.IsNullOrWhiteSpace(policy.SequenceReset) && !Enum.TryParse(policy.SequenceReset, ignoreCase: true, out reset))
+            {
+                issues.Add($"{policy.PolicyKey}: unknown sequence reset {policy.SequenceReset}");
+                continue;
+            }
+
+            foreach (var issue in CodePolicyValidator.ValidateVersion(entityKind, policy.SegmentsJson, reset))
+                issues.Add($"{policy.PolicyKey}: {issue.Code} {issue.MessageAr}");
+
+            var storedKey = policy.Default ? null : policy.PolicyKey;
+            var key = new CodePolicyTemplateKey(tenantId, entityKind, CodePolicyScope.TenantOverride, storedKey);
+            if (existing.Contains(key))
                 continue;
 
             var template = new CodePolicyTemplate
             {
                 TenantId = tenantId,
-                PolicyKey = policy.PolicyKey,
+                PolicyKey = storedKey,
                 EntityKind = entityKind,
                 Name = policy.NameAr,
                 Scope = CodePolicyScope.TenantOverride,
-                Description = $"ONB code overlay {packId}"
+                Description = policy.Default
+                    ? $"ONB code overlay {packId} ({policy.PolicyKey}, the agency's default for {entityKind})"
+                    : $"ONB code overlay {packId}"
             };
-
-            var version = new CodePolicyVersion
+            template.Versions.Add(new CodePolicyVersion
             {
                 TenantId = tenantId,
                 VersionNumber = 1,
                 Status = CodePolicyVersionStatus.Published,
                 EffectiveFrom = DateTime.UtcNow,
                 SegmentsJson = policy.SegmentsJson,
+                SequenceReset = reset,
                 FallbackPrefix = policy.Prefix
-            };
-
-            template.Versions.Add(version);
-            db.CodePolicyTemplates.Add(template);
+            });
+            planned.Add((template, key));
         }
 
+        foreach (var issue in CodePolicyValidator.ValidateDefaults(existing.Concat(planned.Select(p => p.Key))))
+            issues.Add(issue.Code + " " + issue.MessageAr);
+        if (issues.Count > 0)
+            throw new InvalidOperationException($"PLAN-48: code overlay pack {packId} is refused: " + string.Join("; ", issues));
+
+        if (planned.Count == 0)
+            return;
+
+        db.CodePolicyTemplates.AddRange(planned.Select(p => p.Template));
         await db.SaveChangesAsync(ct);
+        CodeGeneratorService.InvalidateSnapshotCache();
     }
 
     private static string? ResolveOverlayPath(string packId) =>

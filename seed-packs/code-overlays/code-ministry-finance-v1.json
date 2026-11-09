@@ -6,6 +6,8 @@
       "entityKind": "OrgUnit",
       "nameAr": "ترميز وحدات وزارة المالية",
       "prefix": "FIN",
+      "default": true,
+      "sequenceReset": "PerScope",
       "segmentsJson": "[{\"kind\":\"Literal\",\"value\":\"FIN-\"},{\"kind\":\"Field\",\"value\":\"ParentCode\"},{\"kind\":\"Literal\",\"value\":\".\"},{\"kind\":\"Sequence\",\"padWidth\":2,\"scopeFields\":[\"ParentCode\"]}]"
     }
   ]
