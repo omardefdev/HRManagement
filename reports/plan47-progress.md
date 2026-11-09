@@ -132,3 +132,28 @@ WAITING-CI: 2026-11-09T07:27:53Z .. 08:07:14Z (39 min 21 s), PR 45, run 42579490
 - Fix on release/plan-47: GET api/policies/antiforgery (Policy.Reader, PLAN-40's MessagingRepairAntiforgery) and [ValidateAntiForgeryToken] on the eight lifecycle writes; AcceptanceHarness.CreatePolicyLifecycleClientAsync (bearer, keeps the cookie at /, sends the header) used by AC-POL-47, AC-10 and AC-MSG-40c; Pol047FourEyesTests guard (8 writes, author/approver policy, antiforgery); PROD_001_FOUR_EYES_PUBLISH.md. Build clean; Pol047|GatewayPathAuthorization|Wf043DefinitionLifecycle 157/157.
 - Demo server: still runs ae95ec2fec82 (without the antiforgery change). The demo uses the pages, whose forms carry their token; the server catches up with the next plan's deploy (recorded as an open item).
 - Fix commit at 2026-11-09T08:18:04Z.
+- Local CI on c463038a: four full runs failed only in environment: Testcontainers connections to host.docker.internal timing out or refused (192.168.65.254) while the VPN client runs (runs 1, 2, 4), and the 100-proof timing test at 5.95 s (run 3). Then ci-local -SkipTestcontainers: 89 passed, 0 failed, Testcontainers and the coverage gate not-run (the pre-push default allows these two: they run on ubuntu-latest). plan035-prepush PASS. Pushed c463038a to release/plan-47 at 2026-11-09T09:53:49Z.
+WAITING-CI: 2026-11-09T09:54:15Z .. 10:43:52Z (49 min 37 s), PR 45, run 42596883933.
+- Run 42596883933: CodeQL pass (the antiforgery fix), prodlike, prodlike-final, leastpriv, lab-main, lab-rest, E2E, images, gitleaks pass. CI red: "Integration tests (MassTransit InMemory)" test host hung 5 min in Int037PublishOutputTests (dotnet publish), aborted; unit 5633/5633 passed in the same job. Environment (the same step passed 363/363 in run 42579490585; the fix touches no integration code). Acceptance meta and the summary fail because they read CI's result.
+- Rerun of the CI job 129091822350 (gh run rerun 42596883933 --job 129091822350), recorded per P-14.
+- Attempt 2 of run 42596883933: CI pass (40 min 25 s; the InMemory step passed). The meta stage and the summary kept attempt 1's result (meta ran 10:16-10:26Z and read CI's failed attempt 1: AC-QA-34a/d/e/f and 35a, "step failed" or "Linux trx files missing"). Rerun of the meta job 129112613308 (gh run rerun 42596883933 --job 129112613308), recorded per P-14.
+WAITING-CI: 2026-11-09T10:44:45Z .. 11:26:47Z (42 min 2 s), PR 45, run 42596883933 attempt 2 (the CI job rerun).
+WAITING-CI: 2026-11-09T11:27:42Z .. 11:36:24Z (8 min 42 s), PR 45, run 42596883933 attempt 3 (the meta job rerun).
+
+## Merge note
+
+Merged by agent on owner instruction (UTC): 2026-11-09T11:36:47Z
+
+- PR: https://github.com/omardefdev/HRManagement/pull/45 (release/plan-47 -> main, 15 commits, two pushes: bd88a9e8, c463038a).
+- Merge commit: 61816ed7dda239b8dff4222b2f48a6c4bcc688d9 (gh pr merge 45 --merge). Local main = origin/main = 61816ed7 after git pull --ff-only.
+- Checks on c463038a, run 42596883933 (https://github.com/omardefdev/HRManagement/actions/runs/42596883933), all 14 green at the merge:
+  - Gitleaks pass; Reuse check pass; Dedupe post-merge run pass; CodeQL pass (18 min 13 s);
+  - CI pass (attempt 2, 40 min 25 s); E2E pass (18 min 55 s); Acceptance images pass (21 min 55 s);
+  - Acceptance stages: prodlike pass (24 min 1 s), prodlike-final pass (24 min 56 s), leastpriv pass (8 min 15 s), lab-main pass (18 min 56 s), lab-rest pass (16 min 42 s), meta pass (attempt 3, 8 min 12 s); Acceptance (summary) pass.
+- Reruns, both recorded above: the CI job (test host hung in Int037PublishOutputTests, environment) and the meta job (it had read CI's failed attempt).
+- Evidence of record: the artifacts of run 42596883933.
+- Defect found by the PR gate and fixed on the release branch: the policy lifecycle API writes had no antiforgery validation (CodeQL cs/web/missing-token-validation, 8.8, five findings). Fixed in c463038a; not baselined.
+- Demo server: still ae95ec2fec82, which lacks c463038a's antiforgery check on the API writes (the pages carry their form token). Open item: deploy 61816ed7's images with the next plan's server phase.
+- WAITING-CI total: 39 min 21 s + 49 min 37 s + 42 min 2 s + 8 min 42 s = 2 h 19 min 42 s.
+- Wall clock: Started 2026-11-08T12:06:33Z, merged 2026-11-09T11:36:47Z = 23 h 30 min, including the host's overnight sleep during local CI (its InMemory step took 14 h 5 min). Work before the PR: about 4 h 13 min (P0..P8 to the PR).
+- Post-merge run on main: 42610436415 (https://github.com/omardefdev/HRManagement/actions/runs/42610436415), push of 61816ed7, success at 2026-11-09T11:39:48Z: Gitleaks and Dedupe post-merge run passed; the other jobs were skipped by the dedupe (the PR run 42596883933 covered the same tree).
