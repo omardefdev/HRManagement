@@ -11,5 +11,7 @@ public static class DemoSeedOrchestrator
         var logger = serviceProvider.GetService<ILoggerFactory>()?.CreateLogger("DemoSeed");
         logger?.LogInformation("Applying HR.Core demo seed");
         await DemoDataSeeder.SeedAsync(db, logger, ct);
+        // PLAN-48: the demo seed writes requisition numbers (and others) itself, so the counters are moved past them (PLAN-43 §10).
+        await Services.CodeGeneration.CodeCounterReseeder.ReseedAllTenantsAsync(db, serviceProvider, logger, ct);
     }
 }

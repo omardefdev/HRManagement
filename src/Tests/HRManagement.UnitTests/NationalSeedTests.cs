@@ -11,22 +11,29 @@ namespace HRManagement.UnitTests;
 
 public class NationalSeedTests
 {
-    private static HRCoreDbContext CreateDb()
+    private static HRCoreDbContext CreateDb(string? name = null)
     {
         var options = new DbContextOptionsBuilder<HRCoreDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .UseInMemoryDatabase(name ?? Guid.NewGuid().ToString())
             .Options;
         return new HRCoreDbContext(options);
     }
 
-    private static IServiceProvider CreateServices() =>
-        new ServiceCollection().BuildServiceProvider();
+    /// <summary>
+    /// PLAN-48: the orchestrator's code policy upgrade reseeds each tenant in a scope of its own, so the provider registers
+    /// HRCoreDbContext (on the same database), as the application's does.
+    /// </summary>
+    private static IServiceProvider CreateServices(string name) =>
+        new ServiceCollection()
+            .AddDbContext<HRCoreDbContext>(o => o.UseInMemoryDatabase(name))
+            .BuildServiceProvider();
 
     [Fact]
     public async Task National_orchestrator_is_idempotent()
     {
-        await using var db = CreateDb();
-        var sp = CreateServices();
+        var name = Guid.NewGuid().ToString();
+        await using var db = CreateDb(name);
+        var sp = CreateServices(name);
 
         await NationalSeedOrchestrator.ApplyMandatoryAsync(db, sp);
         var packCount = await db.SeedPackApplications.CountAsync();

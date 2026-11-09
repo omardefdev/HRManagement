@@ -237,6 +237,31 @@ public static class CodeGenerationSeeder
         }
     }
 
+    /// <summary>
+    /// PLAN-48 (risk: MissingPolicy=Refuse stops a kind with no policy): the kinds with no national default policy in force, logged
+    /// once per start. ForensicCase is expected (no call site generates it); any other kind is a seeding gap to fix.
+    /// </summary>
+    public static async Task<IReadOnlyList<CodeEntityKind>> LogKindsWithoutPolicyAsync(
+        HRCoreDbContext db,
+        Microsoft.Extensions.Logging.ILogger? logger,
+        CancellationToken ct = default)
+    {
+        var now = DateTime.UtcNow;
+        var covered = await db.CodePolicyTemplates.NationalOnly().AsNoTracking()
+            .Where(t => t.Scope == CodePolicyScope.National && t.PolicyKey == null)
+            .Where(t => t.Versions.Any(v => v.Status == CodePolicyVersionStatus.Published
+                                            && (v.EffectiveFrom == null || v.EffectiveFrom <= now)
+                                            && (v.EffectiveTo == null || v.EffectiveTo > now)))
+            .Select(t => t.EntityKind)
+            .Distinct()
+            .ToListAsync(ct);
+        var missing = Enum.GetValues<CodeEntityKind>().Except(covered).ToList();
+        if (missing.Count > 0)
+            Microsoft.Extensions.Logging.LoggerExtensions.LogWarning(logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance,
+                "PLAN-48 code kinds with no national policy in force (a request for them is refused with 422): {Kinds}", string.Join(",", missing));
+        return missing;
+    }
+
     private static void AddNationalPolicy(HRCoreDbContext db, NationalCodePolicyDefinition definition)
     {
         var issues = CodePolicyValidator.ValidateVersion(definition.Kind, definition.Format);

@@ -116,6 +116,58 @@ public class Est002EstablishmentGovernanceTests
         Assert.False((await db.JobCatalogEntries.SingleAsync()).IsActive);
     }
 
+    /// <summary>
+    /// PLAN-48 (P-7, D-TEN-6, D-TEN-7): with the real FundedPositionCodeService and the seeded national policies, two positions of one
+    /// unit and grade, then one in the next budget year, get distinct codes on one counter and share the unit's cost centre. With the
+    /// fake service this path never numbered anything; with the old policies the second position broke the issuance index.
+    /// </summary>
+    [Fact]
+    public async Task Apply_create_funded_position_numbers_with_the_real_service()
+    {
+        await using var db = CreateContext();
+        await EstablishmentMdmTestHelper.SeedReferenceCatalogAsync(db);
+        await CodeGenerationSeeder.SeedAsync(db);
+        var org = new OrgUnit { Code = "01.02", NameAr = "وحدة", NameEn = "Unit" };
+        var entry = new JobCatalogEntry { JobCode = "JC-501", TitleAr = "محلل", GradeCode = "G5", IsActive = true };
+        db.OrgUnits.Add(org);
+        db.JobCatalogEntries.Add(entry);
+        await db.SaveChangesAsync();
+
+        var generator = new CodeGeneratorService(db,
+            new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions()),
+            Microsoft.Extensions.Logging.Abstractions.NullLogger<CodeGeneratorService>.Instance);
+        var applier = CreateApplier(db, new FundedPositionCodeService(db, generator));
+
+        var created = new List<FundedPosition>();
+        foreach (var (budgetYear, number) in new[] { (2026, "EST-101"), (2026, "EST-102"), (2027, "EST-103") })
+        {
+            var result = await applier.ApplyAsync(new EstablishmentChangeRequest
+            {
+                RequestNumber = number,
+                ChangeType = EstablishmentChangeType.CreateFundedPosition,
+                Status = EstablishmentChangeStatus.Approved,
+                PayloadJson = $$"""{"BudgetYear":{{budgetYear}},"OrgUnitId":"{{org.Id}}","JobCatalogEntryId":"{{entry.Id}}","GradeCode":"G5","FTE":1.0}""",
+                LegalSourceId = Syr001LegislationIds.Law50_2004
+            });
+            Assert.True(result.Success, result.Error);
+            created.Add(await db.FundedPositions.AsNoTracking().SingleAsync(p => p.Id == result.EntityId));
+        }
+
+        Assert.Equal(new[] { "01.02-G5-001", "01.02-G5-002", "01.02-G5-003" }, created.Select(p => p.PositionCode));
+        Assert.All(created, p => Assert.Equal("01.02", p.CostCenter));
+        Assert.Equal(1, await db.CodeIssuances.CountAsync(i => i.EntityKind == CodeEntityKind.CostCenter));
+    }
+
+    private static EstablishmentChangeApplier CreateApplier(HRCoreDbContext db, IFundedPositionCodeService fundedPositionCodes) =>
+        new(
+            db,
+            new EstablishmentService(),
+            fundedPositionCodes,
+            Mock.Of<IJobCatalogCodeService>(),
+            new EstablishmentReferenceValidator(new ReferenceDataProvider(db)),
+            new JobCatalogVersionService(db),
+            new FundedPositionVersionService(db));
+
     private static EstablishmentChangeApplier CreateApplier(HRCoreDbContext db)
     {
         var fundedCode = new Mock<IFundedPositionCodeService>();
