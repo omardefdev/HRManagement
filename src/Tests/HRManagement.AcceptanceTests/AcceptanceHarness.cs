@@ -169,6 +169,37 @@ public static class AcceptanceHarness
         return http;
     }
 
+    /// <summary>
+    /// PLAN-47: a bearer client for HR.Core's policy lifecycle writes (drafts, rules, effective date, discard, publish). It holds
+    /// the antiforgery cookie and sends the request token on every call, as those actions require.
+    /// </summary>
+    public static async Task<HttpClient> CreatePolicyLifecycleClientAsync(E2ePersona persona, string correlationId)
+    {
+        var token = await FetchPasswordGrantTokenAsync(persona, correlationId);
+        var baseAddress = new Uri(E2eEnv.BaseUrl.TrimEnd('/') + "/");
+        var cookies = new System.Net.CookieContainer();
+        var http = new HttpClient(new HttpClientHandler { CookieContainer = cookies }) { BaseAddress = baseAddress };
+        http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        http.DefaultRequestHeaders.Add("X-Correlation-ID", correlationId);
+
+        using var issued = await http.GetAsync("api/hr-core/api/policies/antiforgery");
+        var body = await issued.Content.ReadAsStringAsync();
+        Assert.True(issued.IsSuccessStatusCode, $"policy antiforgery for {persona.Username}: {(int)issued.StatusCode} {body}");
+        // The service scopes its antiforgery cookie to /ui/hr-core; the policy API sits under /api/hr-core.
+        if (issued.Headers.TryGetValues("Set-Cookie", out var setCookies))
+        {
+            foreach (var setCookie in setCookies.Where(c => c.StartsWith(".AspNetCore.Antiforgery.", StringComparison.Ordinal)))
+            {
+                var pair = setCookie.Split(';')[0].Split('=', 2);
+                cookies.Add(baseAddress, new System.Net.Cookie(pair[0], pair[1], "/"));
+            }
+        }
+
+        using var doc = JsonDocument.Parse(body);
+        http.DefaultRequestHeaders.Add(doc.RootElement.GetProperty("headerName").GetString()!, doc.RootElement.GetProperty("requestToken").GetString());
+        return http;
+    }
+
     public static async Task<string> FetchPasswordGrantTokenAsync(E2ePersona persona, string? correlationId = null)
     {
         using var resp = await FetchPasswordGrantResponseAsync(persona, correlationId);

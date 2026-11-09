@@ -47,7 +47,7 @@ public class AcPol47RuleLifecycleTests
     {
         var persona = AcceptanceHarness.RequirePersona(personaId);
         var (token, correlation) = await AcceptanceHarness.LoginAsync(persona);
-        var http = await AcceptanceHarness.CreateAuthorizedClientAsync(persona, correlation);
+        var http = await AcceptanceHarness.CreatePolicyLifecycleClientAsync(persona, correlation);
         return (http, Guid.Parse(AcceptanceHarness.ParseJwt(token).Subject));
     }
 

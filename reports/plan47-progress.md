@@ -122,3 +122,13 @@ Finished P7 (UTC): 2026-11-08T16:17:08.9550743Z
 - Next step: P8 (OPS change rows, final report §7 and §10, release/plan-47 --no-ff from main, ci-local on its HEAD, plan035-prepush, push once, PR, wait, merge, merge note on docs/plan-47-merge-note).
 - P8 started: final report §7 and §10 written; plan-timing -From 25 -To 47 run (PLAN-47 9 commits, span 4:12 before the PR). Note: P6 has no stamp of its own; it is the "P6: origin/main still 49a5f08d" line inside P5's block.
 - P8 docs commit at 2026-11-08T16:19:30Z.
+Resumed (UTC): 2026-11-09, before 07:06Z (exact time not recorded; local CI rerun after the host slept; first ci-local run on 32ecf4e3 failed the format gate on two Pol047 test helpers, fixed in bd88a9e8; ci-local on bd88a9e8: 91 passed, 0 failed; plan035-prepush PASS)
+- Pushed release/plan-47 once at bd88a9e8; PR https://github.com/omardefdev/HRManagement/pull/45 opened 2026-11-09T07:27:40Z; run 42579490585.
+WAITING-CI: 2026-11-09T07:27:53Z .. 08:07:14Z (39 min 21 s), PR 45, run 42579490585.
+- Run 42579490585 red:
+  - CodeQL gate: 5 new cs/web/missing-token-validation (8.8) in PoliciesController: publish (its signature changed, so a new fingerprint), drafts, rollback-drafts, rules POST, discard. Real defect (the PLAN-40 rule): fixed, not baselined.
+  - CI "Verify Docker builds": environment (wget of the RabbitMQ delayed-exchange plugin from github.com: HTTP 504). Unit 5632/5632, integration 363/363 and Testcontainers 189/189 passed in that job.
+  - Acceptance meta: AC-QA-34a and 35a read CI's own result, so they fail with the Docker step; nothing else.
+- Fix on release/plan-47: GET api/policies/antiforgery (Policy.Reader, PLAN-40's MessagingRepairAntiforgery) and [ValidateAntiForgeryToken] on the eight lifecycle writes; AcceptanceHarness.CreatePolicyLifecycleClientAsync (bearer, keeps the cookie at /, sends the header) used by AC-POL-47, AC-10 and AC-MSG-40c; Pol047FourEyesTests guard (8 writes, author/approver policy, antiforgery); PROD_001_FOUR_EYES_PUBLISH.md. Build clean; Pol047|GatewayPathAuthorization|Wf043DefinitionLifecycle 157/157.
+- Demo server: still runs ae95ec2fec82 (without the antiforgery change). The demo uses the pages, whose forms carry their token; the server catches up with the next plan's deploy (recorded as an open item).
+- Fix commit at 2026-11-09T08:18:04Z.

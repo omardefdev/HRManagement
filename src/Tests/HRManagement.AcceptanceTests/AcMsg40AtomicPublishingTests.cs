@@ -333,13 +333,15 @@ public class AcMsg40AtomicPublishingTests
         AcceptanceGate.RequireEnabled(r);
         var persona = AcceptanceHarness.RequirePersona("a-management-approver");
         using var http = await AcceptanceHarness.CreateAuthorizedClientAsync(persona, Guid.NewGuid().ToString("D"), allowAutoRedirect: false);
+        // PLAN-47: the policy API writes need the antiforgery token; the UI form below carries its own.
+        using var policyApi = await AcceptanceHarness.CreatePolicyLifecycleClientAsync(persona, Guid.NewGuid().ToString("D"));
         var domain = $"msg40-{Guid.NewGuid():N}"[..20];
 
         // PLAN-42 (P-5): IPolicyPublished has no consumer until PLAN-47, so delivery is proved at the publisher: the publication
         // wrote an outbox row (the sequence moved) and the delivery service took it out (no row left for the MessageId).
         var (_, apiVersion) = await InjectDraftPolicyAsync(domain, Guid.NewGuid());
         var apiSequenceBefore = await OutboxSequenceAsync("hr_core_db");
-        var api = await http.PostAsJsonAsync($"api/hr-core/api/policies/templates/{apiVersion:D}/publish", new { EvidenceRef = "AC-MSG-40c" });
+        var api = await policyApi.PostAsJsonAsync($"api/hr-core/api/policies/templates/{apiVersion:D}/publish", new { EvidenceRef = "AC-MSG-40c" });
         Assert.True(api.IsSuccessStatusCode, $"API publish: {(int)api.StatusCode} {await api.Content.ReadAsStringAsync()}");
         var apiSequenceAfter = await OutboxSequenceAsync("hr_core_db");
 
@@ -362,7 +364,7 @@ public class AcMsg40AtomicPublishingTests
         // Negative: no maker on record means the checker is the maker; four-eyes refuses and nothing is published.
         var (_, refusedVersion) = await InjectDraftPolicyAsync(domain + "n", null);
         var sequenceBefore = await OutboxSequenceAsync("hr_core_db");
-        var refused = await http.PostAsJsonAsync($"api/hr-core/api/policies/templates/{refusedVersion:D}/publish", new { EvidenceRef = "AC-MSG-40c" });
+        var refused = await policyApi.PostAsJsonAsync($"api/hr-core/api/policies/templates/{refusedVersion:D}/publish", new { EvidenceRef = "AC-MSG-40c" });
         var sequenceAfter = await OutboxSequenceAsync("hr_core_db");
         Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
         Assert.Equal(sequenceBefore, sequenceAfter);

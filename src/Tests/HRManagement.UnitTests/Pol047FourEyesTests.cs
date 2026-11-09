@@ -184,4 +184,34 @@ public sealed class Pol047FourEyesTests
         Assert.True(GatewayPathAuthorizationMiddleware.TryGetFineGrainedPolicy("hr-core", method, new Microsoft.AspNetCore.Http.PathString(path), out var policy));
         Assert.Equal(expected, policy);
     }
+
+    [Fact]
+    public void Every_policy_lifecycle_write_needs_the_author_or_approver_policy_and_antiforgery()
+    {
+        var actions = typeof(HR.Core.Web.Controllers.PoliciesController)
+            .GetMethods(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly)
+            .Where(m => m.GetCustomAttributes(true).OfType<Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute>().Any())
+            .ToList();
+        Assert.NotEmpty(actions);
+
+        // evaluate and simulate decide nothing durable and are called by services; every other write is the lifecycle's.
+        var notLifecycle = new[] { nameof(HR.Core.Web.Controllers.PoliciesController.Evaluate), nameof(HR.Core.Web.Controllers.PoliciesController.Simulate) };
+        var writes = 0;
+        foreach (var action in actions.Where(a => !notLifecycle.Contains(a.Name)))
+        {
+            var verbs = action.GetCustomAttributes(true).OfType<Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute>().SelectMany(a => a.HttpMethods);
+            if (verbs.All(v => v == "GET"))
+                continue;
+
+            writes++;
+            Assert.Contains(
+                action.GetCustomAttributes(true).OfType<AuthorizeAttribute>(),
+                a => a.Policy is HrManagementPolicies.PolicyAuthor or HrManagementPolicies.PolicyApprover);
+            Assert.True(
+                action.GetCustomAttributes(true).OfType<Microsoft.AspNetCore.Mvc.ValidateAntiForgeryTokenAttribute>().Any(),
+                $"{action.Name} has no [ValidateAntiForgeryToken]");
+        }
+
+        Assert.Equal(8, writes);
+    }
 }

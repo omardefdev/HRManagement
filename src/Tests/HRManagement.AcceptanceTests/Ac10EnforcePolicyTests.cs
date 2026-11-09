@@ -30,7 +30,7 @@ public class Ac10EnforcePolicyTests
 
         // PLAN-47 (D-POL-3): there is no same-actor override; the approver, who did not write the seeded v3 draft, publishes it.
         var approver = AcceptanceHarness.RequirePersona("a-management-approver");
-        using var approverHttp = await AcceptanceHarness.CreateAuthorizedClientAsync(approver, correlationId);
+        using var approverHttp = await AcceptanceHarness.CreatePolicyLifecycleClientAsync(approver, correlationId);
         var publishPayload = new { evidenceRef = "AC-10 acceptance" };
         var publishResp = await approverHttp.PostAsync(
             $"api/hr-core/api/policies/templates/{AcceptanceSeedIds.PolicyVersion3DraftId:D}/publish",
