@@ -74,10 +74,12 @@ services:
       - "6900:9000"
       - "6901:9001"
 
+  # PLAN-49 (PLAN-48 §10): no host port. File.Storage reaches the daemon on the compose network (clamav:3310) and nothing
+  # on the host reads it. The old mapping 53310:3310 sat inside Linux's ephemeral range (a bind collision on about 6% of the
+  # stack starts on GitHub runners) and inside a range Windows reserves dynamically (the stack could not start at all).
   clamav:
     container_name: !reset null
-    ports: !override
-      - "53310:3310"
+    ports: !reset []
 
   keycloak:
     container_name: !reset null
