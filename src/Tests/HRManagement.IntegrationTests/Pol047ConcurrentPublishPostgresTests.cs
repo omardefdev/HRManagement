@@ -64,7 +64,7 @@ public sealed class Pol047ConcurrentPublishPostgresTests(PostgreSqlFixture fixtu
 
         await using (var author = Pol047Pg.AdminContext(admin))
         {
-            var drafts = new PolicyDraftService(author, new PolicyRuleValidationService(author, HR.Core.Domain.Services.Policy.AllowAllPolicyDomainCapabilities.Instance),
+            var drafts = new PolicyDraftService(author, PolicyRuleValidationService.ForCatalog(author),
                 new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
             var added = await drafts.AddRuleAsync(seeded.Draft, new("R-LATE", "late", 20, Pol047Pg.ValidWhen, Pol047Pg.ValidThen), Guid.NewGuid());
             Assert.True(added.Succeeded, added.MessageAr);

@@ -2,7 +2,10 @@ using HRManagement.SharedKernel.Policy;
 
 namespace HR.Core.Infrastructure.Services.Policy;
 
-/// <summary>Static fallback when no published policy version exists (mirrors legacy *Rules).</summary>
+/// <summary>
+/// Static fallback when a governed domain has no published rule (mirrors legacy *Rules). PLAN-49: a domain the catalog puts out
+/// of scope never reaches here (<see cref="PolicyOrchestrator"/> answers for it first), so only governed domains have a branch.
+/// </summary>
 public static class PolicyStaticFallback
 {
     public static PolicyDecision Evaluate(PolicyEnforceRequest request)
@@ -10,7 +13,6 @@ public static class PolicyStaticFallback
         return request.Domain switch
         {
             PolicyDomains.AssetsCustody => EvaluateAssetsCustody(request),
-            PolicyDomains.AssetsProcurement => EvaluateAssetsProcurement(request),
             PolicyDomains.CoreRecruitment => EvaluateCoreRecruitment(request),
             _ => new PolicyDecision
             {
@@ -74,21 +76,6 @@ public static class PolicyStaticFallback
             EffectDetails = effects,
             Explanations = explanations
         };
-    }
-
-    private static PolicyDecision EvaluateAssetsProcurement(PolicyEnforceRequest request)
-    {
-        if (request.Action == "Receive" && GetString(request.Facts, "orderStatus") != "Fulfilled")
-        {
-            return new PolicyDecision
-            {
-                Allowed = false,
-                DenyReason = "لا يمكن الاستلام إلا لطلب منفّذ",
-                Explanations = ["fallback: SupplyReceipt"]
-            };
-        }
-
-        return new PolicyDecision { Allowed = true, Explanations = ["fallback: Assets.Procurement allow"] };
     }
 
     private static PolicyDecision EvaluateCoreRecruitment(PolicyEnforceRequest request)

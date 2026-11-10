@@ -1,5 +1,6 @@
 using System.Globalization;
 using HR.Core.Domain.Services.Policy;
+using HR.Core.Infrastructure.Services.Policy;
 using HRManagement.SharedKernel.Policy;
 using HRManagement.SharedKernel.Workflow;
 
@@ -33,13 +34,16 @@ public sealed class Pol047RuleValidatorTests
         RetiredWorkflowCodes = new HashSet<string> { "HIRE-WIZARD", "TRANSFER-APPROVAL", "IT-TICKET", "SEPARATION-WIZARD", "RECRUITMENT-HIRE" },
         BoundWorkflowCodes = new HashSet<string> { "ASSET-ASSIGN-APPROVAL", "HIRE-WIZARD" },
         CodePolicyKeys = new HashSet<string> { "ASSET-PRIVILEGED" },
-        Capabilities = capabilities ?? AllowAllPolicyDomainCapabilities.Instance
+        Capabilities = capabilities ?? CatalogPolicyDomainCapabilities.Instance
     };
 
     private static PolicyRuleInput Rule(string when, string then = """[{"effect":"RequireEvidence"}]""", string key = "R-TEST", int priority = 10, string? name = "اختبار") =>
         new(key, name, priority, when, then);
 
     private const string GoodWhen = """{"all":[{"field":"category","operator":"Equals","value":"أصول ثابتة"}]}""";
+
+    /// <summary>PLAN-49: a rule that names a workflow is bound to the action whose entity type has it (the catalog).</summary>
+    private const string AssignWhen = """{"all":[{"field":"category","operator":"Equals","value":"أصول ثابتة"},{"field":"action","operator":"Equals","value":"Assign"}]}""";
 
     private static IReadOnlyList<PolicyRuleIssue> Validate(string culture, PolicyRuleInput rule, PolicyRuleValidationContext? context = null) =>
         InCulture(culture, () => PolicyRuleValidator.ValidateRule(rule, context ?? Context()));
@@ -74,7 +78,7 @@ public sealed class Pol047RuleValidatorTests
         Assert.Empty(Validate(culture, Rule("""{"all":[{"field":"value","operator":"LessThanOrEqual","value":"10000.5"}]}""")));
         Assert.Empty(Validate(culture, Rule("""{"field":"isPrivileged","operator":"Equals","value":"true"}""")));
         Assert.Empty(Validate(culture, Rule("""{"any":[{"not":{"field":"count","operator":"GreaterThan","value":3}},{"field":"category","operator":"In","value":"a,b"}]}""")));
-        Assert.Empty(Validate(culture, Rule(GoodWhen, """[{"effect":"TriggerWorkflow","params":{"workflowCode":"ASSET-ASSIGN-APPROVAL"}},{"effect":"Deny","params":{"reason":"سبب"}}]""")));
+        Assert.Empty(Validate(culture, Rule(AssignWhen, """[{"effect":"TriggerWorkflow","params":{"workflowCode":"ASSET-ASSIGN-APPROVAL"}},{"effect":"Deny","params":{"reason":"سبب"}}]""")));
         Assert.Empty(Validate(culture, Rule(GoodWhen, """[{"effect":"SetField","params":{"field":"isPrivileged","value":"true"}},{"effect":"SelectCodePolicy","params":{"policyKey":"ASSET-PRIVILEGED"}}]""")));
     }
 
@@ -114,7 +118,7 @@ public sealed class Pol047RuleValidatorTests
         // Exact case: the evaluator reads facts by the exact name on the internal path.
         Single(Validate(culture, Rule("""{"all":[{"field":"Category","operator":"Equals","value":"x"}]}""")), "WHEN_UNKNOWN_FIELD", "$.when.all[0].field");
 
-        var noSchema = new PolicyRuleValidationContext { Domain = PolicyDomains.AssetsCustody };
+        var noSchema = new PolicyRuleValidationContext { Domain = PolicyDomains.AssetsCustody, Capabilities = CatalogPolicyDomainCapabilities.Instance };
         Single(Validate(culture, Rule(GoodWhen), noSchema), "WHEN_NO_SCHEMA", "$.when.all[0].field");
     }
 
@@ -228,10 +232,18 @@ public sealed class Pol047RuleValidatorTests
 
     private sealed class DenyingCapabilities : IPolicyDomainCapabilities
     {
+        private static readonly IReadOnlySet<string> AssignOnly = new HashSet<string>(StringComparer.Ordinal) { "Assign" };
+
+        public bool IsGoverned(string domain) => true;
+
         public bool AllowsEffect(string domain, PolicyEffect effect) => effect == PolicyEffect.RequireEvidence;
 
         public bool AllowsSetField(string domain, string field) => false;
 
-        public bool AllowsWorkflowCode(string domain, string workflowCode) => false;
+        public IReadOnlySet<string> Actions(string domain) => AssignOnly;
+
+        public IReadOnlyCollection<string> SubjectTypesOf(string domain, string action) => ["AssetAssignment"];
+
+        public bool AllowsWorkflowCode(string domain, string subjectType, string workflowCode) => false;
     }
 }

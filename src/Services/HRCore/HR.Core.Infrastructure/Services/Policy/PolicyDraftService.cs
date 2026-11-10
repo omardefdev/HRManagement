@@ -82,6 +82,9 @@ public sealed class PolicyDraftService(HRCoreDbContext db, IPolicyRuleValidation
         // A known domain only, and values that fit their columns (a 400, never the database's 500).
         if (!PolicyDomains.All.Contains(domain, StringComparer.Ordinal))
             return PolicyDraftResult.Invalid($"المجال «{domain}» غير معروف", "$.domain");
+        // PLAN-49 (D-POL-1): no draft in a domain the engine does not govern (the validator's refusal, a 400).
+        if (validation.ValidateDomain(domain) is { Count: > 0 } outOfScope)
+            return PolicyDraftResult.Invalid(outOfScope);
         if (name is { Length: > 200 })
             return PolicyDraftResult.Invalid("الاسم أطول من 200 محرف", "$.name");
         if (subjectType is { Length: > 100 })
@@ -126,6 +129,8 @@ public sealed class PolicyDraftService(HRCoreDbContext db, IPolicyRuleValidation
             .FirstOrDefaultAsync(t => t.Id == templateId, ct);
         if (template is null)
             return new(PolicyDraftOutcome.NotFound, "القالب غير موجود");
+        if (validation.ValidateDomain(template.Domain) is { Count: > 0 } outOfScope)
+            return PolicyDraftResult.Invalid(outOfScope);
         if (template.Versions.Any(v => v.Status == PolicyVersionStatus.Draft))
             return PolicyDraftResult.DraftExists;
 
@@ -156,6 +161,8 @@ public sealed class PolicyDraftService(HRCoreDbContext db, IPolicyRuleValidation
             .FirstOrDefaultAsync(t => t.Id == templateId, ct);
         if (template is null)
             return new(PolicyDraftOutcome.NotFound, "القالب غير موجود");
+        if (validation.ValidateDomain(template.Domain) is { Count: > 0 } outOfScope)
+            return PolicyDraftResult.Invalid(outOfScope);
         if (template.Versions.Any(v => v.Status == PolicyVersionStatus.Draft))
             return PolicyDraftResult.DraftExists;
 
@@ -178,10 +185,35 @@ public sealed class PolicyDraftService(HRCoreDbContext db, IPolicyRuleValidation
         var template = await db.ReadablePolicyTemplates().Include(t => t.Versions).FirstOrDefaultAsync(t => t.Id == templateId, ct);
         if (template is null)
             return new(PolicyDraftOutcome.NotFound, "القالب غير موجود");
+        if (validation.ValidateDomain(template.Domain) is { Count: > 0 } outOfScope)
+            return PolicyDraftResult.Invalid(outOfScope);
         if (template.Versions.Any(v => v.Status == PolicyVersionStatus.Draft))
             return PolicyDraftResult.DraftExists;
 
         return await AddDraftAsync(template, source: null, actorUserId, rollbackReason: null, rollbackOf: null, reasonAr.Trim(), ct);
+    }
+
+    /// <summary>
+    /// PLAN-49 (D-POL-1): the draft of the final version of a template whose domain the catalog puts out of scope: no rules, the
+    /// written reason, and no actor (only the retirement change set calls this; it then publishes it as SystemSeed). A governed
+    /// domain is refused here: its rules are withdrawn by a person, through <see cref="CreateWithdrawAllDraftAsync"/> and four eyes.
+    /// </summary>
+    public async Task<PolicyDraftResult> CreateRetirementDraftAsync(Guid templateId, string? reasonAr, CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(reasonAr))
+            return PolicyDraftResult.Invalid("سحب المجال يتطلب سبباً مكتوباً", "$.reason");
+        if (reasonAr.Length > MaxReasonLength)
+            return PolicyDraftResult.Invalid($"السبب أطول من {MaxReasonLength} محرف", "$.reason");
+
+        var template = await db.ReadablePolicyTemplates().Include(t => t.Versions).FirstOrDefaultAsync(t => t.Id == templateId, ct);
+        if (template is null)
+            return new(PolicyDraftOutcome.NotFound, "القالب غير موجود");
+        if (validation.ValidateDomain(template.Domain).Count == 0)
+            return PolicyDraftResult.Invalid($"المجال {template.Domain} محكوم: لا يُسحب إلا مجال خارج النطاق", "$.domain");
+        if (template.Versions.Any(v => v.Status == PolicyVersionStatus.Draft))
+            return PolicyDraftResult.DraftExists;
+
+        return await AddDraftAsync(template, source: null, actorUserId: null, rollbackReason: null, rollbackOf: null, reasonAr.Trim(), ct);
     }
 
     public async Task<PolicyDraftResult> AddRuleAsync(Guid versionId, PolicyRuleInput input, Guid? actorUserId, CancellationToken ct = default)

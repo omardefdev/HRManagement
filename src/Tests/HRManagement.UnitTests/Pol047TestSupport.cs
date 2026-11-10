@@ -49,7 +49,7 @@ internal sealed class Pol047Harness : IAsyncDisposable
         Environment = environment;
     }
 
-    public PolicyRuleValidationService Validation => new(Db, AllowAllPolicyDomainCapabilities.Instance);
+    public PolicyRuleValidationService Validation => PolicyRuleValidationService.ForCatalog(Db);
 
     public PolicyVersionPublisher Publisher => new(Db, Cache);
 

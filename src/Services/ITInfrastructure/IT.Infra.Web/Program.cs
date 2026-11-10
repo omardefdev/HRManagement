@@ -3,7 +3,6 @@ using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.CodeGeneration;
 using HRManagement.ServiceDefaults.Localization;
-using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.Seeding;
 using IT.Infra.Infrastructure.Consumers;
 using IT.Infra.Infrastructure.Data;
@@ -38,7 +37,6 @@ builder.Services.AddDbContext<ITInfraDbContext>((sp, options) =>
 builder.Services.AddDirectorySyncClient(builder.Configuration);
 
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<ITInfraDbContext>());
-builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 builder.Services.AddHrCodeGeneration(builder.Configuration);
 builder.Services.AddServiceMassTransit(
     builder.Configuration,

@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Localization;
-using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.Seeding;
 using HRManagement.SharedKernel.Tenancy;
 using HR.Health.Infrastructure.Consumers;
@@ -36,7 +35,6 @@ builder.Services.AddDbContext<HealthDbContext>((sp, options) =>
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>()));
 
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<HealthDbContext>());
-builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
     configureOutbox: x => x.AddPostgresOutbox<HealthDbContext>(consumerOutbox: true),

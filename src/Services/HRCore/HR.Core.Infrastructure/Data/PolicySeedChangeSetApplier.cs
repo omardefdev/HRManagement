@@ -48,7 +48,7 @@ public sealed class PolicySeedChangeSetApplier(
             return new PolicySeedChangeSetApplier(db, scopedDrafts, scopedPublisher, configuration, logger);
 
         // No service container over this context (tests, tools): the same services, without the bus (no IPolicyPublished).
-        var validation = new PolicyRuleValidationService(db, AllowAllPolicyDomainCapabilities.Instance);
+        var validation = PolicyRuleValidationService.ForCatalog(db);
         var cache = services?.GetService<IPolicyPublishedSnapshotCache>()
                     ?? new PolicyPublishedSnapshotCache(new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions()));
         var publishService = new PolicyPublishService(db, validation, new PolicyVersionPublisher(db, cache), configuration: configuration);
@@ -84,9 +84,15 @@ public sealed class PolicySeedChangeSetApplier(
         var template = await db.PolicyTemplates
             .Include(t => t.Versions).ThenInclude(v => v.Rules)
             .FirstOrDefaultAsync(t => t.Domain == domain && t.Scope == PolicyTemplateScope.National, ct);
+        var outOfScope = !PolicyDomainCatalog.IsGoverned(domain);
         if (template is null)
         {
-            _logger.LogWarning("PLAN-47 change set {ChangeSetId}: no national template for {Domain}; nothing applied", set.Id, domain);
+            // PLAN-49: a new database seeds no template for a domain the catalog puts out of scope, and the catalog says why:
+            // the set passes over it quietly at every start. A governed domain with no template is still worth a warning.
+            if (outOfScope)
+                _logger.LogDebug("PLAN-49 change set {ChangeSetId}: {Domain} is out of the engine's scope and has no template; nothing to apply", set.Id, domain);
+            else
+                _logger.LogWarning("PLAN-47 change set {ChangeSetId}: no national template for {Domain}; nothing applied", set.Id, domain);
             return;
         }
 
@@ -99,6 +105,16 @@ public sealed class PolicySeedChangeSetApplier(
                 throw new PolicySeedChangeSetException(
                     $"PLAN-47: change set {set.Id} was applied to {domain} with digest {applied.Digest}, and the code now has {digest}. " +
                     "An applied change set never changes: write a new one with a new id.");
+            return;
+        }
+
+        // PLAN-49: a set written before the domain left the engine's scope (the baseline's Archive.Retention part, on a database
+        // that never applied it) adds no rule and no field to it; recorded once as NoOp, like any set with no effect.
+        if (outOfScope)
+        {
+            await RecordAsync(set.Id, template, null, OutcomeNoOp, digest, ct);
+            await CommitAsync(transaction, ct);
+            _logger.LogInformation("PLAN-49 change set {ChangeSetId} on {Domain}: the domain is out of the engine's scope; NoOp", set.Id, domain);
             return;
         }
 

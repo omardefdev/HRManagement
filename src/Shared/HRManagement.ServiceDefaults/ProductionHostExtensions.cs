@@ -37,6 +37,9 @@ public static class ProductionHostExtensions
         builder.Services.TryAddSingleton<GatewayProofKeys>();
         builder.Services.TryAddSingleton<IGatewayProofReplayCache, GatewayProofReplayCache>();
         builder.Services.AddHrStartupCheck<ProductionConfigurationGuard>();
+        // PLAN-49 (G-POL-02): every host checks its PolicyEngine section at start-up, whether or not it registers the enforce
+        // client: a key that is no domain, a value that is no mode, or a domain the catalog puts out of scope that is not Off.
+        Policy.PolicyEngineConfigurationExtensions.AddHrPolicyEngineConfiguration(builder.Services);
 
         var useForwarded = builder.Configuration.GetValue("UseForwardedHeaders", false);
         if (useForwarded)

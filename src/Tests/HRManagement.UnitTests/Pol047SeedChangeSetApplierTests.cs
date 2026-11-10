@@ -134,22 +134,28 @@ public sealed class Pol047SeedChangeSetApplierTests
         Assert.Contains((await VersionsAsync(h, PolicyDomains.CoreRecruitment)).Last().Rules, r => r.RuleKey == "R-OFF-ISSUE");
     }
 
+    // PLAN-49: the four tests below worked in Movements.Transfer and Archive.Retention, which the engine no longer governs (a set
+    // adds nothing to an out-of-scope domain). They now use Core.Recruitment, whose seeded rules all pass the catalog.
+    private const string NoteWhen = """{"all":[{"field":"action","operator":"Equals","value":"PublishInternal"}]}""";
+    private const string NoteThen = """[{"effect":"Allow"}]""";
+
     [Fact]
     public async Task A_set_the_validator_refuses_fails_the_boot_and_publishes_nothing()
     {
         await using var h = await SeededAsync();
         var before = await h.Db.PolicyTemplateVersions.CountAsync();
+        // The G-14 pattern: a hire rule that fires RECRUITMENT-HIRE, the workflow PLAN-25 retired.
         var bad = new PolicySeedChangeSet("POL-TEST-BAD",
         [
-            new(PolicySeedOperationKind.AddRule, PolicyDomains.MovementsTransfer, "R-TRF-AGAIN", "نقل", 5,
-                """{"all":[{"field":"action","operator":"Equals","value":"Submit"}]}""",
-                """[{"effect":"TriggerWorkflow","params":{"workflowCode":"TRANSFER-APPROVAL"}}]""")
+            new(PolicySeedOperationKind.AddRule, PolicyDomains.CoreRecruitment, "R-REC-HIRE-AGAIN", "توظيف", 5,
+                """{"all":[{"field":"action","operator":"Equals","value":"Hire"}]}""",
+                """[{"effect":"TriggerWorkflow","params":{"workflowCode":"RECRUITMENT-HIRE"}}]""")
         ]);
 
         var ex = await Assert.ThrowsAsync<PolicySeedChangeSetException>(() => PolicySeedChangeSetApplier.Create(h.Db, null).ApplyAsync([bad]));
 
         Assert.Contains("$.then[0].params.workflowCode", ex.Message);
-        Assert.Contains("TRANSFER-APPROVAL", ex.Message);
+        Assert.Contains("RECRUITMENT-HIRE", ex.Message);
         // The draft the set opened went with its transaction.
         h.Db.ChangeTracker.Clear();
         Assert.Equal(before, await h.Db.PolicyTemplateVersions.CountAsync());
@@ -159,19 +165,34 @@ public sealed class Pol047SeedChangeSetApplierTests
     [Fact]
     public async Task Rules_of_retired_workflows_in_the_effective_version_never_fail_the_boot()
     {
-        await using var h = await SeededAsync();
-        var set = new PolicySeedChangeSet("POL-TEST-TRANSFER",
+        await using var h = new Pol047Harness(interceptor: false);
+        await WorkflowPackSeeder.SeedAsync(h.Db);
+        await PolicyEngineSeeder.SeedAsync(h.Db);
+        // A rule from before the validator, in the effective version: it fires RECRUITMENT-HIRE, which PLAN-25 retired.
+        var effective = (await VersionsAsync(h, PolicyDomains.CoreRecruitment)).Last();
+        h.Db.PolicyRules.Add(new PolicyRule
+        {
+            PolicyTemplateVersionId = effective.Id,
+            TenantId = effective.TenantId,
+            RuleKey = "R-OLD-HIRE",
+            Name = "قديمة",
+            Priority = 10,
+            WhenJson = """{"all":[{"field":"action","operator":"Equals","value":"Hire"}]}""",
+            ThenJson = """[{"effect":"TriggerWorkflow","params":{"workflowCode":"RECRUITMENT-HIRE"}}]"""
+        });
+        await h.Db.SaveChangesAsync();
+        h.Db.ChangeTracker.Clear();
+        var set = new PolicySeedChangeSet("POL-TEST-CARRY",
         [
-            new(PolicySeedOperationKind.AddRule, PolicyDomains.MovementsTransfer, "R-TRF-NOTE", "ملاحظة", 20,
-                """{"all":[{"field":"action","operator":"Equals","value":"Note"}]}""", """[{"effect":"RequireEvidence"}]""")
+            new(PolicySeedOperationKind.AddRule, PolicyDomains.CoreRecruitment, "R-REQ-NOTE", "ملاحظة", 20, NoteWhen, NoteThen)
         ]);
 
         await PolicySeedChangeSetApplier.Create(h.Db, null).ApplyAsync([set]);
 
-        var versions = await VersionsAsync(h, PolicyDomains.MovementsTransfer);
-        Assert.Equal(2, versions.Count);
-        Assert.Contains(versions[1].Rules, r => r.RuleKey == "R-TRF");      // TRANSFER-APPROVAL, retired by PLAN-46: carried over
-        Assert.Contains(versions[1].Rules, r => r.RuleKey == "R-TRF-NOTE");
+        var versions = await VersionsAsync(h, PolicyDomains.CoreRecruitment);
+        Assert.Equal(effective.VersionNumber + 1, versions.Last().VersionNumber);
+        Assert.Contains(versions.Last().Rules, r => r.RuleKey == "R-OLD-HIRE");     // RECRUITMENT-HIRE is retired: carried over, never validated
+        Assert.Contains(versions.Last().Rules, r => r.RuleKey == "R-REQ-NOTE");
     }
 
     [Fact]
@@ -180,8 +201,7 @@ public sealed class Pol047SeedChangeSetApplierTests
         await using var h = await SeededAsync(new() { [PolicySeedChangeSetApplier.RequireApprovalKey] = "true" });
         var set = new PolicySeedChangeSet("POL-TEST-APPROVAL",
         [
-            new(PolicySeedOperationKind.AddRule, PolicyDomains.ArchiveRetention, "R-ARC-NOTE", "ملاحظة", 20,
-                """{"all":[{"field":"action","operator":"Equals","value":"Note"}]}""", """[{"effect":"RequireEvidence"}]""")
+            new(PolicySeedOperationKind.AddRule, PolicyDomains.CoreRecruitment, "R-REQ-NOTE", "ملاحظة", 20, NoteWhen, NoteThen)
         ]);
 
         await PolicySeedChangeSetApplier.Create(h.Db, Services(h.Configuration)).ApplyAsync([set]);
@@ -200,12 +220,12 @@ public sealed class Pol047SeedChangeSetApplierTests
     public async Task An_open_draft_postpones_the_set_to_a_later_boot()
     {
         await using var h = await SeededAsync();
-        var template = await h.Db.PolicyTemplates.SingleAsync(t => t.Domain == PolicyDomains.ArchiveRetention && t.Scope == PolicyTemplateScope.National);
+        var template = await h.Db.PolicyTemplates.SingleAsync(t => t.Domain == PolicyDomains.CoreRecruitment && t.Scope == PolicyTemplateScope.National);
         var draft = await h.Drafts.CreateDraftAsync(template.Id, null, Guid.NewGuid());
+        Assert.True(draft.Succeeded, draft.MessageAr);
         var set = new PolicySeedChangeSet("POL-TEST-LATER",
         [
-            new(PolicySeedOperationKind.AddRule, PolicyDomains.ArchiveRetention, "R-ARC-LATER", "لاحقاً", 20,
-                """{"all":[{"field":"action","operator":"Equals","value":"Note"}]}""", """[{"effect":"RequireEvidence"}]""")
+            new(PolicySeedOperationKind.AddRule, PolicyDomains.CoreRecruitment, "R-REQ-LATER", "لاحقاً", 20, NoteWhen, NoteThen)
         ]);
 
         await PolicySeedChangeSetApplier.Create(h.Db, null).ApplyAsync([set]);
@@ -214,6 +234,46 @@ public sealed class Pol047SeedChangeSetApplierTests
         await h.Drafts.DiscardDraftAsync(draft.Id!.Value, Guid.NewGuid());
         await PolicySeedChangeSetApplier.Create(h.Db, null).ApplyAsync([set]);
         Assert.Equal("Published", (await h.Db.PolicySeedApplications.SingleAsync(a => a.ChangeSetId == "POL-TEST-LATER")).Outcome);
+    }
+
+    [Fact]
+    public async Task A_set_adds_nothing_to_a_domain_out_of_the_engine_scope_and_records_it_once()
+    {
+        // PLAN-49: a set written before a domain left the engine's scope (the baseline's Archive.Retention part, on a database
+        // that never applied it). The template is an old one; the set opens no draft and is recorded as NoOp, once.
+        await using var h = await SeededAsync();
+        var template = await h.Db.PolicyTemplates.SingleOrDefaultAsync(t => t.Domain == PolicyDomains.ArchiveRetention && t.Scope == PolicyTemplateScope.National);
+        if (template is null)
+        {
+            template = new PolicyTemplate
+            {
+                TenantId = Pol047Harness.Tenant,
+                Domain = PolicyDomains.ArchiveRetention,
+                Name = "أرشفة",
+                SubjectType = "ArchiveRecord",
+                Scope = PolicyTemplateScope.National
+            };
+            h.Db.PolicyTemplates.Add(template);
+            await PolicySeedVersionWriter.AddAsync(h.Db, new PolicyTemplateVersion { PolicyTemplate = template, TenantId = template.TenantId, VersionNumber = 1, EffectiveFrom = DateTime.UtcNow.AddDays(-5) },
+                [new PolicyRule { RuleKey = "R-ARC", Name = "احتفاظ", Priority = 10, WhenJson = """{"all":[{"field":"requiresRetention","operator":"Equals","value":"true"}]}""", ThenJson = """[{"effect":"RequireEvidence"}]""" }],
+                PolicyVersionStatus.Published, new PolicyPublication { PublishedAt = DateTime.UtcNow.AddDays(-5), EvidenceRef = "seed-before-plan-49" });
+        }
+
+        h.Db.ChangeTracker.Clear();
+        var versionsBefore = (await VersionsAsync(h, PolicyDomains.ArchiveRetention)).Count;
+        var set = new PolicySeedChangeSet("POL-TEST-OUT-OF-SCOPE",
+        [
+            new(PolicySeedOperationKind.AddRule, PolicyDomains.ArchiveRetention, "R-ARC-NOTE", "ملاحظة", 20,
+                """{"all":[{"field":"action","operator":"Equals","value":"Delete"}]}""", """[{"effect":"Deny","params":{"reason":"سبب"}}]""")
+        ]);
+
+        for (var boot = 0; boot < 2; boot++)
+            await PolicySeedChangeSetApplier.Create(h.Db, null).ApplyAsync([set]);
+
+        var application = await h.Db.PolicySeedApplications.SingleAsync(a => a.ChangeSetId == "POL-TEST-OUT-OF-SCOPE");
+        Assert.Equal("NoOp", application.Outcome);
+        Assert.Null(application.ResultVersionId);
+        Assert.Equal(versionsBefore, (await VersionsAsync(h, PolicyDomains.ArchiveRetention)).Count);
     }
 
     [Fact]

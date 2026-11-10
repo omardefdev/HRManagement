@@ -161,6 +161,12 @@ public sealed class PolicyPublishService(
         CancellationToken ct,
         IReadOnlySet<string>? onlyRuleKeys = null)
     {
+        // PLAN-49 (D-POL-1): nothing is published in a domain the engine does not govern. The one exception is its retirement:
+        // the final version with no rules, published by the retirement change set (never by a person).
+        var retirement = details.Kind == PolicyPublicationKind.SystemSeed && version.WithdrawsAllRules && version.Rules.Count == 0;
+        if (!retirement && validation.ValidateDomain(version.PolicyTemplate.Domain) is { Count: > 0 } outOfScope)
+            return new(PolicyPublishOutcome.Invalid, outOfScope[0].MessageAr, outOfScope);
+
         // §5: no empty version, except the explicit "withdraw every rule of the domain" draft with a written reason.
         if (version.WithdrawsAllRules)
         {

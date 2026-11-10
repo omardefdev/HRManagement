@@ -16,7 +16,11 @@ public enum PolicyFailureMode
 /// <summary>The one place that turns configuration into a policy mode, for HR.Core and for the remote client alike.</summary>
 public interface IPolicyModeResolver
 {
-    /// <summary><c>PolicyEngine:{domain}</c>, then <c>PolicyEngine:DefaultMode</c>, then Off. An unknown value throws.</summary>
+    /// <summary>
+    /// <c>PolicyEngine:{domain}</c>, then <c>PolicyEngine:DefaultMode</c>, then Off. An unknown value throws. PLAN-49: only a domain
+    /// the catalog governs has a mode; an out-of-scope domain (and a name that is no domain) is Off whatever the configuration
+    /// says, <c>DefaultMode</c> included.
+    /// </summary>
     PolicyEnforcementMode Resolve(string domain);
 
     /// <summary><c>PolicyEngine:FailureMode:{domain}</c>, then FailClosed. An unknown value throws.</summary>
@@ -31,6 +35,10 @@ public sealed class PolicyModeResolver(IConfiguration configuration) : IPolicyMo
 
     public PolicyEnforcementMode Resolve(string domain)
     {
+        // PLAN-49 (G-POL-02): the catalog decides first. No key and no default can switch on a domain nobody calls.
+        if (!PolicyDomainCatalog.IsGoverned(domain))
+            return PolicyEnforcementMode.Off;
+
         var key = $"{SectionName}:{domain}";
         var raw = configuration[key];
         if (raw is null)

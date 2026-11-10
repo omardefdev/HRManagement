@@ -45,8 +45,29 @@ public sealed class PolicyOrchestrator(
     public Task<PolicyEnforceResponse> EnforceForServiceAsync(PolicyEnforceRequest request, string callerClientId, CancellationToken ct = default) =>
         EnforceCoreAsync(request, callerClientId, ct);
 
+    /// <summary>
+    /// PLAN-49 (G-POL-02): the answer for a domain the catalog does not govern (out of scope, or no domain at all): a neutral
+    /// allow that says so. Nothing was evaluated, so no version is named.
+    /// </summary>
+    public static PolicyDecision OutOfScopeDecision() =>
+        new() { Allowed = true, Explanations = [PolicyDomainCatalog.OutOfScopeMessageAr] };
+
     private async Task<PolicyEnforceResponse> EnforceCoreAsync(PolicyEnforceRequest request, string? callerClientId, CancellationToken ct)
     {
+        // PLAN-49 (G-POL-02): the catalog decides first, whatever mode the caller set: outside the engine's scope there is no
+        // evaluation, no ledger row and no workflow.
+        if (!PolicyDomainCatalog.IsGoverned(request.Domain))
+        {
+            var neutral = OutOfScopeDecision();
+            return new PolicyEnforceResponse
+            {
+                Allowed = true,
+                EffectiveMode = PolicyEnforcementMode.Off,
+                Explanations = neutral.Explanations,
+                Decision = neutral
+            };
+        }
+
         // PLAN-42: Off means the engine has no say here: an allow with no ledger row and no workflow.
         if (request.Mode == PolicyEnforcementMode.Off)
         {
@@ -125,6 +146,10 @@ public sealed class PolicyOrchestrator(
     /// <summary>PLAN-47 (§6): the published policy now, or as of <see cref="PolicyEnforceRequest.AsOfUtc"/>.</summary>
     public async Task<PolicyDecision> EvaluateAsync(PolicyEnforceRequest request, CancellationToken ct = default)
     {
+        // PLAN-49 (G-POL-02): no rule and no fallback decides for a domain the catalog does not govern.
+        if (!PolicyDomainCatalog.IsGoverned(request.Domain))
+            return OutOfScopeDecision();
+
         // A time with no zone is UTC; a local one is converted (the body may carry either).
         request.AsOfUtc = request.AsOfUtc switch
         {

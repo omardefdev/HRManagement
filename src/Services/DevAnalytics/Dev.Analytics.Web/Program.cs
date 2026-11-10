@@ -3,7 +3,6 @@ using Dev.Analytics.Infrastructure.Data;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Localization;
-using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.Seeding;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -35,7 +34,6 @@ builder.Services.AddDbContext<AnalyticsDbContext>((sp, options) =>
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>()));
 
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<AnalyticsDbContext>());
-builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 builder.Services.AddExportJobInfrastructure(builder.Configuration);
 builder.Services.AddScoped<Dev.Analytics.Infrastructure.ExportJobs.IAnalyticsExportJobService, Dev.Analytics.Infrastructure.ExportJobs.AnalyticsExportJobService>();
 builder.Services.AddSingleton<Dev.Analytics.Application.Services.IReadModelReconciliationStatusStore, Dev.Analytics.Application.Services.InMemoryReadModelReconciliationStatusStore>();

@@ -14,6 +14,11 @@ namespace HR.Core.Web.Controllers;
 /// being decided; who decides, in which mode, for whom and in which tenant is the server's. The reply is 200 for an allow and
 /// for a denial, with <see cref="PolicyEnforceResponse.EffectiveMode"/>; 422 is gone.
 /// <para>
+/// PLAN-49 (G-POL-02): what may be asked comes from <see cref="PolicyDomainCatalog"/>. A domain out of the engine's scope is a 400
+/// that says so, for any caller; a governed domain answers only its owner (403 otherwise), and only for a subject type and an
+/// action the catalog lists for it (400 otherwise).
+/// </para>
+/// <para>
 /// The class demands an antiforgery token, so a POST added here later is protected by default. <c>Enforce</c> opts out: its policy
 /// needs a client_credentials token, which no browser holds, so there is no ambient credential a forged request could ride on.
 /// </para>
@@ -34,11 +39,19 @@ public sealed class PolicyEnforceInternalController(
     public async Task<IActionResult> Enforce([FromBody] PolicyEnforceRequest request, CancellationToken ct)
     {
         var clientId = ServiceCallerPrincipal.GetClientId(User);
+        // PLAN-49 (G-POL-02): a domain the catalog puts out of scope has no decision to give, whoever asks.
+        if (PolicyDomainCatalog.IsOutOfScope(request.Domain))
+            return BadRequest(PolicyDomainCatalog.OutOfScopeMessageAr);
+
         if (!PolicyDomainOwners.Owns(clientId, request.Domain))
             return Forbid();
 
         if (!PolicyDomainOwners.AllowsSubjectType(request.Domain, request.SubjectType))
             return BadRequest("SubjectType is not allowed in this domain.");
+
+        // PLAN-49: and only for an action the catalog lists for that subject type (what the owner's call sites send).
+        if (!PolicyDomainOwners.AllowsAction(request.Domain, request.SubjectType, request.Action))
+            return BadRequest("Action is not allowed for this subject type.");
 
         if (request.ContextJson is not null && Encoding.UTF8.GetByteCount(request.ContextJson) > MaxContextJsonBytes)
             return BadRequest("ContextJson is larger than 8 KB.");

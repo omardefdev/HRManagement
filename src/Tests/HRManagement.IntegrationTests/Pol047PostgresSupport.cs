@@ -163,5 +163,5 @@ internal static class Pol047Pg
             [new Claim("sub", id.ToString()), new Claim(ClaimTypes.Role, HrManagementRoles.HrManagementApprover)], "test")));
 
     public static PolicyPublishService PublishService(HRCoreDbContext db, IPolicyVersionPublisher publisher) =>
-        new(db, new PolicyRuleValidationService(db, AllowAllPolicyDomainCapabilities.Instance), publisher, authorization: Authorization());
+        new(db, PolicyRuleValidationService.ForCatalog(db), publisher, authorization: Authorization());
 }

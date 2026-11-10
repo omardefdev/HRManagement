@@ -60,7 +60,7 @@ public static class PolicyPublishedRuleInventory
         try
         {
             var validation = services?.GetService<IPolicyRuleValidationService>()
-                             ?? new PolicyRuleValidationService(db, AllowAllPolicyDomainCapabilities.Instance);
+                             ?? PolicyRuleValidationService.ForCatalog(db);
             var found = await FindAsync(db, validation, ct);
             foreach (var rule in found)
                 logger.LogWarning(

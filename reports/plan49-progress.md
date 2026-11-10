@@ -22,7 +22,7 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | Phase | Status | Finished (UTC) |
 |-------|--------|----------------|
 | P0 | done | 2026-11-10T10:10Z |
-| P1 | in progress (code and tests in the working tree, not committed) | |
+| P1 | done | 2026-11-10T10:20Z |
 | P2 | pending | |
 | P3 | pending | |
 | P4 | pending | |
@@ -40,8 +40,10 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | Baseline integration filter, without Testcontainers (13 passed, 22 skipped) | 15 s of tests, 182 s |
 | Prod-like stack start on `ec9dca37`, images of PLAN-48 (`acceptance-up.ps1 -Profile ProdLike -NoBuild -SkipLiveVerification`) | 497 s |
 | The four inventories (one read-only workflow, two agents at a time) | 61 min, beside the stack start and P1's first code |
-| Full unit suite on the P1 working tree (5915 tests) | 114 s of tests |
+| Full unit suite on the P1 tree (5915 tests), twice | 114 s and 119 s of tests (378 s with the start, beside another project's containers) |
 | PostgreSQL filter `Pol047\|S2s042\|Ten048\|Hcm025` with `RUN_TESTCONTAINERS=true` on the P1 tree (47 tests) | 129 s of tests, 178 s |
+| Integration filter `Fun002\|Est00\|RecruitmentRequisitionPolicy\|InternalChannel\|Hcm033\|IntegrationHostValidation` (32 tests) | 52 s of tests, 80 s |
+| Build `-warnaserror` at the end of P1 | 22 s (incremental) |
 | Waiting for CI | 0 so far |
 | Waiting for the owner | about 17 min (the session end of 08:43Z to 09:00Z; nothing was asked of the owner) |
 
@@ -71,6 +73,54 @@ acceptance and server before-pictures).
 **Docker:** another project's containers (`cgims-*`, `p6check-*`, `p6-sqlcheck`) run on this machine and are not this
 repository's: never touched. Their host ports are compared with the stack's before each stack start (P-2).
 
+## P1 — done
+
+One catalog, `PolicyDomainCatalog` (SharedKernel): a descriptor for each of the twenty domains. Five are `Governed` (owner
+service and client, entity types and their actions, the effects a call site consumes, the `SetField` fields, the workflow codes
+a rule may name per entity type and who starts them, the call-site files); fifteen are `OutOfScope`, each with its reason in
+Arabic. Everything else reads it:
+
+- **The validator.** `IPolicyDomainCapabilities` grew (`IsGoverned`, `Actions`, `SubjectTypesOf`, `AllowsWorkflowCode` by entity
+  type) and `CatalogPolicyDomainCapabilities` is its only implementation; `AllowAllPolicyDomainCapabilities` is gone from every
+  path, the applier's hand-built services and the test helpers included. New refusals, all Arabic: `DOMAIN_OUT_OF_SCOPE`,
+  `WHEN_ACTION_UNKNOWN`, `WHEN_ACTION_OPERATOR`, `THEN_WORKFLOW_NOT_ALLOWED` (a rule that can match an action whose entity type
+  does not own the code: `PolicyRuleActionScope` works out which actions a condition can match). The draft service refuses a
+  draft, a copy, a rollback and a withdrawal in an out-of-scope domain; the publish service refuses any publication there but
+  the retirement (P2).
+- **Run time.** `PolicyOrchestrator` answers a neutral decision («المجال خارج نطاق المحرك») with no ledger row and no workflow;
+  `PolicyModeResolver` answers Off whatever `DefaultMode` says; the internal endpoint answers 400 (then 403 for a client that
+  does not own a governed domain, then 400 for a subject type or an **action** the catalog does not list for it).
+- **Start-up.** `PolicyEngineConfigurationValidator` stops any of the 15 hosts where an out-of-scope domain's key is not Off
+  (it names the key, never the value), and no longer takes `Roles`, `Seeds`, `Publish` for domains.
+- **Derived, not duplicated.** `PolicyDomainOwners` and `PolicyWorkflowTriggerAllowlist` are views of the catalog (the
+  allow-list is empty: the catalog marks no trigger for the internal endpoint). `PolicyDomainRegistry` is deleted; the page's
+  table (status, owner, mode from the resolver, last ledger row, call sites or reason) comes from the catalog, and
+  `CreateDraft` refuses an out-of-scope domain on the page and in the API. `docs/POLICY_DOMAIN_REGISTRY.md` is written from the
+  catalog by a test and compared with it by the same test.
+- **The client** is registered only by Admin.Logistics, IDCard and HR.Contracts. Removed from the eight others; the address key
+  `Integration__HrCoreBaseUrl` left Dev.Analytics, HR.Health and HR.Training (nothing else read it there) in the wiring file,
+  the compose file and the three k8s patches; the five others keep it for a reader they still have. No Keycloak client, scope
+  or secret was touched. `PolicyDomainGateway` (no caller, production or test) is deleted.
+- **`scripts/pol049-validate.ps1`** (ASCII, PowerShell 5.1): catalog = decision D-POL-1 = registry document = page; the client
+  only where a governed domain is owned and injected; no mode key for an out-of-scope domain in any shipped configuration.
+  Checked against three planted defects (a mode key, a missing registry row, a registration without a call): each fails.
+
+**Tests of P1:** `Pol049PolicyDomainCatalogTests` (10), `Pol049CatalogCapabilitiesTests`, `Pol049OutOfScopeTests` (134 `Pol049`
+cases in all); changed to the new rule, never weakened: `S2s042PolicyEnforceInternalTests` (out-of-scope 400, the action check,
+owners from the catalog), `Pol047*` (the tests that worked in Movements.Transfer and Archive.Retention use Core.Recruitment),
+`Ten048*` (effects the catalog gives the domain), `ProductionWiringMatrixTests` (`PolicyEnforceS2S` joins the list of policies
+with exactly their matrix callers: the three owners), `Ac10EnforcePolicyTests` (the pair the call site sends,
+`AssetAssignment` + `Assign`), `Pol047SeedApplierPostgresTests` (the baseline publishes nothing in Archive.Retention).
+
+**Validators:** `pol049-validate` PASS; `wf043-validate` PASS (its allow-list check now reads "derived from the catalog, and
+the catalog marks no trigger for the internal endpoint"); `pol047-validate` PASS; `hcm025-validate -SkipTests` PASS;
+`int037-wiring-check` PASS (compose, prod-like parity, three k8s overlays); `lint-compose` PASS (both chains);
+`int037-render-wiring-doc -Check` PASS.
+
+**Formatting:** the Windows `dotnet format` run on the changed files reports only end-of-line trivia at comments inside
+parameter lists (it expects CRLF on Windows; the repository is LF by `.gitattributes`). One of the three places is PLAN-47's
+own code. The authoritative gate is ci-local's Linux container, run in P8.
+
 ## Decisions (with reasons)
 
 | # | Phase | Decision | Reason |
@@ -85,12 +135,25 @@ repository's: never touched. Their host ports are compared with the stack's befo
 | 8 | P0 | `isSelfApproval` is `ApproverId == CreatedBy`, or the approver's `employee_id` equals the request's employee | with the plan's formula alone the fact is never true when the engine is asked (the local check refuses first), so `R-LEAVE-SELF` would be a dead rule |
 | 9 | P0 | A self-service leave stores its working days, computed in HR.Contracts, and a local refusal creates it `Rejected` | the portal sends calendar days; the local validation counts working days; a consumer must not throw for a business refusal |
 | 10 | P0 | A new database keeps the governed bindings only (seven with the new establishment one); existing rows stay; the establishment binding is unpinned | readers checked: PLAN-46's path reads no binding; a pin would break AC-WF-43c |
+| 11 | P1 | A workflow trigger in the catalog names who starts it (`HrCoreCoordinator`, `OwnerApprovalContract`, `InternalEndpoint`); the PLAN-42 allow-list is the triggers marked `InternalEndpoint`, and there are none | the allow-list stays derived and keeps PLAN-43's meaning without a second list; a test proves it is empty |
+| 12 | P1 | A `TriggerWorkflow` rule must be limited by a condition on `action` to actions whose entity type owns the code | a custody rule with no `action` condition also matches `Classify` and `Create` of type `Asset`, which do not start a handover approval: this is what `POL-049-ASSETS-ACTION` fixes in the seeds |
+| 13 | P1 | The internal endpoint also checks the action against the catalog (400) | the catalog lists what each call site sends; a pair it does not list has no consumer |
+| 14 | P1 | A set written before a domain left the scope (the baseline's Archive.Retention part) is recorded once as NoOp where the template exists, and passed over quietly where it does not | "the applier passes over an OutOfScope domain quietly" (P-4); the baseline set itself is unchanged, so its digest on the server still matches |
+| 15 | P1 | `Integration__HrCoreBaseUrl` removed from three services only | Dev.Analytics, HR.Health and HR.Training have no other reader; the wiring check compares both ways, so an unread key must go with its registration |
 
 ## Files changed
 
 - P0: `docker-compose.acceptance.yml` (ClamAV), `reports/plan49-baseline.md`, `reports/plan49-progress.md`, the prompt file,
   PLAN-48's note in `reports/plan48-progress.md`.
-- P1 (working tree, not committed yet): see the P1 section when it is done.
+- P1: new `PolicyDomainCatalog.cs`, `PolicyRuleActionScope.cs` (SharedKernel), `CatalogPolicyDomainCapabilities.cs` (HR.Core),
+  `scripts/pol049-validate.ps1`, three `Pol049*` test files; deleted `PolicyDomainGateway.cs`; changed: `PolicyDomainOwners`,
+  `PolicyModeResolver`, `PolicyEngineConfigurationValidator`, `ProductionHostExtensions`, `IPolicyDomainCapabilities`,
+  `PolicyRuleValidator`, `PolicyRuleValidationService`, `PolicyDraftService`, `PolicyPublishService`, `PolicyOrchestrator`,
+  `PolicyStaticFallback`, `PolicyWorkflowTriggerAllowlist`, `PolicySeedChangeSetApplier`, `PolicyPublishedRuleInventory`,
+  `AgencyProvisioningService`, `PolicyEngineDependencyInjection`, three HR.Core controllers and the policy page, eight
+  `Program.cs`, `deploy/wiring/service-wiring.json`, `docker-compose.services.yml`, three k8s wiring patches,
+  `docs/SERVICE_WIRING_MATRIX.md`, `docs/POLICY_DOMAIN_REGISTRY.md`, `scripts/int037-render-wiring-doc.ps1`,
+  `scripts/wf043-validate.ps1`, the finance overlay pack, and the tests named in the P1 section.
 
 ## Test results
 
@@ -99,8 +162,11 @@ repository's: never touched. Their host ports are compared with the stack's befo
 | P0 | build `-warnaserror` | 0 errors, 0 warnings |
 | P0 | unit filter of the plan | 620 / 620 |
 | P0 | integration filter, no Testcontainers | 13 passed, 22 skipped |
-| P1 (in progress) | full unit suite | 5915 / 5915 |
-| P1 (in progress) | PostgreSQL filter `Pol047\|S2s042\|Ten048\|Hcm025` | 47 / 47 |
+| P1 | build `-warnaserror` | 0 errors, 0 warnings |
+| P1 | full unit suite | 5915 / 5915 |
+| P1 | PostgreSQL filter `Pol047\|S2s042\|Ten048\|Hcm025` | 47 / 47 |
+| P1 | integration filter `Fun002\|Est00\|RecruitmentRequisitionPolicy\|InternalChannel\|Hcm033\|IntegrationHostValidation` | 32 / 32 |
+| P1 | the seven validation scripts | all PASS; `pol049-validate` fails on each of three planted defects |
 
 ## Server changes and their undo commands
 
@@ -114,7 +180,11 @@ None yet (read-only so far: the running tag, the policy picture in `artifacts/pl
 
 ## Exact next step
 
-P1: build the whole solution `-warnaserror`; run `Pol049*`, `S2s042*`, `Pol047*`, `Ten048*`, `ProductionWiringMatrixTests` and
-the `Architecture` filter; a negative run of `scripts/pol049-validate.ps1`; `int037-wiring-check.ps1`, `lint-compose.ps1` (both
-chains), `wf043-validate.ps1`, `hcm025-validate.ps1 -SkipTests`, `pol047-validate.ps1`; then the P1 commit. `PolicyDomainGateway.cs`
-is deleted in the working tree (it had no caller); it belongs to the P1 commit.
+P2: `PolicyTemplate.RetiredAt` / `RetiredReason` and the migration `POL049_PolicyDomainRetirement` (two columns, no data, no
+byte order mark); the operation `RetireDomain` in the applier; the four sets appended to `PolicySeedChangeSets.All`
+(`POL-049-SCOPE-RETIRE`, `POL-049-ASSETS-ACTION`, `POL-049-IDCARD-ORPHAN`, `POL-049-LEAVE`); the fresh seed of the five governed
+domains (custody v1 already bound to `Assign`, no `R-ID-PROCESS`, no `R-LEAVE-LONG`); the bindings (governed codes only on a
+new database, plus the unpinned `ESTABLISHMENT-CHANGE-APPROVAL` everywhere); the start-up inventory after the code-generation
+seed and split into effective and historic; `pol047-validate.ps1` expects no rule of an effective version; tests
+`Pol049EffectiveRulesConformTests`, `Pol049FreshSeedTests`, the added condition in `WorkflowDefinitionsHaveHandlersTests`,
+`Pol049ScopeChangeSetsPostgresTests`.

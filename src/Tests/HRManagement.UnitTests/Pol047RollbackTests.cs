@@ -72,20 +72,38 @@ public sealed class Pol047RollbackTests
     public async Task The_validator_checks_the_target_again_and_explains_the_refusal()
     {
         await using var h = new Pol047Harness(interceptor: false);
-        await WorkflowPackSeeder.SeedAsync(h.Db);
-        await PolicyEngineSeeder.SeedAsync(h.Db);
-        // Movements.Transfer v1 holds R-TRF, which fires TRANSFER-APPROVAL, retired by PLAN-46 (left for PLAN-49).
-        var template = await h.Db.PolicyTemplates.SingleAsync(t => t.Domain == PolicyDomains.MovementsTransfer);
-        var v1 = await h.Db.PolicyTemplateVersions.SingleAsync(v => v.PolicyTemplateId == template.Id);
+        var (template, _) = await h.SeedTemplateAsync();
+        // An earlier version from before the validator: its rule fires HIRE-WIZARD, a workflow PLAN-46 retired. (PLAN-49: the
+        // seeded example of this, R-TRF in Movements.Transfer, left the seeds with its domain, which is out of the engine's scope.)
+        var old = await PolicySeedVersionWriter.AddAsync(h.Db, new PolicyTemplateVersion
+        {
+            PolicyTemplate = template,
+            TenantId = Pol047Harness.Tenant,
+            VersionNumber = 2,
+            EffectiveFrom = DateTime.UtcNow.AddDays(-20),
+            EffectiveTo = DateTime.UtcNow.AddDays(-10)
+        },
+        [
+            new PolicyRule
+            {
+                RuleKey = "R-OLD-HIRE",
+                Name = "old",
+                Priority = 10,
+                WhenJson = """{"all":[{"field":"action","operator":"Equals","value":"Assign"}]}""",
+                ThenJson = """[{"effect":"TriggerWorkflow","params":{"workflowCode":"HIRE-WIZARD"}}]"""
+            }
+        ],
+        PolicyVersionStatus.Published,
+        new PolicyPublication { PublishedAt = DateTime.UtcNow.AddDays(-20), EvidenceRef = "before-the-validator" });
 
-        var draft = await h.Drafts.CreateRollbackDraftAsync(template.Id, v1.Id, "إعادة الإصدار الأول", Author);
+        var draft = await h.Drafts.CreateRollbackDraftAsync(template.Id, old.Id, "إعادة الإصدار القديم", Author);
         Assert.True(draft.Succeeded, draft.MessageAr);
         var result = await h.PublishService.PublishAsync(new(draft.Id!.Value, Pol047Harness.Actor(Approver, HrManagementRoles.HrManagementApprover), null));
 
         Assert.Equal(PolicyPublishOutcome.Invalid, result.Outcome);
         var issue = Assert.Single(result.IssueList, i => i.Code == "THEN_WORKFLOW_RETIRED");
-        Assert.Contains("TRANSFER-APPROVAL", issue.MessageAr);
-        Assert.Contains("R-TRF", issue.MessageAr);
+        Assert.Contains("HIRE-WIZARD", issue.MessageAr);
+        Assert.Contains("R-OLD-HIRE", issue.MessageAr);
         Assert.Equal(PolicyVersionStatus.Draft, (await h.Db.PolicyTemplateVersions.AsNoTracking().SingleAsync(v => v.Id == draft.Id)).Status);
     }
 }

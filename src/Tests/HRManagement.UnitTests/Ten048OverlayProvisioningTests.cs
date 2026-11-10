@@ -24,6 +24,9 @@ public sealed class Ten048OverlayProvisioningTests
 {
     private const string LeaveWhen = """{"all":[{"field":"leaveType","operator":"Equals","value":"Annual"}]}""";
 
+    /// <summary>PLAN-49: the stricter effect a call site of Contracts.Leave consumes (RequireEvidence there has no consumer).</summary>
+    private const string LeaveDeny = """[{"effect":"Deny","params":{"reason":"agency"}}]""";
+
     private static string Pack(string packId, string? prefix, params (string Domain, string Key, string When, string Then, string? RenamedFrom)[] rules) =>
         System.Text.Json.JsonSerializer.Serialize(new
         {
@@ -59,9 +62,11 @@ public sealed class Ten048OverlayProvisioningTests
         var version = await db.PolicyTemplateVersions.Include(v => v.PolicyTemplate).Include(v => v.Rules).Include(v => v.Publications)
             .SingleAsync(v => v.TenantId == tenant);
         Assert.Equal(PolicyTemplateScope.TenantOverride, version.PolicyTemplate.Scope);
-        Assert.Equal(PolicyDomains.ContractsLeave, version.PolicyTemplate.Domain);
+        // PLAN-49: the pack's rule is one the domain catalog accepts and a call site consumes (handover proof on Assign); its
+        // old rule (RequireEvidence on leave, an effect nobody consumed) left the pack.
+        Assert.Equal(PolicyDomains.AssetsCustody, version.PolicyTemplate.Domain);
         Assert.Equal(PolicyVersionStatus.Published, version.Status);
-        Assert.Equal(new[] { "MOF:R-FIN-LEAVE-NOTE" }, version.Rules.Select(r => r.RuleKey));
+        Assert.Equal(new[] { "MOF:R-FIN-HANDOVER-PROOF" }, version.Rules.Select(r => r.RuleKey));
         var publication = Assert.Single(version.Publications);
         Assert.Equal(PolicyPublicationKind.SystemSeed, publication.Kind);
         Assert.Equal("overlay-policy-ministry-finance-v1", publication.EvidenceRef);
@@ -83,14 +88,14 @@ public sealed class Ten048OverlayProvisioningTests
         {
             var first = await AgencyPolicySeeder.ApplyPackContentAsync(db, null, AgencyA, "p48-one", Pack("p48-one", "P48A",
                 (Domain, "R-DENY", PrivilegedWhen, """[{"effect":"Deny","params":{"reason":"agency"}}]""", null),
-                (Domain, "R-DUAL", PrivilegedWhen, """[{"effect":"RequireDualApproval"}]""", null)));
+                (Domain, "R-EVIDENCE", PrivilegedWhen, """[{"effect":"RequireEvidence"}]""", null)));
             Assert.Single(first.Published);
         }
 
         await using (var db = h.DesignTime())
         {
             var second = await AgencyPolicySeeder.ApplyPackContentAsync(db, null, AgencyA, "p48-two", Pack("p48-two", "P48B",
-                (Domain, "R-RECEIPT", PrivilegedWhen, """[{"effect":"RequireOriginReceipt"}]""", null)));
+                (Domain, "R-LEGACY", """{"all":[{"field":"isLegacyEntry","operator":"Equals","value":"true"}]}""", """[{"effect":"Deny","params":{"reason":"agency: no legacy entry"}}]""", null)));
             Assert.Single(second.Published);
         }
 
@@ -98,8 +103,8 @@ public sealed class Ten048OverlayProvisioningTests
         var versions = await check.PolicyTemplateVersions.Include(v => v.Rules)
             .Where(v => v.TenantId == AgencyA).OrderBy(v => v.VersionNumber).ToListAsync();
         Assert.Equal(2, versions.Count);
-        Assert.Equal(new[] { "P48A:R-DENY", "P48A:R-DUAL" }, versions[0].Rules.Select(r => r.RuleKey).OrderBy(k => k, StringComparer.Ordinal));
-        Assert.Equal(new[] { "P48A:R-DENY", "P48A:R-DUAL", "P48B:R-RECEIPT" }, versions[1].Rules.Select(r => r.RuleKey).OrderBy(k => k, StringComparer.Ordinal));
+        Assert.Equal(new[] { "P48A:R-DENY", "P48A:R-EVIDENCE" }, versions[0].Rules.Select(r => r.RuleKey).OrderBy(k => k, StringComparer.Ordinal));
+        Assert.Equal(new[] { "P48A:R-DENY", "P48A:R-EVIDENCE", "P48B:R-LEGACY" }, versions[1].Rules.Select(r => r.RuleKey).OrderBy(k => k, StringComparer.Ordinal));
         Assert.All(versions, v => Assert.Equal(PolicyVersionStatus.Published, v.Status));
         // The publish service closed v1 when v2 took effect (its own tenant, though the seeding session is not the agency's).
         Assert.NotNull(versions[0].EffectiveTo);
@@ -117,10 +122,12 @@ public sealed class Ten048OverlayProvisioningTests
 
         var refused = await Assert.ThrowsAsync<AgencyPolicyPackException>(() => AgencyPolicySeeder.ApplyPackContentAsync(db, null, AgencyA, "p48-bad",
             Pack("p48-bad", "P48X",
-                (PolicyDomains.ContractsLeave, "R-NOTE", LeaveWhen, """[{"effect":"RequireEvidence"}]""", null),
+                // A rule the catalog and the ceiling both accept: it is not saved either, because the pack is refused whole.
+                (PolicyDomains.ContractsLeave, "R-NOTE", LeaveWhen, LeaveDeny, null),
                 (Domain, "R-WEAKER", PrivilegedWhen, thenJson, null))));
 
         Assert.Contains(refused.Issues, i => i.Contains(code, StringComparison.Ordinal));
+        Assert.DoesNotContain(refused.Issues, i => i.Contains(PolicyDomains.ContractsLeave, StringComparison.Ordinal));
         await using var check = h.DesignTime();
         Assert.False(await check.PolicyTemplates.AnyAsync(t => t.TenantId == AgencyA));
         Assert.False(await check.PolicyRules.AnyAsync(r => r.TenantId == AgencyA));
@@ -134,9 +141,35 @@ public sealed class Ten048OverlayProvisioningTests
 
         // No prefix: the stored key is "{packId}:{ruleKey}", and a lower-case pack id fails PLAN-47's key pattern.
         var refused = await Assert.ThrowsAsync<AgencyPolicyPackException>(() => AgencyPolicySeeder.ApplyPackContentAsync(db, null, AgencyA, "p48-lower",
-            Pack("p48-lower", null, (PolicyDomains.ContractsLeave, "R-NOTE", LeaveWhen, """[{"effect":"RequireEvidence"}]""", null))));
+            Pack("p48-lower", null, (PolicyDomains.ContractsLeave, "R-NOTE", LeaveWhen, LeaveDeny, null))));
 
         Assert.Contains(refused.Issues, i => i.Contains("RULE_KEY", StringComparison.Ordinal));
+    }
+
+    /// <summary>
+    /// PLAN-49 (P-4): a pack goes through the domain catalog as any rule does. An effect no call site of the domain consumes
+    /// (the pack's old RequireEvidence on leave), a domain out of the engine's scope, and a workflow not bound to the action
+    /// that owns it are each refused, whole, with nothing saved.
+    /// </summary>
+    [Theory]
+    [InlineData(PolicyDomains.ContractsLeave, LeaveWhen, """[{"effect":"RequireEvidence"}]""", "THEN_EFFECT_NOT_ALLOWED")]
+    [InlineData(PolicyDomains.AssetsCustody, PrivilegedWhen, """[{"effect":"RequireDualApproval"}]""", "THEN_EFFECT_NOT_ALLOWED")]
+    [InlineData(PolicyDomains.ArchiveRetention, """{"all":[{"field":"action","operator":"Equals","value":"Delete"}]}""", """[{"effect":"Deny","params":{"reason":"agency"}}]""", "DOMAIN_OUT_OF_SCOPE")]
+    [InlineData(PolicyDomains.AnalyticsEtl, """{"all":[{"field":"environment","operator":"Equals","value":"Production"}]}""", """[{"effect":"Deny","params":{"reason":"agency"}}]""", "DOMAIN_OUT_OF_SCOPE")]
+    public async Task A_pack_the_domain_catalog_refuses_is_refused_whole_and_nothing_is_saved(string domain, string when, string then, string code)
+    {
+        await using var h = await CreateAsync();
+        await using var db = h.DesignTime();
+
+        var refused = await Assert.ThrowsAsync<AgencyPolicyPackException>(() => AgencyPolicySeeder.ApplyPackContentAsync(db, null, AgencyA, "p49-bad",
+            Pack("p49-bad", "P49X",
+                (PolicyDomains.AssetsCustody, "R-FINE", PrivilegedWhen, """[{"effect":"RequireEvidence"}]""", null),
+                (domain, "R-REFUSED", when, then, null))));
+
+        Assert.Contains(refused.Issues, i => i.Contains(code, StringComparison.Ordinal));
+        await using var check = h.DesignTime();
+        Assert.False(await check.PolicyTemplates.AnyAsync(t => t.TenantId == AgencyA));
+        Assert.False(await check.PolicyRules.AnyAsync(r => r.TenantId == AgencyA));
     }
 
     [Fact]
