@@ -23,7 +23,7 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 |-------|--------|----------------|
 | P0 | done | 2026-11-10T10:10Z |
 | P1 | done | 2026-11-10T10:20Z |
-| P2 | pending | |
+| P2 | done | 2026-11-10T10:50Z |
 | P3 | pending | |
 | P4 | pending | |
 | P5 | pending | |
@@ -44,6 +44,9 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | PostgreSQL filter `Pol047\|S2s042\|Ten048\|Hcm025` with `RUN_TESTCONTAINERS=true` on the P1 tree (47 tests) | 129 s of tests, 178 s |
 | Integration filter `Fun002\|Est00\|RecruitmentRequisitionPolicy\|InternalChannel\|Hcm033\|IntegrationHostValidation` (32 tests) | 52 s of tests, 80 s |
 | Build `-warnaserror` at the end of P1 | 22 s (incremental) |
+| Build `-warnaserror` at the end of P2 (whole solution) | 61 s |
+| Full unit suite on the P2 tree (5943 tests) | 85 s of tests, 101 s |
+| PostgreSQL filter `Pol049\|Pol047\|Ten048\|S2s042\|Hcm025` on the P2 tree (50 tests) | 195 s of tests, 256 s |
 | Waiting for CI | 0 so far |
 | Waiting for the owner | about 17 min (the session end of 08:43Z to 09:00Z; nothing was asked of the owner) |
 
@@ -121,6 +124,52 @@ the catalog marks no trigger for the internal endpoint"); `pol047-validate` PASS
 parameter lists (it expects CRLF on Windows; the repository is LF by `.gitattributes`). One of the three places is PLAN-47's
 own code. The authoritative gate is ci-local's Linux container, run in P8.
 
+## P2 — done
+
+- **The migration** `20261110102522_POL049_PolicyDomainRetirement`: `PolicyTemplates.RetiredAt` and `RetiredReason`, both
+  nullable, no data, no byte order mark; `has-pending-model-changes` answers "no changes". No PLAN-47 trigger guards the
+  template row (they guard versions and rules), so none was extended.
+- **The operation `RetireDomain`** in `PolicySeedChangeSetApplier`: for the national template of a domain the catalog puts out
+  of scope, a retirement draft (no rules, the operation's reason, no actor), published as `SystemSeed` through the publish
+  service, which marks the template (`RetiredAt`, `RetiredReason`) in the same save. A template with an open draft is postponed
+  to a later start; a governed domain named by the operation is left alone; a domain with no template is passed over with a
+  debug line and no record.
+- **The four sets**, appended to `PolicySeedChangeSets.All` after PLAN-47's two (which are untouched: their digests on the server
+  still match, pinned by a test): `POL-049-SCOPE-RETIRE` (15 `RetireDomain`, each with a reason frozen in the set),
+  `POL-049-ASSETS-ACTION` (`ReplaceRule` ×3: `R-PRIV-EVIDENCE`, `R-PRIV-WF`, `R-HIGH-APPROVAL` gain `action Equals Assign`),
+  `POL-049-IDCARD-ORPHAN` (`RetireRule R-ID-PROCESS`), `POL-049-LEAVE` (`RetireRule R-LEAVE-MAX`, `R-LEAVE-LONG`;
+  `ReplaceRule R-LEAVE-SELF` gains `action Equals Approve`).
+- **The fresh seed**: `PolicyEngineDomainSeeds.SeedAllDomainsAsync` seeds IDCard.Lifecycle (no rule), Contracts.Leave (no rule;
+  the baseline adds two, `POL-049-LEAVE` then leaves `R-LEAVE-SELF` alone), Core.Recruitment (as before) and Core.Establishment
+  (as before); `PolicyEngineSeeder` seeds Assets.Custody with the three handover rules already bound to `Assign` (the same
+  constants as the set, so the set finds nothing to replace). A new database: five templates, versions custody 1, card 1,
+  leave 3, recruitment 2, establishment 1, and no rule in any version that the validator refuses.
+- **Bindings**: a new database gets seven (the codes the catalog's triggers name); `ESTABLISHMENT-CHANGE-APPROVAL` is added
+  unpinned on every database (its handler `EstablishmentChangeWorkflowHandler` exists, so the rule stays). An existing database
+  keeps its thirteen and gets the fourteenth. What each old binding was for is in the baseline (0.6).
+- **The start-up inventory** is logged by `NationalSeedOrchestrator` after the code policies (it ran before them on a new
+  database and listed `R-PRIV-CODE` at the first start), and tells a rule in force (one warning each) from history (counted).
+  Summary line: `PLAN-47 validator inventory: N rule(s) of effective versions the validator refuses; M more in superseded
+  versions (history, unchanged)`. `scripts/pol047-validate.ps1` now fails unless the last start-up in the log says N = 0 with no
+  rule line (checked with a good, a bad and an old-format log), and checks that the four set ids exist.
+- **The page**: a retired template carries a «مسحوب» badge with its date in the list; its page says the domain is out of scope
+  and why, and offers no draft and no rollback.
+- **Scripts**: `seed-001-validate.ps1` looked for the text `ID-CARD-ISSUANCE` in the seeder (a binding a new database no longer
+  gets); it now looks for `ASSET-ASSIGN-APPROVAL`. `est002-validate.ps1` and `hcm025-validate.ps1` are unchanged and still true.
+
+**Tests of P2:** `Pol049ScopeChangeSetTests` (the retirement on the demo server's shape of data: final versions, marks,
+history untouched rule by rule; a second and third start; a new database; an open draft; seeds that require approval; a governed
+domain named by a retirement; a template that publishes rules again), `Pol049EffectiveRulesConformTests` (plan §2 rule 1, on an
+old and on a new database, by the catalog directly and by the inventory; its own negative on the data of before the sets),
+`Pol049FreshSeedTests`, two facts added to `WorkflowDefinitionsHaveHandlersTests` (no effective rule fires a workflow nobody
+applies; the check finds `R-HIRE-START`, `R-TRF`, `R-TKT`, `R-SEP-START` before the sets and none after),
+`Pol049ScopeChangeSetsPostgresTests` (three, as the app role under forced row security in the national session: new versions and
+an unchanged fingerprint of every old rule, `RetiredAt` on the fifteen, 23 applications, a second and third start, two instances
+at once, a new database). `Pol049LegacyPolicyData` is the fixture: the national policy data of before the plan, in the demo
+server's shape, compiled into both test projects. Changed: `NationalSeedTests` (seven bindings, all governed),
+`Pol049OutOfScopeTests` (the retirement marks the template), the catalog guard (the seeders may no longer name an out-of-scope
+domain).
+
 ## Decisions (with reasons)
 
 | # | Phase | Decision | Reason |
@@ -140,6 +189,14 @@ own code. The authoritative gate is ci-local's Linux container, run in P8.
 | 13 | P1 | The internal endpoint also checks the action against the catalog (400) | the catalog lists what each call site sends; a pair it does not list has no consumer |
 | 14 | P1 | A set written before a domain left the scope (the baseline's Archive.Retention part) is recorded once as NoOp where the template exists, and passed over quietly where it does not | "the applier passes over an OutOfScope domain quietly" (P-4); the baseline set itself is unchanged, so its digest on the server still matches |
 | 15 | P1 | `Integration__HrCoreBaseUrl` removed from three services only | Dev.Analytics, HR.Health and HR.Training have no other reader; the wiring check compares both ways, so an unread key must go with its registration |
+| 16 | P2 | A new database is seeded already conforming (custody bound to `Assign`, no `R-ID-PROCESS`, no `R-LEAVE-LONG`), from the same constants as the sets | `Pol049FreshSeedTests` asks that every rule of a new database pass the validator; the sets then find nothing to do there, and "custody keeps one version" (a PLAN-47 assertion) holds |
+| 17 | P2 | The retirement reasons are literals of the set, not read from the catalog | an applied set never changes (its digest); the catalog's wording may |
+| 18 | P2 | Every out-of-scope template gets the final version, the two that never had a rule included | one shape for the fifteen: `RetiredAt` and a final published version with no rules (P7 checks exactly that) |
+| 19 | P2 | With `PolicyEngine:Seeds:RequireApproval` the retirement leaves its draft for an approver, like any set; the publish service accepts that one draft in an out-of-scope domain (a version with no rules that withdraws all), from the set or from an approver, and marks the template either way | the owner's switch (D-POL-11) is honoured; nobody else can write such a draft, because the draft service opens none in the domain |
+| 20 | P2 | No tenant walk for agency overrides in a retired domain | P0 found none in the seeds, the packs or the server; the engine ignores them at run time whatever the data says; the acceptance tests that created two at run time move to governed domains in P5 |
+| 21 | P2 | "In force" for the inventory is the version the engine evaluates now, or one published to take effect later | the same choice the engine makes; everything else is history, which is never rewritten |
+| 22 | P2 | A template that publishes rules again loses its retired mark | bringing a domain back (a descriptor, a call site, a change set) must not leave a governed template marked retired |
+| 23 | P2 | The pin of `ASSET-ASSIGN-APPROVAL` to the first (now retired) definition on a new database is left as it was | nothing reads it (the handover starts through the cross-service contract); recorded as a defect for a later plan (a misleading publish warning) |
 
 ## Files changed
 
@@ -154,6 +211,13 @@ own code. The authoritative gate is ci-local's Linux container, run in P8.
   `Program.cs`, `deploy/wiring/service-wiring.json`, `docker-compose.services.yml`, three k8s wiring patches,
   `docs/SERVICE_WIRING_MATRIX.md`, `docs/POLICY_DOMAIN_REGISTRY.md`, `scripts/int037-render-wiring-doc.ps1`,
   `scripts/wf043-validate.ps1`, the finance overlay pack, and the tests named in the P1 section.
+- P2: new migration `20261110102522_POL049_PolicyDomainRetirement` (+ designer, snapshot), `Pol049LegacyPolicyData.cs`,
+  `Pol049ScopeChangeSetTests.cs`, `Pol049EffectiveRulesConformTests.cs`, `Pol049FreshSeedTests.cs` (unit),
+  `Pol049ScopeChangeSetsPostgresTests.cs` (integration); changed: `PolicyEntities.cs`, `PolicySeedChangeSets.cs`,
+  `PolicySeedChangeSetApplier.cs`, `PolicyEngineSeeder.cs`, `PolicyEngineDomainSeeds.cs`, `NationalSeedOrchestrator.cs`,
+  `PolicyPublishService.cs`, `PolicyPublishedRuleInventory.cs`, two comments (`PolicyDraftService.cs`,
+  `PolicyRuleValidator.cs`), the two policy views, `scripts/pol047-validate.ps1`, `scripts/seed-001-validate.ps1`, the
+  integration test project file (the linked fixture), and four test files.
 
 ## Test results
 
@@ -167,6 +231,11 @@ own code. The authoritative gate is ci-local's Linux container, run in P8.
 | P1 | PostgreSQL filter `Pol047\|S2s042\|Ten048\|Hcm025` | 47 / 47 |
 | P1 | integration filter `Fun002\|Est00\|RecruitmentRequisitionPolicy\|InternalChannel\|Hcm033\|IntegrationHostValidation` | 32 / 32 |
 | P1 | the seven validation scripts | all PASS; `pol049-validate` fails on each of three planted defects |
+| P2 | build `-warnaserror` | 0 errors, 0 warnings |
+| P2 | `dotnet ef migrations has-pending-model-changes` (HR.Core) | no changes |
+| P2 | full unit suite | 5943 / 5943 |
+| P2 | PostgreSQL filter `Pol049\|Pol047\|Ten048\|S2s042\|Hcm025` | 50 / 50 |
+| P2 | `pol049-validate` (with its tests), `pol047-validate` (static; good, bad and old logs), `wf043-validate`, `hcm025-validate -SkipTests` | PASS; the bad and the old log FAIL as they must |
 
 ## Server changes and their undo commands
 
@@ -180,11 +249,10 @@ None yet (read-only so far: the running tag, the policy picture in `artifacts/pl
 
 ## Exact next step
 
-P2: `PolicyTemplate.RetiredAt` / `RetiredReason` and the migration `POL049_PolicyDomainRetirement` (two columns, no data, no
-byte order mark); the operation `RetireDomain` in the applier; the four sets appended to `PolicySeedChangeSets.All`
-(`POL-049-SCOPE-RETIRE`, `POL-049-ASSETS-ACTION`, `POL-049-IDCARD-ORPHAN`, `POL-049-LEAVE`); the fresh seed of the five governed
-domains (custody v1 already bound to `Assign`, no `R-ID-PROCESS`, no `R-LEAVE-LONG`); the bindings (governed codes only on a
-new database, plus the unpinned `ESTABLISHMENT-CHANGE-APPROVAL` everywhere); the start-up inventory after the code-generation
-seed and split into effective and historic; `pol047-validate.ps1` expects no rule of an effective version; tests
-`Pol049EffectiveRulesConformTests`, `Pol049FreshSeedTests`, the added condition in `WorkflowDefinitionsHaveHandlersTests`,
-`Pol049ScopeChangeSetsPostgresTests`.
+P3: the facts builders (`ForIDCardRequest` and `ForLeaveRequest` without `employeeId`; `isSelfApproval` on `Approve` only;
+`ForAdvanceRequest` removed after a search shows no caller; `ForEstablishmentChange` takes the actor's scope with no default);
+the leave handlers (`Update` and `Approve` ask the engine; `ApproveLeaveRequestCommand` carries the approver's employee id for
+`isSelfApproval`; the self-service handler computes working days, runs `ValidateLeaveRequest`, asks the engine with
+`action=Create`, and creates the request `Rejected` with the reason on a local or an Enforce refusal); `SubmitForApprovalAsync`
+takes `actorIsBranchScoped` from both controllers; `InboundEventCommands.cs` joins the catalog's call sites; tests
+`Pol049FactsBuildersMatchSchemasTests`, `Pol049LeaveChannelsTests`, `Pol049EstablishmentOrgScopeFactTests`.

@@ -61,7 +61,7 @@ public static class PolicyRuleValidator
     /// <summary>
     /// PLAN-49 (G-POL-02, D-POL-1): the engine governs the domain, or nothing is drafted, added or published in it. The message
     /// starts with <see cref="PolicyDomainCatalog.OutOfScopeMessageAr"/>. The one exception is not decided here: the final
-    /// version with no rules that the retirement change set publishes (<c>PolicyPublishService</c>, SystemSeed only).
+    /// version with no rules that the retirement change set writes (<c>PolicyPublishService</c> publishes that one and nothing else).
     /// </summary>
     public static IReadOnlyList<PolicyRuleIssue> ValidateDomain(string domain, IPolicyDomainCapabilities capabilities) =>
         capabilities.IsGoverned(domain)

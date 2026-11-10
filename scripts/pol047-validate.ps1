@@ -1,8 +1,10 @@
 # PLAN-47: the policy rule lifecycle, checked.
 #  1. Static: no in-place seed writer and no same-actor publish flag in the product code; the validator's messages are
 #     Arabic; the immutability trigger is in the migration; the two roles are in the realm manifest; the change sets exist.
-#  2. Inventory (optional, -Container or -LogFile): every published rule the validator refuses, as HR.Core logged it at
-#     start-up ("PLAN-47 validator inventory"). A text inventory: nothing is fixed in place (a fix is a new change set).
+#  2. Inventory (optional, -Container or -LogFile): the published rules the validator refuses, as HR.Core logged them at
+#     start-up ("PLAN-47 validator inventory"). PLAN-49: a rule of an effective version is a defect, and the last start-up in
+#     the log must list none (its summary line says "0 rule(s) of effective versions"). Rules of superseded versions are
+#     history and are only counted. Nothing is fixed in place (a fix is a new change set).
 # Usage (PowerShell 5.1):
 #   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pol047-validate.ps1
 #   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pol047-validate.ps1 -Container hrm-acceptance-hr-core-web-1 -Out artifacts/plan47/validator-inventory.txt
@@ -64,7 +66,7 @@ foreach ($role in @("policy-author", "policy-approver")) {
     if ($manifest -notmatch ('"name":\s*"' + $role + '"')) { $failures.Add("realm manifest lacks the $role role") }
 }
 $sets = Read-Text "src/Services/HRCore/HR.Core.Infrastructure/Data/PolicySeedChangeSets.cs"
-foreach ($id in @("POL-2026-10-30-BASELINE", "POL-2026-10-30-RETIRE-R-REC-HIRE")) {
+foreach ($id in @("POL-2026-10-30-BASELINE", "POL-2026-10-30-RETIRE-R-REC-HIRE", "POL-049-SCOPE-RETIRE", "POL-049-ASSETS-ACTION", "POL-049-IDCARD-ORPHAN", "POL-049-LEAVE")) {
     if (-not $sets.Contains($id)) { $failures.Add("change set $id is missing") }
 }
 
@@ -81,12 +83,37 @@ if (-not [string]::IsNullOrWhiteSpace($Container)) {
     $inventory = @([System.IO.File]::ReadAllLines((Resolve-Path $LogFile)) | Where-Object { $_ -match 'PLAN-47 validator inventory' })
 }
 if ($inventory.Count -gt 0) {
-    Write-Output "Published rules the validator refuses (start-up log):"
+    Write-Output "The validator inventory (start-up log):"
     $inventory | ForEach-Object { Write-Output ("  " + $_.Trim()) }
     if (-not [string]::IsNullOrWhiteSpace($Out)) {
         $dir = Split-Path -Parent $Out
         if ($dir -and -not (Test-Path $dir)) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
         [System.IO.File]::WriteAllLines($Out, [string[]]$inventory, (New-Object System.Text.UTF8Encoding($false)))
+    }
+
+    # PLAN-49: the last start-up of the log. Each start-up writes its warnings (one per refused rule of an effective version)
+    # and then one summary line; the lines after the summary before it belong to the last one.
+    $summaryPattern = 'validator inventory: (\d+) rule\(s\) of effective versions the validator refuses; (\d+) more in superseded versions'
+    $summaries = @()
+    for ($i = 0; $i -lt $inventory.Count; $i++) { if ($inventory[$i] -match 'validator inventory: \d+ ') { $summaries += $i } }
+    if ($summaries.Count -eq 0) {
+        $failures.Add("the log holds inventory lines and no summary line (HR.Core writes one at every start-up)")
+    } else {
+        $last = $summaries[$summaries.Count - 1]
+        $first = 0
+        if ($summaries.Count -gt 1) { $first = $summaries[$summaries.Count - 2] + 1 }
+        if ($inventory[$last] -notmatch $summaryPattern) {
+            $failures.Add("the last summary line is not PLAN-49's (the container runs a release that does not tell effective versions from history)")
+        } else {
+            $effective = [int]$Matches[1]
+            $historic = [int]$Matches[2]
+            if ($effective -ne 0) { $failures.Add("the last start-up lists $effective rule(s) of effective versions the validator refuses (PLAN-49: none may remain)") }
+            for ($i = $first; $i -lt $last; $i++) {
+                if ($inventory[$i] -match ' rule \S+: ') { $failures.Add("a rule of an effective version is refused: " + $inventory[$i].Trim()) }
+                if ($inventory[$i] -match 'could not be taken') { $failures.Add("the inventory could not be taken at the last start-up") }
+            }
+            Write-Output "Last start-up: $effective rule(s) of effective versions refused, $historic in superseded versions (history)."
+        }
     }
 } elseif ($Container -or $LogFile) {
     $failures.Add("no 'PLAN-47 validator inventory' line in the log (HR.Core writes a summary line at every start-up)")

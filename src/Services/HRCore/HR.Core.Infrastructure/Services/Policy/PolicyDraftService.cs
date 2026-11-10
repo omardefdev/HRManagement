@@ -195,7 +195,8 @@ public sealed class PolicyDraftService(HRCoreDbContext db, IPolicyRuleValidation
 
     /// <summary>
     /// PLAN-49 (D-POL-1): the draft of the final version of a template whose domain the catalog puts out of scope: no rules, the
-    /// written reason, and no actor (only the retirement change set calls this; it then publishes it as SystemSeed). A governed
+    /// written reason, and no actor. Only the retirement change set calls this; it then publishes the draft as SystemSeed, or leaves
+    /// it for an approver when seeds require one (PolicyEngine:Seeds:RequireApproval). A governed
     /// domain is refused here: its rules are withdrawn by a person, through <see cref="CreateWithdrawAllDraftAsync"/> and four eyes.
     /// </summary>
     public async Task<PolicyDraftResult> CreateRetirementDraftAsync(Guid templateId, string? reasonAr, CancellationToken ct = default)

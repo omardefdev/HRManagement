@@ -1,8 +1,11 @@
 @using HR.Core.Domain.Entities.Policy
+@using HRManagement.SharedKernel.Policy
 @model PolicyTemplate
 @{
     ViewData["Title"] = Model.Name;
-    var canAuthor = ViewBag.CanAuthor is true;
+    // PLAN-49: nothing is drafted in a domain the catalog puts out of scope; the page shows its history and says why.
+    var governed = PolicyDomainCatalog.IsGoverned(Model.Domain);
+    var canAuthor = ViewBag.CanAuthor is true && governed;
     var inherited = ViewBag.Inherited is true;
     var effectiveId = ViewBag.EffectiveVersionId as Guid?;
     var hasDraft = Model.Versions.Any(v => v.Status == PolicyVersionStatus.Draft);
@@ -36,6 +39,16 @@
             <dt class="col-sm-3">Subject</dt><dd class="col-sm-9">@Model.SubjectType</dd>
             <dt class="col-sm-3">Scope</dt><dd class="col-sm-9">@Model.Scope</dd>
         </dl>
+        @if (!governed)
+        {
+            <p class="alert alert-secondary small mt-2 mb-0" data-testid="out-of-scope-note">
+                @PolicyDomainCatalog.OutOfScopeMessageAr: @(PolicyDomainCatalog.Find(Model.Domain)?.OutOfScopeReasonAr)
+                @if (Model.RetiredAt is { } retiredAt)
+                {
+                    <span data-testid="retired-note">سُحب القالب بإصدار أخير بلا قواعد في @retiredAt.ToString("yyyy-MM-dd", inv). الإصدارات السابقة باقية كما هي للسجل.</span>
+                }
+            </p>
+        }
         @if (inherited)
         {
             <p class="text-muted small mt-2 mb-0" data-testid="inherited-note">

@@ -19,9 +19,16 @@
                 @foreach (var t in Model)
                 {
                     var inherited = t.TenantId == NationalTenant.Id && t.Scope == PolicyTemplateScope.National && !sessionIsNational;
-                    <tr data-domain="@t.Domain" data-origin="@(inherited ? "inherited" : t.Scope == PolicyTemplateScope.TenantOverride ? "override" : "national")">
+                    <tr data-domain="@t.Domain" data-origin="@(inherited ? "inherited" : t.Scope == PolicyTemplateScope.TenantOverride ? "override" : "national")" data-retired="@(t.RetiredAt is null ? "false" : "true")">
                         <td><code>@t.Domain</code></td>
-                        <td>@t.Name</td>
+                        <td>
+                            @t.Name
+                            @if (t.RetiredAt is { } retiredAt)
+                            {
+                                @* PLAN-49: the template of a domain out of the engine's scope, closed by its final version with no rules. *@
+                                <span class="badge bg-dark ms-1" data-testid="badge-retired" title="@t.RetiredReason">مسحوب @retiredAt.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)</span>
+                            }
+                        </td>
                         <td>
                             @if (inherited)
                             {

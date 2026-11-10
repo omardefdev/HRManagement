@@ -12,9 +12,11 @@ public static class PolicyEngineSeeder
     public static Task SeedAsync(HRCoreDbContext db, CancellationToken ct = default) => SeedAsync(db, null, ct);
 
     /// <summary>
-    /// v1 of every domain on an empty database, the workflow bindings, then the seed change sets (PLAN-47): every later change of
-    /// the seeded rules is a new version with a publication record, never an edit of a published one (the writers that patched
-    /// published versions in place are gone).
+    /// v1 of every governed domain on an empty database (PLAN-49: the five of PolicyDomainCatalog, and no other), the workflow
+    /// bindings, then the seed change sets (PLAN-47): every later change of the seeded rules is a new version with a publication
+    /// record, never an edit of a published one (the writers that patched published versions in place are gone). The start-up
+    /// inventory of refused rules is logged by the national seeding once the code policies exist
+    /// (<see cref="Services.Policy.PolicyPublishedRuleInventory"/>).
     /// </summary>
     public static async Task SeedAsync(HRCoreDbContext db, IServiceProvider? services, CancellationToken ct = default)
     {
@@ -28,7 +30,6 @@ public static class PolicyEngineSeeder
 
         await SeedWorkflowBindingsAsync(db, ct);
         await PolicySeedChangeSetApplier.ApplyAsync(db, services, ct);
-        await Services.Policy.PolicyPublishedRuleInventory.LogAsync(db, services, ct);
     }
 
     private static async Task SeedAssetsCustodyAsync(HRCoreDbContext db, CancellationToken ct)
@@ -64,32 +65,17 @@ public static class PolicyEngineSeeder
             ThenJson = """[{"effect":"SetField","params":{"field":"isPrivileged","value":"true"}}]"""
         });
 
-        rules.Add(new PolicyRule
+        // PLAN-49 (G-POL-02): R-PRIV-EVIDENCE, R-PRIV-WF and R-HIGH-APPROVAL are bound to the handover (action Assign), the only
+        // call site that reads their effects. The same rules, from the same place, as the change set POL-049-ASSETS-ACTION gives
+        // an existing database, so that set finds nothing to replace here.
+        rules.AddRange(PolicySeedChangeSets.CustodyAssignRules.Select(rule => new PolicyRule
         {
-            RuleKey = "R-PRIV-EVIDENCE",
-            Name = "أصل مميز → دليل",
-            Priority = 10,
-            WhenJson = """{"all":[{"field":"isPrivileged","operator":"Equals","value":"true"}]}""",
-            ThenJson = """[{"effect":"RequireEvidence"}]"""
-        });
-
-        rules.Add(new PolicyRule
-        {
-            RuleKey = "R-HIGH-APPROVAL",
-            Name = "قيمة عالية → موافقة",
-            Priority = 20,
-            WhenJson = """{"all":[{"field":"value","operator":"GreaterThan","value":"10000"}]}""",
-            ThenJson = """[{"effect":"TriggerWorkflow","params":{"workflowCode":"ASSET-ASSIGN-APPROVAL"}}]"""
-        });
-
-        rules.Add(new PolicyRule
-        {
-            RuleKey = "R-PRIV-WF",
-            Name = "مميز → workflow",
-            Priority = 15,
-            WhenJson = """{"all":[{"field":"isPrivileged","operator":"Equals","value":"true"}]}""",
-            ThenJson = """[{"effect":"TriggerWorkflow","params":{"workflowCode":"ASSET-ASSIGN-APPROVAL"}}]"""
-        });
+            RuleKey = rule.Key,
+            Name = rule.Name,
+            Priority = rule.Priority,
+            WhenJson = rule.When,
+            ThenJson = rule.Then
+        }));
 
         rules.Add(new PolicyRule
         {
@@ -141,30 +127,36 @@ public static class PolicyEngineSeeder
         });
     }
 
+    /// <summary>
+    /// PLAN-49 (plan §3): the bindings a database gets are the codes a rule of a governed domain may name (PolicyDomainCatalog).
+    /// The seven others that earlier releases wrote stay where they are and are never removed: nothing reads them at run time
+    /// (ASSET-LOSS-APPROVAL, ID-CARD-ISSUANCE and DISCIPLINARY-APPROVAL start through the cross-service contract, which reads no
+    /// binding; HIRE-WIZARD, SEPARATION-WIZARD, TRANSFER-APPROVAL and IT-TICKET are retired codes), so a new database has none.
+    /// </summary>
     private static readonly (string Domain, string WorkflowCode, string Description)[] WorkflowBindings =
     [
         (PolicyDomains.AssetsCustody, "ASSET-ASSIGN-APPROVAL", "موافقة تسليم عهدة"),
-        (PolicyDomains.AssetsCustody, "ASSET-LOSS-APPROVAL", "موافقة فقدان أصل"),
-        (PolicyDomains.IDCardLifecycle, "ID-CARD-ISSUANCE", "إصدار بطاقة تعريف"),
-        (PolicyDomains.ContractsHire, "HIRE-WIZARD", "معاملة توظيف"),
-        (PolicyDomains.ContractsSeparation, "SEPARATION-WIZARD", "معاملة انفصال"),
-        (PolicyDomains.MovementsTransfer, "TRANSFER-APPROVAL", "موافقة نقل"),
         (PolicyDomains.CoreRecruitment, "RECRUITMENT-REQUISITION-APPROVAL", "اعتماد طلب شاغر"),
         (PolicyDomains.CoreRecruitment, "RECRUITMENT-OFFER-APPROVAL", "اعتماد خطاب عرض"),
-        (PolicyDomains.CoreRecruitment, "RECRUITMENT-OFFER-OVERRIDE-APPROVAL", "اعتماد عرض استثنائي (تجاوز الجدارة)"),
-        (PolicyDomains.ComplianceDisciplinary, "DISCIPLINARY-APPROVAL", "إجراء تأديبي"),
-        (PolicyDomains.ITTickets, "IT-TICKET", "تذكرة IT")
+        (PolicyDomains.CoreRecruitment, "RECRUITMENT-OFFER-OVERRIDE-APPROVAL", "اعتماد عرض استثنائي (تجاوز الجدارة)")
     ];
 
     /// <summary>
     /// PLAN-47: codes the seeded recruitment rules fire that had no binding. The validator accepts a TriggerWorkflow only for a
     /// code bound to the domain; these bindings pin no definition version (WorkflowStarter then takes the published one).
+    /// PLAN-49: and the code R-EST-SUBMIT fires, which never had one (the validator answered THEN_WORKFLOW_UNBOUND for the rule).
+    /// Unpinned on purpose: a new version of the definition published by an administrator must be the one that starts.
     /// </summary>
     private static readonly (string Domain, string WorkflowCode, string Description)[] UnpinnedWorkflowBindings =
     [
         (PolicyDomains.CoreRecruitment, "RECRUITMENT-SELECTION-COMMITTEE", "لجنة اختيار"),
-        (PolicyDomains.CoreRecruitment, "RECRUITMENT-APPEAL-REVIEW", "مراجعة استئناف")
+        (PolicyDomains.CoreRecruitment, "RECRUITMENT-APPEAL-REVIEW", "مراجعة استئناف"),
+        (PolicyDomains.CoreEstablishment, "ESTABLISHMENT-CHANGE-APPROVAL", "اعتماد تغيير ملاك")
     ];
+
+    /// <summary>Every (domain, code) this seeder binds: the test of the catalog compares them with its triggers.</summary>
+    public static IEnumerable<(string Domain, string WorkflowCode)> SeededBindings =>
+        WorkflowBindings.Concat(UnpinnedWorkflowBindings).Select(b => (b.Domain, b.WorkflowCode));
 
     private static async Task SeedWorkflowBindingsAsync(HRCoreDbContext db, CancellationToken ct)
     {

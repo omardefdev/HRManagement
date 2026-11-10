@@ -20,7 +20,12 @@ public sealed class PolicySeedChangeSetException(string message) : InvalidOperat
 /// version, the operations (each rule validated), then a SystemSeed publication through <see cref="PolicyPublishService"/>, or
 /// a draft left for an approver with PolicyEngine:Seeds:RequireApproval=true. A set with no effect is recorded as NoOp with no
 /// version. Every application is recorded in PolicySeedApplications with its digest, so it never repeats; a changed digest fails
-/// the boot. Rules already in the effective version are carried over as they are (PLAN-46's retired triggers stay for PLAN-49).
+/// the boot. Rules already in the effective version are carried over as they are.
+/// <para>
+/// PLAN-49 (D-POL-1): a domain the catalog puts out of scope gets no rule and no field from any set; the one operation that acts
+/// on it is <see cref="PolicySeedOperationKind.RetireDomain"/> (a final version with no rules, the template marked retired).
+/// Where such a domain has no template (a new database) every set passes over it quietly: the catalog says why.
+/// </para>
 /// </summary>
 public sealed class PolicySeedChangeSetApplier(
     HRCoreDbContext db,
@@ -108,9 +113,12 @@ public sealed class PolicySeedChangeSetApplier(
             return;
         }
 
+        var operations = set.For(domain);
+        var retirement = operations.FirstOrDefault(o => o.Kind == PolicySeedOperationKind.RetireDomain);
+
         // PLAN-49: a set written before the domain left the engine's scope (the baseline's Archive.Retention part, on a database
         // that never applied it) adds no rule and no field to it; recorded once as NoOp, like any set with no effect.
-        if (outOfScope)
+        if (outOfScope && retirement is null)
         {
             await RecordAsync(set.Id, template, null, OutcomeNoOp, digest, ct);
             await CommitAsync(transaction, ct);
@@ -126,7 +134,14 @@ public sealed class PolicySeedChangeSetApplier(
             return;
         }
 
-        var operations = set.For(domain);
+        if (outOfScope)
+        {
+            await RetireAsync(set, domain, template, retirement!, digest, transaction, ct);
+            return;
+        }
+
+        // A RetireDomain operation on a domain the catalog governs (one that came back into scope after the set was written)
+        // changes nothing: Changes() is false for it, and the set is recorded as NoOp unless it holds other operations.
         await EnsureFactsFieldsAsync(domain, operations, ct);
 
         var effective = PolicyDraftService.EffectiveVersion(template, DateTime.UtcNow)
@@ -191,6 +206,43 @@ public sealed class PolicySeedChangeSetApplier(
         await RecordAsync(set.Id, template, draftId, OutcomePublished, digest, ct);
         await CommitAsync(transaction, ct);
         _logger.LogInformation("PLAN-47 change set {ChangeSetId} on {Domain}: published version {VersionId}", set.Id, domain, draftId);
+    }
+
+    /// <summary>
+    /// PLAN-49 (D-POL-1): the final version of an out-of-scope template: no rules, the operation's reason, published as
+    /// SystemSeed through the publish service (which marks the template retired in the same save), or left as a draft for an
+    /// approver when seeds require one. Nothing earlier is touched: the versions before it keep their rules and are closed by the
+    /// publication, as by any other.
+    /// </summary>
+    private async Task RetireAsync(
+        PolicySeedChangeSet set,
+        string domain,
+        PolicyTemplate template,
+        PolicySeedOperation retirement,
+        string digest,
+        Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction,
+        CancellationToken ct)
+    {
+        var draft = await drafts.CreateRetirementDraftAsync(template.Id, retirement.ReasonAr, ct);
+        if (!draft.Succeeded)
+            throw new PolicySeedChangeSetException($"PLAN-49: change set {set.Id} could not open the retirement draft of {domain}: {draft.MessageAr}");
+        var draftId = draft.Id!.Value;
+
+        if (configuration?.GetValue<bool>(RequireApprovalKey) == true)
+        {
+            await RecordAsync(set.Id, template, draftId, OutcomeDraft, digest, ct);
+            await CommitAsync(transaction, ct);
+            _logger.LogInformation("PLAN-49 change set {ChangeSetId} on {Domain}: retirement draft {VersionId} waits for an approver", set.Id, domain, draftId);
+            return;
+        }
+
+        var published = await publisher.PublishSystemSeedAsync(draftId, set.Id, new HashSet<string>(StringComparer.Ordinal), ct);
+        if (!published.Succeeded)
+            throw new PolicySeedChangeSetException($"PLAN-49: change set {set.Id} could not retire {domain}: {published.MessageAr}");
+
+        await RecordAsync(set.Id, template, draftId, OutcomePublished, digest, ct);
+        await CommitAsync(transaction, ct);
+        _logger.LogInformation("PLAN-49 change set {ChangeSetId} on {Domain}: retired, final version {VersionId} with no rules", set.Id, domain, draftId);
     }
 
     /// <summary>Whether an operation changes the effective version.</summary>

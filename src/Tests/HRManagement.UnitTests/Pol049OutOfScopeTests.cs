@@ -355,16 +355,21 @@ public sealed class Pol049OutOfScopeTests
         await using var db = h.Session(National);
         var drafts = h.Drafts(db);
 
-        // A person cannot publish the withdrawal either: the draft is the system's, with no actor.
+        // The draft is the system's (no actor), and only the retirement change set writes it: a person opens no draft of any
+        // kind in the domain (the test above), so nobody can prepare a withdrawal of their own.
         var retirement = await drafts.CreateRetirementDraftAsync(templateId, "المجال خارج نطاق المحرك (D-POL-1)");
         Assert.True(retirement.Succeeded, retirement.MessageAr);
-        var manual = await h.Publish(db).PublishAsync(new PolicyPublishCommand(retirement.Id!.Value, ApproverActor, "EV-49"));
-        Assert.Equal(PolicyPublishOutcome.Invalid, manual.Outcome);
+        Assert.Null((await db.PolicyTemplateVersions.AsNoTracking().SingleAsync(v => v.Id == retirement.Id)).CreatedBy);
+        Assert.Null((await db.PolicyTemplates.AsNoTracking().SingleAsync(t => t.Id == templateId)).RetiredAt);
 
-        var seeded = await h.Publish(db).PublishSystemSeedAsync(retirement.Id.Value, "POL-TEST-RETIRE", new HashSet<string>());
+        var seeded = await h.Publish(db).PublishSystemSeedAsync(retirement.Id!.Value, "POL-TEST-RETIRE", new HashSet<string>());
         Assert.True(seeded.Succeeded, seeded.MessageAr);
 
         await using var check = h.DesignTime();
+        // The publication marks the template, in the same save.
+        var retired = await check.PolicyTemplates.AsNoTracking().SingleAsync(t => t.Id == templateId);
+        Assert.NotNull(retired.RetiredAt);
+        Assert.Equal("المجال خارج نطاق المحرك (D-POL-1)", retired.RetiredReason);
         var versions = await check.PolicyTemplateVersions.Include(v => v.Rules).Include(v => v.Publications)
             .Where(v => v.PolicyTemplateId == templateId).OrderBy(v => v.VersionNumber).ToListAsync();
         var final = versions.Last();

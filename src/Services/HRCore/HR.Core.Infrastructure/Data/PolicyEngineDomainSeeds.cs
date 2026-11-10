@@ -7,81 +7,27 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Infrastructure.Data;
 
-/// <summary>National policy seeds for all registered domains (PROD-001ab).</summary>
+/// <summary>
+/// The first version of the national policy on an empty database. PLAN-49 (G-POL-02, plan section 3): only for the domains the
+/// catalog governs. The fifteen others get no template, no facts schema and no binding (PolicyDomainCatalog says why for each);
+/// a database that has them from an earlier release keeps its history, and the change set POL-049-SCOPE-RETIRE closes each
+/// with a final version. Assets.Custody is seeded by PolicyEngineSeeder; the four others here.
+/// </summary>
 public static class PolicyEngineDomainSeeds
 {
     public static async Task SeedAllDomainsAsync(HRCoreDbContext db, CancellationToken ct = default)
     {
+        // PLAN-49 (G-POL-11): no rule. The card's approval starts through the cross-service contract (PLAN-46), and the catalog
+        // gives the domain Allow and Deny only; an existing database loses R-ID-PROCESS by the change set POL-049-IDCARD-ORPHAN.
         await SeedDomainIfMissingAsync(db, PolicyDomains.IDCardLifecycle, "CardRequest", "بطاقة تعريف — دورة الحياة", ct,
-            [
-                Rule("R-ID-PROCESS", "معالجة → workflow", 10,
-                    """{"all":[{"field":"action","operator":"Equals","value":"Process"}]}""",
-                    """[{"effect":"TriggerWorkflow","params":{"workflowCode":"ID-CARD-ISSUANCE"}}]""")
-            ],
+            [],
             [Field("purpose", "string", "الغرض"), Field("action", "string", "الإجراء")]);
 
+        // PLAN-49 (D-POL-5): no R-LEAVE-LONG (RequireApproval has no consumer). The baseline change set adds R-LEAVE-SELF and
+        // R-LEAVE-MAX as it always did, and POL-049-LEAVE then retires the placeholder limit and binds R-LEAVE-SELF to Approve.
         await SeedDomainIfMissingAsync(db, PolicyDomains.ContractsLeave, "LeaveRequest", "إجازات — وطنية", ct,
-            [
-                Rule("R-LEAVE-LONG", "إجازة طويلة → موافقة", 10,
-                    """{"all":[{"field":"durationDays","operator":"GreaterThan","value":"14"}]}""",
-                    """[{"effect":"RequireApproval"}]""")
-            ],
-            [Field("durationDays", "int", "المدة"), Field("leaveType", "string", "النوع"), Field("action", "string", "الإجراء")]);
-
-        await SeedDomainIfMissingAsync(db, PolicyDomains.ContractsAdvance, "AdvanceRequest", "سلف — وطنية", ct,
-            [
-                Rule("R-ADV-HIGH", "سلفة عالية → dual approval", 10,
-                    """{"all":[{"field":"amount","operator":"GreaterThan","value":"50000"}]}""",
-                    """[{"effect":"RequireDualApproval"}]""")
-            ],
-            [Field("amount", "decimal", "المبلغ"), Field("action", "string", "الإجراء")]);
-
-        await SeedDomainIfMissingAsync(db, PolicyDomains.ContractsHire, "HireWizard", "توظيف — workflow", ct,
-            [
-                Rule("R-HIRE-START", "بدء توظيف", 10,
-                    """{"all":[{"field":"action","operator":"Equals","value":"Start"}]}""",
-                    """[{"effect":"TriggerWorkflow","params":{"workflowCode":"HIRE-WIZARD"}}]""")
-            ],
-            [Field("action", "string", "الإجراء")]);
-
-        await SeedDomainIfMissingAsync(db, PolicyDomains.ContractsSeparation, "Separation", "انفصال — workflow", ct,
-            [
-                Rule("R-SEP-START", "بدء انفصال", 10,
-                    """{"all":[{"field":"action","operator":"Equals","value":"Start"}]}""",
-                    """[{"effect":"TriggerWorkflow","params":{"workflowCode":"SEPARATION-WIZARD"}}]""")
-            ],
-            [Field("action", "string", "الإجراء")]);
-
-        await SeedDomainIfMissingAsync(db, PolicyDomains.ContractsContract, "Contract", "عقد — تجديد", ct,
-            [
-                Rule("R-CON-RENEW", "تجديد عقد", 10,
-                    """{"all":[{"field":"action","operator":"Equals","value":"Renew"}]}""",
-                    """[{"effect":"RequireApproval"}]""")
-            ],
-            [Field("action", "string", "الإجراء")]);
-
-        await SeedDomainIfMissingAsync(db, PolicyDomains.AssetsProcurement, "SupplyOrder", "توريد — استلام", ct,
-            [
-                Rule("R-RCV-FULFIL", "استلام لطلب منفّذ فقط", 10,
-                    """{"all":[{"field":"orderStatus","operator":"Equals","value":"Fulfilled"}]}""",
-                    """[{"effect":"Allow"}]"""),
-                Rule("R-RCV-DENY", "رفض استلام غير منفّذ", 5,
-                    """{"all":[{"field":"orderStatus","operator":"NotEquals","value":"Fulfilled"}]}""",
-                    """[{"effect":"Deny","params":{"reason":"طلب غير منفّذ"}}]""")
-            ],
-            [Field("orderStatus", "string", "حالة الطلب"), Field("action", "string", "الإجراء")]);
-
-        await SeedDomainIfMissingAsync(db, PolicyDomains.MovementsTransfer, "Transfer", "نقل — workflow", ct,
-            [
-                Rule("R-TRF", "نقل → workflow", 10,
-                    """{"all":[{"field":"action","operator":"Equals","value":"Submit"}]}""",
-                    """[{"effect":"TriggerWorkflow","params":{"workflowCode":"TRANSFER-APPROVAL"}}]""")
-            ],
-            [Field("action", "string", "الإجراء")]);
-
-        await SeedDomainIfMissingAsync(db, PolicyDomains.MovementsWorkforce, "WorkforceGap", "فجوة قوى", ct,
             [],
-            [Field("gapCount", "int", "عدد الفجوات")]);
+            [Field("durationDays", "int", "المدة"), Field("leaveType", "string", "النوع"), Field("action", "string", "الإجراء")]);
 
         // PLAN-25 (G-14): no R-REC-HIRE — the hire is governed by the offer approval (existing databases: the change set
         // POL-2026-10-30-RETIRE-R-REC-HIRE, PLAN-47: a new version without it, never a rewrite).
@@ -104,66 +50,6 @@ public static class PolicyEngineDomainSeeds
                 Field("changeStatus", "string", "حالة الطلب"),
                 Field("hasOrgScope", "bool", "نطاق فرع")
             ]);
-
-        await SeedDomainIfMissingAsync(db, PolicyDomains.CoreEmployment, "EmploymentRecord", "حالة توظيف", ct,
-            [],
-            [Field("status", "string", "الحالة")]);
-
-        await SeedDomainIfMissingAsync(db, PolicyDomains.HealthInsurance, "InsuranceCard", "تأمين", ct,
-            [
-                Rule("R-INS-MASK", "خصوصية → mask", 10,
-                    """{"all":[{"field":"isSensitive","operator":"Equals","value":"true"}]}""",
-                    """[{"effect":"RequirePrivacyMask"}]""")
-            ],
-            [Field("isSensitive", "bool", "حساس"), Field("action", "string", "الإجراء")]);
-
-        await SeedDomainIfMissingAsync(db, PolicyDomains.ComplianceDisciplinary, "DisciplinaryAction", "تأديب", ct,
-            [
-                Rule("R-DISC", "إجراء تأديبي → workflow", 10,
-                    """{"all":[{"field":"action","operator":"Equals","value":"Create"}]}""",
-                    """[{"effect":"TriggerWorkflow","params":{"workflowCode":"DISCIPLINARY-APPROVAL"}}]""")
-            ],
-            [Field("action", "string", "الإجراء")]);
-
-        await SeedDomainIfMissingAsync(db, PolicyDomains.PayrollPeriod, "PayrollPeriod", "فترة رواتب", ct,
-            [
-                Rule("R-PAY-CLOSE", "إغلاق فترة → dual", 10,
-                    """{"all":[{"field":"action","operator":"Equals","value":"Close"}]}""",
-                    """[{"effect":"RequireDualApproval"}]""")
-            ],
-            [Field("action", "string", "الإجراء")]);
-
-        await SeedDomainIfMissingAsync(db, PolicyDomains.ITTickets, "Ticket", "تذاكر IT", ct,
-            [
-                Rule("R-TKT", "تذكرة → workflow", 10,
-                    """{"all":[{"field":"action","operator":"Equals","value":"Open"}]}""",
-                    """[{"effect":"TriggerWorkflow","params":{"workflowCode":"IT-TICKET"}}]""")
-            ],
-            [Field("priority", "string", "الأولوية"), Field("action", "string", "الإجراء")]);
-
-        await SeedDomainIfMissingAsync(db, PolicyDomains.ArchiveRetention, "ArchiveRecord", "أرشفة", ct,
-            [
-                Rule("R-ARC", "احتفاظ → evidence", 10,
-                    """{"all":[{"field":"requiresRetention","operator":"Equals","value":"true"}]}""",
-                    """[{"effect":"RequireEvidence"}]""")
-            ],
-            [Field("requiresRetention", "bool", "احتفاظ"), Field("action", "string", "الإجراء")]);
-
-        await SeedDomainIfMissingAsync(db, PolicyDomains.TrainingLearning, "TrainingCourse", "تدريب", ct,
-            [
-                Rule("R-TRN", "إكمال → checklist", 10,
-                    """{"all":[{"field":"action","operator":"Equals","value":"Complete"}]}""",
-                    """[{"effect":"BlockUntilChecklist"}]""")
-            ],
-            [Field("action", "string", "الإجراء")]);
-
-        await SeedDomainIfMissingAsync(db, PolicyDomains.AnalyticsEtl, "EtlJob", "ETL", ct,
-            [
-                Rule("R-ETL", "ETL production → approval", 10,
-                    """{"all":[{"field":"environment","operator":"Equals","value":"Production"}]}""",
-                    """[{"effect":"RequireApproval"}]""")
-            ],
-            [Field("environment", "string", "البيئة"), Field("action", "string", "الإجراء")]);
 
         await db.SaveChangesAsync(ct);
     }

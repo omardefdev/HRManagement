@@ -48,15 +48,13 @@ public sealed class Pol049PolicyDomainCatalogTests
     /// <summary>
     /// The only product files that may name a domain the catalog puts out of scope: the list of names, the catalog, and the
     /// recorded seed change sets (the baseline's Archive.Retention part and the retirement set never change once applied).
-    /// PLAN-49 P1: the fresh seed and the bindings still name them until P2 takes them out, and the advance builder until P3.
+    /// The seeders name none: a new database seeds the governed domains only. The advance builder goes in P3.
     /// </summary>
     private static readonly string[] MayNameOutOfScopeDomains =
     [
         "src/Shared/HRManagement.SharedKernel/Policy/PolicyDomains.cs",
         "src/Shared/HRManagement.SharedKernel/Policy/PolicyDomainCatalog.cs",
         "src/Services/HRCore/HR.Core.Infrastructure/Data/PolicySeedChangeSets.cs",
-        "src/Services/HRCore/HR.Core.Infrastructure/Data/PolicyEngineDomainSeeds.cs",
-        "src/Services/HRCore/HR.Core.Infrastructure/Data/PolicyEngineSeeder.cs",
         "src/Shared/HRManagement.ServiceDefaults/Policy/PolicyDomainFactsBuilders.cs"
     ];
 
@@ -329,6 +327,12 @@ public sealed class Pol049PolicyDomainCatalogTests
         Assert.Contains("PolicyDomainCatalog.All", controller);
         Assert.Contains("PolicyDomainRow", view);
         Assert.Contains("policy-domain-catalog", view);
+        // A retired template says so in the list, and its page says why and offers no draft (the catalog decides, not the page).
+        Assert.Contains("badge-retired", view);
+        var details = Read("src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml");
+        Assert.Contains("PolicyDomainCatalog.IsGoverned(Model.Domain)", details);
+        Assert.Contains("out-of-scope-note", details);
+        Assert.Contains("ViewBag.CanAuthor is true && governed", details);
         foreach (var constant in DomainConstants())
         {
             Assert.DoesNotContain($"PolicyDomains.{constant.Key}", controller);
