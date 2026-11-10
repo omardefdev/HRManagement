@@ -48,6 +48,10 @@ public static class NationalSeedOrchestrator
             await WorkflowPackSeeder.EnsureCrossServiceChainsAsync(db, ct);
             await PolicyEngineSeeder.SeedAsync(db, serviceProvider, ct);
             await CodeGenerationSeeder.SeedAsync(db, ct);
+            // PLAN-48: a new database is seeded with the corrected policies, so the upgrade only records itself here (and the
+            // orchestrator stays idempotent from its first run).
+            await CodePolicyUpgrades.ApplyAsync(db, serviceProvider, logger, ct);
+            await CodeGenerationSeeder.LogKindsWithoutPolicyAsync(db, logger, ct);
             await MdmReferenceSeeder.SeedAsync(db, ct);
             await LegislationRegisterSeeder.SeedAsync(db, ct);
             var legislationProvider = new Services.Legal.LegislationRegisterProvider(db);
@@ -89,6 +93,11 @@ public static class NationalSeedOrchestrator
         await WorkflowPackSeeder.EnsureCrossServiceChainsAsync(db, ct);
         await PolicyEngineSeeder.SeedAsync(db, serviceProvider, ct);
         await CodeGenerationSeeder.SeedAsync(db, ct);
+        // PLAN-48 (§3): once, recorded as ten048-code-policy-upgrade-v1: the defective national code policies get v2, then every
+        // tenant's counters are reseeded from the codes already issued (never lowered).
+        var codeLogger = serviceProvider.GetService<ILoggerFactory>()?.CreateLogger("CodePolicyUpgrades");
+        await CodePolicyUpgrades.ApplyAsync(db, serviceProvider, codeLogger, ct);
+        await CodeGenerationSeeder.LogKindsWithoutPolicyAsync(db, codeLogger, ct);
         await MdmReferenceSeeder.SeedAsync(db, ct);
         await LegislationRegisterSeeder.SeedAsync(db, ct);
         var legislationProvider = new Services.Legal.LegislationRegisterProvider(db);

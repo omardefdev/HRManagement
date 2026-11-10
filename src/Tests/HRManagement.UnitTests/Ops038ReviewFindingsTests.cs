@@ -40,7 +40,8 @@ public sealed class Ops038ReviewFindingsTests : IDisposable
         var text = Script("scripts/run-migrations.sh");
         Assert.DoesNotMatch(new Regex(@"--connection ""\$\{(conn_val|migrate_conn)\}""", RegexOptions.CultureInvariant), text);
         Assert.DoesNotMatch(new Regex(@"psql ""\$\{(conn|LOCK_CONN)\}""", RegexOptions.CultureInvariant), text);
-        Assert.Equal(4, Regex.Matches(text, @"PGPASSWORD=""\$\{CONN_PW\}""", RegexOptions.CultureInvariant).Count);
+        // Four calls since PLAN-38, and PLAN-48's TEN-048 national read policy (psql on the hr-core migrator connection): five.
+        Assert.Equal(5, Regex.Matches(text, @"PGPASSWORD=""\$\{CONN_PW\}""", RegexOptions.CultureInvariant).Count);
     }
 
     [Fact]

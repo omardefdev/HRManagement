@@ -34,7 +34,8 @@ public class WorkflowDefinitionsController(
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] string? entityType, [FromQuery] bool? publishedOnly)
     {
-        var query = context.WorkflowDefinitions.AsNoTracking().AsQueryable();
+        // PLAN-48: the national definitions every agency runs, and the session's own (read-only outside the national tenant).
+        var query = context.WorkflowDefinitions.OwnOrNational(context).AsNoTracking();
 
         if (!string.IsNullOrWhiteSpace(entityType))
             query = query.Where(d => d.DomainEntityType == entityType);
@@ -49,7 +50,8 @@ public class WorkflowDefinitionsController(
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Get(Guid id)
     {
-        var def = await context.WorkflowDefinitions.FindAsync(id);
+        var def = await context.WorkflowDefinitions.OwnOrNational(context).AsNoTracking()
+            .FirstOrDefaultAsync(d => d.Id == id);
         if (def is null) return NotFound();
         return Ok(def);
     }

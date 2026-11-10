@@ -96,16 +96,11 @@ public sealed class ReferenceCatalogAdminService(HRCoreDbContext db) : IReferenc
 
     public async Task<ReferenceCatalogEntry?> GetByIdAsync(Guid id, CancellationToken ct = default)
     {
-        var tenantId = CurrentTenantId();
-        var platformId = TenantDefaults.DefaultTenantId;
-
+        // PLAN-48: the national read path (own or national).
         return await db.ReferenceCatalogEntries
+            .OwnOrNational(CurrentTenantId())
             .AsNoTracking()
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.NationalReferenceLookup)
-            .FirstOrDefaultAsync(e =>
-                e.Id == id &&
-                (e.TenantId == tenantId || (tenantId != platformId && e.TenantId == platformId)),
-                ct);
+            .FirstOrDefaultAsync(e => e.Id == id, ct);
     }
 
     public async Task<(ReferenceCatalogEntry? Entry, string? Error)> CreateAsync(
@@ -242,7 +237,9 @@ public sealed class ReferenceCatalogAdminService(HRCoreDbContext db) : IReferenc
         Guid id,
         CancellationToken ct = default)
     {
+        // PLAN-48: a national entry's impact is counted in the session's own data.
         var entry = await db.ReferenceCatalogEntries
+            .OwnOrNational(CurrentTenantId())
             .AsNoTracking()
             .FirstOrDefaultAsync(e => e.Id == id, ct);
         if (entry is null)
@@ -265,19 +262,13 @@ public sealed class ReferenceCatalogAdminService(HRCoreDbContext db) : IReferenc
         CancellationToken ct)
     {
         var tenantId = CurrentTenantId();
-        var platformId = TenantDefaults.DefaultTenantId;
 
-        var query = db.ReferenceCatalogEntries
+        // PLAN-48: the national read path; the first row per code wins, own first.
+        var all = await db.ReferenceCatalogEntries
+            .OwnOrNational(tenantId)
             .AsNoTracking()
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.NationalReferenceLookup)
-            .Where(e => e.CatalogKind == kind);
-
-        if (tenantId != platformId)
-            query = query.Where(e => e.TenantId == tenantId || e.TenantId == platformId);
-        else
-            query = query.Where(e => e.TenantId == platformId);
-
-        var all = await query.ToListAsync(ct);
+            .Where(e => e.CatalogKind == kind)
+            .ToListAsync(ct);
         return all
             .GroupBy(e => e.Code, StringComparer.OrdinalIgnoreCase)
             .Select(g => g.OrderBy(e => e.TenantId == tenantId ? 0 : 1).First())
@@ -291,17 +282,14 @@ public sealed class ReferenceCatalogAdminService(HRCoreDbContext db) : IReferenc
         string code,
         CancellationToken ct)
     {
-        var tenantId = CurrentTenantId();
-        var platformId = TenantDefaults.DefaultTenantId;
-
+        // PLAN-48: the national read path (an agency may name a national replacement code).
         return await db.ReferenceCatalogEntries
+            .OwnOrNational(CurrentTenantId())
             .AsNoTracking()
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.NationalReferenceLookup)
             .AnyAsync(e =>
                 e.CatalogKind == kind &&
                 e.Code == code &&
-                e.IsActive &&
-                (e.TenantId == tenantId || (tenantId != platformId && e.TenantId == platformId)),
+                e.IsActive,
                 ct);
     }
 

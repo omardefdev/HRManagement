@@ -15,7 +15,8 @@ public sealed record PolicyInvalidPublishedRule(string Domain, string Scope, Gui
 /// PLAN-47 (P-5): the published rules the validator refuses: the stored rules of before PLAN-47 (validation applies to new and
 /// changed rules only) and the rules that fire a workflow PLAN-46 retired (PLAN-49 retires them). Never fixed in place: a fix is
 /// a new change set. Logged at start-up, one warning per rule with a fixed prefix that scripts/pol047-validate.ps1 reads; the
-/// boot never fails on them.
+/// boot never fails on them. PLAN-48: an override's rules are checked with the agency ceiling too (CEILING_* codes): an old
+/// overlay the evaluator bounds is listed here.
 /// </summary>
 public static class PolicyPublishedRuleInventory
 {
@@ -29,11 +30,11 @@ public static class PolicyPublishedRuleInventory
             .ToListAsync(ct);
 
         var found = new List<PolicyInvalidPublishedRule>();
-        var contexts = new Dictionary<string, PolicyRuleValidationContext>(StringComparer.Ordinal);
+        var contexts = new Dictionary<(string Domain, PolicyTemplateScope Scope), PolicyRuleValidationContext>();
         foreach (var template in templates.OrderBy(t => t.Domain).ThenBy(t => t.Scope))
         {
-            if (!contexts.TryGetValue(template.Domain, out var context))
-                contexts[template.Domain] = context = await validation.LoadContextAsync(template.Domain, ct);
+            if (!contexts.TryGetValue((template.Domain, template.Scope), out var context))
+                contexts[(template.Domain, template.Scope)] = context = await validation.LoadContextAsync(template.Domain, template.Scope, ct);
 
             foreach (var version in template.Versions.OrderBy(v => v.VersionNumber))
             {

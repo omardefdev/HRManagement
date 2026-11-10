@@ -285,11 +285,11 @@ public sealed class WorkflowInstanceActionService(
     }
 
     private Task<WorkflowDefinition?> ResolvePinnedDefinitionAsync(WorkflowInstance instance, CancellationToken ct) =>
+        // PLAN-48: the national read path (the instance's tenant, or national).
         context.WorkflowDefinitions
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution)
+            .OwnOrNational(instance.TenantId)
             .AsNoTracking()
             .FirstOrDefaultAsync(d =>
                 d.Id == instance.DefinitionId
-                && d.Version == instance.DefinitionVersion
-                && (d.TenantId == instance.TenantId || d.TenantId == TenantDefaults.DefaultTenantId), ct);
+                && d.Version == instance.DefinitionVersion, ct);
 }

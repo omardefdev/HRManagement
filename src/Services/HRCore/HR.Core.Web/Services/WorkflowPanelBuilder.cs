@@ -41,13 +41,13 @@ public static class WorkflowPanelDataLoader
         if (instance is null)
             return (null, null);
 
+        // PLAN-48: the national read path (the instance's tenant, or national).
         var definition = await db.WorkflowDefinitions
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution)
+            .OwnOrNational(instance.TenantId)
             .AsNoTracking()
             .FirstOrDefaultAsync(d =>
                 d.Id == instance.DefinitionId
-                && d.Version == instance.DefinitionVersion
-                && (d.TenantId == instance.TenantId || d.TenantId == TenantDefaults.DefaultTenantId), ct);
+                && d.Version == instance.DefinitionVersion, ct);
 
         return (instance, definition);
     }

@@ -80,3 +80,16 @@
 | تدوير سر يوقف المنصة | سر لكل عميل؛ انظر `SERVICE_SECRET_ROTATION.md` |
 
 المخزون: [SERVICE_TRUST_INVENTORY.md](./SERVICE_TRUST_INVENTORY.md). العزل الشبكي (SEC-001) لا يغني عن JWT داخل شبكة `application`.
+
+## الجهة التجريبية داخل المستأجر الوطني (PLAN-48)
+
+المستأجر الوطني `PLATFORM` هو أيضاً الجهة التجريبية (D-OPS-3)، فتقع تجاوزاته (`Scope = TenantOverride`) في الجداول الوطنية نفسها
+التي تقرؤها كل الجهات بسياسة `national_shared_read`.
+
+| الخطر | المعالجة |
+|-------|----------|
+| تقرأ جهةٌ تجاوزات الجهة التجريبية على أنها وطنية | «وطني» في طبقة التطبيق هو `Scope = National` فقط (D-TEN-1): `NationalReadQueries` و`PolicyOrchestrator` و`CodeGeneratorService` لا تقرأ من `PLATFORM` إلا `Scope = National`. RLS تُظهر الصفوف كلها، والتطبيق يرشّح |
+| تكتب جهةٌ صفاً وطنياً | `tenant_isolation` وحدها تحمل `WITH CHECK`، و`national_shared_read` للقراءة فقط؛ و`NationalSharedWriteGuard` يرفض في EF قبل الحفظ (403) |
+| تضعف جهةٌ قراراً وطنياً بتجاوز | سقف الجهة (D-POL-4): رفض عند النشر، وحذف مع شرح عند التقييم (`PROD_001_TENANT_OVERRIDE.md`) |
+| تؤلف جهةٌ سياسة «وطنية» داخلها | `CreateDraft` خارج المستأجر الوطني ينشئ تجاوزاً للجهة دائماً، وطلب `Scope=National` يُرفض بـ 403 (D-TEN-10) |
+| المهام الخلفية و`/careers` بلا مستأجر تحت RLS المفروض | خارج النطاق: OPS-D (الموجة 2)، والقائمة في التقرير النهائي لـ PLAN-48 |

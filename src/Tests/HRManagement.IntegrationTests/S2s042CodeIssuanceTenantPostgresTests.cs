@@ -63,7 +63,9 @@ public class S2s042CodeIssuanceTenantPostgresTests : IAsyncLifetime
         Skip.IfNot(Enabled, "Set RUN_TESTCONTAINERS=true");
         await using var db = Context();
         await db.Database.MigrateAsync();
-        await CodeGenerationSeeder.SeedAsync(db);
+        // PLAN-48: the national catalog is an explicit seed (production seeds it in the national session).
+        using (TenantStampScope.AllowExplicitTenant())
+            await CodeGenerationSeeder.SeedAsync(db);
         TenantIdFlow.Set(CallerTenant);
 
         try
@@ -94,7 +96,9 @@ public class S2s042CodeIssuanceTenantPostgresTests : IAsyncLifetime
         Skip.IfNot(Enabled, "Set RUN_TESTCONTAINERS=true");
         await using var db = Context();
         await db.Database.MigrateAsync();
-        await CodeGenerationSeeder.SeedAsync(db);
+        // PLAN-48: the national catalog is an explicit seed (production seeds it in the national session).
+        using (TenantStampScope.AllowExplicitTenant())
+            await CodeGenerationSeeder.SeedAsync(db);
         TenantIdFlow.Set(CallerTenant);
 
         try
@@ -120,7 +124,9 @@ public class S2s042CodeIssuanceTenantPostgresTests : IAsyncLifetime
         Skip.IfNot(Enabled, "Set RUN_TESTCONTAINERS=true");
         await using var db = Context();
         await db.Database.MigrateAsync();
-        await CodeGenerationSeeder.SeedAsync(db);
+        // PLAN-48: the national catalog is an explicit seed (production seeds it in the national session).
+        using (TenantStampScope.AllowExplicitTenant())
+            await CodeGenerationSeeder.SeedAsync(db);
         TenantIdFlow.Set(CallerTenant);
 
         try

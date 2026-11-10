@@ -1,6 +1,7 @@
 using HR.Core.Domain.Entities.Policy;
 using HR.Core.Infrastructure.Data;
 using HRManagement.MessageContracts.Events;
+using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Messaging;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
@@ -54,7 +55,8 @@ public sealed class PolicyVersionPublisher(
         version.Status = PolicyVersionStatus.Published;
 
         // A version effective later keeps the current one effective until then: only EffectiveTo of a published version changes.
-        var previousPublished = await db.PolicyTemplateVersions
+        // PLAN-48: the version's own tenant, named (a provisioning session may not be that tenant's session).
+        var previousPublished = await db.PolicyTemplateVersions.OwnOrNational(version.TenantId)
             .Where(v => v.PolicyTemplateId == version.PolicyTemplateId
                         && v.Id != version.Id
                         && v.Status == PolicyVersionStatus.Published)

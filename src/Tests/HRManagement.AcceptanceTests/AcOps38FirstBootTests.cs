@@ -128,7 +128,7 @@ public class AcOps38FirstBootTests
     }
 
     /// <summary>psql as the administrator inside the postgres container (peer access, no password on any command line).</summary>
-    private static async Task<string> AdminSqlAsync(string database, string sql)
+    internal static async Task<string> AdminSqlAsync(string database, string sql)
     {
         var pg = await ContainerAsync("postgresql");
         var (exit, output) = await RunAsync("docker", null, "exec", pg, "psql", "-X", "-v", "ON_ERROR_STOP=1",
@@ -603,7 +603,9 @@ public class AcOps38FirstBootTests
         var r = Recorder("38h", "Mandatory national seed as hr_core_app; INSERT on WorkflowDefinitions revoked -> HR.Core stops naming the seed");
         await RequireStackAsync(r);
         Assert.True(await WaitUntilAsync(TimeSpan.FromMinutes(2), () => HealthyAsync("6210")), "HR.Core is not ready");
-        Assert.Equal("1", await AdminSqlAsync("hr_core_db", "SELECT count(*) FROM \"SeedPackApplications\""));
+        // PLAN-48: the mandatory seed also records the code policy upgrade (on a new database it records itself only).
+        Assert.Equal("NATIONAL-MANDATORY-v1,ten048-code-policy-upgrade-v1",
+            await AdminSqlAsync("hr_core_db", "SELECT string_agg(\"PackId\", ',' ORDER BY \"PackId\") FROM \"SeedPackApplications\""));
         const string code = "RECRUITMENT-RESULTS-APPROVAL";
         Assert.Equal("1", await AdminSqlAsync("hr_core_db", $"SELECT count(*) FROM \"WorkflowDefinitions\" WHERE \"Code\"='{code}'"));
         var contractType = await AdminSqlAsync("hr_contracts_db", "SELECT count(*) FROM \"ContractTypes\" WHERE \"Code\"='DEFAULT'");

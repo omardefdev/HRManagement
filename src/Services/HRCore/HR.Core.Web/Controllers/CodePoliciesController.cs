@@ -1,5 +1,6 @@
 using HR.Core.Domain.Entities.CodeGeneration;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.CodeGeneration;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.CodeGeneration;
 using Microsoft.AspNetCore.Authorization;
@@ -11,13 +12,19 @@ namespace HR.Core.Web.Controllers;
 [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
 public class CodePoliciesController(HRCoreDbContext db, ICodeGenerator generator) : Controller
 {
+    /// <summary>
+    /// PLAN-48 (§2): the agency's own overlays («تجاوز الجهة») and the national templates it inherits («وطني (موروث — للقراءة)»);
+    /// an agency used to see an empty list.
+    /// </summary>
     public async Task<IActionResult> Index()
     {
-        var templates = await db.CodePolicyTemplates.AsNoTracking()
+        var templates = await db.ReadableCodePolicyTemplates().AsNoTracking()
             .Include(t => t.Versions)
             .OrderBy(t => t.EntityKind)
+            .ThenBy(t => t.PolicyKey)
             .ThenBy(t => t.Name)
             .ToListAsync();
+        ViewBag.SessionTenantId = db.CurrentTenantId;
         return View(templates);
     }
 
@@ -33,7 +40,7 @@ public class CodePoliciesController(HRCoreDbContext db, ICodeGenerator generator
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Preview(CodeEntityKind entityKind, string? parentCode, string? entityPrefix)
+    public async Task<IActionResult> Preview(CodeEntityKind entityKind, string? parentCode, string? entityPrefix, string? policyKey)
     {
         var facts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         if (!string.IsNullOrWhiteSpace(parentCode))
@@ -41,14 +48,27 @@ public class CodePoliciesController(HRCoreDbContext db, ICodeGenerator generator
         if (!string.IsNullOrWhiteSpace(entityPrefix))
             facts["EntityPrefix"] = entityPrefix;
 
-        var result = await generator.GenerateAsync(new CodeGenerationRequest
+        try
         {
-            EntityKind = entityKind,
-            Facts = facts,
-            Preview = true
-        });
+            var result = await generator.GenerateAsync(new CodeGenerationRequest
+            {
+                EntityKind = entityKind,
+                PolicyKey = string.IsNullOrWhiteSpace(policyKey) ? null : policyKey,
+                Facts = facts,
+                Preview = true
+            });
+            TempData["PreviewCode"] = result.Code;
+        }
+        catch (CodeFactMissingException ex)
+        {
+            // PLAN-48: a fact the number shows is required (it is never an empty segment); the page says which.
+            TempData["PreviewError"] = ex.MessageAr;
+        }
+        catch (CodePolicyMissingException ex)
+        {
+            TempData["PreviewError"] = ex.MessageAr;
+        }
 
-        TempData["PreviewCode"] = result.Code;
         return RedirectToAction(nameof(Index));
     }
 }

@@ -30,10 +30,11 @@ public class CodeGenerationController(
         return Ok(result);
     }
 
+    /// <summary>PLAN-48: the agency's overlays and the national templates it inherits (read-only).</summary>
     [HttpGet("policies")]
     public async Task<IActionResult> ListPolicies([FromQuery] CodeEntityKind? entityKind, CancellationToken ct)
     {
-        var q = db.CodePolicyTemplates.AsNoTracking()
+        var q = db.ReadableCodePolicyTemplates().AsNoTracking()
             .Include(t => t.Versions)
             .AsQueryable();
         if (entityKind.HasValue)
@@ -42,10 +43,19 @@ public class CodeGenerationController(
         return Ok(items);
     }
 
+    /// <summary>
+    /// PLAN-48: the policy the session's tenant numbers the kind (and key) with. Another tenant's snapshot is for a platform
+    /// operator only; anyone else gets their own tenant's, whatever the query says.
+    /// </summary>
     [HttpGet("policies/{entityKind}")]
-    public async Task<IActionResult> GetPolicySnapshot(CodeEntityKind entityKind, [FromQuery] Guid? tenantId, CancellationToken ct)
+    public async Task<IActionResult> GetPolicySnapshot(
+        CodeEntityKind entityKind,
+        [FromQuery] Guid? tenantId,
+        [FromQuery] string? policyKey,
+        CancellationToken ct)
     {
-        var snapshot = await generator.GetPublishedSnapshotAsync(entityKind, tenantId, ct);
+        var tenant = tenantContext.IsPlatformOperator && tenantId is Guid asked ? asked : tenantContext.TenantId;
+        var snapshot = await generator.GetPublishedSnapshotAsync(entityKind, tenant, ct, policyKey);
         return snapshot is null ? NotFound() : Ok(snapshot);
     }
 

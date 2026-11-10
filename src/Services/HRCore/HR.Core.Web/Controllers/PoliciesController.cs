@@ -49,7 +49,8 @@ public class PoliciesController(
     [HttpGet("versions/{versionId:guid}")]
     public async Task<IActionResult> GetVersion(Guid versionId, CancellationToken ct)
     {
-        var version = await db.PolicyTemplateVersions
+        // PLAN-48: the agency's own versions and the national ones it inherits (read-only).
+        var version = await db.ReadablePolicyVersions()
             .Include(v => v.Rules)
             .FirstOrDefaultAsync(v => v.Id == versionId, ct);
         if (version is null) return NotFound();
@@ -80,6 +81,9 @@ public class PoliciesController(
     [HttpGet("snapshots/{domain}")]
     public async Task<IActionResult> GetSnapshot(string domain, [FromQuery] Guid? tenantId, CancellationToken ct)
     {
+        // PLAN-48 (AC-TEN-48d): the session's tenant reads its own decision basis (the national rules and its override, merged); the
+        // query names a tenant only for a platform operator with no session (as evaluate, PLAN-42).
+        tenantId = HttpContext.Items[TenantIdMiddleware.ItemKey] as Guid? ?? tenantId;
         var snapshot = await orchestrator.GetPublishedSnapshotAsync(domain, tenantId, null, ct);
         if (snapshot is null) return NotFound();
         return Ok(snapshot);
@@ -88,7 +92,7 @@ public class PoliciesController(
     [HttpGet("templates")]
     public async Task<IActionResult> ListTemplates([FromQuery] string? domain, CancellationToken ct)
     {
-        var q = db.PolicyTemplates.AsNoTracking().AsQueryable();
+        var q = db.ReadablePolicyTemplates().AsNoTracking();
         if (!string.IsNullOrWhiteSpace(domain))
             q = q.Where(t => t.Domain == domain);
         var items = await q.OrderBy(t => t.Domain).ThenBy(t => t.Name).ToListAsync(ct);
@@ -98,7 +102,8 @@ public class PoliciesController(
     [HttpGet("templates/{id:guid}")]
     public async Task<IActionResult> GetTemplate(Guid id, CancellationToken ct)
     {
-        var t = await db.PolicyTemplates
+        var t = await db.ReadablePolicyTemplates()
+            .AsNoTracking()
             .Include(x => x.Versions)
             .ThenInclude(v => v.Rules)
             .FirstOrDefaultAsync(x => x.Id == id, ct);
@@ -109,13 +114,14 @@ public class PoliciesController(
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public async Task<IActionResult> Simulate(Guid versionId, [FromBody] Dictionary<string, string> facts, CancellationToken ct)
     {
-        var version = await db.PolicyTemplateVersions
+        var version = await db.ReadablePolicyVersions()
+            .AsNoTracking()
             .Include(v => v.PolicyTemplate)
             .Include(v => v.Rules)
             .FirstOrDefaultAsync(v => v.Id == versionId, ct);
         if (version is null) return NotFound();
 
-        var schemaEntity = await db.PolicyFactsSchemas.AsNoTracking()
+        var schemaEntity = await db.PolicyFactsSchemas.NationalOnly().AsNoTracking()
             .FirstOrDefaultAsync(s => s.Domain == version.PolicyTemplate.Domain, ct);
         var snapshot = PolicyEntityMapper.ToSnapshot(version.PolicyTemplate, version, PolicyEntityMapper.ParseSchema(schemaEntity));
         var decision = PolicyEvaluator.Evaluate(snapshot, facts);
@@ -170,6 +176,32 @@ public class PoliciesController(
             ? await drafts.CreateWithdrawAllDraftAsync(templateId, request.Reason, userId, ct)
             : await drafts.CreateDraftAsync(templateId, request?.CopyFromVersionId, userId, ct);
         return DraftResult(result);
+    }
+
+    /// <summary>
+    /// PLAN-48 (§4, D-TEN-10): a draft of the domain's template in the session's tenant. Outside the national tenant it is the
+    /// agency's override (stricter rules only) and <c>scope: "National"</c> answers 403; inside it the national template by default.
+    /// </summary>
+    [HttpPost("drafts")]
+    [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> CreateDomainDraft([FromBody] CreateDomainDraftRequest request, CancellationToken ct)
+    {
+        if (!TryParseScope(request.Scope, out var scope))
+            return BadRequest(new { error = "النطاق غير معروف: National أو TenantOverride" });
+        var result = await drafts.CreateDomainDraftAsync(request.Domain, request.SubjectType, request.Name, scope, ParseUserId(User), ct);
+        return DraftResult(result);
+    }
+
+    internal static bool TryParseScope(string? value, out PolicyTemplateScope? scope)
+    {
+        scope = null;
+        if (string.IsNullOrWhiteSpace(value))
+            return true;
+        if (!Enum.TryParse<PolicyTemplateScope>(value.Trim(), ignoreCase: true, out var parsed) || !Enum.IsDefined(parsed))
+            return false;
+        scope = parsed;
+        return true;
     }
 
     /// <summary>PLAN-47 (§7): a rollback draft: a copy of an earlier version, with a written reason.</summary>
@@ -237,6 +269,7 @@ public class PoliciesController(
         PolicyDraftOutcome.Ok => Ok(new { id = result.Id }),
         PolicyDraftOutcome.NotFound => NotFound(new { error = result.MessageAr }),
         PolicyDraftOutcome.NotDraft or PolicyDraftOutcome.Conflict => Conflict(new { error = result.MessageAr }),
+        PolicyDraftOutcome.Forbidden => StatusCode(StatusCodes.Status403Forbidden, new { error = result.MessageAr }),
         _ => BadRequest(new { error = result.MessageAr, issues = result.IssueList })
     };
 
@@ -244,7 +277,7 @@ public class PoliciesController(
     {
         PolicyPublishOutcome.NotFound => NotFound(new { error = result.MessageAr }),
         PolicyPublishOutcome.Conflict => Conflict(new { error = result.MessageAr }),
-        PolicyPublishOutcome.FourEyes => StatusCode(StatusCodes.Status403Forbidden, new { error = result.MessageAr }),
+        PolicyPublishOutcome.FourEyes or PolicyPublishOutcome.Forbidden => StatusCode(StatusCodes.Status403Forbidden, new { error = result.MessageAr }),
         _ => BadRequest(new { error = result.MessageAr, issues = result.IssueList })
     };
 
@@ -295,6 +328,15 @@ public sealed class CreatePolicyDraftRequest
     public bool WithdrawAllRules { get; set; }
 
     public string? Reason { get; set; }
+}
+
+/// <summary>PLAN-48: a draft of a domain's template; <see cref="Scope"/> is National or TenantOverride (the session's default when empty).</summary>
+public sealed class CreateDomainDraftRequest
+{
+    public string? Domain { get; set; }
+    public string? SubjectType { get; set; }
+    public string? Name { get; set; }
+    public string? Scope { get; set; }
 }
 
 public sealed class CreateRollbackDraftRequest

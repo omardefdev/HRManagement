@@ -29,5 +29,7 @@ public static class AcceptanceSeedOrchestrator
             .BackfillMissingVersionsAsync(ct);
         var asOf = serviceProvider.GetRequiredService<EstablishmentAsOfService>();
         await asOf.BackfillAllMissingVersionsAsync(ct);
+        // PLAN-48: the acceptance seed writes numbers itself, so every tenant's counters are moved past them (never lowered).
+        await Services.CodeGeneration.CodeCounterReseeder.ReseedAllTenantsAsync(db, serviceProvider, logger, ct);
     }
 }

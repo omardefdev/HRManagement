@@ -1,6 +1,7 @@
 using HR.Core.Domain.Entities;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.MasterData;
+using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Tenancy;
 using HRManagement.SharedKernel.MasterData;
 using HRManagement.SharedKernel.Tenancy;
@@ -72,7 +73,9 @@ public class Est007ReferenceCatalogAdminTests
             IsActive = true
         };
         db.ReferenceCatalogEntries.Add(platformEntry);
-        await db.SaveChangesAsync();
+        // PLAN-48: a national row is written only by the national tenant or an explicit seed scope (the setup is the seed).
+        using (TenantStampScope.AllowExplicitTenant())
+            await db.SaveChangesAsync();
 
         var service = new ReferenceCatalogAdminService(db);
         Assert.False(service.CanMutate(platformEntry));
@@ -238,7 +241,9 @@ public class Est007ReferenceCatalogAdminTests
                 NameAr = "جهة",
                 IsActive = true
             });
-        await db.SaveChangesAsync();
+        // PLAN-48: the national row of the setup is an explicit seed.
+        using (TenantStampScope.AllowExplicitTenant())
+            await db.SaveChangesAsync();
 
         var service = new ReferenceCatalogAdminService(db);
         var items = await service.ListAsync(CatalogKind.Grade, "GR-MERGE", null, 1, 20);

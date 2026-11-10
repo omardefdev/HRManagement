@@ -163,3 +163,15 @@ Governed MVC screens for national reference codes used by job catalog pickers:
 | Sidebar «المرجع الوطني (MDM)» | Governance navigation entry |
 
 Platform MDM rows are read-only; agency overlays are created on the current tenant. See [PLAN-20](acceptance-plans/PLAN-20-establishment-mdm-admin-ui.md).
+
+## Position and cost-centre numbering (PLAN-48)
+
+- **D-TEN-6:** a funded position is numbered `{OrgUnitCode}-{GradeCode}-###`, with one counter per (unit, grade) and **no budget
+  year**: neither in the number nor in the counter. A position carried over to the next budget year keeps its code (a new row
+  with the same `PositionCode` and the next `BudgetYear`, which the unique constraint allows). Existing databases were moved from
+  v1 (the budget year in the counter's scope, not in the number) by `CodePolicyUpgrades`, and the counters reseeded.
+- **D-TEN-7:** the cost centre of a position is **derived**: the unit's code, shared by every position of the unit, with no
+  counter. Its issuance is recorded once (`INSERT ... ON CONFLICT DO NOTHING` on `CodeIssuances`).
+- `FundedPositionCodeService` numbers a draft with `TenantId = Guid.Empty` in the session's tenant; the budget year is formatted
+  with the invariant culture. Proved on PostgreSQL as a non-owner role under forced row security, many positions at once over two
+  budget years (`Ten048FundedPositionRealCodeServiceTests`), and through the change applier (`Est002`).

@@ -17,7 +17,7 @@ public static class WorkflowDefinitionHealthReport
     public static async Task<IReadOnlyList<WorkflowDefinition>> RunAsync(HRCoreDbContext db, ILogger logger, CancellationToken ct = default)
     {
         var published = await db.WorkflowDefinitions
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+            .NationalOnly()
             .AsNoTracking()
             .Where(d => d.IsPublished)
             .OrderBy(d => d.Code)

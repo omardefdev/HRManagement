@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using HRManagement.SharedKernel.Entities;
+using HRManagement.SharedKernel.Tenancy;
 using HRManagement.SharedKernel.Localization;
 
 namespace HRManagement.SharedKernel.MasterData;
@@ -8,7 +9,7 @@ namespace HRManagement.SharedKernel.MasterData;
 /// MDM-001: single-table national reference data entry.
 /// Code is unique per <see cref="CatalogKind"/> and tenant.
 /// </summary>
-public class ReferenceCatalogEntry : AuditableEntity, ILocalizedName
+public class ReferenceCatalogEntry : AuditableEntity, ILocalizedName, INationalShared
 {
     [Required]
     public CatalogKind CatalogKind { get; set; }

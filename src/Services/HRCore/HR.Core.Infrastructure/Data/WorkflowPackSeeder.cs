@@ -105,7 +105,7 @@ public static class WorkflowPackSeeder
         foreach (var wf in Workflows)
         {
             if (await db.WorkflowDefinitions
-                    .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+                    .NationalOnly()
                     .AnyAsync(d => d.TenantId == TenantDefaults.DefaultTenantId && d.Code == wf.Code, ct))
                 continue;
 
@@ -150,7 +150,7 @@ public static class WorkflowPackSeeder
     public static async Task BackfillGovernanceAsync(HRCoreDbContext db, CancellationToken ct = default)
     {
         var definitions = await db.WorkflowDefinitions
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+            .NationalOnly()
             .ToListAsync(ct);
 
         var changed = false;
@@ -188,7 +188,7 @@ public static class WorkflowPackSeeder
         CancellationToken ct = default)
     {
         var versions = await db.WorkflowDefinitions
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+            .NationalOnly()
             .Where(d => d.TenantId == TenantDefaults.DefaultTenantId && d.Code == code)
             .ToListAsync(ct);
         var latest = versions.Where(d => d.IsPublished).MaxBy(d => d.Version)
@@ -235,7 +235,7 @@ public static class WorkflowPackSeeder
         var now = DateTime.UtcNow;
         var codes = RetiredCodes.ToList();
         var published = await db.WorkflowDefinitions
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+            .NationalOnly()
             .Where(d => codes.Contains(d.Code) && d.IsPublished)
             .ToListAsync(ct);
         foreach (var definition in published)
@@ -283,7 +283,7 @@ public static class WorkflowPackSeeder
         foreach (var code in CustodyCodes)
         {
             var published = await db.WorkflowDefinitions
-                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+                .NationalOnly()
                 .Where(d => d.TenantId == TenantDefaults.DefaultTenantId && d.Code == code && d.IsPublished)
                 .ToListAsync(ct);
             var latest = published.MaxBy(d => d.Version);
@@ -361,7 +361,7 @@ public static class WorkflowPackSeeder
         foreach (var (code, chain) in new[] { ("ID-CARD-ISSUANCE", CardChain), ("DISCIPLINARY-APPROVAL", DisciplinaryChain) })
         {
             var latest = (await db.WorkflowDefinitions
-                    .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+                    .NationalOnly()
                     .Where(d => d.TenantId == TenantDefaults.DefaultTenantId && d.Code == code && d.IsPublished)
                     .ToListAsync(ct))
                 .MaxBy(d => d.Version);

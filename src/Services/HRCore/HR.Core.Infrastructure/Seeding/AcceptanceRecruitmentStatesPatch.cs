@@ -232,9 +232,10 @@ public static class AcceptanceRecruitmentStatesPatch
     private static async Task StartAsync(HRCoreDbContext db, Guid tenant, string code, string entityType, Guid entityId, Guid instanceId,
         Guid initiatedBy, int step, List<WorkflowStepHistoryEntry> approvedSteps, ILogger? logger, CancellationToken ct, Action<Guid> link)
     {
-        var definition = await All(db.WorkflowDefinitions)
-            .Where(d => d.Code == code && d.IsPublished && (d.TenantId == tenant || d.TenantId == TenantDefaults.DefaultTenantId))
-            .OrderByDescending(d => d.TenantId == tenant).ThenByDescending(d => d.Version)
+        // PLAN-48: the national read path, the agency's own versions first.
+        var definition = await db.WorkflowDefinitions.OwnOrNational(tenant)
+            .Where(d => d.Code == code && d.IsPublished)
+            .OwnFirst(tenant).ThenByDescending(d => d.Version)
             .Select(d => new { d.Id, d.Version })
             .FirstOrDefaultAsync(ct);
         if (definition is null)

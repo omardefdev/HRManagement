@@ -43,12 +43,12 @@ public static class AcceptanceS2s42PolicyPatch
     private static async Task PublishAsync(HRCoreDbContext db, Guid tenantId, CancellationToken ct)
     {
         var versionId = AcceptanceSeedCatalog.DeterministicGuid("AGENCY-A", "policy-assets-v4-s2s42");
-        var versions = db.PolicyTemplateVersions.IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization);
+        var versions = db.PolicyTemplateVersions.OwnOrNational(tenantId);
         if (await versions.AnyAsync(v => v.Id == versionId, ct))
             return;
 
         var previous = await db.PolicyRules
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+            .OwnOrNational(tenantId)
             .AsNoTracking()
             .Where(r => r.PolicyTemplateVersionId == AcceptanceSeedIds.PolicyVersion2Id)
             .ToListAsync(ct);

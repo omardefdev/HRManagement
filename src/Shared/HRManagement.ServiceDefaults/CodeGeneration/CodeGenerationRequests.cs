@@ -1,4 +1,5 @@
 using HRManagement.SharedKernel.CodeGeneration;
+using HRManagement.SharedKernel.Tenancy;
 
 namespace HRManagement.ServiceDefaults.CodeGeneration;
 
@@ -27,9 +28,15 @@ public static class CodeGenerationRequests
         EntityKind = CodeEntityKind.LegalCase
     };
 
+    /// <summary>
+    /// PLAN-48: a citizen reference is one national sequence, issued in the national tenant whatever the posting's agency:
+    /// <c>CitizenApplications.ReferenceNumber</c> is unique across tenants and the portal finds an application by it alone, so a
+    /// counter per agency would issue the same reference twice.
+    /// </summary>
     public static CodeGenerationRequest CitizenReference() => new()
     {
-        EntityKind = CodeEntityKind.CitizenReference
+        EntityKind = CodeEntityKind.CitizenReference,
+        TenantId = NationalTenant.Id
     };
 
     public static CodeGenerationRequest IdCardSerial() => new()
@@ -58,7 +65,7 @@ public static class CodeGenerationRequests
         EntityKind = CodeEntityKind.RecruitmentRequisition,
         Facts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
-            ["BudgetYear"] = budgetYear.ToString()
+            ["BudgetYear"] = budgetYear.ToString(System.Globalization.CultureInfo.InvariantCulture)
         }
     };
 

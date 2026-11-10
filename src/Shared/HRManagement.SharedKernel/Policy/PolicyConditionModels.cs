@@ -74,6 +74,14 @@ public sealed class PolicyEffectDefinition
     public Dictionary<string, string>? Params { get; set; }
 }
 
+/// <summary>PLAN-48 (§4): where a rule comes from. The ceiling (<see cref="PolicyCeiling"/>) bounds the agency's rules.</summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
+public enum PolicyRuleOrigin
+{
+    National,
+    Agency
+}
+
 public sealed class PolicyRuleDefinition
 {
     public string? Id { get; set; }
@@ -81,4 +89,7 @@ public sealed class PolicyRuleDefinition
     public PolicyConditionGroup When { get; set; } = new();
     public List<PolicyEffectDefinition> Then { get; set; } = [];
     public int Priority { get; set; } = 100;
+
+    /// <summary>PLAN-48: National by default (compatible with every rule stored or serialized before); an override's rules are Agency.</summary>
+    public PolicyRuleOrigin Origin { get; set; } = PolicyRuleOrigin.National;
 }

@@ -128,6 +128,22 @@ harden_tenant_rls() {
   fi
 }
 
+NATIONAL_READ_SQL="${ROOT}/scripts/sql/ten048-national-shared-read.sql"
+
+# PLAN-48 (TEN-048): national settings rows readable by every agency, written only by the national tenant. Runs on the
+# migrator connection of hr-core right after TEN-002C; a failed check aborts the whole run.
+national_shared_read() {
+  local name="$1"
+  local conn="$2"
+
+  echo "Applying the national shared read policy for ${name} ..."
+  split_conn "${conn}"
+  if ! PGPASSWORD="${CONN_PW}" psql "${CONN_INFO}" -v ON_ERROR_STOP=1 -q -f "${NATIONAL_READ_SQL}"; then
+    echo "ERROR: national shared read policy failed for ${name}"
+    exit 1
+  fi
+}
+
 for entry in "${MIGRATIONS[@]}"; do
   IFS='|' read -r name project startup conn_env <<< "${entry}"
 
@@ -164,6 +180,10 @@ for entry in "${MIGRATIONS[@]}"; do
   fi
 
   harden_tenant_rls "${name}" "${migrate_conn}"
+  # PLAN-48: the national shared tables of hr-core get the SELECT-only national read policy, then its check.
+  if [ "${name}" = "hr-core" ]; then
+    national_shared_read "${name}" "${migrate_conn}"
+  fi
 done
 
 echo "All migrations applied and tenant RLS verified."

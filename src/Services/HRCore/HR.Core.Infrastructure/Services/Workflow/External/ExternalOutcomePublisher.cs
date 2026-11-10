@@ -75,13 +75,13 @@ public sealed class ExternalOutcomePublisher(HRCoreDbContext db, IPublishEndpoin
 
     /// <summary>The definition the instance pinned, published or not.</summary>
     public static Task<WorkflowDefinition?> LoadDefinitionAsync(HRCoreDbContext db, WorkflowInstance instance, CancellationToken ct) =>
+        // PLAN-48: the national read path (the instance's tenant, or national).
         db.WorkflowDefinitions
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.PolicyResolution)
+            .OwnOrNational(instance.TenantId)
             .AsNoTracking()
             .FirstOrDefaultAsync(d =>
                 d.Id == instance.DefinitionId
-                && d.Version == instance.DefinitionVersion
-                && (d.TenantId == instance.TenantId || d.TenantId == TenantDefaults.DefaultTenantId), ct);
+                && d.Version == instance.DefinitionVersion, ct);
 
     /// <summary>Every decision taken, in order. A step skipped by its condition is nobody's decision.</summary>
     public static IReadOnlyList<WorkflowStepDecisionDto> Decisions(WorkflowInstance instance, WorkflowDefinition? definition)

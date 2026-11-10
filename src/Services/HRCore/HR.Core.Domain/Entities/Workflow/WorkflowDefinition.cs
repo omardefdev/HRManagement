@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using HR.Core.Domain.Enums;
 using HRManagement.SharedKernel.Entities;
+using HRManagement.SharedKernel.Tenancy;
 
 namespace HR.Core.Domain.Entities.Workflow;
 
@@ -8,7 +9,7 @@ namespace HR.Core.Domain.Entities.Workflow;
 /// Configurable workflow definition with versioning and effective-date control.
 /// Steps are stored as JSON (WorkflowStepSnapshot[]) for flexibility without schema changes.
 /// </summary>
-public class WorkflowDefinition : BaseEntity
+public class WorkflowDefinition : BaseEntity, INationalShared
 {
     [Required]
     [StringLength(50)]

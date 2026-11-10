@@ -87,7 +87,7 @@
     { "class": "Ac10EnforcePolicyTests", "required": false, "group": "main" },
     { "class": "Ac11PolicyWorkflowTests", "required": true, "group": "main" },
     { "class": "Ac12PayrollSodTests", "required": false, "group": "main" },
-    { "class": "Ac13ParallelCodeGenerationTests", "required": false, "group": "main" },
+    { "class": "Ac13ParallelCodeGenerationTests", "required": true, "group": "main" },
     { "class": "Ac15CorrelationIdHireJourneyTests", "required": false, "group": "main" },
     { "class": "Ac16DuplicateMessageTests", "required": false, "group": "main" },
     { "class": "Ac19AnalyticsReconciliationTests", "required": false, "group": "main" },
@@ -142,6 +142,7 @@
     { "class": "RecruitmentToHireJourneyProdLikeE2ETests", "required": true, "group": "journey", "project": "src/Tests/HRManagement.E2E/HRManagement.E2E.csproj" },
     { "class": "AcHcm25ProductionApprovalTests", "required": true, "group": "main" },
     { "class": "AcWf43DefinitionGovernanceTests", "required": true, "group": "main" },
+    { "class": "AcTen48NationalScopeTests", "required": true, "group": "main" },
     { "class": "AcInt37ProductionWiringTests", "required": true, "group": "isolated" },
     { "class": "AcMsg40AtomicPublishingTests", "required": true, "group": "isolated" },
     { "class": "AcWf44InstanceIntegrityTests", "required": true, "group": "isolated" },
@@ -152,7 +153,8 @@
     { "class": "AcQa41AcceptanceBaselineTests", "required": true, "group": "final" },
     { "class": "AcS2s42TrustBoundaryTests", "required": true, "group": "s2s42" },
     { "class": "AcWf46PolicyOrphanTests", "required": true, "group": "s2s42" },
-    { "class": "AcOps38FirstBootTests", "required": true, "group": "leastpriv" }
+    { "class": "AcOps38FirstBootTests", "required": true, "group": "leastpriv" },
+    { "class": "AcTen48LeastPrivilegeTests", "required": true, "group": "leastpriv" }
   ],
   "excluded": [
     { "class": "Ac14TemporalOrgStructureTests", "reason": "Not reproducible: it rewrites a fixed org unit on a fixed date.", "ownerPlan": "COD-G", "reviewBy": "2027-01-28" },

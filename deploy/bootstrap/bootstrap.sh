@@ -6,6 +6,7 @@
 #   3. ensure-roles.sql          <svc>_app and <svc>_migrator per database, passwords set on every run;
 #      ensure-keycloak-role.sql  (PLAN-39) the keycloak role, owner of keycloak_db (+ transfer-keycloak-ownership.sql on request)
 #   4. migrations                each EF bundle as <svc>_migrator (both postures), then TEN-002C as the table owner
+#                                (and, for hr-core, PLAN-48's TEN-048 national read policy)
 #   5. ensure-backup-role.sql    hrm_backup (read-only, BYPASSRLS for pg_dump)
 #   6. RabbitMQ users            mq_* from rabbitmq-users.json through the management API, passwords set on every run
 #   7. MinIO user                only with the minio profile (D-38-7)
@@ -21,6 +22,7 @@ umask 077
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUNDLE_DIR="${EFBUNDLE_DIR:-/app/efbundles}"
 HARDEN_SQL="${HRM_HARDEN_SQL:-/app/scripts/sql/ten002c-harden-tenant-rls.sql}"
+NATIONAL_READ_SQL="${HRM_NATIONAL_READ_SQL:-/app/scripts/sql/ten048-national-shared-read.sql}"
 RESULT_DIR="${HRM_BOOTSTRAP_RESULT_DIR:-/var/hrm/bootstrap}"
 ROLES_CONF="$HERE/postgres-roles.conf"
 MQ_USERS="$HERE/rabbitmq-users.json"
@@ -145,6 +147,12 @@ while IFS='|' read -r bundle base db prefix; do
   applied_total=$((applied_total + applied))
   PGPASSWORD="$(secret "${prefix}_MIGRATOR_PASSWORD")" psql -X -q -v ON_ERROR_STOP=1 -U "$role" -d "$db" -f "$HARDEN_SQL" \
     > "/tmp/harden-$bundle.log" 2>&1 || { cat "/tmp/harden-$bundle.log" >&2; die "TEN-002C hardening failed for $db"; }
+  # PLAN-48: hr-core's national shared tables get the SELECT-only national read policy (TEN-048), then its check.
+  if [ "$bundle" = "hr-core" ]; then
+    PGPASSWORD="$(secret "${prefix}_MIGRATOR_PASSWORD")" psql -X -q -v ON_ERROR_STOP=1 -U "$role" -d "$db" -f "$NATIONAL_READ_SQL" \
+      > "/tmp/national-read-$bundle.log" 2>&1 || { cat "/tmp/national-read-$bundle.log" >&2; die "TEN-048 national read policy failed for $db"; }
+    log "step 4: $bundle national_shared_read applied and verified (TEN-048)"
+  fi
   log "step 4: $bundle migrated by $role: $applied migrations applied ($after in history); TEN-002C verified"
   SERVICES_JSON="$(jq -c --arg b "$bundle" --arg d "$db" --arg r "$role" --argjson a "$applied" --argjson t "$after" \
     '. + [{bundle:$b, database:$d, migrationRole:$r, migrationsApplied:$a, migrationsInHistory:$t}]' <<< "$SERVICES_JSON")"

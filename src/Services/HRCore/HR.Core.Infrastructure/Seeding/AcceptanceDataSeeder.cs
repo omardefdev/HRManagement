@@ -1063,7 +1063,7 @@ public static class AcceptanceDataSeeder
             ? AcceptanceSeedIds.PolicyTemplateId
             : AcceptanceSeedCatalog.DeterministicGuid(agency.Code, "policy-template-assets");
         if (await db.PolicyTemplates
-                .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.SeedInitialization)
+                .OwnOrNational(agency.Id)
                 .AnyAsync(t => t.Id == templateId, ct))
             return;
 
@@ -1098,16 +1098,15 @@ public static class AcceptanceDataSeeder
             EffectiveTo = AcceptanceSeedCatalog.ReferenceDate.AddYears(-1)
         }, [], PolicyVersionStatus.Archived, publication: null, ct);
 
-        await PolicySeedVersionWriter.AddAsync(db, new PolicyTemplateVersion
+        // PLAN-48 (D-TEN-8 = D-POL-4): an agency inherits the national custody policy, whose R-PRIV-WF triggers ASSET-ASSIGN-APPROVAL on
+        // the same condition, and the ceiling refuses an agency TriggerWorkflow where the national policy has one. So agency A's v2
+        // holds no workflow: AC-POL-47 publishes copies of it and rolls back to it. Agencies B and C keep the layer written before the
+        // ceiling, with two more rules it bounds (a lighter workflow at the first priority, a SetField of the national isPrivileged on
+        // the national rule's own condition): the evaluator drops all three with an explanation and a copy of the layer is refused at
+        // publish (AC-TEN-48e). Under the ceiling they change no decision.
+        var v2Rules = new List<PolicyRule>
         {
-            Id = v2Id,
-            TenantId = agency.Id,
-            PolicyTemplateId = templateId,
-            VersionNumber = 2,
-            EffectiveFrom = AcceptanceSeedCatalog.ReferenceDate.AddYears(-1)
-        },
-        [
-            new PolicyRule
+            new()
             {
                 Id = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, "policy-rule-v2"),
                 TenantId = agency.Id,
@@ -1116,8 +1115,11 @@ public static class AcceptanceDataSeeder
                 Priority = 10,
                 WhenJson = """{"all":[{"field":"isPrivileged","operator":"Equals","value":"true"}]}""",
                 ThenJson = """[{"effect":"RequireEvidence"}]"""
-            },
-            new PolicyRule
+            }
+        };
+        if (agency.Ordinal != 1)
+        {
+            v2Rules.Add(new PolicyRule
             {
                 Id = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, "policy-rule-v2-workflow"),
                 TenantId = agency.Id,
@@ -1126,8 +1128,37 @@ public static class AcceptanceDataSeeder
                 Priority = 20,
                 WhenJson = """{"all":[{"field":"isPrivileged","operator":"Equals","value":"true"}]}""",
                 ThenJson = """[{"effect":"TriggerWorkflow","params":{"workflowCode":"ASSET-ASSIGN-APPROVAL"}}]"""
-            }
-        ], PolicyVersionStatus.Published, new PolicyPublication
+            });
+            v2Rules.Add(new PolicyRule
+            {
+                Id = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, "policy-rule-v2-old-first-workflow"),
+                TenantId = agency.Id,
+                RuleKey = "ACC-R-OLD-FIRST-WF",
+                Name = "طبقة قديمة: مسار أخف بأولوية أولى",
+                Priority = 1,
+                WhenJson = """{"all":[{"field":"isPrivileged","operator":"Equals","value":"true"}]}""",
+                ThenJson = """[{"effect":"TriggerWorkflow","params":{"workflowCode":"ASSET-LOSS-APPROVAL"}}]"""
+            });
+            v2Rules.Add(new PolicyRule
+            {
+                Id = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, "policy-rule-v2-old-unprivileged"),
+                TenantId = agency.Id,
+                RuleKey = "ACC-R-OLD-UNPRIV",
+                Name = "طبقة قديمة: إلغاء تصنيف الأصل المميز",
+                Priority = 2,
+                WhenJson = """{"all":[{"field":"action","operator":"Equals","value":"Classify"},{"field":"value","operator":"GreaterThan","value":"10000"}]}""",
+                ThenJson = """[{"effect":"SetField","params":{"field":"isPrivileged","value":"false"}}]"""
+            });
+        }
+
+        await PolicySeedVersionWriter.AddAsync(db, new PolicyTemplateVersion
+        {
+            Id = v2Id,
+            TenantId = agency.Id,
+            PolicyTemplateId = templateId,
+            VersionNumber = 2,
+            EffectiveFrom = AcceptanceSeedCatalog.ReferenceDate.AddYears(-1)
+        }, v2Rules, PolicyVersionStatus.Published, new PolicyPublication
         {
             Id = AcceptanceSeedCatalog.DeterministicGuid(agency.Code, "policy-publication-v2"),
             TenantId = agency.Id,

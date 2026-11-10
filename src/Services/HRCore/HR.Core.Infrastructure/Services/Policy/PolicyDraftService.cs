@@ -3,6 +3,7 @@ using HR.Core.Domain.Services.Policy;
 using HR.Core.Infrastructure.Data;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Policy;
+using HRManagement.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 
@@ -17,7 +18,9 @@ public enum PolicyDraftOutcome
     /// <summary>The rule or the request fails validation (400).</summary>
     Invalid,
     /// <summary>Another draft or publication got there first (409).</summary>
-    Conflict
+    Conflict,
+    /// <summary>PLAN-48 (D-TEN-10): a national template asked for outside the national tenant (403).</summary>
+    Forbidden
 }
 
 public sealed record PolicyDraftResult(PolicyDraftOutcome Outcome, string? MessageAr = null, IReadOnlyList<PolicyRuleIssue>? Issues = null, Guid? Id = null)
@@ -34,6 +37,11 @@ public sealed record PolicyDraftResult(PolicyDraftOutcome Outcome, string? Messa
 
     public static readonly PolicyDraftResult DraftExists = new(PolicyDraftOutcome.Conflict, "توجد مسودة لهذا القالب: أكملها أو تجاهلها أولاً");
 
+    public const string NationalScopeForbiddenMessage =
+        "لا تُنشأ مسودة وطنية خارج المستأجر الوطني: مسودة الجهة تجاوزٌ لها بقواعد أشد فقط (D-TEN-10، D-POL-4)";
+
+    public static readonly PolicyDraftResult NationalScopeForbidden = new(PolicyDraftOutcome.Forbidden, NationalScopeForbiddenMessage);
+
     public static PolicyDraftResult Invalid(IReadOnlyList<PolicyRuleIssue> issues) =>
         new(PolicyDraftOutcome.Invalid, string.Join(" | ", issues.Select(i => $"{i.JsonPath}: {i.MessageAr}")), issues);
 
@@ -45,15 +53,76 @@ public sealed record PolicyDraftResult(PolicyDraftOutcome Outcome, string? Messa
 /// PLAN-47 (G-POL-07, §5-§7): every change to a draft goes through here and is recorded in PolicyVersionEdits, so the publisher
 /// can be proved not to be an editor. A draft starts as a copy of the effective version; its rules are validated before they are
 /// saved; nothing here writes to a version that is not a draft.
+/// <para>
+/// PLAN-48 (§4): templates and versions are found through the national read (the session's own and the national ones), so a
+/// write to a national row from an agency's session reaches <see cref="NationalSharedWriteGuard"/>, which refuses it (403); an
+/// override's rules are validated with the agency ceiling (<see cref="PolicyRuleValidationContext.IsAgencyOverride"/>).
+/// </para>
 /// </summary>
 public sealed class PolicyDraftService(HRCoreDbContext db, IPolicyRuleValidationService validation, IConfiguration configuration)
 {
     public const int MaxReasonLength = 1000;
 
+    /// <summary>
+    /// PLAN-48 (§4, D-TEN-10): a draft of the domain's template in the session's tenant, a copy of its effective version. Outside
+    /// the national tenant it is always the agency's override (TenantOverride), and a request for Scope = National is refused
+    /// (<see cref="PolicyDraftOutcome.Forbidden"/>, 403); inside it the national template (the default), or the trial agency's
+    /// override when asked. A missing template is created in the session's tenant.
+    /// </summary>
+    public async Task<PolicyDraftResult> CreateDomainDraftAsync(
+        string? domain,
+        string? subjectType,
+        string? name,
+        PolicyTemplateScope? scope,
+        Guid? actorUserId,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(domain))
+            return PolicyDraftResult.Invalid("المجال مطلوب", "$.domain");
+        // A known domain only, and values that fit their columns (a 400, never the database's 500).
+        if (!PolicyDomains.All.Contains(domain, StringComparer.Ordinal))
+            return PolicyDraftResult.Invalid($"المجال «{domain}» غير معروف", "$.domain");
+        if (name is { Length: > 200 })
+            return PolicyDraftResult.Invalid("الاسم أطول من 200 محرف", "$.name");
+        if (subjectType is { Length: > 100 })
+            return PolicyDraftResult.Invalid("نوع الموضوع أطول من 100 محرف", "$.subjectType");
+
+        var sessionTenant = db.CurrentTenantId;
+        // A session with no tenant (a platform operator outside a tenant) owns no template: 400, not the stamp's refusal (500).
+        if (sessionTenant is null || sessionTenant == Guid.Empty)
+            return PolicyDraftResult.Invalid("لا مستأجر لهذه الجلسة: ادخل مستأجراً قبل إنشاء مسودة", "$");
+        var national = NationalTenant.IsNational(sessionTenant);
+        var effectiveScope = scope ?? (national ? PolicyTemplateScope.National : PolicyTemplateScope.TenantOverride);
+        if (effectiveScope == PolicyTemplateScope.National && !national)
+            return PolicyDraftResult.NationalScopeForbidden;
+
+        // The session's own template (the EF filter): the national one inside the national tenant, the agency's override outside.
+        var template = await db.PolicyTemplates
+            .Where(t => t.Domain == domain && t.Scope == effectiveScope)
+            .OrderBy(t => t.CreatedAt).ThenBy(t => t.Id)
+            .FirstOrDefaultAsync(ct);
+        if (template is null)
+        {
+            template = new PolicyTemplate
+            {
+                TenantId = sessionTenant ?? Guid.Empty,
+                Domain = domain,
+                Name = string.IsNullOrWhiteSpace(name) ? domain : name,
+                SubjectType = subjectType ?? string.Empty,
+                Scope = effectiveScope,
+                Description = effectiveScope == PolicyTemplateScope.National ? "مسودة جديدة" : "تجاوز الجهة: قواعد أشد فقط (D-POL-4)"
+            };
+            db.PolicyTemplates.Add(template);
+            await db.SaveChangesAsync(ct);
+        }
+
+        return await CreateDraftAsync(template.Id, copyFromVersionId: null, actorUserId, ct);
+    }
+
     /// <summary>A new draft of the template: a copy of <paramref name="copyFromVersionId"/>, or of the effective version.</summary>
     public async Task<PolicyDraftResult> CreateDraftAsync(Guid templateId, Guid? copyFromVersionId, Guid? actorUserId, CancellationToken ct = default)
     {
-        var template = await db.PolicyTemplates.Include(t => t.Versions).ThenInclude(v => v.Rules)
+        var template = await db.ReadablePolicyTemplates().Include(t => t.Versions).ThenInclude(v => v.Rules)
             .FirstOrDefaultAsync(t => t.Id == templateId, ct);
         if (template is null)
             return new(PolicyDraftOutcome.NotFound, "القالب غير موجود");
@@ -83,7 +152,7 @@ public sealed class PolicyDraftService(HRCoreDbContext db, IPolicyRuleValidation
         if (reasonAr.Length > MaxReasonLength)
             return PolicyDraftResult.Invalid($"السبب أطول من {MaxReasonLength} محرف", "$.reason");
 
-        var template = await db.PolicyTemplates.Include(t => t.Versions).ThenInclude(v => v.Rules)
+        var template = await db.ReadablePolicyTemplates().Include(t => t.Versions).ThenInclude(v => v.Rules)
             .FirstOrDefaultAsync(t => t.Id == templateId, ct);
         if (template is null)
             return new(PolicyDraftOutcome.NotFound, "القالب غير موجود");
@@ -106,7 +175,7 @@ public sealed class PolicyDraftService(HRCoreDbContext db, IPolicyRuleValidation
         if (reasonAr.Length > MaxReasonLength)
             return PolicyDraftResult.Invalid($"السبب أطول من {MaxReasonLength} محرف", "$.reason");
 
-        var template = await db.PolicyTemplates.Include(t => t.Versions).FirstOrDefaultAsync(t => t.Id == templateId, ct);
+        var template = await db.ReadablePolicyTemplates().Include(t => t.Versions).FirstOrDefaultAsync(t => t.Id == templateId, ct);
         if (template is null)
             return new(PolicyDraftOutcome.NotFound, "القالب غير موجود");
         if (template.Versions.Any(v => v.Status == PolicyVersionStatus.Draft))
@@ -123,7 +192,7 @@ public sealed class PolicyDraftService(HRCoreDbContext db, IPolicyRuleValidation
         if (version!.WithdrawsAllRules)
             return PolicyDraftResult.Invalid("مسودة سحب كل القواعد لا تحمل قواعد", "$.ruleKey");
 
-        var issues = await validation.ValidateRuleAsync(version.PolicyTemplate.Domain, input, ct);
+        var issues = await validation.ValidateRuleAsync(version.PolicyTemplate.Domain, version.PolicyTemplate.Scope, input, ct);
         if (issues.Count > 0)
             return PolicyDraftResult.Invalid(issues);
         if (version.Rules.Any(r => r.RuleKey == input.RuleKey))
@@ -155,7 +224,7 @@ public sealed class PolicyDraftService(HRCoreDbContext db, IPolicyRuleValidation
         if (rule is null)
             return new(PolicyDraftOutcome.NotFound, "القاعدة غير موجودة في هذه المسودة");
 
-        var issues = await validation.ValidateRuleAsync(version.PolicyTemplate.Domain, input, ct);
+        var issues = await validation.ValidateRuleAsync(version.PolicyTemplate.Domain, version.PolicyTemplate.Scope, input, ct);
         if (issues.Count > 0)
             return PolicyDraftResult.Invalid(issues);
         if (version.Rules.Any(r => r.Id != ruleId && r.RuleKey == input.RuleKey))
@@ -311,7 +380,7 @@ public sealed class PolicyDraftService(HRCoreDbContext db, IPolicyRuleValidation
 
     private async Task<(PolicyTemplateVersion? Version, PolicyDraftResult? Error)> LoadDraftAsync(Guid versionId, CancellationToken ct)
     {
-        var version = await db.PolicyTemplateVersions
+        var version = await db.ReadablePolicyVersions()
             .Include(v => v.PolicyTemplate)
             .Include(v => v.Rules)
             .FirstOrDefaultAsync(v => v.Id == versionId, ct);

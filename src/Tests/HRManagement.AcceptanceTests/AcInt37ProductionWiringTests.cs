@@ -563,7 +563,14 @@ public class AcInt37ProductionWiringTests
         using var http = new HttpClient { BaseAddress = new Uri(HrCoreDirect.TrimEnd('/') + "/") };
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         http.DefaultRequestHeaders.Add(TenantIdMiddleware.HeaderName, TenantA.ToString("D"));
-        var request = new CodeGenerationRequest { EntityKind = CodeEntityKind.ServiceTransaction, TenantId = TenantA, Preview = false };
+        // PLAN-48: a fact the number shows is required (422 without it), as HR.Contracts sends it; the empty segment is gone.
+        var request = new CodeGenerationRequest
+        {
+            EntityKind = CodeEntityKind.ServiceTransaction,
+            TenantId = TenantA,
+            Facts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["TypeCode"] = "LEAV" },
+            Preview = false
+        };
         var resp = await http.PostAsJsonAsync("api/internal/codes/generate", request);
         return (resp.StatusCode, await resp.Content.ReadAsStringAsync());
     }

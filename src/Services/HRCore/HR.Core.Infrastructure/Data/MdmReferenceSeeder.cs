@@ -79,15 +79,16 @@ public static class MdmReferenceSeeder
         if (kinds.Count == 0)
             return;
 
-        var sourceEntries = await db.ReferenceCatalogEntries.AsNoTracking()
-            .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.TenantProvisioning)
+        // PLAN-48: the national source through the national read path (under forced row security the agency session that runs
+        // the copy now sees it through national_shared_read; before, it copied nothing).
+        var sourceEntries = await db.ReferenceCatalogEntries.OwnOrNational(sourceTenantId).AsNoTracking()
             .Where(e => e.TenantId == sourceTenantId && kinds.Contains(e.CatalogKind))
             .ToListAsync(ct);
 
         foreach (var src in sourceEntries)
         {
             if (await db.ReferenceCatalogEntries
-                    .IgnoreTenantFilterForSystem(SystemTenantBypassPurpose.TenantProvisioning)
+                    .OwnOrNational(targetTenantId)
                     .AnyAsync(
                     e => e.TenantId == targetTenantId && e.CatalogKind == src.CatalogKind && e.Code == src.Code, ct))
                 continue;

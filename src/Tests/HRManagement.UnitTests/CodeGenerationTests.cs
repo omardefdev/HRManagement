@@ -23,6 +23,8 @@ public class CodeGenerationTests
     public async Task Generate_increments_sequence_atomically()
     {
         await using var db = CreateDb();
+        // PLAN-48 (D-TEN-9): a number needs a published policy; the generator no longer invents a fallback one.
+        await CodeGenerationSeeder.SeedAsync(db);
         var generator = CreateGenerator(db);
 
         var r1 = await generator.GenerateAsync(new CodeGenerationRequest
@@ -44,6 +46,8 @@ public class CodeGenerationTests
     public async Task OrgUnit_code_uses_parent_prefix()
     {
         await using var db = CreateDb();
+        // PLAN-48 (D-TEN-9): the OrgUnit number comes from the published national policy, not a built-in fallback.
+        await CodeGenerationSeeder.SeedAsync(db);
         var generator = CreateGenerator(db);
 
         var result = await generator.GenerateAsync(new CodeGenerationRequest
@@ -89,6 +93,8 @@ public class CodeGenerationTests
     public async Task Generate_inventorySku_increments_sequence()
     {
         await using var db = CreateDb();
+        // PLAN-48 (D-TEN-9): the SKU number comes from the published national policy, not a built-in fallback.
+        await CodeGenerationSeeder.SeedAsync(db);
         var generator = CreateGenerator(db);
 
         var r1 = await generator.GenerateAsync(new CodeGenerationRequest

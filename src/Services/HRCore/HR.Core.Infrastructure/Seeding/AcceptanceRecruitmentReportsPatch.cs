@@ -121,9 +121,10 @@ public static class AcceptanceRecruitmentReportsPatch
             CreatedAt = Utc(2026, 8, 22)
         });
 
-        var definition = await All(db.WorkflowDefinitions)
-            .Where(d => d.Code == "RECRUITMENT-REQUISITION-APPROVAL" && d.IsPublished && (d.TenantId == tenant || d.TenantId == TenantDefaults.DefaultTenantId))
-            .OrderByDescending(d => d.TenantId == tenant).ThenByDescending(d => d.Version)
+        // PLAN-48: the national read path, the agency's own versions first.
+        var definition = await db.WorkflowDefinitions.OwnOrNational(tenant)
+            .Where(d => d.Code == "RECRUITMENT-REQUISITION-APPROVAL" && d.IsPublished)
+            .OwnFirst(tenant).ThenByDescending(d => d.Version)
             .Select(d => new { d.Id, d.Version })
             .FirstOrDefaultAsync(ct);
         if (definition is null)
