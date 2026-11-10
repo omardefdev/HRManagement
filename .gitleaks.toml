@@ -51,3 +51,10 @@ condition = "AND"
 paths = ['''^acceptance-evidence/.*metadata\.json$''']
 regexTarget = "line"
 regexes = ['''^\s*"auth-directory-web":\s*"[0-9a-f]{40}",?\s*$''']
+
+[[allowlists]]
+description = "PLAN-48 acceptance test: an EvidenceRecorder scenario key (ScenarioKey = \"48-leastpriv\") names an evidence file, not a secret; 'Key' trips generic-api-key. Only that exact assignment, only in that test file."
+condition = "AND"
+paths = ['''^src/Tests/HRManagement\.AcceptanceTests/AcTen48LeastPrivilegeTests\.cs$''']
+regexTarget = "match"
+regexes = ['''ScenarioKey\s*=\s*"48-leastpriv"''']
