@@ -81,9 +81,11 @@ public sealed class CodeGeneratorService(
         if (!request.Preview)
             await RecordIssuanceAsync(tenantId, request, code, resolved.VersionId, scopeKey, callerClientId, ct);
 
+        // PLAN-48: the scope key carries values from the request's facts, so it is not logged (CodeQL log forging);
+        // the caller gets it in SequenceScope.
         logger.LogInformation(
-            "Code generated {EntityKind} preview={Preview} scope={Scope}",
-            request.EntityKind, request.Preview, scopeKey);
+            "Code generated {EntityKind} preview={Preview}",
+            request.EntityKind, request.Preview);
 
         return new CodeGenerationResult
         {
