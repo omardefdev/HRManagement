@@ -178,7 +178,12 @@ public static class PolicyDomainCatalog
                 ["LeaveRequest"] = Set("Create", "Update", "Approve")
             },
             AllowedEffects = Effects(PolicyEffect.Allow, PolicyEffect.Deny),
-            CallSiteFiles = ["src/Services/HRContracts/HR.Contracts.Application/Features/LeaveRequests/LeaveRequestHandlers.cs"]
+            // The HR page (create, update, approve) and the self-service request that arrives as ILeaveRequested (create).
+            CallSiteFiles =
+            [
+                "src/Services/HRContracts/HR.Contracts.Application/Features/LeaveRequests/LeaveRequestHandlers.cs",
+                "src/Services/HRContracts/HR.Contracts.Application/Features/InboundEvents/InboundEventCommands.cs"
+            ]
         },
         new()
         {

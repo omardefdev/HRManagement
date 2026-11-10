@@ -35,7 +35,7 @@ public class Est002EstablishmentGovernanceIntegrationTests
             new JobCatalogPayload { JobCode = string.Empty, TitleAr = "اختبار", GradeCode = "G5", OccupationalGroup = "JC-ADM" });
 
         var (success, error) = await lifecycle.SubmitForApprovalAsync(
-            request.Id, legalSourceId: null, decisionReference: null, actorUserId: Guid.NewGuid(), actorUserName: "test");
+            request.Id, legalSourceId: null, decisionReference: null, actorUserId: Guid.NewGuid(), actorUserName: "test", actorIsBranchScoped: false);
 
         Assert.False(success);
         Assert.NotNull(error);

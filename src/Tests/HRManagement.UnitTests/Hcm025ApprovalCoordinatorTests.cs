@@ -211,7 +211,7 @@ public sealed class Hcm025ApprovalCoordinatorTests
         var request = await fx.SeedDraftEstablishmentChangeAsync();
 
         var (success, error) = await fx.Establishment.SubmitForApprovalAsync(
-            request.Id, Syr001LegislationIds.Law50_2004, "DEC-25", Fixture.Actor, "actor");
+            request.Id, Syr001LegislationIds.Law50_2004, "DEC-25", Fixture.Actor, "actor", actorIsBranchScoped: false);
 
         Assert.True(success, error);
         var saved = await fx.Db.EstablishmentChangeRequests.AsNoTracking().SingleAsync();
@@ -228,7 +228,7 @@ public sealed class Hcm025ApprovalCoordinatorTests
         var request = await fx.SeedDraftEstablishmentChangeAsync();
 
         var (success, error) = await fx.Establishment.SubmitForApprovalAsync(
-            request.Id, Syr001LegislationIds.Law50_2004, "DEC-25", Fixture.Actor, "actor");
+            request.Id, Syr001LegislationIds.Law50_2004, "DEC-25", Fixture.Actor, "actor", actorIsBranchScoped: false);
 
         Assert.False(success);
         Assert.Equal(ApprovalStartCoordinator.MissingDefinitionMessage, error);

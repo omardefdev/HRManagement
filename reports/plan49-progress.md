@@ -24,7 +24,7 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | P0 | done | 2026-11-10T10:10Z |
 | P1 | done | 2026-11-10T10:20Z |
 | P2 | done | 2026-11-10T10:50Z |
-| P3 | pending | |
+| P3 | done | 2026-11-10T11:20Z |
 | P4 | pending | |
 | P5 | pending | |
 | P6 | pending | |
@@ -47,6 +47,8 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | Build `-warnaserror` at the end of P2 (whole solution) | 61 s |
 | Full unit suite on the P2 tree (5943 tests) | 85 s of tests, 101 s |
 | PostgreSQL filter `Pol049\|Pol047\|Ten048\|S2s042\|Hcm025` on the P2 tree (50 tests) | 195 s of tests, 256 s |
+| Full unit suite on the P3 tree (5969 tests) | 188 s of tests, 217 s |
+| Integration filter of P3 (86 tests: leave, establishment, outbox, hosts, `Hcm025`, `Fun002`) | 248 s of tests, 304 s |
 | Waiting for CI | 0 so far |
 | Waiting for the owner | about 17 min (the session end of 08:43Z to 09:00Z; nothing was asked of the owner) |
 
@@ -170,6 +172,46 @@ server's shape, compiled into both test projects. Changed: `NationalSeedTests` (
 `Pol049OutOfScopeTests` (the retirement marks the template), the catalog guard (the seeders may no longer name an out-of-scope
 domain).
 
+## P3 — done
+
+- **The builders** (`PolicyDomainFactsBuilders`): `ForIDCardRequest` and `ForLeaveRequest` send no `employeeId` (no schema
+  has it, and the strict evaluation refused the whole request for it); `ForLeaveRequest` takes `isSelfApproval` and sends it
+  with `Approve` only; `ForEstablishmentChange` takes `actorIsBranchScoped` with no default (the fact `hasOrgScope`);
+  `ForAdvanceRequest` is deleted (no caller in production or tests: `git grep` before the removal). The file names no domain
+  out of scope any more, so it left the guard's short list of files that may (three files remain).
+- **Leave, four channels** (HR.Contracts):
+  - `CreateLeaveRequestHandler`: the tenant is the entity's (empty until the save stamps it, which the internal endpoint
+    reads as "take the tenant of the call"); it was a literal `null`.
+  - `UpdateLeaveRequestHandler`: asks the engine with `action=Update` and the values it would save, after the local
+    validation and the "still pending" check, before anything changes; a refusal in Enforce is the same `ValidationException`.
+  - `ApproveLeaveRequestHandler`: asks with `action=Approve` after the local separation of duties and before the claim, with
+    `isSelfApproval` (decision 8). `ApproveLeaveRequestCommand` carries the approver's employee id, which both approve actions
+    of the page take from the `employee_id` claim. A refusal is `(false, reason)`: nothing was claimed or debited.
+  - `ProcessLeaveRequestedHandler` (the self-service event): computes the working days, runs `ValidateLeaveRequest`, then
+    asks with `action=Create`. A local refusal (every mode) or a policy refusal (Enforce, D-POL-14) creates the request
+    `Rejected`, with «مرفوض آلياً: {reason}» at the head of its notes and its service transaction cancelled as a rejection by HR
+    leaves one; nothing throws, so the message is not retried and parked. A redelivered event finds the request and asks the
+    engine nothing.
+- **Establishment**: `SubmitForApprovalAsync` takes `actorIsBranchScoped` (no default) and passes it to the fact; both
+  controllers send `HrOrgScopeVisibility.IsBranchScoped(User)` after their central-write guard, which stays.
+- **The catalog** lists `InboundEventCommands.cs` as a second call site of Contracts.Leave (the registry document is
+  regenerated).
+
+**Behaviour changes recorded:** (1) a self-service leave stores its working days, not the portal's calendar days (a period over
+a weekend used to store more days than the HR page would, and the balance debit followed that number); (2) a self-service
+request that overlaps an approved leave, or holds no working day, is now created `Rejected` with the reason (it used to be
+created `Pending` with no check). No existing test drives the self-service path, so no test data changed for it. The one unit
+test of the handler now also asserts the three working days.
+
+**Tests of P3:** `Pol049FactsBuildersMatchSchemasTests` (a builder for each of the 15 entity-type/action pairs of the catalog;
+its keys are fields of the seeded schema; the engine takes each without a schema refusal; every field an effective rule reads
+is sent for each action the rule can match), `Pol049LeaveChannelsTests` (16: the four channels on SQLite with the fake client,
+in Shadow and in Enforce, the local validation first, D-POL-14, redelivery), `Pol049EstablishmentOrgScopeFactTests` (the real
+orchestrator over the seeded rules in Enforce, Shadow and Off; the controllers; no default). Changed for a new constructor or
+parameter only: `Ops038DemoDefectTests`, `OutboxAtomicityIntegrationTests`, `SoDPolicyIntegrationTests` (it now also proves the
+engine is not asked when the local check refuses), `Est002…`, `EstablishmentApprovalTestHelper`, `Est024…`,
+`Hcm025ApprovalCoordinatorTests`, `InboundServiceTransactionTests`.
+
 ## Decisions (with reasons)
 
 | # | Phase | Decision | Reason |
@@ -197,6 +239,10 @@ domain).
 | 21 | P2 | "In force" for the inventory is the version the engine evaluates now, or one published to take effect later | the same choice the engine makes; everything else is history, which is never rewritten |
 | 22 | P2 | A template that publishes rules again loses its retired mark | bringing a domain back (a descriptor, a call site, a change set) must not leave a governed template marked retired |
 | 23 | P2 | The pin of `ASSET-ASSIGN-APPROVAL` to the first (now retired) definition on a new database is left as it was | nothing reads it (the handover starts through the cross-service contract); recorded as a defect for a later plan (a misleading publish warning) |
+| 24 | P3 | A new leave request sends its own (still empty) tenant, not a tenant read from the session | "the tenant from the entity" (plan §4); PLAN-42's endpoint already reads an empty tenant as "not saved yet" and takes the tenant of the call, which the service client forwards from the token or from `TenantIdFlow` (the consumer); no new dependency in the handlers |
+| 25 | P3 | The approval asks the engine inside the handler's transaction, right after the local separation of duties | the plan's place for it; one read of the request serves the local checks, the question and the claim, so the engine cannot decide on values the claim does not match. Cost: the transaction stays open for the call (measured with the Shadow latency in P5) |
+| 26 | P3 | A self-service request refused at birth still gets its service transaction, cancelled with a reason | every leave request has one; reports and the HR page then show it exactly as a request HR rejected |
+| 27 | P3 | The portal (`EssPortalController`) and the event contract are unchanged | the working days are a rule of HR.Contracts; the portal cannot call it, and the event's number is simply no longer trusted |
 
 ## Files changed
 
@@ -218,6 +264,11 @@ domain).
   `PolicyPublishService.cs`, `PolicyPublishedRuleInventory.cs`, two comments (`PolicyDraftService.cs`,
   `PolicyRuleValidator.cs`), the two policy views, `scripts/pol047-validate.ps1`, `scripts/seed-001-validate.ps1`, the
   integration test project file (the linked fixture), and four test files.
+- P3: new `LeavePolicyActions.cs` (HR.Contracts), `Pol049FactsBuildersMatchSchemasTests.cs`, `Pol049LeaveChannelsTests.cs`,
+  `Pol049EstablishmentOrgScopeFactTests.cs`; changed: `PolicyDomainFactsBuilders.cs`, `PolicyDomainCatalog.cs` (a call site),
+  `LeaveRequestHandlers.cs`, `InboundEventCommands.cs`, `LeaveRequestsController.cs`, `CardRequestsController.cs`,
+  `EstablishmentChangeLifecycleService.cs`, the two establishment controllers, `docs/POLICY_DOMAIN_REGISTRY.md`, and nine
+  test files (new arguments).
 
 ## Test results
 
@@ -236,6 +287,10 @@ domain).
 | P2 | full unit suite | 5943 / 5943 |
 | P2 | PostgreSQL filter `Pol049\|Pol047\|Ten048\|S2s042\|Hcm025` | 50 / 50 |
 | P2 | `pol049-validate` (with its tests), `pol047-validate` (static; good, bad and old logs), `wf043-validate`, `hcm025-validate -SkipTests` | PASS; the bad and the old log FAIL as they must |
+| P3 | build `-warnaserror` | 0 errors, 0 warnings |
+| P3 | full unit suite | 5969 / 5969 |
+| P3 | integration filter (`Ops038`, `OutboxAtomicity`, `SoDPolicy`, `InboundEventConsumer`, `Est00*`, `Hcm025`, `ContractLifecycle`, `IntegrationHostValidation`, `Fun002`, …) with Testcontainers | 85 passed, 1 skipped (`Ops038BootstrapIdempotencyTests`: it needs a built image, as before), 0 failed |
+| P3 | `pol049-validate -SkipTests`, `pol047-validate`, `wf043-validate`, `hcm025-validate -SkipTests` | PASS |
 
 ## Server changes and their undo commands
 
@@ -249,10 +304,10 @@ None yet (read-only so far: the running tag, the policy picture in `artifacts/pl
 
 ## Exact next step
 
-P3: the facts builders (`ForIDCardRequest` and `ForLeaveRequest` without `employeeId`; `isSelfApproval` on `Approve` only;
-`ForAdvanceRequest` removed after a search shows no caller; `ForEstablishmentChange` takes the actor's scope with no default);
-the leave handlers (`Update` and `Approve` ask the engine; `ApproveLeaveRequestCommand` carries the approver's employee id for
-`isSelfApproval`; the self-service handler computes working days, runs `ValidateLeaveRequest`, asks the engine with
-`action=Create`, and creates the request `Rejected` with the reason on a local or an Enforce refusal); `SubmitForApprovalAsync`
-takes `actorIsBranchScoped` from both controllers; `InboundEventCommands.cs` joins the catalog's call sites; tests
-`Pol049FactsBuildersMatchSchemasTests`, `Pol049LeaveChannelsTests`, `Pol049EstablishmentOrgScopeFactTests`.
+P4: the Shadow keys (HR.Core Production and Staging: the five domains; Admin.Logistics and IDCard Production, and a new
+`appsettings.Staging.json` for each with the `PolicyEngine` section only; HR.Contracts Production and Staging; the prod-like
+compose for the four services, `Assets.Custody: "Shadow"` on hr-core-web said explicitly because the lab file's Enforce is
+part of the chain) and `Pol049PolicyModeConsistencyTests`; the coordinator compares the code of a policy-started instance with
+the requested one and cancels it in the same transaction (`PolicyWorkflowCodeGuard`, also used by the appeal service's own
+start); `Pol049CoordinatorWorkflowCodeTests`, `Pol049CoordinatorCancelPostgresTests`; the Shadow ledger row in the caller's
+tenant as a non-owner role under forced row security (integration); the client's call duration (a histogram and one log line).

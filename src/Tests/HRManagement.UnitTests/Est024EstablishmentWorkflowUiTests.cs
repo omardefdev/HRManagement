@@ -70,7 +70,8 @@ public class Est024EstablishmentWorkflowUiTests
             Syr001LegislationIds.Law50_2004,
             decisionReference: "DEC-EST24",
             actorUserId: CreatorId,
-            actorUserName: "central");
+            actorUserName: "central",
+            actorIsBranchScoped: false);
 
         Assert.True(success, error);
         db.ChangeTracker.Clear();
@@ -238,7 +239,8 @@ public class Est024EstablishmentWorkflowUiTests
             Syr001LegislationIds.Law50_2004,
             decisionReference: "DEC-ENF",
             actorUserId: CreatorId,
-            actorUserName: "central");
+            actorUserName: "central",
+            actorIsBranchScoped: false);
 
         Assert.True(success, error);
         db.ChangeTracker.Clear();
@@ -291,7 +293,7 @@ public class Est024EstablishmentWorkflowUiTests
         return (request, instance);
     }
 
-    private static WorkflowDefinition CreateDefinition() => new()
+    internal static WorkflowDefinition CreateDefinition() => new()
     {
         Code = "ESTABLISHMENT-CHANGE-APPROVAL",
         Name = "اعتماد تغيير ملاك",
@@ -320,7 +322,7 @@ public class Est024EstablishmentWorkflowUiTests
             config);
     }
 
-    private static Mock<ICodeGenerator> CreateCodeGeneratorMock()
+    internal static Mock<ICodeGenerator> CreateCodeGeneratorMock()
     {
         var mock = new Mock<ICodeGenerator>();
         mock.Setup(g => g.GenerateAsync(It.IsAny<CodeGenerationRequest>(), It.IsAny<CancellationToken>()))
@@ -328,7 +330,7 @@ public class Est024EstablishmentWorkflowUiTests
         return mock;
     }
 
-    private static EstablishmentChangeApplier CreateApplier(HRCoreDbContext db)
+    internal static EstablishmentChangeApplier CreateApplier(HRCoreDbContext db)
     {
         var fundedCode = new Mock<IFundedPositionCodeService>();
         fundedCode.Setup(s => s.CreateAsync(It.IsAny<FundedPosition>(), It.IsAny<CancellationToken>()))
@@ -401,7 +403,7 @@ public class Est024EstablishmentWorkflowUiTests
             new Claim(ClaimTypes.Role, role)
         ], "Test"));
 
-    private static HRCoreDbContext CreateContext()
+    internal static HRCoreDbContext CreateContext()
     {
         var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();

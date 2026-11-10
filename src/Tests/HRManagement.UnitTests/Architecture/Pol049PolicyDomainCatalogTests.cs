@@ -48,14 +48,14 @@ public sealed class Pol049PolicyDomainCatalogTests
     /// <summary>
     /// The only product files that may name a domain the catalog puts out of scope: the list of names, the catalog, and the
     /// recorded seed change sets (the baseline's Archive.Retention part and the retirement set never change once applied).
-    /// The seeders name none: a new database seeds the governed domains only. The advance builder goes in P3.
+    /// The seeders name none (a new database seeds the governed domains only), and neither do the facts builders (the advance
+    /// builder, which no call site ever used, is gone). These three files are the whole list.
     /// </summary>
     private static readonly string[] MayNameOutOfScopeDomains =
     [
         "src/Shared/HRManagement.SharedKernel/Policy/PolicyDomains.cs",
         "src/Shared/HRManagement.SharedKernel/Policy/PolicyDomainCatalog.cs",
-        "src/Services/HRCore/HR.Core.Infrastructure/Data/PolicySeedChangeSets.cs",
-        "src/Shared/HRManagement.ServiceDefaults/Policy/PolicyDomainFactsBuilders.cs"
+        "src/Services/HRCore/HR.Core.Infrastructure/Data/PolicySeedChangeSets.cs"
     ];
 
     private const string RegistryDocument = "docs/POLICY_DOMAIN_REGISTRY.md";

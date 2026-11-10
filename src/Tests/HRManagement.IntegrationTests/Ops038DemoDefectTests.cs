@@ -8,6 +8,7 @@ using HR.Contracts.Infrastructure.Repositories;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Enums;
 using HRManagement.TestSupport.CodeGeneration;
+using HRManagement.TestSupport.Policy;
 using IDCard.Domain.Entities;
 using IDCard.Domain.Enums;
 using IDCard.Infrastructure.Data;
@@ -155,11 +156,11 @@ public sealed class Ops038DemoDefectTests(PostgreSqlFixture fixture)
         await using var winnerDb = Contracts(cs);
         await using var loserDb = Contracts(cs);
         var gate = new TaskCompletionSource();
-        var loser = new ApproveLeaveRequestHandler(new GatedRepository(new ContractsRepository(loserDb), gate.Task), Mock.Of<IEventPublisher>())
+        var loser = new ApproveLeaveRequestHandler(new GatedRepository(new ContractsRepository(loserDb), gate.Task), Mock.Of<IEventPublisher>(), new FakePolicyEnforceClient())
             .Handle(new ApproveLeaveRequestCommand(leaveId, Approver), CancellationToken.None);
 
         // The loser has read the request (Pending) and waits; the winner approves completely.
-        var winner = await Describe(() => new ApproveLeaveRequestHandler(new ContractsRepository(winnerDb), Mock.Of<IEventPublisher>())
+        var winner = await Describe(() => new ApproveLeaveRequestHandler(new ContractsRepository(winnerDb), Mock.Of<IEventPublisher>(), new FakePolicyEnforceClient())
             .Handle(new ApproveLeaveRequestCommand(leaveId, Approver), CancellationToken.None));
         Assert.True(winner.Success, winner.Error);
 
@@ -186,7 +187,7 @@ public sealed class Ops038DemoDefectTests(PostgreSqlFixture fixture)
 
         await using var approverDb = Contracts(cs);
         var gate = new TaskCompletionSource();
-        var approval = new ApproveLeaveRequestHandler(new GatedRepository(new ContractsRepository(approverDb), gate.Task), Mock.Of<IEventPublisher>())
+        var approval = new ApproveLeaveRequestHandler(new GatedRepository(new ContractsRepository(approverDb), gate.Task), Mock.Of<IEventPublisher>(), new FakePolicyEnforceClient())
             .Handle(new ApproveLeaveRequestCommand(leaveId, Approver), CancellationToken.None);
 
         // The approver validated a 3-day leave; an edit to 20 days commits before its claim (review finding F1).
@@ -213,7 +214,7 @@ public sealed class Ops038DemoDefectTests(PostgreSqlFixture fixture)
 
         // Read again, the edited request is validated and approved as edited.
         await using var againDb = Contracts(cs);
-        var again = await new ApproveLeaveRequestHandler(new ContractsRepository(againDb), Mock.Of<IEventPublisher>())
+        var again = await new ApproveLeaveRequestHandler(new ContractsRepository(againDb), Mock.Of<IEventPublisher>(), new FakePolicyEnforceClient())
             .Handle(new ApproveLeaveRequestCommand(leaveId, Approver), CancellationToken.None);
         Assert.True(again.Success, again.Error);
         Assert.Equal(20, await verify.LeaveBalances.Where(b => b.Id == balanceId).Select(b => b.Used).SingleAsync());
@@ -227,7 +228,7 @@ public sealed class Ops038DemoDefectTests(PostgreSqlFixture fixture)
         var (cs, leaveId, _, balanceId) = await SeedAsync();
         await using (var db = Contracts(cs))
         {
-            var approved = await new ApproveLeaveRequestHandler(new ContractsRepository(db), Mock.Of<IEventPublisher>())
+            var approved = await new ApproveLeaveRequestHandler(new ContractsRepository(db), Mock.Of<IEventPublisher>(), new FakePolicyEnforceClient())
                 .Handle(new ApproveLeaveRequestCommand(leaveId, Approver), CancellationToken.None);
             Assert.True(approved.Success, approved.Error);
         }
