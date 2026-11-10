@@ -6,7 +6,9 @@
 #  3. The policy page reads the catalog and keeps no list of its own.
 #  4. Only the owner service of a governed domain registers the enforce client, and each one that registers it injects it.
 #  5. No appsettings file, compose file or deployment file sets a mode for an out-of-scope domain.
-#  6. Unless -SkipTests: the unit tests that hold the same rules against the compiled catalog (Pol049PolicyDomainCatalogTests).
+#  6. Unless -SkipTests: the unit tests that hold the same rules against the compiled catalog (Pol049PolicyDomainCatalogTests)
+#     and the modes of the governed domains: Shadow in HR.Core and in the owner, Production, Staging and prod-like, and no
+#     Enforce in a production file (Pol049PolicyModeConsistencyTests).
 # Usage (PowerShell 5.1):
 #   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pol049-validate.ps1
 #   powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pol049-validate.ps1 -SkipTests
@@ -168,11 +170,11 @@ if (-not $SkipTests -and $failures.Count -eq 0) {
     try {
         $previous = $ErrorActionPreference
         $ErrorActionPreference = "Continue"
-        $output = (& dotnet test src/Tests/HRManagement.UnitTests --filter "FullyQualifiedName~Pol049PolicyDomainCatalogTests" --nologo 2>&1 | ForEach-Object { "$_" })
+        $output = (& dotnet test src/Tests/HRManagement.UnitTests --filter "FullyQualifiedName~Pol049PolicyDomainCatalogTests|FullyQualifiedName~Pol049PolicyModeConsistencyTests" --nologo 2>&1 | ForEach-Object { "$_" })
         $code = $LASTEXITCODE
         $ErrorActionPreference = $previous
         if ($code -ne 0) {
-            $failures.Add("Pol049PolicyDomainCatalogTests failed (dotnet test exit $code)")
+            $failures.Add("Pol049PolicyDomainCatalogTests or Pol049PolicyModeConsistencyTests failed (dotnet test exit $code)")
             $output | Where-Object { $_ -match 'Failed |error' } | Select-Object -First 20 | ForEach-Object { Write-Output ("  " + $_) }
         }
     }

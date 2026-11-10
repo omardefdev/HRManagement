@@ -39,6 +39,17 @@ internal static class Pol047Pg
         return await postgres.CreateAppConnectionAsync(new NpgsqlConnectionStringBuilder(admin).Database!);
     }
 
+    /// <summary>
+    /// PLAN-48: the select-only policy that lets every tenant's session read the national rows under forced row security (the
+    /// bootstrap applies it on a real server). PLAN-49's tests of an agency's session need it: the engine reads the national
+    /// policy from there.
+    /// </summary>
+    public static async Task ApplyNationalSharedReadAsync(string admin)
+    {
+        var script = await global::System.IO.File.ReadAllTextAsync(Path.Combine(HRManagement.TestSupport.RepoPaths.Root, "scripts", "sql", "ten048-national-shared-read.sql"));
+        await ExecAsync(admin, script.Replace(@"\set ON_ERROR_STOP on", string.Empty, StringComparison.Ordinal));
+    }
+
     /// <summary>The superuser (sees every tenant), with the immutability interceptor: what a seeder writes.</summary>
     public static HRCoreDbContext AdminContext(string cs) =>
         new(new DbContextOptionsBuilder<HRCoreDbContext>()

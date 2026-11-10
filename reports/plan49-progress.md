@@ -16,6 +16,9 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 - Resumed (UTC): 2026-11-10T09:58:14Z — the context was compacted in the middle of P0 (the inventories were being read; P1's
   code was already in the working tree, uncommitted). Read this file and `git log --oneline -20` first, as the prompt orders. No
   owner wait: the session went on by itself.
+- Resumed (UTC): 2026-11-10T11:53:50Z — the context was compacted near the end of P4 (its code and tests were in the working
+  tree, uncommitted; one PostgreSQL assertion on the audit row's tenant was failing). Read this file and `git log --oneline -20`
+  first. `origin/main` and the server were not touched in P4, so nothing remote had to be checked. No owner wait.
 
 ## Phase status
 
@@ -25,7 +28,7 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | P1 | done | 2026-11-10T10:20Z |
 | P2 | done | 2026-11-10T10:50Z |
 | P3 | done | 2026-11-10T11:20Z |
-| P4 | pending | |
+| P4 | done | 2026-11-10T12:25Z |
 | P5 | pending | |
 | P6 | pending | |
 | P7 | pending | |
@@ -49,6 +52,10 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | PostgreSQL filter `Pol049\|Pol047\|Ten048\|S2s042\|Hcm025` on the P2 tree (50 tests) | 195 s of tests, 256 s |
 | Full unit suite on the P3 tree (5969 tests) | 188 s of tests, 217 s |
 | Integration filter of P3 (86 tests: leave, establishment, outbox, hosts, `Hcm025`, `Fun002`) | 248 s of tests, 304 s |
+| Build `-warnaserror` at the end of P4 (whole solution, incremental) | 29 s |
+| Full unit suite on the P4 tree (5993 tests) | 166 s of tests, 188 s |
+| PostgreSQL filter of P4 (`Pol049\|Pol047\|Ten048\|S2s042\|Hcm025\|Hcm031\|Est00\|RecruitmentRequisitionPolicy\|InternalChannel`, 73 tests) | 364 s of tests |
+| The seven validation scripts at the end of P4 | 88 s together (`pol049-validate` with its tests: 51 s) |
 | Waiting for CI | 0 so far |
 | Waiting for the owner | about 17 min (the session end of 08:43Z to 09:00Z; nothing was asked of the owner) |
 
@@ -212,6 +219,53 @@ parameter only: `Ops038DemoDefectTests`, `OutboxAtomicityIntegrationTests`, `SoD
 engine is not asked when the local check refuses), `Est002…`, `EstablishmentApprovalTestHelper`, `Est024…`,
 `Hcm025ApprovalCoordinatorTests`, `InboundServiceTransactionTests`.
 
+## P4 — done
+
+- **Modes (D-POL-1, D-POL-13).** The five governed domains are `Shadow` in HR.Core's Production and Staging files; each owner
+  service sets its own domain to the same value: Admin.Logistics (`Assets.Custody`) and IDCard (`IDCard.Lifecycle`) in their
+  Production file and in a new `appsettings.Staging.json` that holds the `PolicyEngine` section only, HR.Contracts
+  (`Contracts.Leave`) in its Production and Staging files. The prod-like compose repeats the values on the four services
+  (it runs as `Acceptance`, so the Production files are not loaded); `Assets.Custody: "Shadow"` is said explicitly on
+  hr-core-web there because the lab file, part of the chain, sets it to Enforce. No production chain sets a mode in compose
+  (the VPS chain included), so the Production files decide on the server. No file puts a domain in Enforce.
+- **`Pol049PolicyModeConsistencyTests`** (10 cases): HR.Core and each owner agree for every governed domain in Production and
+  in Staging; the merged prod-like chain gives the four services the production values; the production chains set no mode in
+  compose; no shipped file or chain puts a domain in Enforce (the lab file and the three overlay files of the acceptance
+  stack are the only ones allowed to) or names a domain out of scope; the start-up check accepts the files and an owner still
+  needs the address of HR.Core; the resolver reads Shadow from the Production files and Off where no file applies; what
+  `hcm025-validate` pins still holds. `scripts/pol049-validate.ps1` runs the class with its other tests.
+- **The coordinator (G-POL-09, P-7).** New `PolicyWorkflowCodeGuard.RefuseOtherWorkflowAsync`: when the engine answers with an
+  instance, the guard reads its definition's code through the national read path and compares it with the code the service
+  asked for. The same code: the instance is taken, as before. Another code: the instance is cancelled the way a repair cancels
+  one (status `Cancelled`, `CompletedAt`, a history entry «إلغاء (PLAN-49)» with both codes, an audit row
+  `PolicyWorkflowCodeRefused` in the instance's tenant), saved in the caller's transaction, and the start is refused with
+  «السياسة اختارت مسار اعتماد غير مسموح لهذا الإجراء»; the caller's change is not applied. An instance that cannot be read is
+  refused too. `ApprovalStartCoordinator` and `RecruitmentAppealService` (which asks the policy and starts its review outside
+  the coordinator) both go through the guard; a unit test reads HR.Core's sources and fails if any other file takes
+  `policyResult.WorkflowInstanceId`.
+- **Why nothing announces the cancelled instance:** `WorkflowStarter` writes the instance row and nothing else (no outbox
+  message, no notification), the work inbox lists `InProgress` only, and the coordinator reuses `InProgress` only. The
+  PostgreSQL test proves the unit of work from another connection: while the transaction is open none of the three rows
+  (instance, ledger, audit) is visible; all three appear on commit and none on rollback.
+- **Shadow ledger rows under forced row security (P-8).** `Pol049ShadowLedgerRlsPostgresTests` drives the real
+  `PolicyEnforceInternalController` on PostgreSQL as a role that is neither superuser nor `BYPASSRLS`, with TEN-002C's
+  `FORCE ROW LEVEL SECURITY` and PLAN-48's national read policy: an owner's Shadow call for tenant A writes one ledger row in
+  tenant A (mode Shadow, the caller's client id), visible to A's session and not to B's; the two HR.Core domains do the same in
+  tenant B; a body that names another tenant, a client that does not own the domain, and a domain out of scope write no row.
+  This is the route chosen for P-8; the least-privilege acceptance class is optional in P5.
+- **The cost of Shadow.** `PolicyEnforceClient` times the remote call: a histogram `policy_client_call_duration_ms` (tags
+  domain, mode, outcome) and one line `policy_client_call domain=… action=… mode=… outcome=… elapsed_ms=…` per call (not in
+  Off: there is no call). The domain and the action come from the service's own code, never from a request, so the line is
+  not a log-forging source. P5 reads these lines from the owner services for AC-POL-49b and 49d.
+
+**Tests of P4:** `Pol049PolicyModeConsistencyTests`; `Pol049CoordinatorWorkflowCodeTests` (the weak rule `ACC-R-OFF-WEAK` wins
+by priority and the exception offer is refused in Enforce with nothing applied; the ordinary offer still starts; a cancelled
+instance is never reused and the right workflow starts once the rule is gone; Shadow unchanged; a phantom instance refused; the
+guard alone; the appeal path; external approval types get no policy instance; every taker of the policy's instance in HR.Core
+goes through the guard); `S2s042PolicyEnforceClientTests` (each call is timed once with its domain, mode and outcome: `ok` in
+Shadow and in Enforce, `http-503` in Shadow; Off makes no call and times nothing); `Hcm025ApprovalCoordinatorTests` (its mocked policy instance is now a real row of the requested code);
+`Pol049ShadowLedgerRlsPostgresTests` (3) and `Pol049CoordinatorCancelPostgresTests` (3) on PostgreSQL.
+
 ## Decisions (with reasons)
 
 | # | Phase | Decision | Reason |
@@ -243,6 +297,15 @@ engine is not asked when the local check refuses), `Est002…`, `EstablishmentAp
 | 25 | P3 | The approval asks the engine inside the handler's transaction, right after the local separation of duties | the plan's place for it; one read of the request serves the local checks, the question and the claim, so the engine cannot decide on values the claim does not match. Cost: the transaction stays open for the call (measured with the Shadow latency in P5) |
 | 26 | P3 | A self-service request refused at birth still gets its service transaction, cancelled with a reason | every leave request has one; reports and the HR page then show it exactly as a request HR rejected |
 | 27 | P3 | The portal (`EssPortalController`) and the event contract are unchanged | the working days are a rule of HR.Contracts; the portal cannot call it, and the event's number is simply no longer trusted |
+| 28 | P4 | One guard (`PolicyWorkflowCodeGuard`) serves the coordinator and the appeal service | the appeal review asks the policy and starts its workflow outside the coordinator; the same weakness, so the same check, and a source test keeps a third taker from appearing |
+| 29 | P4 | A policy answer that names an instance nobody can read is refused | "never accepts another code": an instance whose code cannot be read is not known to be the requested one |
+| 30 | P4 | **Deviation from the prompt:** `ExternalApprovalService` does not pass through the coordinator, so the check is not placed there | the prompt assumed it does. The engine starts no workflow for an external type (PLAN-43), so no policy instance can reach that service; a test proves it for a registered external type, and the cross-service start goes through the owner's approval contract |
+| 31 | P4 | The audit row of the cancel carries the tenant of the instance, set by the guard | the audit table is global (`TenantEntityClassification`): nothing stamps it, and a tenant's audit view filters on its tenant. The PostgreSQL test caught the row with an empty tenant |
+| 32 | P4 | P-8's route is the integration test as a non-owner role (`Pol049ShadowLedgerRlsPostgresTests`) | it runs in every CI run with Testcontainers and exercises the real controller under `FORCE ROW LEVEL SECURITY`; the least-privilege stack class would repeat it at the price of a third stack |
+| 33 | P4 | The cost of Shadow is measured by the client itself (a histogram and one line per call) | the price is paid by the calling action, so the caller's clock is the right one; the line gives P5 and the server a number without a metrics backend |
+| 34 | P4 | `Assets.Custody: "Shadow"` is written on prod-like hr-core-web although HR.Core's Production file would give the same | compose merges the lab file first, and that file says Enforce; without the explicit line the prod-like engine would enforce custody while the owner asked in Shadow |
+| 35 | P4 | New `appsettings.Staging.json` for Admin.Logistics and IDCard holding the `PolicyEngine` section only | "Production, Staging and prod-like"; the two services had no Staging file, and a file with one section changes nothing else there |
+| 36 | P4 | The timing test `S2s042GatewayProofV2Tests.One_hundred_proofs…` failed once in the full run (5.6 s against 5 s) and passes alone (54 / 54 in 9 s); left as it is | another project's containers and builds were loading the machine; PLAN-42's test, untouched here; a guard is not weakened for a local load spike |
 
 ## Files changed
 
@@ -269,6 +332,13 @@ engine is not asked when the local check refuses), `Est002…`, `EstablishmentAp
   `LeaveRequestHandlers.cs`, `InboundEventCommands.cs`, `LeaveRequestsController.cs`, `CardRequestsController.cs`,
   `EstablishmentChangeLifecycleService.cs`, the two establishment controllers, `docs/POLICY_DOMAIN_REGISTRY.md`, and nine
   test files (new arguments).
+- P4: new `PolicyWorkflowCodeGuard.cs` (HR.Core), `appsettings.Staging.json` of Admin.Logistics and of IDCard,
+  `Pol049PolicyModeConsistencyTests.cs`, `Pol049CoordinatorWorkflowCodeTests.cs` (unit),
+  `Pol049ShadowLedgerRlsPostgresTests.cs`, `Pol049CoordinatorCancelPostgresTests.cs` (integration); changed:
+  `ApprovalStartCoordinator.cs`, `RecruitmentAppealService.cs`, `PolicyClientMetrics.cs`, `PolicyEnforceClient.cs`, the
+  Production files of HR.Core, HR.Contracts, Admin.Logistics and IDCard, the Staging files of HR.Core and HR.Contracts,
+  `docker-compose.acceptance-prodlike.yml`, `scripts/pol049-validate.ps1`, `Pol047PostgresSupport.cs`,
+  `Hcm025ApprovalCoordinatorTests.cs`, `Hcm028AppealTestSupport.cs`, `S2s042PolicyEnforceClientTests.cs`.
 
 ## Test results
 
@@ -291,6 +361,11 @@ engine is not asked when the local check refuses), `Est002…`, `EstablishmentAp
 | P3 | full unit suite | 5969 / 5969 |
 | P3 | integration filter (`Ops038`, `OutboxAtomicity`, `SoDPolicy`, `InboundEventConsumer`, `Est00*`, `Hcm025`, `ContractLifecycle`, `IntegrationHostValidation`, `Fun002`, …) with Testcontainers | 85 passed, 1 skipped (`Ops038BootstrapIdempotencyTests`: it needs a built image, as before), 0 failed |
 | P3 | `pol049-validate -SkipTests`, `pol047-validate`, `wf043-validate`, `hcm025-validate -SkipTests` | PASS |
+| P4 | build `-warnaserror` | 0 errors, 0 warnings |
+| P4 | full unit suite | 5992 / 5993; the one failure is the timing test of decision 36, which passes alone (54 / 54 of its class) |
+| P4 | PostgreSQL filter of P4 with Testcontainers | 72 passed, 1 skipped (`Hcm031CompetitionScaleTests`, the 10 000-applicant scale test, which skips itself as before), 0 failed |
+| P4 | `pol049-validate` (with its tests), `pol047-validate`, `wf043-validate`, `hcm025-validate -SkipTests`, `int037-wiring-check`, `vps/lint-compose`, `int037-render-wiring-doc -Check` | all PASS |
+| P4 | `dotnet format --verify-no-changes` on the 14 changed C# files (Windows) | two end-of-line complaints at a comment inside an argument list of `RecruitmentAppealService.cs` (lines of an earlier plan; the known Windows artefact, the Linux container of ci-local is the judge) |
 
 ## Server changes and their undo commands
 
@@ -301,13 +376,26 @@ None yet (read-only so far: the running tag, the policy picture in `artifacts/pl
 - `AcWf46PolicyOrphanTests` probably runs with hr-core-web out of Enforce (the s2s42 class recreates it without the wf46
   overlay). Not this plan's class; the pol49 overlay class asserts the container's mode itself. Recorded for the final report.
 - The acceptance overrides of agencies B and C hold rules no validator would accept, on purpose (AC-TEN-48e). They stay.
+  After `POL-049-ASSETS-ACTION` the national custody rules match `Assign` only, so on a `Create` or `Classify` evaluation the
+  ceiling no longer has a national `TriggerWorkflow` to compare with; acceptance-only data, and no workflow starts for an
+  external type whatever a rule says.
+- **A defect for wave 2, before any domain goes to Enforce:** `RecruitmentAppealService` stages the reviewer's assignment
+  before it asks the policy, and the orchestrator's save (or the guard's) flushes it. A refusal in Enforce (a deny rule, or
+  PLAN-49's code refusal) therefore leaves the appeal assigned with no workflow, and the reviewer could decide directly.
+  Latent: production runs the domain in Shadow, where nothing is refused. Not changed here (it is the appeal's own
+  transaction design, outside this plan's scope); recorded for the final report.
+- `AssetsController` (Admin.Logistics) reads `policyResult.WorkflowInstanceId` of the remote answer. The engine starts nothing
+  for the internal endpoint (the allow-list of decision 11 is empty), so the value is always empty today; for the review.
+- An ESS leave has no creator user, so `isSelfApproval` rests on the employee-id comparison there (decision 8).
+  `PolicyStaticFallbackShim.GetDecimal` parses with the current culture, and `LeaveAndAdvanceRules` formats its dates with it:
+  both older than this plan; for the final report.
 
 ## Exact next step
 
-P4: the Shadow keys (HR.Core Production and Staging: the five domains; Admin.Logistics and IDCard Production, and a new
-`appsettings.Staging.json` for each with the `PolicyEngine` section only; HR.Contracts Production and Staging; the prod-like
-compose for the four services, `Assets.Custody: "Shadow"` on hr-core-web said explicitly because the lab file's Enforce is
-part of the chain) and `Pol049PolicyModeConsistencyTests`; the coordinator compares the code of a policy-started instance with
-the requested one and cancels it in the same transaction (`PolicyWorkflowCodeGuard`, also used by the appeal service's own
-start); `Pol049CoordinatorWorkflowCodeTests`, `Pol049CoordinatorCancelPostgresTests`; the Shadow ledger row in the caller's
-tenant as a non-owner role under forced row security (integration); the client's call duration (a histogram and one log line).
+P5: the overlay `docker-compose.acceptance-pol49.yml` (Core.Recruitment in Enforce on hr-core-web, with its own seed flag for
+the weak offer rule `ACC-POL49-WEAK-OFFER`, never in `PolicySeedChangeSets.All`), `scripts/pol049-outofscope-mode-boot-check.ps1`,
+the group `pol49` after `s2s42` in `tests/acceptance/ci-scope.json` and `AC-POL-49` in `ac-ownership.json`,
+`AcPol49EngineScopeTests` (49a..e, g on the prod-like stack) and `AcPol49EnforceOverlayTests` (49f and the boot check); move
+AC-TEN-48e step 1, AC-MSG-40c and the server tour of `AcPol47VpsChecks` to governed domains; fix the stale wording of three
+files; start the prod-like stack (record the time), run the plan's classes and P-11's list, read the Shadow latency lines,
+`acceptance-verify`, `down -v`, restore the committed evidence; one independent review, its fixes with tests; commit P5.
