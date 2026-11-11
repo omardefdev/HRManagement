@@ -14,7 +14,7 @@ Started (UTC): 2026-11-11T10:00:59.4954239Z
 | P5 | done (this commit) | 2026-11-11T16:14:14Z |
 | P6 | done, no merge (`origin/main` still `1ee60c47`, already in the branch; checked 15:40Z) | 2026-11-11T16:14:14Z |
 | P7 | done (this commit) | 2026-11-11T19:03:22Z |
-| P8 | pending | |
+| P8 | done: PR 48 merged at `0db7292e` | 2026-11-11T22:55:32Z |
 
 ## P0 — timing, preconditions, baseline, inventories
 
@@ -273,21 +273,68 @@ Changes, in the order they were made (P7, 2026-11-11):
 
 Resumed (UTC): 2026-11-11T11:43:25Z — the owner said «اكمل» after the usage limit (stood still about 38 min). `origin/main` still `1ee60c47`.
 
-## Next step (resume here)
+## Merge (P8)
 
-P0..P6 are done; P5 is the last code commit before the server (its sha12 is the tag the server builds). In the working tree after
-it: the drafted docs (P8).
+Merged by agent on owner instruction (UTC): 2026-11-11T22:55:32Z
 
-P7, in order (record every change and its undo as it is made):
-1. `cat /opt/hrm/current-tag` is on `origin/main` (046316bde9e7 was at 15:40Z). Read-only picture: `artifacts/plan50/vps/before-p7.txt`.
-2. Backup `pg_dumpall` under `/opt/hrm/backups/pre-plan50-<utc>/` (700/600, `env.backup`, `SHA256SUMS`); verify 17 `CREATE DATABASE`,
-   the completion line, `sha256sum -c`.
-3. Build once, detached: `git archive` of the P5 commit as `scripts/vps/build-on-host.ps1` does, `scp`, then `setsid nohup bash
-   /opt/hrm/build-on-host-<tag>.sh <tag> /opt/hrm/src-<tag>.tar.gz 127.0.0.1:5050/hrmanagement` writing a `.done` file; confirm 17 of 17 in
-   the registry.
-4. `scripts/vps/deploy.ps1 -Tag <sha12>` (rerun at once if keycloak-reconcile fails after PostgreSQL restarts).
-5. `ssh hrm-vps "docker exec -i hrm-keycloak bash -s -- --employee-id 98655dae-f87e-4d46-9703-a17c0b5cc09a e2e-delegate-hr
-   e2e-delegate-hr@hrm.local DelegateHr 00000000-0000-4000-8000-000000000001 hr-core offline_access" < scripts/vps/add-demo-user.sh`.
-6. Server suites: `AcIam50VpsChecks` (in `AcOps36VpsBootTests`), smoke `-RequireIntegrationWiring`, AcOps36 (36j excepted),
-   AcInt37VpsServerTests, PLAN-38..49 checks; AC-WF-46 sweeps alone after a sweep cycle; restore `acceptance-evidence/` and `reports/`.
-Then P8 (docs, Testcontainers step, ci-local, prepush, final report, release branch, PR, CI, merge, merge note).
+- **Local gates on the pushed HEAD `8f446d5f`** (the `--no-ff` merge of the feature branch into `release/plan-50` from `main`; the
+  unpushed release merge was recreated twice before the push): `scripts/ci-local.ps1 -SkipTestcontainers` ok, 89 passed, 0 failed,
+  2 not-run (the Testcontainers step and its coverage gate, allowed by the pre-push defaults; the full Testcontainers step passed on the
+  host: 214 passed, 1 skipped, 0 failed), 959 s; `scripts/plan035-prepush.ps1`: gitleaks, actionlint, cilocal, forbidden, nonprod,
+  signatures all PASS. Before it: ci-local on `459e629e` and `97accb81` failed **Check formatting** (whitespace in two PLAN-50 test
+  files, fixed in `defc46e5` and `8d4fafec`); the pre-push on `97accb81` found the final report quoting the allow-listed Items slot
+  literal (gitleaks generic-api-key; an exact path-and-match entry in `9357bb95`); its `nonprod` "exit 143" was my own 590 s
+  timeout, not a failure.
+- **Push:** `release/plan-50` at 2026-11-11T20:42:55Z. **PR:** https://github.com/omardefdev/HRManagement/pull/48, opened 20:43:47Z.
+- **The first run (43097768410) never started:** queued with no jobs from 20:43:49Z, during a GitHub incident affecting Actions
+  ("Impact across multiple GitHub products including Actions, Pages, and Copilot products", opened 20:48Z); after the incident left
+  the unresolved list it was still queued and could be neither cancelled nor rerun ("already running"). At 21:48Z the PR was closed
+  and reopened, which started run **43106318755** on the same HEAD (the stuck run's record stays "queued", with no job and no minutes).
+- **Checks of run 43106318755** (21:48:41Z to 22:54:54Z), all **pass**: Gitleaks 50 s, Reuse check 24 s, Dedupe post-merge run 18 s,
+  CodeQL 17 min 35 s, E2E 18 min 58 s, CI 46 min 39 s, Acceptance images 22 min 54 s, Acceptance stage (leastpriv) 9 min 55 s,
+  (prodlike-policy) 11 min 41 s, (lab-rest) 18 min 56 s, (prodlike) 24 min 27 s, (lab-main) 26 min 37 s, (prodlike-final) 30 min 25 s,
+  (meta) 41 min 21 s, Acceptance 1 min 1 s: 15 of 15. The evidence of record, artifact `acceptance-evidence` of run 43106318755:
+  **AC-IAM-50a..e Pass** (prodlike).
+- **Merge:** `gh pr merge 48 --merge` at 22:55:32Z, merge commit **`0db7292e`**; `git switch main; git pull --ff-only`: `main` =
+  `origin/main` = `0db7292e7ac5`. Post-merge run on `main` (43115764181): success in 1 min 4 s (the dedupe of the tested tree).
+- **CI wait:** 2 h 12 min 37 s from the push to the merge: 65 min in the stuck queue (the Actions incident), 66 min of the run, the rest
+  checking and merging. **Actions minutes:** about 272 job-minutes for the PR run and 1 for the post-merge run.
+- **Timing at the merge:** wall-clock 2026-11-11T10:00:59Z to 22:55:32Z, **12 h 54 min**. Stops: the usage limit (38 min), the host's
+  sleep (85 min), the server's DNS (32 min, server only), the stuck CI queue (65 min); active time about 9 h 31 min (wall-clock less the
+  usage limit, the sleep and the stuck queue). The demo server runs `a504f6e54921`; the commits after it change tests, docs and the
+  gitleaks allowlist only, no image. `scripts/plan-timing.ps1 -From 25 -To 50` after the merge (local times, UTC+3; its End for PLAN-50
+  is the release merge commit's time, not GitHub's merge):
+
+```text
+Plan    Commits Started          FirstCommit      End              Merged Span   WallClock
+----    ------- -------          -----------      ---              ------ ----   ---------
+PLAN-25      11                  2026-10-29 20:31 2026-10-29 23:21   True 2:50            
+PLAN-26      12                  2026-10-21 13:38 2026-10-21 22:49  False 9:10            
+PLAN-27      11                  2026-10-21 22:57 2026-10-22 09:43  False 10:45           
+PLAN-28      13                  2026-10-22 10:03 2026-10-22 15:03  False 5:00            
+PLAN-29      13                  2026-10-22 15:21 2026-10-22 20:36  False 5:15            
+PLAN-30      21                  2026-10-23 00:45 2026-10-29 07:45  False 150:59          
+PLAN-31      14                  2026-10-29 10:24 2026-10-29 15:03  False 4:38            
+PLAN-32       9                  2026-10-29 14:12 2026-10-29 16:31   True 2:19            
+PLAN-33      11                  2026-10-29 17:49 2026-10-29 20:18   True 2:28            
+PLAN-34      17 2026-10-30 02:13 2026-10-30 02:24 2026-10-30 16:11   True 13:47  13:58    
+PLAN-35      49 2026-10-30 16:38 2026-10-30 17:07 2026-10-31 04:21   True 11:13  11:43    
+PLAN-36      26 2026-10-31 16:32 2026-10-31 16:41 2026-11-01 00:13   True 7:31   7:40     
+PLAN-37      23 2026-11-01 01:24 2026-11-01 01:30 2026-11-01 12:27   True 10:57  11:03    
+PLAN-38      18 2026-11-01 13:24 2026-11-01 13:25 2026-11-02 02:13  False 12:47  12:48    
+PLAN-39      13 2026-11-02 02:11 2026-11-02 02:13 2026-11-02 11:05  False 8:52   8:53     
+PLAN-40      20 2026-11-02 11:01 2026-11-02 11:05 2026-11-04 11:56  False 48:51  48:55    
+PLAN-41      17 2026-11-04 11:48 2026-11-04 11:56 2026-11-05 15:04  False 27:08  27:16    
+PLAN-43      14 2026-11-06 10:12 2026-11-06 10:21 2026-11-06 19:03  False 8:42   8:50     
+PLAN-44      14 2026-11-06 21:11 2026-11-06 21:20 2026-11-07 16:25  False 19:05  19:14    
+PLAN-45      13 2026-11-07 16:55 2026-11-07 16:56 2026-11-07 23:11  False 6:15   6:15     
+PLAN-46      14 2026-11-07 23:33 2026-11-07 23:34 2026-11-08 15:06  False 15:31  15:32    
+PLAN-47      15 2026-11-08 15:06 2026-11-08 15:06 2026-11-09 15:30  False 24:23  24:24    
+PLAN-48      12 2026-11-09 18:27 2026-11-09 18:28 2026-11-10 02:18   True 7:50   7:51     
+PLAN-49      11 2026-11-10 11:35 2026-11-10 11:37 2026-11-11 04:35   True 16:58  17:00    
+PLAN-50      13 2026-11-11 13:00 2026-11-11 13:02 2026-11-11 23:10   True 10:08  10:09    
+
+
+Span = first commit -> merge (or last commit if not merged). WallClock = "Started (UTC)" in the progress file -> merge.
+Note: without a merge commit, a later commit with the same plan scope (for example a live-run fix) extends that plan's End.
+```
