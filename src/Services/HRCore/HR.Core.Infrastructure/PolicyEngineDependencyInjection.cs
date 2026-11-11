@@ -39,6 +39,10 @@ public static class PolicyEngineDependencyInjection
         services.AddScoped<IWorkflowApprovalGate, EstablishmentChangeApprovalGate>();
         foreach (var type in ExternalApprovalTypes.All)
             services.AddScoped<IWorkflowApprovalGate>(sp => new ExternalApprovalGate(type, sp.GetRequiredService<WorkflowGateOrgScope>()));
+        // PLAN-50 (§5): HR.Core reads delegations from its own database, with no cache (a revocation acts at once).
+        services.AddScoped<HR.Core.Infrastructure.Services.Delegation.DbApprovalDelegationLookup>();
+        services.AddScoped<HRManagement.ServiceDefaults.Delegation.IApprovalDelegationLookup>(sp =>
+            sp.GetRequiredService<HR.Core.Infrastructure.Services.Delegation.DbApprovalDelegationLookup>());
         services.TryAddSingleton(new WorkflowStepRoleOptions());
         services.AddScoped<WorkflowApprovalEvaluator>();
         services.AddScoped<IWorkflowInstanceActionService, WorkflowInstanceActionService>();

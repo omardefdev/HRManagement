@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Integration;
+using HRManagement.ServiceDefaults.Delegation;
 using HRManagement.ServiceDefaults.Localization;
 using HRManagement.ServiceDefaults.Seeding;
 using HR.Movements.Infrastructure.Data;
@@ -35,6 +36,8 @@ builder.Services.AddDbContext<MovementsDbContext>((sp, options) =>
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>()));
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<MovementsDbContext>());
 builder.Services.AddHrCoreActiveRegimeClient(builder.Configuration);
+// PLAN-50 (P-7, D-50-3): the movement approvals honour HR.Core's approval delegations (asked with this service's token, cached).
+builder.Services.AddHrCoreApprovalDelegationClient(builder.Configuration);
 
 builder.Services.Configure<HR.Movements.Infrastructure.Sagas.TransferSagaOptions>(
     builder.Configuration.GetSection(HR.Movements.Infrastructure.Sagas.TransferSagaOptions.SectionName));

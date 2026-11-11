@@ -243,6 +243,7 @@ public static class HrManagementAuthorizationExtensions
 
         services.AddSingleton<IAuthorizationHandler, PolicyEngineRoleHandler>();
         services.AddSingleton<IAuthorizationHandler, GatewayApprovalReachHandler>();
+        services.AddSingleton<IAuthorizationHandler, Delegation.RoleOrDelegationHandler>();
         services.AddServiceToServiceAuthorizationPolicies();
         services.AddHrMvcSecurityDefaults();
         return services;

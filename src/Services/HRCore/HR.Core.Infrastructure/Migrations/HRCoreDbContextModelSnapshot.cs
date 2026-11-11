@@ -5816,65 +5816,6 @@ namespace HR.Core.Infrastructure.Migrations
                     b.ToTable("WorkflowDefinitions");
                 });
 
-            modelBuilder.Entity("HR.Core.Domain.Entities.Workflow.WorkflowDelegation", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("ActiveFrom")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime?>("ActiveUntil")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<Guid>("DelegateId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("DelegateName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("DomainEntityType")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<bool>("IsRevoked")
-                        .HasColumnType("boolean");
-
-                    b.Property<Guid>("PrincipalId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("PrincipalName")
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<string>("Reason")
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<Guid>("TenantId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("WorkflowCode")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsRevoked", "ActiveUntil");
-
-                    b.HasIndex("PrincipalId", "DelegateId", "ActiveFrom");
-
-                    b.ToTable("WorkflowDelegations");
-                });
-
             modelBuilder.Entity("HR.Core.Domain.Entities.Workflow.WorkflowInstance", b =>
                 {
                     b.Property<Guid>("Id")
@@ -6744,8 +6685,15 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("DelegateId")
+                    b.Property<Guid?>("DelegateEmployeeId")
                         .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DelegateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DelegateName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<string>("EntityTypeScope")
                         .HasMaxLength(128)
@@ -6754,7 +6702,17 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<bool>("IsRevoked")
                         .HasColumnType("boolean");
 
+                    b.Property<Guid?>("PrincipalEmployeeId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("PrincipalId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("PrincipalName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("PrincipalScopeOrgUnitId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Reason")
@@ -6767,6 +6725,10 @@ namespace HR.Core.Infrastructure.Migrations
 
                     b.Property<Guid?>("RevokedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("RevokedReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("RoleScope")
                         .HasMaxLength(100)
@@ -6782,9 +6744,16 @@ namespace HR.Core.Infrastructure.Migrations
 
                     b.HasIndex("IsRevoked", "ActiveUntil");
 
+                    b.HasIndex("DelegateEmployeeId", "IsRevoked", "ActiveUntil");
+
                     b.HasIndex("PrincipalId", "DelegateId", "ActiveFrom");
 
-                    b.ToTable("ApprovalDelegations");
+                    b.ToTable("ApprovalDelegations", t =>
+                        {
+                            t.HasCheckConstraint("CK_ApprovalDelegations_ActiveHasRole", "\"IsRevoked\" OR (\"RoleScope\" IS NOT NULL AND trim(\"RoleScope\") <> '')");
+
+                            t.HasCheckConstraint("CK_ApprovalDelegations_HasDelegate", "\"DelegateEmployeeId\" IS NOT NULL OR \"DelegateId\" IS NOT NULL");
+                        });
                 });
 
             modelBuilder.Entity("HRManagement.SharedKernel.SeparationOfDuties.ConflictingRolePair", b =>

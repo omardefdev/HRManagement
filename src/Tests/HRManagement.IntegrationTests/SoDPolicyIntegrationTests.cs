@@ -242,12 +242,13 @@ public class SoDPolicyIntegrationTests
             ActiveFrom = now.AddHours(-1),
             ActiveUntil = now.AddDays(3),
             Reason = "سفر",
-            EntityTypeScope = "LeaveRequest"
+            EntityTypeScope = "LeaveRequest",
+            RoleScope = "hr-management-approver"
         });
         await db.SaveChangesAsync();
 
         var sod = new SeparationOfDutiesService(delegations: await db.ApprovalDelegations.ToListAsync());
-        Assert.Equal(delegateId, sod.ResolveDelegate(principal, "LeaveRequest", now));
+        Assert.Equal(delegateId, sod.ResolveDelegate(principal, "hr-management-approver", "LeaveRequest", now)?.DelegateId);
     }
 
     [Fact]
@@ -264,12 +265,13 @@ public class SoDPolicyIntegrationTests
                 DelegateId = delegateId,
                 ActiveFrom = now.AddDays(-10),
                 ActiveUntil = now.AddDays(-1),
-                Reason = "منتهٍ"
+                Reason = "منتهٍ",
+                RoleScope = "hr-management-approver"
             }
         ]);
 
-        Assert.Null(sod.ResolveDelegate(principal, "LeaveRequest", now));
-        Assert.False(sod.IsActingAsDelegate(delegateId, principal, "LeaveRequest", now));
+        Assert.Null(sod.ResolveDelegate(principal, "hr-management-approver", "LeaveRequest", now));
+        Assert.False(sod.IsActingAsDelegate(delegateId, null, principal, "hr-management-approver", "LeaveRequest", now));
     }
 
     [Fact]

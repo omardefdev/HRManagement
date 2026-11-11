@@ -55,6 +55,10 @@ public sealed class DiwanCorrespondencesIndexViewModel
 public sealed class DelegationsIndexViewModel
 {
     public IReadOnlyList<ApprovalDelegation> Items { get; init; } = [];
+    /// <summary>PLAN-50: an administrator or a platform operator sees every delegation of the tenant; anyone else his own.</summary>
+    public bool SeesAll { get; init; }
+    public Guid? CurrentUserId { get; init; }
+    public Guid? CurrentEmployeeId { get; init; }
     public Guid? PrincipalId { get; init; }
     public Guid? DelegateId { get; init; }
     public string? EntityTypeScope { get; init; }
