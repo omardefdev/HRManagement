@@ -117,13 +117,26 @@ public class SeparationOfDutiesTests
                 ActiveFrom = now.AddDays(-1),
                 ActiveUntil = now.AddDays(7),
                 Reason = "إجازة",
-                EntityTypeScope = "LeaveRequest"
+                EntityTypeScope = "LeaveRequest",
+                RoleScope = "hr-management-approver"
+            },
+            // PLAN-50 (D-50-4): a row with no role scope acts for no role.
+            new ApprovalDelegation
+            {
+                PrincipalId = principal,
+                DelegateId = Guid.NewGuid(),
+                ActiveFrom = now.AddDays(-1),
+                ActiveUntil = now.AddDays(7),
+                Reason = "قديم"
             }
         ]);
 
-        Assert.Equal(delegateId, sod.ResolveDelegate(principal, "LeaveRequest", now));
-        Assert.True(sod.IsActingAsDelegate(delegateId, principal, "LeaveRequest", now));
-        Assert.Null(sod.ResolveDelegate(principal, "PayrollRun", now));
+        Assert.Equal(delegateId, sod.ResolveDelegate(principal, "hr-management-approver", "LeaveRequest", now)?.DelegateId);
+        Assert.True(sod.IsActingAsDelegate(delegateId, null, principal, "hr-management-approver", "LeaveRequest", now));
+        Assert.Null(sod.ResolveDelegate(principal, "hr-management-approver", "PayrollRun", now));
+        // PLAN-50: the role scope is respected (it was ignored).
+        Assert.Null(sod.ResolveDelegate(principal, "payroll-approver", "LeaveRequest", now));
+        Assert.False(sod.IsActingAsDelegate(delegateId, null, principal, "payroll-approver", "LeaveRequest", now));
     }
 
     [Fact]
@@ -140,11 +153,12 @@ public class SeparationOfDutiesTests
                 DelegateId = delegateId,
                 ActiveFrom = now.AddDays(-30),
                 ActiveUntil = now.AddDays(-1),
-                Reason = "انتهى"
+                Reason = "انتهى",
+                RoleScope = "hr-management-approver"
             }
         ]);
 
-        Assert.Null(sod.ResolveDelegate(principal, "LeaveRequest", now));
+        Assert.Null(sod.ResolveDelegate(principal, "hr-management-approver", "LeaveRequest", now));
     }
 
     [Fact]

@@ -32,8 +32,13 @@ public sealed class HrCoreWorkInboxService(
     public Task CompleteItemAsync(Guid itemId, string? resolution = null, CancellationToken ct = default) =>
         throw new NotSupportedException("Complete inbox items via entity Details approve flow (PLAN-21/22) or legacy Approvals.");
 
+    /// <summary>
+    /// PLAN-50 (§6): reassigning one item is not a delegation; a delegation of a role, for a period, is made on the delegation page
+    /// (/ui/hr-core/Delegations), and its delegate then sees the principal's items here.
+    /// </summary>
     public Task DelegateItemAsync(Guid itemId, Guid newAssigneeId, CancellationToken ct = default) =>
-        throw new NotSupportedException("Delegation is out of scope for PLAN-23.");
+        throw new NotSupportedException(
+            "Reassigning a single inbox item is not supported; delegate the role for a period on the delegation page (/ui/hr-core/Delegations).");
 
     public Task EscalateItemAsync(Guid itemId, string reason, CancellationToken ct = default) =>
         throw new NotSupportedException("Escalation is out of scope for PLAN-23.");

@@ -1,6 +1,12 @@
 @model HR.Core.Web.ViewModels.DelegationsIndexViewModel
 @{
     ViewData["Title"] = "تفويضات الاعتماد المؤقتة";
+    // PLAN-50: what the user delegated, and what was delegated to him; an administrator sees the tenant's.
+    bool IsMine(HRManagement.SharedKernel.SeparationOfDuties.ApprovalDelegation d) => Model.CurrentUserId is Guid me && d.PrincipalId == me;
+    bool IsToMe(HRManagement.SharedKernel.SeparationOfDuties.ApprovalDelegation d) =>
+        (Model.CurrentEmployeeId is Guid emp && d.DelegateEmployeeId == emp)
+        || (d.DelegateEmployeeId is null && Model.CurrentUserId is Guid me && d.DelegateId == me);
+    var now = DateTime.UtcNow;
 }
 
 <div class="card">
@@ -9,25 +15,31 @@
         <a asp-action="Create" class="btn btn-primary btn-sm">تفويض جديد</a>
     </div>
     <div class="card-body border-bottom">
+        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+        @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+        @if (TempData["Warning"] != null) { <div class="alert alert-warning">@TempData["Warning"]</div> }
         <form method="get" class="row g-2 align-items-end">
+            @if (Model.SeesAll)
+            {
+                <div class="col-md-2">
+                    <label class="form-label">المفوِّض</label>
+                    <input type="text" name="principalId" value="@Model.PrincipalId" class="form-control" placeholder="معرّف المستخدم" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">المفوَّض</label>
+                    <input type="text" name="delegateId" value="@Model.DelegateId" class="form-control" placeholder="معرّف الموظف أو المستخدم" />
+                </div>
+            }
             <div class="col-md-2">
-                <label class="form-label">المفوِّض</label>
-                <input type="text" name="principalId" value="@Model.PrincipalId" class="form-control" placeholder="معرّف المستخدم" />
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">المفوَّض</label>
-                <input type="text" name="delegateId" value="@Model.DelegateId" class="form-control" placeholder="معرّف المستخدم" />
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">نطاق الكيان</label>
+                <label class="form-label">نوع الكيان</label>
                 <input type="text" name="entityTypeScope" value="@Model.EntityTypeScope" class="form-control" placeholder="نوع الكيان" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">الحالة</label>
                 <select name="activeOnly" class="form-select">
                     <option value="">— الكل —</option>
-                    @if (Model.ActiveOnly == true) { <option value="true" selected>نشط فقط</option> } else { <option value="true">نشط فقط</option> }
-                    @if (Model.ActiveOnly == false) { <option value="false" selected>غير نشط</option> } else { <option value="false">غير نشط</option> }
+                    @if (Model.ActiveOnly == true) { <option value="true" selected>نافذ فقط</option> } else { <option value="true">نافذ فقط</option> }
+                    @if (Model.ActiveOnly == false) { <option value="false" selected>غير نافذ</option> } else { <option value="false">غير نافذ</option> }
                 </select>
             </div>
             <div class="col-md-2">
@@ -48,9 +60,11 @@
         <table class="table table-sm table-striped">
             <thead>
                 <tr>
-                    <th>المفوِّض</th>
+                    <th>العلاقة</th>
+                    <th>الأصيل</th>
                     <th>المفوَّض</th>
-                    <th>النطاق</th>
+                    <th>الدور</th>
+                    <th>نوع الكيان</th>
                     <th>من</th>
                     <th>إلى</th>
                     <th>الحالة</th>
@@ -60,18 +74,22 @@
             <tbody>
             @foreach (var d in Model.Items)
             {
-                <tr>
-                    <td><code>@d.PrincipalId</code></td>
-                    <td><code>@d.DelegateId</code></td>
+                var state = d.IsRevoked ? "ملغى" : d.ActiveUntil < now ? "منتهٍ" : d.ActiveFrom > now ? "لم يبدأ" : "نافذ";
+                <tr data-delegation-id="@d.Id">
+                    <td>@(IsMine(d) ? "فوّضتُه" : IsToMe(d) ? "مفوَّض إليّ" : "—")</td>
+                    <td>@(d.PrincipalName ?? d.PrincipalId.ToString())</td>
+                    <td>@(d.DelegateName ?? (d.DelegateEmployeeId ?? d.DelegateId)?.ToString())</td>
+                    <td>@(d.RoleScope ?? "—")</td>
                     <td>@(d.EntityTypeScope ?? "الكل")</td>
                     <td>@d.ActiveFrom.ToString("u")</td>
                     <td>@d.ActiveUntil.ToString("u")</td>
-                    <td>@(d.IsRevoked ? "ملغى" : "نشط")</td>
+                    <td>@state @if (d.IsRevoked && !string.IsNullOrEmpty(d.RevokedReason)) { <span class="text-muted small">(@d.RevokedReason)</span> }</td>
                     <td>
-                        @if (!d.IsRevoked)
+                        @if (!d.IsRevoked && (IsMine(d) || Model.SeesAll))
                         {
-                            <form asp-action="Revoke" asp-route-id="@d.Id" method="post" class="d-inline">
+                            <form asp-action="Revoke" asp-route-id="@d.Id" method="post" class="d-inline-flex gap-1">
                                 @Html.AntiForgeryToken()
+                                <input type="text" name="reason" class="form-control form-control-sm" placeholder="سبب الإلغاء" maxlength="500" />
                                 <button type="submit" class="btn btn-outline-danger btn-sm">إلغاء</button>
                             </form>
                         }
@@ -80,7 +98,7 @@
             }
             @if (!Model.Items.Any())
             {
-                <tr><td colspan="7" class="text-center text-muted py-4">لا توجد تفويضات</td></tr>
+                <tr><td colspan="9" class="text-center text-muted py-4">لا توجد تفويضات</td></tr>
             }
             </tbody>
         </table>

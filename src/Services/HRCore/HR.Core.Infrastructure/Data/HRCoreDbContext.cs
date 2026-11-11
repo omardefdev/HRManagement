@@ -91,7 +91,6 @@ public class HRCoreDbContext : TenantAwareDbContext
     public DbSet<MasterDataDuplicateCase> MasterDataDuplicateCases => Set<MasterDataDuplicateCase>();
     public DbSet<WorkflowDefinition> WorkflowDefinitions => Set<WorkflowDefinition>();
     public DbSet<WorkflowInstance> WorkflowInstances => Set<WorkflowInstance>();
-    public DbSet<WorkflowDelegation> WorkflowDelegations => Set<WorkflowDelegation>();
     public DbSet<SignatureRecord> SignatureRecords => Set<SignatureRecord>();
     public DbSet<ReferenceCatalogEntry> ReferenceCatalogEntries => Set<ReferenceCatalogEntry>();
     public DbSet<LegislationSource> LegislationSources => Set<LegislationSource>();
@@ -301,6 +300,19 @@ public class HRCoreDbContext : TenantAwareDbContext
         {
             entity.HasIndex(e => new { e.PrincipalId, e.DelegateId, e.ActiveFrom });
             entity.HasIndex(e => new { e.IsRevoked, e.ActiveUntil });
+            // PLAN-50 (D-50-2): the lookup finds a delegate by employee.
+            entity.HasIndex(e => new { e.DelegateEmployeeId, e.IsRevoked, e.ActiveUntil });
+            entity.ToTable(t =>
+            {
+                // PLAN-50 (D-WF-5, D-50-4): a delegation in force always names its role; HCM050 revoked the older rows that did not.
+                t.HasCheckConstraint(
+                    "CK_ApprovalDelegations_ActiveHasRole",
+                    "\"IsRevoked\" OR (\"RoleScope\" IS NOT NULL AND trim(\"RoleScope\") <> '')");
+                // PLAN-50 (D-50-2): every delegation names its delegate, by employee or (older rows) by user.
+                t.HasCheckConstraint(
+                    "CK_ApprovalDelegations_HasDelegate",
+                    "\"DelegateEmployeeId\" IS NOT NULL OR \"DelegateId\" IS NOT NULL");
+            });
         });
 
         modelBuilder.Entity<PerformanceEvaluation>(entity =>
@@ -916,12 +928,6 @@ public class HRCoreDbContext : TenantAwareDbContext
                 .IsUnique()
                 .HasFilter("\"IdempotencyKey\" IS NOT NULL")
                 .HasDatabaseName(Services.Workflow.WorkflowInstanceInsert.IdempotencyKeyIndex);
-        });
-
-        modelBuilder.Entity<WorkflowDelegation>(entity =>
-        {
-            entity.HasIndex(e => new { e.PrincipalId, e.DelegateId, e.ActiveFrom });
-            entity.HasIndex(e => new { e.IsRevoked, e.ActiveUntil });
         });
 
         modelBuilder.Entity<PolicyTemplate>(entity =>

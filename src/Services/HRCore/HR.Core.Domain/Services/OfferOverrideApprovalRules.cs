@@ -20,8 +20,9 @@ public static class OfferOverrideApprovalRules
             return false;
 
         var history = JsonSerializer.Deserialize<List<WorkflowStepHistoryEntry>>(stepHistoryJson) ?? [];
+        // PLAN-50: an approval on behalf counts for the delegate and for the principal.
         return history.Any(h => h.Status == WorkflowStepStatus.Approved
-            && h.ActorId == actorUserId
+            && h.WasActedBy(actorUserId.Value)
             && h.Level < currentStepLevel);
     }
 }

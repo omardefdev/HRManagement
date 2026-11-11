@@ -462,8 +462,8 @@ public sealed class Wf043ExternalStartTests
     [InlineData("/api/hr-core/api/workflow-instances", HrManagementPolicies.WorkflowExternalStart)]
     [InlineData("/api/hr-core/api/workflow-instances/", HrManagementPolicies.WorkflowExternalStart)]
     [InlineData("/api/hr-core/api/workflow-instances/00000000-0000-0000-0000-000000000001/cancel", HrManagementPolicies.WorkflowExternalStart)]
-    [InlineData("/api/hr-core/api/workflow-instances/00000000-0000-0000-0000-000000000001/approve", HrManagementPolicies.WorkflowStepAction)]
-    [InlineData("/api/hr-core/api/workflow-instances/00000000-0000-0000-0000-000000000001/reject", HrManagementPolicies.WorkflowStepAction)]
+    [InlineData("/api/hr-core/api/workflow-instances/00000000-0000-0000-0000-000000000001/approve", HrManagementPolicies.GatewayApprovalReach)]
+    [InlineData("/api/hr-core/api/workflow-instances/00000000-0000-0000-0000-000000000001/reject", HrManagementPolicies.GatewayApprovalReach)]
     public void The_gateway_keeps_users_off_the_start(string path, string expected)
     {
         Assert.True(GatewayPathAuthorizationMiddleware.TryGetFineGrainedPolicy("hr-core", HttpMethods.Post, new PathString(path), out var policy));

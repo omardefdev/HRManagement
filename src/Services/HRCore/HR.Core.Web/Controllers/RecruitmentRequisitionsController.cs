@@ -280,7 +280,7 @@ public class RecruitmentRequisitionsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+    [Authorize(Policy = HrManagementPolicies.WorkflowStepAction)] // PLAN-50 (P-6): roles or a delegate; the evaluator decides
     public async Task<IActionResult> ApproveWorkflow(Guid id, RequisitionWorkflowActionViewModel vm)
     {
         if (id != vm.RequisitionId) return BadRequest();
@@ -320,7 +320,7 @@ public class RecruitmentRequisitionsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+    [Authorize(Policy = HrManagementPolicies.WorkflowStepAction)] // PLAN-50 (P-6): roles or a delegate; the evaluator decides
     public async Task<IActionResult> RejectWorkflow(Guid id, RequisitionWorkflowActionViewModel vm)
     {
         if (id != vm.RequisitionId) return BadRequest();

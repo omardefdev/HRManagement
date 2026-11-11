@@ -61,6 +61,11 @@
                             <tr>
                                 <td>
                                     <strong>@item.Title</strong>
+                                    @if (!string.IsNullOrWhiteSpace(item.OnBehalfOfName))
+                                    {
+                                        @* PLAN-50 (§6): an item the user would act on through a delegation. *@
+                                        <span class="badge text-bg-info ms-1" data-on-behalf-of="@item.DelegatedFromId">بالنيابة عن @item.OnBehalfOfName</span>
+                                    }
                                     @if (!string.IsNullOrWhiteSpace(item.Description))
                                     {
                                         <br /><small class="text-muted">@item.Description</small>

@@ -71,4 +71,6 @@ public static class ServicePolicies
     public const string FileStorageServiceUpload = "Service.FileStorageServiceUpload";
     /// <summary>PLAN-42: a service account with hr-core.workflow whose client owns a policy domain.</summary>
     public const string PolicyEnforceS2S = "Service.PolicyEnforce";
+    /// <summary>PLAN-50 (P-5): the active approval delegations of a user, for the services whose approvals honour them; no user passes.</summary>
+    public const string ApprovalDelegationRead = "Service.ApprovalDelegationRead";
 }

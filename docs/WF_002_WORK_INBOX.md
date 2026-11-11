@@ -66,6 +66,12 @@ interface IWorkInboxService
 - Service outage does not hide tasks (items persist independently)
 - Bulk approval prohibited or governed per agency policy
 - Every delegation/reassignment is audited
+- PLAN-50: a delegate sees his principal's items. The inbox loads the user's delegations once and applies the evaluator's rules in its
+  bulk check (the step's role through a delegation of that role and type, then every identity rule as the delegate and as the
+  principal, and the principal's stored branch scope); such an item carries «بالنيابة عن {الأصيل}» (`OnBehalfOfName`, `DelegatedFromId`),
+  and the detail panels say it. The delegate must hold an HR.Core read role to open the inbox and the details (D-50-3).
+  `DelegateItemAsync` stays unsupported: reassigning one item is not a delegation; a role is delegated for a period on
+  `/ui/hr-core/Delegations`
 - Escalation triggers notification to manager
 - An item waits for a decision only when the entity links that instance (`entity.WorkflowInstanceId == instance.Id`), for all five types (PLAN-44): an approval of any other instance would be lost, because the handler ignores it
 - The inbox bars the makers the gates bar, through the same `WorkflowMakerRules.Makers` (PLAN-44)

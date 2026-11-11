@@ -16,7 +16,7 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | P5 | AC-POL-49a..g on the prod-like stack (two classes, one overlay stage with its own CI job), the boot check, the CI scope and ownership. One independent review (8 findings) and, on the owner's switch to the session's multi-agent mode, two adversarial verifications (12 findings, then 35 from two launches of the last one, many of them the same): no high finding survived as high, 7 were medium, and all were answered with code, a test or a recorded decision (section 3). |
 | P6 | Nothing to merge: `origin/main` was still `f99950bf` (2026-11-11T00:40Z, and checked again before the push). No commit. |
 | P7 | The demo server runs `046316bde9e7` (the P5 commit) since 2026-11-11T01:05:34Z: a verified backup, one detached build (17 of 17 images), a deploy that passed at the first attempt, the migration and the four change sets applied at the first start. Fifteen templates are retired, the five governed domains run in Shadow in four services, and each has ledger rows from its owner since the deploy. The three server checks of this plan pass, with the server checks of PLAN-36..48 (section 8). |
-| P8 | The documents (the section of the runbook on the scope of the engine, with the rollback note; the status and the notes of the plan), this report, local CI and the pre-push check on the release HEAD, the PR and the merge. The results of the last three are in the merge note of `reports/plan49-progress.md`: this report is committed before them, because a commit after a green local run needs another run. |
+| P8 | The documents (the section of the runbook on the scope of the engine, with the rollback note; the status and the notes of the plan), this report, local CI and the pre-push check on the release HEAD, the PR and the merge. PR 47 was merged at 2026-11-11T09:13:33Z (merge commit `1ee60c47`) after its second run went 16 of 16 green; the first run had one red step, fixed on the release branch (section 6). Every check, the timing and the server check after the merge are in the merge note of `reports/plan49-progress.md`. |
 
 ## 2. Commits
 
@@ -34,10 +34,12 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | `2e14fbac` | P7 | test(pol049): demo server on the domain catalog (fifteen domains retired, five in Shadow with live ledger rows), PLAN-36..48 server checks still green |
 | `710bf420` | P8 | docs(pol049): the engine scope in the server runbook with the rollback note; the plan status and notes; the final report and the PR body |
 | `3005a21c` | P8, after the PR's first run | fix(qa): a finished test's idle connections leave the shared PostgreSQL server after seconds, not five minutes |
-| this commit | P8, after the PR's first run | docs(pol049): the PR's first run, its one red step and the fix, in the reports and the plan's notes |
+| `a58e7194` | P8, after the PR's first run | docs(pol049): the PR's first run, its one red step and the fix, in the reports and the plan's notes |
 
 P6 has no commit. The release branch adds one merge commit (`17a9076f`, `release/plan-49`, `--no-ff`); the two last commits
-are on the release branch only, as the prompt orders for a red check.
+are on the release branch only, as the prompt orders for a red check. The merge commit of PR 47 on `main` is `1ee60c47`.
+The merge note (this text and the progress file) is one more commit on the local branch `docs/plan-49-merge-note`, never
+pushed; the next plan brings it in.
 
 ## 3. Decisions applied and deviations
 
@@ -142,9 +144,9 @@ AC-POL-49a asserts it.
 | AC-POL-49f and the boot check of 49a (`AcPol49EnforceOverlayTests`, stage `prodLike:pol49`) | Pass (2 / 2) |
 | The rest of P-11's list, local | prod-like: journey 1/1, main 21/21, `AcInt37` 8/8, `AcMsg40` 8/8, `AcWf45` 8/8, `AcWf46` 9/9, `AcPol47` 1/1; `s2s42`: 9/9 and 1/1; least-privilege: 9/9; lab: 20 passed and AC-09 blocked by design since PLAN-42, journey 1/1, `AcHcm26` 5/5, `AcHcm27` 4/4 |
 | `scripts/acceptance-verify.ps1` | not run locally (PowerShell 7); its 32 seeded counts compared by psql, 32 of 32; CI runs it |
-| Local CI (`scripts/ci-local.ps1 -SkipTestcontainers`, the Linux container) and the pre-push check | on the first release HEAD `17a9076f`: ok, 89 steps passed, 0 failed, 2 not run (the Testcontainers step and the coverage gate, which needs it), 925 s; pre-push OK. Both run again on the HEAD that carries the fix below, before its push: that result is in the merge note. The Testcontainers step runs on the host, because the VPN of the owner keeps the container from reaching it (allowed since PLAN-48) |
+| Local CI (`scripts/ci-local.ps1 -SkipTestcontainers`, the Linux container) and the pre-push check | on the first release HEAD `17a9076f`: ok, 89 steps passed, 0 failed, 2 not run (the Testcontainers step and the coverage gate, which needs it), 925 s; pre-push OK. On the HEAD that carries the fix below (`a58e7194`): ok again, 89 steps passed, 0 failed, the same 2 not run; pre-push OK. The Testcontainers step runs on the host, because the VPN of the owner keeps the container from reaching it (allowed since PLAN-48) |
 | The Testcontainers step on the host, with the filter of CI, on the tree with the fix below | 211 passed, 1 skipped (`Ops038BootstrapIdempotencyTests`, as before), 0 failed, of 212 |
-| The PR run (the evidence of record) | PR 47. Its first run (`42974750826`, on `17a9076f`): the six other acceptance stages, the images, CodeQL, E2E, gitleaks, the reuse check and the hardening scan green; **red: the Testcontainers step of the `CI` job** (below), and with it the `meta` stage, whose two tests read that job's result, and the `Acceptance` roll-up. The run on the HEAD with the fix, every check and the link of the acceptance artifact are in the merge note |
+| The PR run (the evidence of record) | PR 47. Its first run (`42974750826`, on `17a9076f`): the six other acceptance stages, the images, CodeQL, E2E, gitleaks, the reuse check and the hardening scan green; **red: the Testcontainers step of the `CI` job** (below), and with it the `meta` stage, whose two tests read that job's result, and the `Acceptance` roll-up. Its second run (`42987351533`, on `a58e7194`): **16 of 16 green**. The Testcontainers step: 211 passed, 1 skipped, 0 failed, of 212; the coverage gate 91.6 % (floor 60 %). The acceptance job: PASS, 81 classes, 276 tests passed; the 4 that failed are the four payroll classes marked not required in `ci-scope.json`, as in the green runs of PLAN-47 and PLAN-48, and the 2 blocked are AC-09 (by design since PLAN-42) and AC-12 (it needs a payroll run). `AcPol49EngineScopeTests` 6 of 6 and `AcPol49EnforceOverlayTests` 2 of 2. Evidence of record: https://github.com/omardefdev/HRManagement/actions/runs/42987351533/artifacts/13842207523 (kept until 2026-12-11) |
 
 One local failure was not a defect: in the first run on the final images `Ac40f` (PLAN-40's test) lost one of its thirteen `GET /metrics` calls to a connection reset. Docker Desktop's own log shows another project's test run creating and deleting published-port containers every few seconds at that moment; the class passed 8 of 8 when it ran again.
 
@@ -240,11 +242,11 @@ What a call costs when HR.Core is not well: a refused connection (HR.Core stoppe
 
 ## 11. Timing
 
-Started 2026-11-10T08:35:40Z. The merge time, the total wall-clock, the CI runs and the output of `scripts/plan-timing.ps1 -From 25 -To 49` are in the merge note of the progress file, because they exist only after the merge. What is known when this report is committed (2026-11-11, about 01:45Z, 17 h 10 min after the start):
+Started 2026-11-10T08:35:40Z; first push 2026-11-11T06:45:45Z, 22 h 10 min after the start; merged 2026-11-11T09:13:33Z. **Total wall-clock: 24 h 38 min**, of which the session stood still for 11 h 2 min without anybody being asked anything (the first row below): about 13 h 36 min of session time. `scripts/plan-timing.ps1 -From 25 -To 49` prints for PLAN-49: 10 commits, started 2026-11-10 11:35, first commit 11:37, end 2026-11-11 04:35 (Riyadh time), span 16:58, wall-clock 17:00. The script takes the merge of the feature branch into `release/plan-49` (`17a9076f`, 01:35Z) for the merge, so its figure stops before the PR.
 
 | What | Time |
 |------|------|
-| The session stopped, nobody was asked anything | 6 h 17 min in five stops: 17 min (the desktop session ended, 08:43Z), 2 h 51 min (a turn that stopped at 14:45Z until the owner said «Try again»; the machine slept 1 h 41 min of it), 29 min (the owner restarted the machine during the disk incident), 2 h 31 min (the usage limit of the owner's plan, 20:02Z to 22:33Z; an acceptance chain ran by itself for 93 min of it), 9 min (a turn cut at 22:48Z) |
+| The session stopped, nobody was asked anything | 11 h 2 min in six stops: 17 min (the desktop session ended, 08:43Z), 2 h 51 min (a turn that stopped at 14:45Z until the owner said «Try again»; the machine slept 1 h 41 min of it), 29 min (the owner restarted the machine during the disk incident), 2 h 31 min (the usage limit of the owner's plan, 20:02Z to 22:33Z; an acceptance chain ran by itself for 93 min of it), 9 min (a turn cut at 22:48Z), 4 h 45 min (the usage limit again, 01:42Z to 06:27Z on 2026-11-11: local CI finished by itself in the first 12 min, and a restart by Windows Update kept the machine down for 3 h 5 min) |
 | The machine asleep while a run was in progress | 61 min (13:03Z to 14:04Z): the stack start it interrupted failed and was run again |
 | Lost to the disk incident and the cold image build after it | about 3 h 20 min: the incident and the recovery (18:40Z to 19:40Z), a chain whose image build failed after 39 min on a slow line and whose later stages then ran on stale images (105 min), the diagnosis and the fix (the NuGet cache filled from the host) |
 | The four inventories of P0 | 61 min, beside the first stack start |
@@ -253,7 +255,9 @@ Started 2026-11-10T08:35:40Z. The merge time, the total wall-clock, the CI runs 
 | The acceptance chain on the final images | 71 min (stage `pol49` 20 min 31 s with the build, prod-like list 14 min 33 s, `s2s42` 7 min 31 s, least-privilege 14 min 6 s, lab 13 min 39 s), and the prod-like list once more after the last fixes, 24 min 31 s |
 | The reviews | the independent review 31 min; the second verification about 80 min until the restart cut it; the last verification 80 and 101 min for its two launches; all beside acceptance runs |
 | The server | upload 15 s, build 1223 s, push 17 s; deploy 119.6 s to all healthy (the services away about 1 min 45 s); the server suites 20 min 33 s and three short runs |
-| Waiting for CI | in the merge note |
+| The PR, from the first push to the merge | 2 h 28 min: 28 min until the red step of the first run showed; 1 h 15 min from there to the second push (the measurement on the host, the fix and its proof, the documents, local CI 18 min, the pre-push check 20 min; the first run went on for 20 min of it); 43 min for the second run; 2 min from green to the merge. CI ran 1 h 31 min in all (47 min 55 s, red in one step; 43 min 2 s, green) |
+| Waiting for CI | about 1 h 11 min: the 28 min of the first run before its red step showed, and the second run |
+| GitHub Actions | run 1: 197.6 runner-minutes (205 billed, each job rounded up); run 2: 205.8 (213 billed); the two post-merge runs 3.2 (6 billed: the tree was already tested, so only gitleaks and the hardening scan ran) |
 
 ## 12. Readiness note
 

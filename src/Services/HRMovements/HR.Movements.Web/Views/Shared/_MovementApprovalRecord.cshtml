@@ -1,0 +1,16 @@
+@* PLAN-50 (§7): who approved the movement, and on behalf of whom when a delegate approved it. Reads the checklist the Details action loads. *@
+@{
+    var checklist = ViewBag.Checklist as IEnumerable<HR.Movements.Domain.Entities.MovementChecklist>;
+    var approved = checklist?.FirstOrDefault(c => c.Step == HR.Movements.Domain.Enums.MovementChecklistStep.Approved && c.IsCompleted);
+}
+@if (approved is not null)
+{
+    <p class="mt-3 mb-0" data-movement-approval="@approved.CompletedBy">
+        <i class="fas fa-check-circle text-success"></i>
+        اعتُمد في @approved.CompletedAt?.ToString("yyyy/MM/dd HH:mm") — المعتمد: @approved.CompletedBy
+        @if (approved.OnBehalfOfUserId is not null)
+        {
+            <span class="text-muted" data-on-behalf-of="@approved.OnBehalfOfUserId">بالنيابة عن @(approved.OnBehalfOfName ?? approved.OnBehalfOfUserId.ToString())</span>
+        }
+    </p>
+}

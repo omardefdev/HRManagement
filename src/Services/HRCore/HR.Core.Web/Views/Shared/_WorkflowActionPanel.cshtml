@@ -18,6 +18,11 @@
     </div>
     <div class="card-body">
         @* PLAN-25: approve and reject come from the same server-side checks; either may be unavailable alone. *@
+        @if (Model.OnBehalfOfName is not null && (Model.CanApprove || Model.CanReject))
+        {
+            @* PLAN-50 (§6): the user acts through a delegation; the step history and the signature will name the principal. *@
+            <div class="alert alert-info py-2" data-on-behalf-of="@Model.OnBehalfOf?.PrincipalUserId">تعتمد هذه الخطوة بالنيابة عن @Model.OnBehalfOfName</div>
+        }
         @if (Model.CanApprove)
         {
         <form asp-controller="@controller"

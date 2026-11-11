@@ -54,6 +54,7 @@ governed policy domain registers it (`PolicyDomainCatalog`), and `Pol049PolicyDo
 | `hr-contracts-web` | `AddWorkflowApprovalClient` | `GET /api/workflow-instances/{id}/external-status` | hr-core-web | `HrManagementPolicies.WorkflowExternalStart` | `hr-core.workflow` |  |
 | `hr-contracts-web` | `AddHrFileReferenceClient` | `POST /api/files/{fileId}/references` | file-storage-web (via hr-gateway) | `HrManagementPolicies.ModuleFileStorage`, `ServicePolicies.FileStorageReferences` | `file-storage.references` |  |
 | `hr-movements-web` | `AddHrCoreActiveRegimeClient` | `POST /api/internal/service-regime/active-regimes` | hr-core-web | `ServicePolicies.HrCoreInternalS2S` | `hr-core.lookup` |  |
+| `hr-movements-web` | `AddHrCoreApprovalDelegationClient` | `GET /api/internal/approval-delegations/active` | hr-core-web | `ServicePolicies.ApprovalDelegationRead` | `hr-core.lookup` |  |
 | `payroll-web` | `AddHrCoreLookupClient` | `POST /api/lookup/employees/by-ids` | hr-core-web | `HrManagementPolicies.HrCoreLookup` | `hr-core.lookup` |  |
 | `payroll-web` | `AddHrCoreServiceRegimeClient` | `POST /api/internal/service-regime/payroll-blockers` | hr-core-web | `ServicePolicies.HrCoreInternalS2S` | `hr-core.lookup` |  |
 | `idcard-web` | `AddHrCodeGeneration` | `POST /api/internal/codes/generate` | hr-core-web | `ServicePolicies.CodeGenerate` | `hr-core.workflow` |  |
@@ -93,6 +94,7 @@ governed policy domain registers it (`PolicyDomainCatalog`), and `Pol049PolicyDo
 | `AddHrPolicyEnforceClient` | `src/Shared/HRManagement.ServiceDefaults/Policy/PolicyEnforceClient.cs` | `Integration__HrCoreBaseUrl` | `hr-contracts-web`, `idcard-web`, `admin-logistics-web` |
 | `AddHrCoreLookupClient` | `src/Shared/HRManagement.ServiceDefaults/Integration/HrCoreLookupClient.cs` | `Integration__HrCoreBaseUrl` | `hr-contracts-web`, `payroll-web`, `admin-logistics-web`, `compliance-web`, `auth-directory-web` |
 | `AddHrCoreActiveRegimeClient` | `src/Shared/HRManagement.ServiceDefaults/Integration/HrCoreActiveRegimeClient.cs` | `Integration__HrCoreBaseUrl` | `hr-contracts-web`, `hr-movements-web` |
+| `AddHrCoreApprovalDelegationClient` | `src/Shared/HRManagement.ServiceDefaults/Delegation/HttpApprovalDelegationLookup.cs` | `Integration__HrCoreBaseUrl` | `hr-movements-web` |
 | `AddHrCoreServiceRegimeClient` | `src/Shared/HRManagement.ServiceDefaults/Integration/HrCoreServiceRegimeClient.cs` | `Integration__HrCoreBaseUrl` | `payroll-web` |
 | `AddHrDsarDeletion` | `src/Shared/HRManagement.ServiceDefaults/Privacy/DsarDeletionOrchestrator.cs` | `Integration__HrCoreBaseUrl` | `compliance-web` |
 | `AddHrFileReferenceClient` | `src/Shared/HRManagement.ServiceDefaults/FileReferenceClient.cs` | `HrGateway__InternalBaseUrl` | `hr-core-web`, `hr-contracts-web`, `idcard-web`, `records-archive-web`, `admin-logistics-web`, `compliance-web`, `hr-training-web` |

@@ -5,7 +5,10 @@
 #
 # Runs inside the Keycloak container, where KEYCLOAK_ADMIN, KEYCLOAK_ADMIN_PASSWORD and DEMO_USERS_PASSWORD already are:
 #
-#   ssh hrm-vps "docker exec -i hrm-keycloak bash -s -- <username> <email> <lastName> <tenantId> <role> [role...]" < scripts/vps/add-demo-user.sh
+#   ssh hrm-vps "docker exec -i hrm-keycloak bash -s -- [--employee-id <guid>] <username> <email> <lastName> <tenantId> <role> [role...]" < scripts/vps/add-demo-user.sh
+#
+# PLAN-50 (P-13): --employee-id also writes the employee_id attribute, which the realm's mapper puts in the token; an approval
+# delegation is matched by it (D-50-2). Without it the user carries tenant_id only, as before.
 #
 # The live realm's user profile declares no tenant_id, and an admin write of an attribute it does not know is silently dropped; users of the
 # first import have it because the import bypasses the profile. So the profile allows unmanaged attributes for this write only, and goes back
@@ -15,6 +18,14 @@
 # never printed.
 set -euo pipefail
 umask 077
+
+EMPLOYEE_ID=""
+if [ "${1:-}" = "--employee-id" ]; then
+    EMPLOYEE_ID="${2:?employee id required after --employee-id}"
+    shift 2
+    [[ "$EMPLOYEE_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]] \
+        || { echo "--employee-id must be a GUID" >&2; exit 2; }
+fi
 
 USERNAME="${1:?username required}"
 EMAIL="${2:?email required}"
@@ -65,6 +76,10 @@ fi
 id="$(kc get users -r "$REALM" -q "username=$USERNAME" -q exact=true --fields id | grep -o '"id" : "[^"]*"' | cut -d'"' -f4)"
 [ -n "$id" ] || { echo "no id for $USERNAME" >&2; exit 1; }
 kc update "users/$id" -r "$REALM" -s "attributes.tenant_id=[\"$TENANT\"]" > /dev/null
+if [ -n "$EMPLOYEE_ID" ]; then
+    kc update "users/$id" -r "$REALM" -s "attributes.employee_id=[\"$EMPLOYEE_ID\"]" > /dev/null
+    echo "employee_id: $USERNAME"
+fi
 
 for role in "$@"; do
     kc add-roles -r "$REALM" --uusername "$USERNAME" --rolename "$role" > /dev/null

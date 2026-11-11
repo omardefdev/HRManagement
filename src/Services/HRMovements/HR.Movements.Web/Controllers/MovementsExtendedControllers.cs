@@ -8,9 +8,11 @@ using HR.Movements.Infrastructure.Services;
 using HRManagement.MessageContracts.Commands;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Delegation;
 using HRManagement.SharedKernel.Legal;
 using HRManagement.SharedKernel.ViewModels;
 using MassTransit;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -241,7 +243,9 @@ public class DistributionPlansController(MovementsDbContext db) : Controller
     }
 }
 
-public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoint publish) : Controller
+// PLAN-50 (§7): a delegation scoped to another entity type does not reach these screens.
+[ApprovalEntityType("SecondmentRequest")]
+public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoint publish, IApprovalActingContext? actingContext = null) : Controller
 {
     private static Guid? ParseUserId(System.Security.Claims.ClaimsPrincipal user)
     {
@@ -250,9 +254,17 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
         return Guid.TryParse(v, out var g) ? g : null;
     }
 
-    public async Task<IActionResult> Index() =>
-        View(await db.SecondmentRequests.AsNoTracking().OrderByDescending(x => x.StartDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
+    public async Task<IActionResult> Index(string? show = null)
+    {
+        var query = db.SecondmentRequests.AsNoTracking();
+        // PLAN-50 (D-IAM-1): the approver's list shows what awaits approval by default.
+        if (MovementApprovalUi.PendingOnly(User, show, ViewData))
+            query = query.Where(x => x.Status == SecondmentStatus.Pending && !x.IsCancelled);
+        return View(await query.OrderByDescending(x => x.StartDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public IActionResult Create() => View(new SecondmentRequest
     {
         StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
@@ -262,10 +274,12 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Create(SecondmentRequest model)
     {
         if (!ModelState.IsValid) return View(model);
-        model.RequestedBy ??= ParseUserId(User);
+        // PLAN-50: always the authenticated caller (as for transfers): a client-supplied value would skew the creator check of the approval.
+        model.RequestedBy = ParseUserId(User);
         model.Status = SecondmentStatus.Pending;
         db.SecondmentRequests.Add(model);
         await db.SaveChangesAsync();
@@ -282,6 +296,7 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
         return RedirectToAction(nameof(Index));
     }
 
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Details(Guid id)
     {
         var s = await db.SecondmentRequests
@@ -296,6 +311,7 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
         return View(s);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Edit(Guid id)
     {
         var s = await db.SecondmentRequests.FindAsync(id);
@@ -310,6 +326,7 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Edit(Guid id, SecondmentRequest model)
     {
         if (id != model.Id) return BadRequest();
@@ -333,7 +350,8 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Approve(Guid id)
     {
         var s = await db.SecondmentRequests.FindAsync(id);
@@ -344,10 +362,25 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        var by = ParseUserId(User);
+        // PLAN-50 (§7): the direct role acts in its own name; a delegate on behalf of his principal, or not at all (fail-closed).
+        var acting = await MovementApprovalActing.ResolveAsync(actingContext, User, "SecondmentRequest", HttpContext.RequestAborted);
+        if (!acting.MayAct)
+            return Forbid();
+
+        var by = acting.UserId;
         if (by == null)
         {
             TempData["Error"] = "تعذر تحديد هوية المعتمد من التوكن";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        if (MovementApprovalActing.CreatorOrPrincipal(acting, s.RequestedBy) is { } onBehalfCreator)
+        {
+            TempData["Error"] = onBehalfCreator;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        if (MovementApprovalActing.Subject(acting, s.EmployeeId) is { } onBehalfSubject)
+        {
+            TempData["Error"] = onBehalfSubject;
             return RedirectToAction(nameof(Details), new { id });
         }
         if (s.RequestedBy.HasValue && by.Value == s.RequestedBy.Value)
@@ -360,6 +393,10 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
         var sodResult = sod.ValidateAction(
             by.Value, null, "SecondmentRequest", s.Id,
             HRManagement.SharedKernel.SeparationOfDuties.SodAction.Check, s.RequestedBy, null);
+        if (sodResult.Allowed && acting.OnBehalfOf is { } principal)
+            sodResult = sod.ValidateAction(
+                principal.PrincipalUserId, null, "SecondmentRequest", s.Id,
+                HRManagement.SharedKernel.SeparationOfDuties.SodAction.Check, s.RequestedBy, null);
         if (!sodResult.Allowed)
         {
             TempData["Error"] = sodResult.DenialReason;
@@ -370,7 +407,10 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
         var approved = await db.MovementChecklists.FirstOrDefaultAsync(c =>
             c.CorrelationId == s.Id && c.Step == MovementChecklistStep.Approved);
         if (approved is not null && !approved.IsCompleted)
+        {
             MovementWorkflowRules.MarkStep(approved, by, $"secondment:{s.Id}:approved");
+            MovementApprovalActing.Record(acting, approved);
+        }
         await db.SaveChangesAsync();
         TempData["Success"] = "تم اعتماد الانتداب";
         return RedirectToAction(nameof(Details), new { id });
@@ -378,6 +418,7 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Activate(Guid id)
     {
         var s = await db.SecondmentRequests.FindAsync(id);
@@ -450,6 +491,7 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Close(Guid id)
     {
         var s = await db.SecondmentRequests.FindAsync(id);
@@ -486,6 +528,7 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Cancel(Guid id, string? reason)
     {
         var s = await db.SecondmentRequests.FindAsync(id);
@@ -591,7 +634,9 @@ public class TransferFinancialImpactsController(MovementsDbContext db) : Control
     }
 }
 
-public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEndpoint publish) : Controller
+// PLAN-50 (§7): a delegation scoped to another entity type does not reach these screens.
+[ApprovalEntityType("LoanAssignmentRequest")]
+public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEndpoint publish, IApprovalActingContext? actingContext = null) : Controller
 {
     private static Guid? ParseUserId(System.Security.Claims.ClaimsPrincipal user)
     {
@@ -603,6 +648,9 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
     /// <summary>FUN-003: lending AND borrowing must both be in scope.</summary>
     private async Task<IActionResult?> EnsureLoanInScopeAsync(LoanAssignmentRequest s)
     {
+        // PLAN-50 (review 1): a reader admitted through a delegation stays inside the principal's stored scope as well.
+        var principalScope = await MovementApprovalActing.PrincipalScopeAsync(MovementApprovalActing.AdmittedBy(HttpContext), db.OrgUnitSnapshots);
+        if (!MovementApprovalActing.Allows(principalScope, s.LendingOrgUnitId, s.BorrowingOrgUnitId)) return Forbid();
         var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, db.OrgUnitSnapshots);
         if (scope.IsDenied) return Forbid();
         if (scope.IsUnrestricted) return null;
@@ -620,7 +668,8 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
         return null;
     }
 
-    public async Task<IActionResult> Index()
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
+    public async Task<IActionResult> Index(string? show = null)
     {
         var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, db.OrgUnitSnapshots);
         if (scope.IsDenied) return Forbid();
@@ -628,9 +677,21 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
         if (scope.MustFilter)
             query = query.Where(x => scope.AllowedOrgUnitIds.Contains(x.LendingOrgUnitId)
                 && scope.AllowedOrgUnitIds.Contains(x.BorrowingOrgUnitId));
+        // PLAN-50 (review 1): a reader admitted through a delegation lists inside the principal's stored scope as well.
+        if (await MovementApprovalActing.PrincipalScopeAsync(MovementApprovalActing.AdmittedBy(HttpContext), db.OrgUnitSnapshots) is { } principalScope)
+        {
+            if (principalScope.IsDenied) return Forbid();
+            if (principalScope.MustFilter)
+                query = query.Where(x => principalScope.AllowedOrgUnitIds.Contains(x.LendingOrgUnitId)
+                    && principalScope.AllowedOrgUnitIds.Contains(x.BorrowingOrgUnitId));
+        }
+        // PLAN-50 (D-IAM-1): the approver's list shows what awaits approval by default.
+        if (MovementApprovalUi.PendingOnly(User, show, ViewData))
+            query = query.Where(x => x.Status == LoanAssignmentStatus.Pending && !x.IsCancelled);
         return View(await query.OrderByDescending(x => x.StartDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public IActionResult Create() => View(new LoanAssignmentRequest
     {
         StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
@@ -640,11 +701,13 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Create(LoanAssignmentRequest model)
     {
         if (!ModelState.IsValid) return View(model);
         if (await EnsureOrgIdsAssignableAsync(model.LendingOrgUnitId, model.BorrowingOrgUnitId) is { } denied) return denied;
-        model.RequestedBy ??= ParseUserId(User);
+        // PLAN-50: always the authenticated caller (as for transfers): a client-supplied value would skew the creator check of the approval.
+        model.RequestedBy = ParseUserId(User);
         model.Status = LoanAssignmentStatus.Pending;
         db.LoanAssignmentRequests.Add(model);
         await db.SaveChangesAsync();
@@ -661,6 +724,7 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
         return RedirectToAction(nameof(Index));
     }
 
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Details(Guid id)
     {
         var s = await db.LoanAssignmentRequests
@@ -678,7 +742,8 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Approve(Guid id)
     {
         var s = await db.LoanAssignmentRequests.FindAsync(id);
@@ -690,10 +755,25 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        var by = ParseUserId(User);
+        // PLAN-50 (§7): the direct role acts in its own name; a delegate on behalf of his principal, or not at all (fail-closed).
+        var acting = await MovementApprovalActing.ResolveAsync(actingContext, User, "LoanAssignmentRequest", HttpContext.RequestAborted);
+        if (!acting.MayAct)
+            return Forbid();
+
+        var by = acting.UserId;
         if (by == null)
         {
             TempData["Error"] = "تعذر تحديد هوية المعتمد من التوكن";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        if (MovementApprovalActing.CreatorOrPrincipal(acting, s.RequestedBy) is { } onBehalfCreator)
+        {
+            TempData["Error"] = onBehalfCreator;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        if (MovementApprovalActing.Subject(acting, s.EmployeeId) is { } onBehalfSubject)
+        {
+            TempData["Error"] = onBehalfSubject;
             return RedirectToAction(nameof(Details), new { id });
         }
         if (s.RequestedBy.HasValue && by.Value == s.RequestedBy.Value)
@@ -706,17 +786,28 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
         var sodResult = sod.ValidateAction(
             by.Value, null, "LoanAssignmentRequest", s.Id,
             HRManagement.SharedKernel.SeparationOfDuties.SodAction.Check, s.RequestedBy, null);
+        if (sodResult.Allowed && acting.OnBehalfOf is { } principal)
+            sodResult = sod.ValidateAction(
+                principal.PrincipalUserId, null, "LoanAssignmentRequest", s.Id,
+                HRManagement.SharedKernel.SeparationOfDuties.SodAction.Check, s.RequestedBy, null);
         if (!sodResult.Allowed)
         {
             TempData["Error"] = sodResult.DenialReason;
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        // PLAN-50 (P-7): the principal's stored scope applies as well as the delegate's own.
+        if (!await MovementApprovalActing.PrincipalScopeAllowsAsync(acting, db.OrgUnitSnapshots, s.LendingOrgUnitId, s.BorrowingOrgUnitId))
+            return Forbid();
+
         s.Status = LoanAssignmentStatus.Approved;
         var approved = await db.MovementChecklists.FirstOrDefaultAsync(c =>
             c.CorrelationId == s.Id && c.Step == MovementChecklistStep.Approved);
         if (approved is not null && !approved.IsCompleted)
+        {
             MovementWorkflowRules.MarkStep(approved, by, $"loan:{s.Id}:approved");
+            MovementApprovalActing.Record(acting, approved);
+        }
         await db.SaveChangesAsync();
         TempData["Success"] = "تم اعتماد الإعارة";
         return RedirectToAction(nameof(Details), new { id });
@@ -724,6 +815,7 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Execute(Guid id)
     {
         var s = await db.LoanAssignmentRequests.FindAsync(id);
@@ -798,6 +890,7 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Close(Guid id)
     {
         var s = await db.LoanAssignmentRequests.FindAsync(id);
@@ -837,6 +930,7 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Cancel(Guid id, string? reason)
     {
         var s = await db.LoanAssignmentRequests.FindAsync(id);
@@ -880,10 +974,13 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
     }
 }
 
+// PLAN-50 (§7): a delegation scoped to another entity type does not reach these screens.
+[ApprovalEntityType("PromotionRequest")]
 public class PromotionRequestsController(
     MovementsDbContext db,
     IPublishEndpoint publish,
-    IHrCoreActiveRegimeClient activeRegimeClient) : Controller
+    IHrCoreActiveRegimeClient activeRegimeClient,
+    IApprovalActingContext? actingContext = null) : Controller
 {
     private static Guid? ParseUserId(ClaimsPrincipal user)
     {
@@ -891,9 +988,17 @@ public class PromotionRequestsController(
         return Guid.TryParse(v, out var g) ? g : null;
     }
 
-    public async Task<IActionResult> Index() =>
-        View(await db.PromotionRequests.AsNoTracking().OrderByDescending(x => x.EffectiveDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
+    public async Task<IActionResult> Index(string? show = null)
+    {
+        var query = db.PromotionRequests.AsNoTracking();
+        // PLAN-50 (D-IAM-1): the approver's list shows what awaits approval by default.
+        if (MovementApprovalUi.PendingOnly(User, show, ViewData))
+            query = query.Where(x => x.Status == PromotionRequestStatus.Pending && !x.IsCancelled);
+        return View(await query.OrderByDescending(x => x.EffectiveDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public IActionResult Create() => View(new PromotionRequest
     {
         EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow),
@@ -902,6 +1007,7 @@ public class PromotionRequestsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Create(PromotionRequest model)
     {
         var regimes = await activeRegimeClient.GetActiveRegimesAsync([model.EmployeeId]);
@@ -913,7 +1019,8 @@ public class PromotionRequestsController(
 
         if (!ModelState.IsValid) return View(model);
 
-        model.RequestedBy ??= ParseUserId(User);
+        // PLAN-50: always the authenticated caller (as for transfers): a client-supplied value would skew the creator check of the approval.
+        model.RequestedBy = ParseUserId(User);
         model.Status = PromotionRequestStatus.Pending;
         db.PromotionRequests.Add(model);
         await db.SaveChangesAsync();
@@ -931,6 +1038,7 @@ public class PromotionRequestsController(
         return RedirectToAction(nameof(Index));
     }
 
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Details(Guid id)
     {
         var item = await db.PromotionRequests
@@ -947,7 +1055,8 @@ public class PromotionRequestsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Approve(Guid id)
     {
         var item = await db.PromotionRequests.FindAsync(id);
@@ -958,10 +1067,26 @@ public class PromotionRequestsController(
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        var by = ParseUserId(User);
+        // PLAN-50 (§7): the direct role acts in its own name; a delegate on behalf of his principal, or not at all (fail-closed).
+        var acting = await MovementApprovalActing.ResolveAsync(actingContext, User, "PromotionRequest", HttpContext.RequestAborted);
+        if (!acting.MayAct)
+            return Forbid();
+
+        var by = acting.UserId;
         if (by is null)
         {
             TempData["Error"] = "تعذر تحديد هوية المعتمد من التوكن";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (MovementApprovalActing.CreatorOrPrincipal(acting, item.RequestedBy) is { } onBehalfCreator)
+        {
+            TempData["Error"] = onBehalfCreator;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        if (MovementApprovalActing.Subject(acting, item.EmployeeId) is { } onBehalfSubject)
+        {
+            TempData["Error"] = onBehalfSubject;
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -982,7 +1107,10 @@ public class PromotionRequestsController(
         var approved = await db.MovementChecklists.FirstOrDefaultAsync(c =>
             c.CorrelationId == item.Id && c.Step == MovementChecklistStep.Approved);
         if (approved is not null && !approved.IsCompleted)
+        {
             MovementWorkflowRules.MarkStep(approved, by, $"promotion:{item.Id}:approved");
+            MovementApprovalActing.Record(acting, approved);
+        }
         await db.SaveChangesAsync();
         TempData["Success"] = "تم اعتماد الترفيع";
         return RedirectToAction(nameof(Details), new { id });
@@ -990,6 +1118,7 @@ public class PromotionRequestsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Execute(Guid id)
     {
         var item = await db.PromotionRequests.FindAsync(id);
@@ -1037,7 +1166,9 @@ public class PromotionRequestsController(
     }
 }
 
-public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoint publish) : Controller
+// PLAN-50 (§7): a delegation scoped to another entity type does not reach these screens.
+[ApprovalEntityType("DelegationRequest")]
+public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoint publish, IApprovalActingContext? actingContext = null) : Controller
 {
     private static Guid? ParseUserId(ClaimsPrincipal user)
     {
@@ -1045,9 +1176,17 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
         return Guid.TryParse(v, out var g) ? g : null;
     }
 
-    public async Task<IActionResult> Index() =>
-        View(await db.DelegationRequests.AsNoTracking().OrderByDescending(x => x.StartDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
+    public async Task<IActionResult> Index(string? show = null)
+    {
+        var query = db.DelegationRequests.AsNoTracking();
+        // PLAN-50 (D-IAM-1): the approver's list shows what awaits approval by default.
+        if (MovementApprovalUi.PendingOnly(User, show, ViewData))
+            query = query.Where(x => x.Status == DelegationRequestStatus.Pending && !x.IsCancelled);
+        return View(await query.OrderByDescending(x => x.StartDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public IActionResult Create() => View(new DelegationRequest
     {
         StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
@@ -1057,6 +1196,7 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Create(DelegationRequest model)
     {
         var regimeError = MovementRegimeValidationService.ValidatePreservingMovement("delegation", null);
@@ -1065,7 +1205,8 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
 
         if (!ModelState.IsValid) return View(model);
 
-        model.RequestedBy ??= ParseUserId(User);
+        // PLAN-50: always the authenticated caller (as for transfers): a client-supplied value would skew the creator check of the approval.
+        model.RequestedBy = ParseUserId(User);
         model.Status = DelegationRequestStatus.Pending;
         db.DelegationRequests.Add(model);
         await db.SaveChangesAsync();
@@ -1083,6 +1224,7 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
         return RedirectToAction(nameof(Index));
     }
 
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Details(Guid id)
     {
         var item = await db.DelegationRequests
@@ -1099,7 +1241,8 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Approve(Guid id)
     {
         var item = await db.DelegationRequests.FindAsync(id);
@@ -1110,10 +1253,26 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        var by = ParseUserId(User);
+        // PLAN-50 (§7): the direct role acts in its own name; a delegate on behalf of his principal, or not at all (fail-closed).
+        var acting = await MovementApprovalActing.ResolveAsync(actingContext, User, "DelegationRequest", HttpContext.RequestAborted);
+        if (!acting.MayAct)
+            return Forbid();
+
+        var by = acting.UserId;
         if (by is null)
         {
             TempData["Error"] = "تعذر تحديد هوية المعتمد من التوكن";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (MovementApprovalActing.CreatorOrPrincipal(acting, item.RequestedBy) is { } onBehalfCreator)
+        {
+            TempData["Error"] = onBehalfCreator;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        if (MovementApprovalActing.Subject(acting, item.EmployeeId) is { } onBehalfSubject)
+        {
+            TempData["Error"] = onBehalfSubject;
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -1127,7 +1286,10 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
         var approved = await db.MovementChecklists.FirstOrDefaultAsync(c =>
             c.CorrelationId == item.Id && c.Step == MovementChecklistStep.Approved);
         if (approved is not null && !approved.IsCompleted)
+        {
             MovementWorkflowRules.MarkStep(approved, by, $"delegation:{item.Id}:approved");
+            MovementApprovalActing.Record(acting, approved);
+        }
         await db.SaveChangesAsync();
         TempData["Success"] = "تم اعتماد الندب";
         return RedirectToAction(nameof(Details), new { id });
@@ -1135,6 +1297,7 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Execute(Guid id)
     {
         var item = await db.DelegationRequests.FindAsync(id);
@@ -1183,6 +1346,7 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Close(Guid id)
     {
         var item = await db.DelegationRequests.FindAsync(id);

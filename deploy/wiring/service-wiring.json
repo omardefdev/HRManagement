@@ -33,6 +33,11 @@
       "controller": "src/Services/HRCore/HR.Core.Web/Controllers/ServiceRegimeInternalController.cs",
       "serverPolicies": ["ServicePolicies.HrCoreInternalS2S"], "scope": "hr-core.lookup"
     },
+    "hr-core.approval-delegations.active": {
+      "target": "hr-core-web", "method": "GET", "path": "/api/internal/approval-delegations/active",
+      "controller": "src/Services/HRCore/HR.Core.Web/Controllers/ApprovalDelegationsInternalController.cs",
+      "serverPolicies": ["ServicePolicies.ApprovalDelegationRead"], "scope": "hr-core.lookup"
+    },
     "hr-core.service-regime.payroll-blockers": {
       "target": "hr-core-web", "method": "POST", "path": "/api/internal/service-regime/payroll-blockers",
       "controller": "src/Services/HRCore/HR.Core.Web/Controllers/ServiceRegimeInternalController.cs",
@@ -104,6 +109,7 @@
     "AddHrPolicyEnforceClient": { "definedIn": "src/Shared/HRManagement.ServiceDefaults/Policy/PolicyEnforceClient.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] },
     "AddHrCoreLookupClient": { "definedIn": "src/Shared/HRManagement.ServiceDefaults/Integration/HrCoreLookupClient.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] },
     "AddHrCoreActiveRegimeClient": { "definedIn": "src/Shared/HRManagement.ServiceDefaults/Integration/HrCoreActiveRegimeClient.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] },
+    "AddHrCoreApprovalDelegationClient": { "definedIn": "src/Shared/HRManagement.ServiceDefaults/Delegation/HttpApprovalDelegationLookup.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] },
     "AddHrCoreServiceRegimeClient": { "definedIn": "src/Shared/HRManagement.ServiceDefaults/Integration/HrCoreServiceRegimeClient.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] },
     "AddHrDsarDeletion": { "definedIn": "src/Shared/HRManagement.ServiceDefaults/Privacy/DsarDeletionOrchestrator.cs", "urlKeys": ["Integration__HrCoreBaseUrl"] },
     "AddHrFileReferenceClient": { "definedIn": "src/Shared/HRManagement.ServiceDefaults/FileReferenceClient.cs", "urlKeys": ["HrGateway__InternalBaseUrl"] },
@@ -210,9 +216,10 @@
       "secretEnv": "SVC_HR_MOVEMENTS_CLIENT_SECRET",
       "urls": { "Integration__HrCoreBaseUrl": "http://hr-core-web:8080" },
       "scopes": ["hr-core.lookup"],
-      "registrations": ["AddHrCoreActiveRegimeClient"],
+      "registrations": ["AddHrCoreActiveRegimeClient", "AddHrCoreApprovalDelegationClient"],
       "calls": [
-        { "client": "AddHrCoreActiveRegimeClient", "endpoint": "hr-core.service-regime.active-regimes", "scope": "hr-core.lookup" }
+        { "client": "AddHrCoreActiveRegimeClient", "endpoint": "hr-core.service-regime.active-regimes", "scope": "hr-core.lookup" },
+        { "client": "AddHrCoreApprovalDelegationClient", "endpoint": "hr-core.approval-delegations.active", "scope": "hr-core.lookup" }
       ],
       "legalPacks": ["syr003-service-regimes-v1"]
     },

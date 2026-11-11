@@ -226,7 +226,7 @@ public class OfferLettersController(
 
     [ValidateAntiForgeryToken]
 
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+    [Authorize(Policy = HrManagementPolicies.WorkflowStepAction)] // PLAN-50 (P-6): roles or a delegate; the evaluator decides
 
     public async Task<IActionResult> ApproveWorkflow(Guid id, OfferLetterWorkflowActionViewModel vm)
 
@@ -293,7 +293,7 @@ public class OfferLettersController(
 
     [ValidateAntiForgeryToken]
 
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+    [Authorize(Policy = HrManagementPolicies.WorkflowStepAction)] // PLAN-50 (P-6): roles or a delegate; the evaluator decides
 
     public async Task<IActionResult> RejectWorkflow(Guid id, OfferLetterWorkflowActionViewModel vm)
 

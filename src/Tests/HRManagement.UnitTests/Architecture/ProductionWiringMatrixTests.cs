@@ -106,7 +106,9 @@ public partial class ProductionWiringMatrixTests
             "ServicePolicies.PayrollGradeLookup", "ServicePolicies.FileStorageServiceUpload", "ServicePolicies.CodeGenerate",
             // PLAN-49: the owners of the policy endpoint come from the domain catalog (governed domains only), so the policy now
             // admits exactly its three matrix callers; it used to admit every client that owned any of the twenty domains.
-            "ServicePolicies.PolicyEnforceS2S"
+            "ServicePolicies.PolicyEnforceS2S",
+            // PLAN-50: the delegations of a user, for the movement approvals only.
+            "ServicePolicies.ApprovalDelegationRead"
         };
         var allClients = ServiceClientIds.All.Append(ServiceClientIds.Gateway).ToArray();
         var problems = new List<string>();
