@@ -13,7 +13,7 @@ Started (UTC): 2026-11-11T10:00:59.4954239Z
 | P4 | done (`78f09d18`) | 2026-11-11T12:11:36Z |
 | P5 | done (this commit) | 2026-11-11T16:14:14Z |
 | P6 | done, no merge (`origin/main` still `1ee60c47`, already in the branch; checked 15:40Z) | 2026-11-11T16:14:14Z |
-| P7 | pending | |
+| P7 | done (this commit) | 2026-11-11T19:03:22Z |
 | P8 | pending | |
 
 ## P0 — timing, preconditions, baseline, inventories
@@ -141,9 +141,84 @@ P0: `reports/plan50-progress.md`, `reports/plan50-baseline.md`.
 
 P0: build 0/0; unit filter 957/957.
 
+P8 (started while the server waited on DNS): the full Testcontainers step on the host with CI's filter
+(`Category=Testcontainers&Category!=ObjectStorage`, Release, `RUN_TESTCONTAINERS=true`) on the code of `a504f6e5`
+(16:23:45Z..16:31:02Z; tests 4 min 40 s): **214 passed, 1 skipped** (`Ops038BootstrapIdempotencyTests`, skipped as in PLAN-49),
+**0 failed**, of 215.
+
+An early `scripts/ci-local.ps1 -SkipTestcontainers -ContinueOnError` on `a504f6e5` (16:33Z..16:51Z, 1114 s): 88 passed, **1 failed
+(Check formatting: 37 WHITESPACE errors in three PLAN-50 test files)**, 2 not-run (the Testcontainers step and its coverage gate, run
+on the host above). Fixed with `dotnet format whitespace` on those three files (`defc46e5`, tests only, so the image build of
+`a504f6e54921` stands); the format verify passes on the five PLAN-50 test files; the PLAN-50 unit classes 127/127; the acceptance
+project builds. ci-local runs again on the final HEAD before the push.
+
 ## Server changes and their undo
 
-None yet (P0 was read-only).
+Read-only before P7 (15:40Z..16:15Z): the running tag `046316bde9e7` is on `origin/main` (`git branch -r --contains`); 22
+containers, 20 report healthy (two have no health check); 47 GB free. `ApprovalDelegations` 0 rows, `WorkflowDelegations` 0 rows;
+last migrations `POL049_PolicyDomainRetirement` (hr_core_db) and `MSG040_InboxStateKeys` (hr_movements_db); 40 transfers, 20
+transfer approvals, 0 promotions; 425 active employees (`artifacts/plan50/vps/before-p7.txt`).
+
+Changes, in the order they were made (P7, 2026-11-11):
+
+1. **The backup** (16:18:06Z): `/opt/hrm/backups/pre-plan50-20261111T161806Z` (700; `pg_dumpall.sql` 29.3 MB, `env.backup`,
+   `SHA256SUMS`: 600). Checked: 17 `CREATE DATABASE` statements (`hr_core_db` and `hr_movements_db` among them), the dump's completion
+   line, `sha256sum -c` OK (`artifacts/plan50/vps/backup.txt`). Undo: none needed; delete the folder when it is no longer wanted.
+2. **The build** of `a504f6e54921` (the P5 commit plus the gitleaks allowlist; the commits after it change no image): source
+   archive 32.2 MB uploaded in 235 s, then `build-on-host-a504f6e54921.sh` started at 16:22:35Z under `setsid nohup`, writing
+   `/opt/hrm/build-a504f6e54921.done`. **Attempt 1 failed at 16:23:20Z (exit 1, 45 s):** the runtime stage's `apt-get` could not
+   resolve `archive.ubuntu.com` / `security.ubuntu.com`. The server's two provider resolvers (`195.179.224.53`, `209.126.15.53`)
+   answer SERVFAIL for every `ubuntu.com` name ("No Reachable Authority: delegation ubuntu.com"); `github.com` and
+   `mcr.microsoft.com` resolve, and `1.1.1.1` resolves `archive.ubuntu.com`. An upstream DNS fault, not this code; the server's
+   resolver configuration is not changed (not this plan's to change). Nothing was pushed or deployed; the demo kept running
+   `046316bde9e7`. A local watcher probed the server's resolver every minute (`artifacts/plan50/vps/dns-wait.log`): FAIL from
+   16:27:06Z to 16:54:06Z (26 probes), OK at 16:55:11Z, and it started **attempt 2 at 16:55:16Z** with the same archive and
+   script (attempt 1's log kept as `build-a504f6e54921.attempt1.log`). Attempt 2 ended at 17:19:19Z: build 1406 s, push 26 s,
+   **17 of 17 images** tagged `a504f6e54921` in the loopback registry (`artifacts/plan50/vps/build.txt`); the script removed the
+   source, the build cache and the SDK image; 39 GB free after it. Undo: none needed (the previous tag's images stay).
+3. **The deploy** (17:20:12Z to 17:23:24Z with the self-test; first attempt): `scripts/vps/deploy.ps1 -Tag a504f6e54921`
+   (pull 2 s, up 96, bootstrap 43, Keycloak reconcile 9, healthy 13); `deployments.log` says healthy at 17:22:43Z, previous tag
+   `046316bde9e7`. The services were away for about 1 min 50 s (from the start of `up` to healthy). Self-test (smoke with mandatory
+   wiring): 50 pass, 0 fail, 1 warning (the client-side port probe, as before); `svc-hr-movements` gets its token with
+   `hr-core.lookup`. Start-up applied `HCM050_ApprovalDelegationScope` and `MOV050_ApprovalOnBehalfOf`; `WorkflowDelegations` is gone;
+   the migration revoked nothing (0 rows existed). **Undo:** `scripts/vps/deploy.ps1 -Rollback` (no SQL, no restore; the rollback
+   note in `OPS_VPS_SINGLE_HOST.md`).
+4. **The demo user** `e2e-delegate-hr` (17:24Z): `scripts/vps/add-demo-user.sh --employee-id 98655dae-f87e-4d46-9703-a17c0b5cc09a
+   e2e-delegate-hr e2e-delegate-hr@hrm.local DelegateHr 00000000-0000-4000-8000-000000000001 hr-core offline_access` (inside
+   `hrm-keycloak`, the demo users' password, never printed). Read back from `keycloak_db`: `employee_id` and `tenant_id` stored, no
+   `hr-management-approver`; the live user profile is back as it was (no unmanaged-attribute policy, `employee_id` still undeclared);
+   the realm's `hr-gateway-client` already maps `employee_id` into the token. **Undo:** delete the user in the Keycloak console (§7).
+5. **The PLAN-50 server checks** (`AcIam50VpsChecks`, 3/3, 5 min 48 s; a first try at 17:25Z never reached the server: the test
+   process's ssh was refused at connect right after a burst of ssh calls, and passed unchanged 45 s later): migrations 1/1,
+   `WorkflowDelegations` 0, in force without a delegable role 0, revoked by the migration 0, the two checks present; the approver
+   opens the five lists (200), is refused on create (403), the creator is refused on approve (403), a transfer approved by the
+   approver; `e2e-checker-mgmt` delegates to `e2e-delegate-hr` for one day (TransferRequest), both see it, the delegate opens the
+   list at once, approves a transfer on behalf (`TransferApprovals.OnBehalfOfUserId` = the principal), the internal endpoint refuses a
+   signed-in user (403), and after the revocation the list answers 403 (the cached answer had already expired, so at once). No
+   workflow step on the server names `hr-management-approver` for these users without a seeded instance, so the engine's on-behalf
+   path is proved by AC-IAM-50d (acceptance), as P7 allows.
+   **What they leave:** two transfers marked «PLAN-50 server check» created by `e2e-movements-ops` and cancelled by him (one approved by
+   the approver, one on behalf), one revoked delegation, audit rows.
+   *Correction (after the suites):* the server's demo users can bring a requisition to its step 2 (the PLAN-43 check does it), so a
+   fourth check was added rather than leaving the engine to the acceptance run (step 7 below).
+6. **The server suites** (17:33:24Z to 18:55:26Z, 1 h 22 min, nothing heavy beside them; `artifacts/plan50/vps/suites/`): **39 of 40
+   passed**: `AcOps36VpsBootTests` a to k without 36j (excepted as before), `AcInt37VpsServerTests`, the server checks of PLAN-38, 39,
+   40, 43, 44, 45, 46, 47, 48, 49 and the three of this plan. By check: OPS-36 10/10 (1021 s), POL-49 3/3 (689 s), MSG-40 3/3 (687 s),
+   WF-46 3/4 (469 s), WF-45 3/3 (430 s), IAM-50 3/3 (343 s), POL-47 2/2 (289 s), OPS-39 2/2 (267 s), WF-44 3/3 (223 s), OPS-38 1/1
+   (190 s), TEN-48 1/1 (118 s), WF-43 2/2 (86 s), the realm, service and smoke checks of INT-37 3/3. The one failure,
+   `AC_WF_46_vps_the_sweeps_run_and_the_metrics_exist` ("No cycle of the CardRequest sweep in the log of idcard-web"), read the card
+   service's log before its first sweep cycle after AC-OPS-39f recreated the services, as in PLAN-46..49. It took four times
+   PLAN-49's 20 min: the checks themselves (sum of test times 82 min) were slow, with the server's load average under 1.1.
+7. **Reruns alone** (18:57Z to 19:02Z, 5 min 2 s): AC-WF-46 sweeps **passed**; and the new
+   `AC_IAM_50_vps_a_delegate_approves_step_two_of_a_requisition_on_behalf` **passed**: hradmin filed requisition `4696aa88` on a vacant
+   funded position; `e2e-delegate-hr` approved step 1 in his own name (hr-core) and step 2 on behalf of `e2e-checker-mgmt` under a one-day
+   RecruitmentRequisition delegation: Approved / Completed; step 1's history entry has no `OnBehalfOfId`, step 2's names the principal
+   and the delegation; the signature is the delegate's in the role `hr-management-approver`; the delegation is revoked. It leaves that
+   approved requisition («PLAN-50 server check») and its revoked delegation.
+8. **At the end** (19:02Z): tag `a504f6e54921`, 20 containers healthy (the two others have no health check), 39 GB free, the self-test
+   with mandatory wiring 50 pass, 0 fail, 1 warning. The committed evidence the suites rewrote (`acceptance-evidence/`, 41 entries) is
+   restored; a copy is in `artifacts/plan50/vps/suites/acceptance-evidence-from-run/`; the AC-MSG-40 replay report the suite wrote into
+   `reports/` was moved there too.
 
 ## Open issues
 
@@ -184,6 +259,7 @@ None yet (P0 was read-only).
 |------------|-------|
 | about 11:05Z, 2026-11-11 | the usage limit of the owner's plan, in the middle of P3 (uncommitted work in the tree, listed below) |
 | 13:12:08Z..14:37:16Z, 2026-11-11 (85 min) | the host went to sleep during acceptance rerun 1 (Kernel-Power 42, woke at 107/1); keep-awake requested after it |
+| 16:23:20Z..16:55:16Z, 2026-11-11 (32 min, server only) | the demo server's provider resolvers answered SERVFAIL for `ubuntu.com`, so the server image build's `apt-get` failed; the local Testcontainers step and an early ci-local ran meanwhile |
 
 Resumed (UTC): 2026-11-11T11:43:25Z — the owner said «اكمل» after the usage limit (stood still about 38 min). `origin/main` still `1ee60c47`.
 

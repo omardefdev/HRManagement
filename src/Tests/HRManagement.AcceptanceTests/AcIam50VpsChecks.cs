@@ -237,4 +237,153 @@ public partial class AcOps36VpsBootTests
 
         recorder.WriteResult("Pass");
     }
+
+    /// <summary>
+    /// The engine on the server: hradmin files a requisition (as the PLAN-43 check does); e2e-delegate-hr approves step 1 in his own name
+    /// (hr-core is his role) and step 2, whose role he does not hold, on behalf of e2e-checker-mgmt under a one-day RecruitmentRequisition
+    /// delegation. The step history names the principal and the delegation; the signature is the delegate's, in the delegated role.
+    /// Leaves an approved requisition marked «PLAN-50 server check» on one vacant funded position, and the revoked delegation.
+    /// </summary>
+    [SkippableFact]
+    public async Task AC_IAM_50_vps_a_delegate_approves_step_two_of_a_requisition_on_behalf()
+    {
+        var recorder = StartIam50("engine", "Demo server: hradmin files a requisition; e2e-delegate-hr approves step 1 himself and step 2 on behalf of e2e-checker-mgmt; the history and the signature name the principal");
+        var password = DemoPassword();
+        var principalId = KeycloakUserId(Iam50Approver);
+        var delegateId = KeycloakUserId(Iam50Delegate);
+        var delegateEmployee = Sql("keycloak_db",
+            "select a.value from user_attribute a join user_entity u on u.id = a.user_id join realm r on r.id = u.realm_id " +
+            $"where r.name = 'hrmanagement' and u.username = '{Iam50Delegate}' and a.name = 'employee_id'").SingleOrDefault() ?? "";
+        AcceptanceGate.RequireData(recorder, Guid.TryParse(delegateEmployee, out _), "المستخدم المفوَّض بلا employee_id",
+            $"{Iam50Delegate} has no employee_id: add it with scripts/vps/add-demo-user.sh --employee-id (PLAN-50 P-13).");
+        var position = Sql("hr_core_db",
+            "select p.\"Id\", p.\"OrgUnitId\" from \"FundedPositions\" p where p.\"Status\" = 'Vacant' and not exists " +
+            "(select 1 from \"RecruitmentRequisitions\" r where r.\"FundedPositionId\" = p.\"Id\" and r.\"Status\" in ('Draft', 'PendingApproval', 'Approved', 'Published')) " +
+            "order by p.\"PositionCode\" limit 1");
+        AcceptanceGate.RequireData(recorder, position.Length == 1, "لا وظيفة شاغرة", "No vacant funded position without a requisition.");
+        var (positionId, orgUnit) = (position[0].Split('|')[0], position[0].Split('|')[1]);
+
+        string requisition;
+        var (creator, _) = await SignInAsync("hradmin", password);
+        using (creator)
+        {
+            const string createPage = "/ui/hr-core/RecruitmentRequisitions/Create";
+            string[] rows = [];
+            var status = 0;
+            for (var attempt = 0; attempt < 5 && rows.Length == 0; attempt++)
+            {
+                (status, _, _) = await PostFormAsync(creator, createPage, new Dictionary<string, string>
+                {
+                    ["__RequestVerificationToken"] = await TokenAsync(creator, createPage),
+                    ["ScopeOrgUnitId"] = orgUnit,
+                    ["FundedPositionId"] = positionId,
+                    ["JobTitle"] = Iam50Marker,
+                    ["JustificationNotes"] = Iam50Marker,
+                    ["LegalSourceId"] = "SYR-LAW-50-2004",
+                    ["BudgetYear"] = DateTime.UtcNow.Year.ToString(CultureInfo.InvariantCulture),
+                    ["PublishingChannel"] = "PublicOnly"
+                });
+                rows = Sql("hr_core_db", $"select \"Id\" from \"RecruitmentRequisitions\" where \"FundedPositionId\" = '{positionId}' and \"Status\" = 'Draft'");
+            }
+
+            Assert.True(rows.Length == 1, $"create answered {status}");
+            requisition = rows[0];
+            var details = $"/ui/hr-core/RecruitmentRequisitions/Details/{requisition}";
+            var criteria = new Dictionary<string, string>
+            {
+                ["__RequestVerificationToken"] = await TokenAsync(creator, details),
+                ["RequisitionId"] = requisition,
+                ["Title"] = Iam50Marker
+            };
+            (string Key, string Name, string Weight, string Stage)[] items =
+                [("interview", "المقابلة", "40", "Interview"), ("exam", "الاختبار", "30", "Exam"), ("experience", "الخبرة", "30", "Experience")];
+            for (var i = 0; i < items.Length; i++)
+            {
+                criteria[$"Items[r{i}].Key"] = items[i].Key;
+                criteria[$"Items[r{i}].NameAr"] = items[i].Name;
+                criteria[$"Items[r{i}].Weight"] = items[i].Weight;
+                criteria[$"Items[r{i}].MaxScore"] = "100";
+                criteria[$"Items[r{i}].Stage"] = items[i].Stage;
+                criteria[$"Items[r{i}].IsMandatory"] = "true";
+            }
+
+            var form = criteria.Select(kv => kv).Concat(items.Select((_, i) => new KeyValuePair<string, string>("Items.Index", $"r{i}")));
+            using var saved = await creator.PostAsync($"https://{AppDomain}/ui/hr-core/RecruitmentAssessmentCriteria/Create", new FormUrlEncodedContent(form));
+            Assert.True(saved.IsSuccessStatusCode, $"criteria answered {(int)saved.StatusCode}");
+            await PostFormAsync(creator, $"/ui/hr-core/RecruitmentRequisitions/Submit/{requisition}", new Dictionary<string, string>
+            {
+                ["__RequestVerificationToken"] = await TokenAsync(creator, details)
+            });
+        }
+
+        Assert.Equal("PendingApproval", Sql("hr_core_db", $"select \"Status\" from \"RecruitmentRequisitions\" where \"Id\" = '{requisition}'").Single());
+
+        var (principal, _) = await SignInAsync(Iam50Approver, password);
+        var (delegateUser, _) = await SignInAsync(Iam50Delegate, password);
+        using (principal)
+        using (delegateUser)
+        {
+            var now = DateTime.UtcNow.AddMinutes(-2);
+            var (created, createdPath, _) = await PostFormAsync(principal, "/ui/hr-core/Delegations/Create", new Dictionary<string, string>
+            {
+                ["__RequestVerificationToken"] = await TokenAsync(principal, "/ui/hr-core/Delegations/Create"),
+                ["DelegateEmployeeId"] = delegateEmployee,
+                ["RoleScope"] = "hr-management-approver",
+                ["EntityTypeScope"] = "RecruitmentRequisition",
+                ["ActiveFrom"] = now.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture),
+                ["ActiveUntil"] = now.AddDays(1).ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture),
+                ["Reason"] = $"{Iam50Marker} engine {Guid.NewGuid():N}"[..40]
+            });
+            Assert.True(created == 200, $"delegation create answered {created} at {createdPath}");
+            var delegation = Sql("hr_core_db",
+                $"select \"Id\" from \"ApprovalDelegations\" where \"PrincipalId\" = '{principalId}' and \"DelegateEmployeeId\" = '{delegateEmployee}' and \"EntityTypeScope\" = 'RecruitmentRequisition' and not \"IsRevoked\" order by \"CreatedAt\" desc limit 1").Single();
+            try
+            {
+                var details = $"/ui/hr-core/RecruitmentRequisitions/Details/{requisition}";
+                foreach (var step in new[] { 1, 2 })
+                {
+                    await PostFormAsync(delegateUser, $"/ui/hr-core/RecruitmentRequisitions/ApproveWorkflow/{requisition}", new Dictionary<string, string>
+                    {
+                        ["__RequestVerificationToken"] = await TokenAsync(delegateUser, details),
+                        ["RequisitionId"] = requisition,
+                        ["Comments"] = $"{Iam50Marker} {step}"
+                    });
+                }
+
+                var state = Sql("hr_core_db",
+                    $"select r.\"Status\", i.\"Status\", i.\"Id\" from \"RecruitmentRequisitions\" r join \"WorkflowInstances\" i on i.\"Id\" = r.\"WorkflowInstanceId\" where r.\"Id\" = '{requisition}'").Single().Split('|');
+                Assert.Equal(["Approved", "Completed"], state[..2]);
+                var history = Sql("hr_core_db", $"select \"StepHistoryJson\" from \"WorkflowInstances\" where \"Id\" = '{state[2]}'").Single();
+                using var json = System.Text.Json.JsonDocument.Parse(history);
+                var entries = json.RootElement.EnumerateArray().ToArray();
+                var first = entries[^2];
+                var last = entries[^1];
+                Assert.Equal(delegateId, first.GetProperty("ActorId").GetString());
+                Assert.False(first.TryGetProperty("OnBehalfOfId", out _), "step 1 was approved in the delegate's own name");
+                Assert.Equal(delegateId, last.GetProperty("ActorId").GetString());
+                Assert.Equal(principalId, last.GetProperty("OnBehalfOfId").GetString());
+                Assert.Equal(delegation, last.GetProperty("DelegationId").GetString());
+                var signature = Sql("hr_core_db",
+                    $"select \"SignerSubject\" || '|' || \"SignerRole\" from \"SignatureRecords\" where \"SubjectId\" = '{requisition}' and \"Intent\" = 'approve' order by \"OccurredAtUtc\" desc limit 1").Single();
+                Assert.Equal($"{delegateId}|hr-management-approver", signature);
+                recorder.WriteScenarioDbChecks(new { requisition, positionId, delegation, principal = principalId, @delegate = delegateId, state = string.Join('|', state[..2]), signature });
+            }
+            finally
+            {
+                await PostFormAsync(principal, $"/ui/hr-core/Delegations/Revoke/{delegation}", new Dictionary<string, string>
+                {
+                    ["__RequestVerificationToken"] = await TokenAsync(principal, "/ui/hr-core/Delegations/Create"), ["reason"] = Iam50Marker
+                });
+            }
+
+            Assert.Equal("t", Sql("hr_core_db", $"select \"IsRevoked\" from \"ApprovalDelegations\" where \"Id\" = '{delegation}'").Single());
+        }
+
+        recorder.WriteScenarioSteps(
+            "1. hradmin creates a requisition on a vacant funded position, its criteria, and submits it: PendingApproval.\n" +
+            "2. e2e-checker-mgmt delegates hr-management-approver for RecruitmentRequisition to e2e-delegate-hr for one day.\n" +
+            "3. e2e-delegate-hr approves step 1 (his own hr-core) and step 2 (on behalf): Approved, Completed; the last history entry names the principal and the delegation; the signature is the delegate's in the delegated role.\n" +
+            "4. The delegation is revoked.");
+        recorder.WriteResult("Pass");
+    }
 }
