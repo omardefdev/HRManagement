@@ -276,6 +276,11 @@ public class ProcessProbationEvaluationCompletedHandler(
 /// transaction cancelled, as a rejection by HR leaves it. The local validation refuses in every mode; the policy refuses only in
 /// Enforce (in Shadow its decision is recorded by HR.Core and the request is created as before).
 /// </para>
+/// <para>
+/// An outage is not a refusal. When, in Enforce, the engine cannot be reached, the client answers "not allowed, degraded": the
+/// request is not written off as Rejected for good on that; the handler throws, the bus retries the message and parks it if the
+/// outage lasts, and a replay decides it when the engine is back. (In Shadow an outage never refuses.)
+/// </para>
 /// </summary>
 public class ProcessLeaveRequestedHandler(
     IContractsRepository repository,
@@ -295,6 +300,19 @@ public class ProcessLeaveRequestedHandler(
         {
             return;
         }
+
+        // The reference number first: it is a call to HR.Core that can fail, and a message retried after the engine was asked
+        // would ask it again (a second ledger row for one request). Only the saves below come after the question. The price,
+        // in Enforce only: each attempt that ends in an engine outage has spent a number, and the bus makes 1 + RetryCount
+        // attempts of a delivery (the numbers are not gapless, here as in the other inbound handlers). In Shadow an unanswered
+        // question never stops the request, so no number is lost. Before Enforce: a stable request key on the number call.
+        var transaction = new ServiceTransaction
+        {
+            EmployeeId = request.EmployeeId,
+            TransactionType = ServiceTransactionType.LeaveAdvance,
+            Notes = "Inbound ESS leave request"
+        };
+        await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
 
         // Working days, whatever number the event carries (the portal counts calendar days).
         var durationDays = LeaveAndAdvanceRules.ComputeLeaveDurationDays(request.StartDate, request.EndDate);
@@ -324,17 +342,13 @@ public class ProcessLeaveRequestedHandler(
                 PolicyDomainFactsBuilders.ForLeaveRequest(
                     entity.Id, entity.TenantId, durationDays, request.LeaveType.ToString(), LeavePolicyActions.Create),
                 cancellationToken);
+            // An outage (Enforce, fail closed) is not the policy's refusal: nothing is written, and the bus retries (an
+            // exception its retry policy does not ignore), then parks the message in _error for a replay.
+            if (!policyResult.Allowed && policyResult.Degraded)
+                throw new PolicyEngineUnavailableException(HRManagement.SharedKernel.Policy.PolicyDomains.ContractsLeave, LeavePolicyActions.Create);
             if (!policyResult.Allowed)
                 refusal = policyResult.Decision.DenyReason ?? LeavePolicyActions.DeniedMessage;
         }
-
-        var transaction = new ServiceTransaction
-        {
-            EmployeeId = request.EmployeeId,
-            TransactionType = ServiceTransactionType.LeaveAdvance,
-            Notes = "Inbound ESS leave request"
-        };
-        await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
 
         if (refusal is not null)
         {

@@ -2,14 +2,14 @@
   "packId": "policy-ministry-finance-v1",
   "ruleKeyPrefix": "MOF",
   "keyRenameNote": "PLAN-48 (P-6): stored keys were '{packId}:{ruleKey}', which fails PLAN-47's key pattern ^[A-Z][A-Z0-9:-]{2,99}$ (lower case); they are now 'MOF:{ruleKey}'.",
-  "scopeNote": "PLAN-49 (D-POL-1, D-POL-4): the pack used to ask for evidence on annual leave (Contracts.Leave, RequireEvidence, key R-FIN-LEAVE-NOTE). No call site of Contracts.Leave consumes that effect, so the domain catalog refuses it. The pack now holds a rule the catalog accepts, the ceiling allows (it only adds a constraint) and a call site consumes: proof of handover on every custody assignment.",
+  "scopeNote": "PLAN-49 (D-POL-1, D-POL-4): the pack used to ask for evidence on annual leave (Contracts.Leave, RequireEvidence, key R-FIN-LEAVE-NOTE). No call site of Contracts.Leave consumes that effect, so the domain catalog refuses it, and the rule left the pack. The rule that stays in its place restates what the national custody policy already asks (proof of handover for a privileged asset, R-PRIV-EVIDENCE): the catalog accepts it, the ceiling allows it, and it changes no decision in any mode. It keeps the overlay mechanism exercised by a real pack. A rule that asks more than the national policy (proof for every handover, say) is a decision for the agency's owner, not for this example.",
   "rules": [
     {
       "domain": "Assets.Custody",
       "ruleKey": "R-FIN-HANDOVER-PROOF",
-      "name": "وزارة المالية — دليل تسليم لكل عهدة",
+      "name": "وزارة المالية — دليل تسليم للأصل المميز",
       "priority": 20,
-      "whenJson": "{\"all\":[{\"field\":\"action\",\"operator\":\"Equals\",\"value\":\"Assign\"}]}",
+      "whenJson": "{\"all\":[{\"field\":\"isPrivileged\",\"operator\":\"Equals\",\"value\":\"true\"},{\"field\":\"action\",\"operator\":\"Equals\",\"value\":\"Assign\"}]}",
       "thenJson": "[{\"effect\":\"RequireEvidence\"}]"
     }
   ]

@@ -23,8 +23,12 @@ public enum PolicyWorkflowStartPath
     InternalEndpoint
 }
 
-/// <summary>A workflow code a rule may name for an entity type, and who starts it.</summary>
-public sealed record PolicyWorkflowTrigger(string WorkflowCode, PolicyWorkflowStartPath StartedBy);
+/// <summary>
+/// A workflow code a rule may name for an entity type, who starts it, and at which action of that type it starts. A rule that
+/// could match another action of the type (publishing a requisition, say) may not name the code: the call site of that action
+/// takes no instance, so one started there would wait in an inbox for nobody (G-POL-11).
+/// </summary>
+public sealed record PolicyWorkflowTrigger(string WorkflowCode, PolicyWorkflowStartPath StartedBy, string Action);
 
 /// <summary>
 /// PLAN-49 (G-POL-02): everything the system says about one policy domain. The validator, the engine, the internal endpoint, the
@@ -86,16 +90,36 @@ public sealed class PolicyDomainDescriptor
     public IEnumerable<string> SubjectTypesOf(string action) =>
         SubjectActions.Where(kv => kv.Value.Contains(action)).Select(kv => kv.Key);
 
-    /// <summary>Whether a rule may name the code for the entity type.</summary>
+    /// <summary>Whether the entity type owns the code (at any of its actions).</summary>
     public bool AllowsWorkflowCode(string? subjectType, string? workflowCode) =>
         subjectType is not null && workflowCode is not null
         && WorkflowTriggers.TryGetValue(subjectType, out var triggers)
         && triggers.Any(t => string.Equals(t.WorkflowCode, workflowCode, StringComparison.Ordinal));
+
+    /// <summary>Whether a rule may name the code for the entity type at this action: the action is the one that starts it.</summary>
+    public bool AllowsWorkflowStart(string? subjectType, string? action, string? workflowCode) =>
+        subjectType is not null && action is not null && workflowCode is not null
+        && WorkflowTriggers.TryGetValue(subjectType, out var triggers)
+        && triggers.Any(t => string.Equals(t.WorkflowCode, workflowCode, StringComparison.Ordinal)
+                             && string.Equals(t.Action, action, StringComparison.Ordinal));
+
+    /// <summary>
+    /// Whether the engine itself starts the workflow for the entity type at this action: a trigger of HR.Core's own approval
+    /// start. A workflow of an owner service (the cross-service approval contract) is a signal in the decision and starts at
+    /// its owner, never in the engine.
+    /// </summary>
+    public bool StartsInsideHrCore(string? subjectType, string? action, string? workflowCode) =>
+        subjectType is not null && action is not null && workflowCode is not null
+        && WorkflowTriggers.TryGetValue(subjectType, out var triggers)
+        && triggers.Any(t => t.StartedBy == PolicyWorkflowStartPath.HrCoreCoordinator
+                             && string.Equals(t.WorkflowCode, workflowCode, StringComparison.Ordinal)
+                             && string.Equals(t.Action, action, StringComparison.Ordinal));
 }
 
 /// <summary>
 /// PLAN-49 (G-POL-02, D-POL-1): the one source of truth about the policy engine's domains. Five are governed (each has a proved
-/// call site and seeded rules, and runs in Shadow in production files); fifteen are out of scope (no call site: their templates
+/// call site and a seeded national template, which may hold no rule, as the card domain's does, and runs in Shadow in
+/// production files); fifteen are out of scope (no call site: their templates
 /// are retired by a final version with no rules, and their mode is Off whatever the configuration says). Extending the engine
 /// later means a descriptor here, a call site, and a seed change set.
 /// </summary>
@@ -113,8 +137,8 @@ public static class PolicyDomainCatalog
 
     private static IReadOnlySet<PolicyEffect> Effects(params PolicyEffect[] effects) => new HashSet<PolicyEffect>(effects);
 
-    private static IReadOnlyList<PolicyWorkflowTrigger> Started(PolicyWorkflowStartPath by, params string[] codes) =>
-        codes.Select(code => new PolicyWorkflowTrigger(code, by)).ToList();
+    private static IReadOnlyList<PolicyWorkflowTrigger> Started(PolicyWorkflowStartPath by, string action, params string[] codes) =>
+        codes.Select(code => new PolicyWorkflowTrigger(code, by, action)).ToList();
 
     private static PolicyDomainDescriptor OutOfScope(string domain, string ownerService, string reasonAr) =>
         new()
@@ -145,7 +169,7 @@ public static class PolicyDomainCatalog
             SetFields = Set("isPrivileged"),
             WorkflowTriggers = new Dictionary<string, IReadOnlyList<PolicyWorkflowTrigger>>(StringComparer.Ordinal)
             {
-                ["AssetAssignment"] = Started(PolicyWorkflowStartPath.OwnerApprovalContract, "ASSET-ASSIGN-APPROVAL")
+                ["AssetAssignment"] = Started(PolicyWorkflowStartPath.OwnerApprovalContract, "Assign", "ASSET-ASSIGN-APPROVAL")
             },
             CallSiteFiles =
             [
@@ -201,11 +225,14 @@ public static class PolicyDomainCatalog
             AllowedEffects = Effects(PolicyEffect.Allow, PolicyEffect.Deny, PolicyEffect.TriggerWorkflow),
             WorkflowTriggers = new Dictionary<string, IReadOnlyList<PolicyWorkflowTrigger>>(StringComparer.Ordinal)
             {
-                ["RecruitmentRequisition"] = Started(PolicyWorkflowStartPath.HrCoreCoordinator, "RECRUITMENT-REQUISITION-APPROVAL"),
+                // The requisition's approval starts when it is submitted; publishing it starts nothing.
+                ["RecruitmentRequisition"] = Started(
+                    PolicyWorkflowStartPath.HrCoreCoordinator, "SubmitForApproval", "RECRUITMENT-REQUISITION-APPROVAL"),
                 ["OfferLetter"] = Started(
-                    PolicyWorkflowStartPath.HrCoreCoordinator, "RECRUITMENT-OFFER-APPROVAL", "RECRUITMENT-OFFER-OVERRIDE-APPROVAL"),
-                ["SelectionCommitteeSession"] = Started(PolicyWorkflowStartPath.HrCoreCoordinator, "RECRUITMENT-SELECTION-COMMITTEE"),
-                ["RecruitmentAppeal"] = Started(PolicyWorkflowStartPath.HrCoreCoordinator, "RECRUITMENT-APPEAL-REVIEW")
+                    PolicyWorkflowStartPath.HrCoreCoordinator, "Issue", "RECRUITMENT-OFFER-APPROVAL", "RECRUITMENT-OFFER-OVERRIDE-APPROVAL"),
+                ["SelectionCommitteeSession"] = Started(
+                    PolicyWorkflowStartPath.HrCoreCoordinator, "SubmitCommittee", "RECRUITMENT-SELECTION-COMMITTEE"),
+                ["RecruitmentAppeal"] = Started(PolicyWorkflowStartPath.HrCoreCoordinator, "FileAppeal", "RECRUITMENT-APPEAL-REVIEW")
             },
             CallSiteFiles =
             [
@@ -228,7 +255,8 @@ public static class PolicyDomainCatalog
             AllowedEffects = Effects(PolicyEffect.Allow, PolicyEffect.Deny, PolicyEffect.TriggerWorkflow),
             WorkflowTriggers = new Dictionary<string, IReadOnlyList<PolicyWorkflowTrigger>>(StringComparer.Ordinal)
             {
-                ["EstablishmentChangeRequest"] = Started(PolicyWorkflowStartPath.HrCoreCoordinator, "ESTABLISHMENT-CHANGE-APPROVAL")
+                ["EstablishmentChangeRequest"] = Started(
+                    PolicyWorkflowStartPath.HrCoreCoordinator, "SubmitForApproval", "ESTABLISHMENT-CHANGE-APPROVAL")
             },
             CallSiteFiles = ["src/Services/HRCore/HR.Core.Infrastructure/Services/Establishment/EstablishmentChangeLifecycleService.cs"]
         },

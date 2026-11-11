@@ -8,6 +8,7 @@ using HR.Contracts.Domain.Enums;
 using HR.Contracts.Domain.Services;
 using HR.Contracts.Infrastructure.Data;
 using HR.Contracts.Infrastructure.Repositories;
+using HRManagement.ServiceDefaults.CodeGeneration;
 using HRManagement.ServiceDefaults.Policy;
 using HRManagement.SharedKernel.Enums;
 using HRManagement.SharedKernel.Policy;
@@ -389,6 +390,71 @@ public sealed class Pol049LeaveChannelsTests
 
         Assert.Equal(1, await f.Db.LeaveRequests.CountAsync());
         Assert.Equal(1, await f.Db.ServiceTransactions.CountAsync());
+        Assert.Single(f.Policy.Requests);
+    }
+
+    [Fact]
+    public async Task In_Enforce_an_unreachable_engine_is_not_a_refusal_the_message_fails_and_nothing_is_written()
+    {
+        // The review of PLAN-49 (finding 3). D-POL-14 is about the policy's refusal; an outage decides nothing.
+        await using var f = new Fixture();
+        f.Policy.EnforceHandler = request => FakePolicyEnforceClient.FailedClosed(request.Domain);
+        var requestId = Guid.NewGuid();
+
+        var failure = await Assert.ThrowsAsync<PolicyEngineUnavailableException>(() => f.SelfService.Handle(FromPortal(f, requestId, Tuesday, Saturday), default));
+
+        Assert.Equal(PolicyDomains.ContractsLeave, failure.Domain);
+        Assert.Equal(LeavePolicyActions.Create, failure.Action);
+        // The second review of P5: the bus retries only what its policy does not ignore (MassTransitExtensions.ConfigureMessageRetry),
+        // and an InvalidOperationException went straight to _error. Pol049EngineOutageRetryTests runs the policy itself.
+        Assert.DoesNotContain(
+            new[] { typeof(InvalidOperationException), typeof(ArgumentException), typeof(UnauthorizedAccessException) },
+            ignored => ignored.IsInstanceOfType(failure));
+        Assert.Equal(0, await f.Db.LeaveRequests.CountAsync());
+        Assert.Equal(0, await f.Db.ServiceTransactions.CountAsync());
+
+        // The bus delivers the message again; with the engine back the request is decided, once.
+        f.Policy.EnforceHandler = null;
+        await f.SelfService.Handle(FromPortal(f, requestId, Tuesday, Saturday), default);
+        Assert.Equal(ApprovalStatus.Pending, (await f.Db.LeaveRequests.AsNoTracking().SingleAsync(x => x.Id == requestId)).Status);
+        Assert.Equal(1, await f.Db.ServiceTransactions.CountAsync());
+    }
+
+    [Fact]
+    public async Task In_Shadow_an_unreachable_engine_refuses_nothing_and_the_request_is_created()
+    {
+        await using var f = new Fixture();
+        // As the real client answers a failed call in Shadow: allowed, degraded.
+        f.Policy.EnforceHandler = _ => new PolicyEnforceResponse
+        {
+            Allowed = true,
+            Degraded = true,
+            FailureReason = "http-503",
+            EffectiveMode = PolicyEnforcementMode.Shadow,
+            Decision = new PolicyDecision { Allowed = true }
+        };
+        var requestId = Guid.NewGuid();
+
+        await f.SelfService.Handle(FromPortal(f, requestId, Tuesday, Saturday), default);
+
+        Assert.Equal(ApprovalStatus.Pending, (await f.Db.LeaveRequests.AsNoTracking().SingleAsync(x => x.Id == requestId)).Status);
+    }
+
+    [Fact]
+    public async Task The_reference_number_is_taken_before_the_engine_is_asked_so_a_retried_message_asks_it_once()
+    {
+        // The review of PLAN-49 (finding 5): the number is a call to HR.Core that can fail. Taken after the question, its
+        // failure made the bus retry a message whose question was already in the ledger.
+        await using var f = new Fixture();
+        var noNumber = new ProcessLeaveRequestedHandler(f.Repository, Mock.Of<ICodeGenerationClient>(), f.Policy);
+        var requestId = Guid.NewGuid();
+
+        await Assert.ThrowsAsync<FluentValidation.ValidationException>(() => noNumber.Handle(FromPortal(f, requestId, Tuesday, Saturday), default));
+
+        Assert.Empty(f.Policy.Requests);
+        Assert.Equal(0, await f.Db.LeaveRequests.CountAsync());
+
+        await f.SelfService.Handle(FromPortal(f, requestId, Tuesday, Saturday), default);
         Assert.Single(f.Policy.Requests);
     }
 

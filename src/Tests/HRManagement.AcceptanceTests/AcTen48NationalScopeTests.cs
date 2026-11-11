@@ -252,26 +252,32 @@ public class AcTen48NationalScopeTests
 
         // ---------------------------------------------------------------------------------------------- 48e
         var e = Recorder("48e", "A stricter agency rule publishes and works; a weaker one is refused when added and at publish; an old layer is bounded at evaluation", "central-a, a-management-approver, outsider-b, b-approver, c-hr");
-        // 1. Agency A adds a Deny to its own override of Analytics.ETL (created by the request when it has none).
-        var etlKey = $"ACC-T48-DENY-{run}";
-        var (etlDraft, etlDraftBody, etlDraftText) = await SendAsync(central, HttpMethod.Post, "api/hr-core/api/policies/drafts",
-            new { domain = PolicyDomains.AnalyticsEtl, subjectType = "EtlJob", name = "AC-TEN-48 agency override" });
-        Assert.True(etlDraft == HttpStatusCode.OK, $"agency draft -> {(int)etlDraft} {etlDraftText}");
-        var etlVersion = etlDraftBody.GetProperty("id").GetGuid();
-        var (etlRule, _, etlRuleText) = await SendAsync(central, HttpMethod.Post, $"api/hr-core/api/policies/versions/{etlVersion:D}/rules",
-            Rule(etlKey, """{"all":[{"field":"environment","operator":"Equals","value":"TEN48-SANDBOX"}]}""", """[{"effect":"Deny","params":{"reason":"AC-TEN-48: بيئة اختبار"}}]""", 5));
-        Assert.True(etlRule == HttpStatusCode.OK, $"agency Deny -> {(int)etlRule} {etlRuleText}");
-        var (etlPublish, _, etlPublishText) = await SendAsync(aApprover, HttpMethod.Post, $"api/hr-core/api/policies/templates/{etlVersion:D}/publish", new { evidenceRef = "AC-TEN-48e" });
-        Assert.True(etlPublish == HttpStatusCode.OK, $"publish agency Deny -> {(int)etlPublish} {etlPublishText}");
-        var etlScope = (await Sql($"""SELECT t."TenantId" || '|' || t."Scope" FROM "PolicyTemplateVersions" v JOIN "PolicyTemplates" t ON t."Id" = v."PolicyTemplateId" WHERE v."Id" = '{etlVersion:D}';""")).Trim();
-        Assert.Equal($"{TenantA:D}|TenantOverride", etlScope);
-        var sandbox = await EvaluateAsync(central, PolicyDomains.AnalyticsEtl, "EtlJob", "Run", new() { ["environment"] = "TEN48-SANDBOX", ["action"] = "Run" });
+        // 1. Agency A adds a Deny to its own override of Contracts.Leave (created by the request when it has none). PLAN-49: a
+        // governed domain; Analytics.ETL, which this step used, is out of the engine's scope and takes no draft. The leave type
+        // the rule names is no leave type, so the published override changes no decision of the stack.
+        var leaveKey = $"ACC-T48-DENY-{run}";
+        var (leaveDraft, leaveDraftBody, leaveDraftText) = await SendAsync(central, HttpMethod.Post, "api/hr-core/api/policies/drafts",
+            new { domain = PolicyDomains.ContractsLeave, subjectType = "LeaveRequest", name = "AC-TEN-48 agency override" });
+        Assert.True(leaveDraft == HttpStatusCode.OK, $"agency draft -> {(int)leaveDraft} {leaveDraftText}");
+        var leaveVersion = leaveDraftBody.GetProperty("id").GetGuid();
+        var (leaveRule, _, leaveRuleText) = await SendAsync(central, HttpMethod.Post, $"api/hr-core/api/policies/versions/{leaveVersion:D}/rules",
+            Rule(leaveKey, """{"all":[{"field":"leaveType","operator":"Equals","value":"TEN48-SANDBOX"}]}""", """[{"effect":"Deny","params":{"reason":"AC-TEN-48: نوع اختبار"}}]""", 5));
+        Assert.True(leaveRule == HttpStatusCode.OK, $"agency Deny -> {(int)leaveRule} {leaveRuleText}");
+        var (leavePublish, _, leavePublishText) = await SendAsync(aApprover, HttpMethod.Post, $"api/hr-core/api/policies/templates/{leaveVersion:D}/publish", new { evidenceRef = "AC-TEN-48e" });
+        Assert.True(leavePublish == HttpStatusCode.OK, $"publish agency Deny -> {(int)leavePublish} {leavePublishText}");
+        var leaveScope = (await Sql($"""SELECT t."TenantId" || '|' || t."Scope" FROM "PolicyTemplateVersions" v JOIN "PolicyTemplates" t ON t."Id" = v."PolicyTemplateId" WHERE v."Id" = '{leaveVersion:D}';""")).Trim();
+        Assert.Equal($"{TenantA:D}|TenantOverride", leaveScope);
+        var sandbox = await EvaluateAsync(central, PolicyDomains.ContractsLeave, "LeaveRequest", "Create", new() { ["leaveType"] = "TEN48-SANDBOX", ["durationDays"] = "3", ["action"] = "Create" });
         Assert.False(sandbox.GetProperty("allowed").GetBoolean());
-        Assert.Contains(etlKey, Strings(sandbox, "matchedRuleIds"));
-        var production = await EvaluateAsync(central, PolicyDomains.AnalyticsEtl, "EtlJob", "Run", new() { ["environment"] = "Production", ["action"] = "Run" });
-        Assert.True(production.GetProperty("allowed").GetBoolean());
-        Assert.Contains("R-ETL", Strings(production, "matchedRuleIds"));
-        Assert.Contains(Effects(production), x => x.Effect == "RequireApproval");
+        Assert.Contains(leaveKey, Strings(sandbox, "matchedRuleIds"));
+        var ordinaryLeave = await EvaluateAsync(central, PolicyDomains.ContractsLeave, "LeaveRequest", "Create", new() { ["leaveType"] = "Annual", ["durationDays"] = "3", ["action"] = "Create" });
+        Assert.True(ordinaryLeave.GetProperty("allowed").GetBoolean());
+        Assert.DoesNotContain(leaveKey, Strings(ordinaryLeave, "matchedRuleIds"));
+        // Under the agency's layer the national rule still decides what it decided: nobody approves his own leave.
+        var ownLeave = await EvaluateAsync(central, PolicyDomains.ContractsLeave, "LeaveRequest", "Approve", new() { ["leaveType"] = "Annual", ["durationDays"] = "3", ["action"] = "Approve", ["isSelfApproval"] = "true" });
+        Assert.False(ownLeave.GetProperty("allowed").GetBoolean());
+        Assert.Contains("R-LEAVE-SELF", Strings(ownLeave, "matchedRuleIds"));
+        Assert.DoesNotContain(leaveKey, Strings(ownLeave, "matchedRuleIds"));
 
         // 2. Agency B: its custody v2 is a layer written before the ceiling. Weaker rules are refused when added; a copy of the old
         // layer is refused at publish, naming its rules; the draft is discarded and B's published versions do not change.
@@ -316,12 +322,12 @@ public class AcTen48NationalScopeTests
         Assert.Contains(Strings(classify, "explanations"), s => s.Contains(PolicyCeiling.ExplanationAr, StringComparison.Ordinal) && s.Contains("ACC-R-OLD-UNPRIV", StringComparison.Ordinal));
         e.WriteScenarioDbChecks(new
         {
-            agencyOverride = new { etlVersion, etlScope, etlKey, sandboxDenied = true, productionStillRequiresApproval = true },
+            agencyOverride = new { domain = PolicyDomains.ContractsLeave, leaveVersion, leaveScope, leaveKey, sandboxDenied = true, ordinaryLeaveAllowed = true, ownLeaveStillDeniedByTheNationalRule = true },
             agencyB = new { bTemplate, refusedAtAdd, publishStatus = (int)bPublish, publishIssues = publishIssues.Select(i => i.Code), bPublishedBefore },
             agencyC = new { assign = assign.ToString(), classify = classify.ToString() }
         });
         e.WriteScenarioSteps(
-            "1. central-a POST api/policies/drafts for Analytics.ETL (agency A's own TenantOverride, created by the request), adds a Deny for environment TEN48-SANDBOX; a-management-approver publishes it. Evaluated: TEN48-SANDBOX is denied by the agency rule; Production still gets the national R-ETL RequireApproval.\n" +
+            "1. central-a POST api/policies/drafts for Contracts.Leave (agency A's own TenantOverride, created by the request; PLAN-49 moved this step from Analytics.ETL, now out of the engine's scope), adds a Deny for the leave type TEN48-SANDBOX; a-management-approver publishes it. Evaluated: TEN48-SANDBOX is denied by the agency rule; an annual leave is allowed; approving one's own leave is still denied by the national R-LEAVE-SELF.\n" +
             "2. outsider-b drafts agency B's custody override (a copy of its pre-ceiling v2): adding SetField isPrivileged=false -> 400 CEILING_SETFIELD; adding a priority-1 TriggerWorkflow -> 400 CEILING_TRIGGER_WORKFLOW. b-approver publishes the copy -> 400, the issues name ACC-R-PRIV-WORKFLOW, ACC-R-OLD-FIRST-WF (CEILING_TRIGGER_WORKFLOW) and ACC-R-OLD-UNPRIV (CEILING_SETFIELD); the draft stays a draft and is discarded; B's published versions are unchanged.\n" +
             "3. c-hr evaluates agency C (its pre-ceiling layer is in force): a privileged assignment gets the national ASSET-ASSIGN-APPROVAL, not the agency's ASSET-LOSS-APPROVAL; a high-value classification keeps isPrivileged=true; the explanations name the dropped agency rules with «أُهمل أثر الجهة بسقف الوطني (D-POL-4)».");
         e.WriteResult("Pass");

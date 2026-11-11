@@ -95,8 +95,8 @@ public sealed class Pol049EffectiveRulesConformTests
                         var code = effect.Params!["workflowCode"];
                         foreach (var action in actions)
                             Assert.All(descriptor.SubjectTypesOf(action), type =>
-                                Assert.True(descriptor.AllowsWorkflowCode(type, code),
-                                    $"{template.Domain} {rule.RuleKey}: {code} is not a workflow of {type} (action {action})."));
+                                Assert.True(descriptor.AllowsWorkflowStart(type, action, code),
+                                    $"{template.Domain} {rule.RuleKey}: {code} is not a workflow {type} starts at {action}."));
                     }
                 }
             }
@@ -132,6 +132,34 @@ public sealed class Pol049EffectiveRulesConformTests
         else
         {
             Assert.Empty(historic);
+        }
+    }
+
+    /// <summary>
+    /// The inventory is taken once at HR.Core's start, after every seed of the profile. Inside the national seed (where PLAN-47
+    /// put it) a first start read no agency at all, because the profile's seed creates them afterwards: the acceptance run of
+    /// PLAN-49 showed it. It also ran again at every agency provisioning, which calls the national seed.
+    /// </summary>
+    [Fact]
+    public void The_start_up_inventory_is_taken_once_after_the_seeds_of_the_profile()
+    {
+        const string call = "PolicyPublishedRuleInventory.LogAsync(";
+        var hrCore = Path.Combine(HRManagement.TestSupport.RepoPaths.Root, "src", "Services", "HRCore");
+        var callers = Directory.EnumerateFiles(hrCore, "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                        && !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(f => global::System.IO.File.ReadAllText(f).Contains(call, StringComparison.Ordinal))
+            .Select(f => Path.GetRelativePath(hrCore, f).Replace('\\', '/'))
+            .ToList();
+        Assert.Equal(["HR.Core.Web/Program.cs"], callers);
+
+        var program = global::System.IO.File.ReadAllText(Path.Combine(hrCore, "HR.Core.Web", "Program.cs"));
+        var inventory = program.IndexOf(call, StringComparison.Ordinal);
+        Assert.Equal(inventory, program.LastIndexOf(call, StringComparison.Ordinal));
+        foreach (var seed in new[] { "NationalSeedOrchestrator.ApplyMandatoryAsync(", "DemoSeedOrchestrator.ApplyAsync(", "AcceptanceSeedOrchestrator.ApplyAsync(" })
+        {
+            var at = program.IndexOf(seed, StringComparison.Ordinal);
+            Assert.True(at > 0 && at < inventory, $"{seed}...) must run before the inventory in HR.Core's Program.cs.");
         }
     }
 

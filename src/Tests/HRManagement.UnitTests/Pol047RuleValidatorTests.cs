@@ -245,5 +245,7 @@ public sealed class Pol047RuleValidatorTests
         public IReadOnlyCollection<string> SubjectTypesOf(string domain, string action) => ["AssetAssignment"];
 
         public bool AllowsWorkflowCode(string domain, string subjectType, string workflowCode) => false;
+
+        public bool AllowsWorkflowStart(string domain, string subjectType, string action, string workflowCode) => false;
     }
 }

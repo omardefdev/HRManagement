@@ -3,7 +3,9 @@ using HR.Core.Domain.Entities;
 using HR.Core.Domain.Entities.Policy;
 using HR.Core.Domain.Enums;
 using HR.Core.Domain.Services;
+using HR.Core.Domain.Services.Policy;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Seeding;
 using HR.Core.Infrastructure.Services.Policy;
 using HR.Core.Infrastructure.Services.Recruitment;
 using HR.Core.Infrastructure.Services.Workflow;
@@ -27,17 +29,15 @@ namespace HRManagement.UnitTests;
 /// </summary>
 public sealed class Pol049CoordinatorWorkflowCodeTests
 {
-    private const string WeakRuleKey = "ACC-R-OFF-WEAK";
+    private const string WeakRuleKey = AcceptancePol49WeakOfferPatch.RuleKey;
     private const string OfferCode = RecruitmentOfferService.OfferApprovalWorkflowCode;
     private const string OverrideCode = OfferOverrideApprovalRules.WorkflowCode;
 
-    /// <summary>A valid rule by the catalog (an offer may trigger either offer workflow): the validator cannot know which offer it meets.</summary>
-    private static readonly PolicySeedChangeSet WeakOfferRule = new("POL-TEST-WEAK-OFFER",
-    [
-        new(PolicySeedOperationKind.AddRule, PolicyDomains.CoreRecruitment, WeakRuleKey, "كل عرض ← اعتماد العرض العادي", 1,
-            """{"all":[{"field":"action","operator":"Equals","value":"Issue"}]}""",
-            """[{"effect":"TriggerWorkflow","params":{"workflowCode":"RECRUITMENT-OFFER-APPROVAL"}}]""")
-    ]);
+    /// <summary>
+    /// The very rule the pol49 acceptance stage seeds (AC-POL-49f): valid by the catalog (an offer may trigger either offer
+    /// workflow), because the validator cannot know which offer a rule will meet.
+    /// </summary>
+    private static readonly PolicySeedChangeSet WeakOfferRule = AcceptancePol49WeakOfferPatch.ChangeSet;
 
     private static readonly PolicySeedChangeSet RetireWeakOfferRule = new("POL-TEST-WEAK-OFFER-RETIRE",
     [
@@ -268,7 +268,9 @@ public sealed class Pol049CoordinatorWorkflowCodeTests
         await using var db = CreateContext();
         var (_, application) = await Hcm028AppealTestSupport.SeedRejectedAsync(db, "P49");
         var starter = CreateStarter(db);
-        // A policy that starts an instance of another workflow for an appeal (what a mis-written rule could do in Enforce).
+        // A policy answer that carries an instance of another workflow for an appeal. Since the engine starts only what the catalog
+        // gives an action, no rule can produce it any more; a binding pinned by hand to another definition still could, and the
+        // guard trusts neither.
         var other = await db.WorkflowDefinitions.AsNoTracking().FirstAsync(d => d.Code == OfferCode && d.IsPublished);
         var orchestrator = new Mock<IPolicyOrchestrator>();
         orchestrator.Setup(o => o.EnforceAsync(It.IsAny<PolicyEnforceRequest>(), It.IsAny<CancellationToken>()))
@@ -326,6 +328,10 @@ public sealed class Pol049CoordinatorWorkflowCodeTests
 
         Assert.Contains("TriggerWorkflow", response.Effects);
         Assert.Null(response.WorkflowInstanceId);
+        // What stops it since PLAN-49 is the catalog: the handover's trigger is the owner's (the approval contract), so the engine
+        // does not reach its own stop for registered types (PLAN-43), which stays behind it. Pol049PolicyDomainCatalogTests keeps
+        // every registered type out of the engine's own starts.
+        Assert.Contains(PolicyWorkflowTriggerAllowlist.NotAllowedExplanation, response.Explanations);
         starter.VerifyNoOtherCalls();
 
         // The service that starts those types takes neither the coordinator nor the policy engine: it cannot be handed a policy
@@ -338,6 +344,102 @@ public sealed class Pol049CoordinatorWorkflowCodeTests
             "src", "Services", "HRCore", "HR.Core.Infrastructure", "Services", "Workflow", "External", "ExternalApprovalService.cs"));
         Assert.DoesNotContain("IPolicyOrchestrator", external, StringComparison.Ordinal);
         Assert.DoesNotContain("policyResult", external, StringComparison.Ordinal);
+    }
+
+    /// <summary>
+    /// The review of PLAN-49 (finding 2): a requisition owns its approval workflow, but only its submission starts it. A rule that
+    /// fires it when the requisition is published is refused by the validator; one that is in the data all the same (written
+    /// before the validator, or by hand) starts nothing in Enforce, because the publish call site takes no instance: it would
+    /// wait in an inbox for nobody and block the requisition's next approval.
+    /// </summary>
+    [Fact]
+    public async Task In_Enforce_the_engine_starts_a_workflow_only_at_the_action_the_catalog_gives_it()
+    {
+        var db = CreateContext();
+        await using var _d = db;
+        await SeedReferenceDataAsync(db);
+        await PolicyEngineSeeder.SeedAsync(db);
+        var requisition = await SeedRequisitionAsync(db, "P49P");
+
+        // A version nobody validated: the effective rules, and the requisition approval fired on Publish at the first priority.
+        var template = await db.PolicyTemplates.Include(t => t.Versions).ThenInclude(v => v.Rules)
+            .SingleAsync(t => t.Domain == PolicyDomains.CoreRecruitment && t.Scope == PolicyTemplateScope.National);
+        var effective = HR.Core.Infrastructure.Services.Policy.PolicyDraftService.EffectiveVersion(template, DateTime.UtcNow)!;
+        var rules = effective.Rules.Select(r => new PolicyRule
+        {
+            TenantId = r.TenantId,
+            RuleKey = r.RuleKey,
+            Name = r.Name,
+            Priority = r.Priority,
+            WhenJson = r.WhenJson,
+            ThenJson = r.ThenJson
+        }).ToList();
+        rules.Add(new PolicyRule
+        {
+            TenantId = template.TenantId,
+            RuleKey = "LEGACY-PUBLISH-TRIGGER",
+            Name = "legacy",
+            Priority = 1,
+            WhenJson = """{"all":[{"field":"action","operator":"Equals","value":"Publish"}]}""",
+            ThenJson = """[{"effect":"TriggerWorkflow","params":{"workflowCode":"RECRUITMENT-REQUISITION-APPROVAL"}}]"""
+        });
+        await PolicySeedVersionWriter.AddAsync(db, new PolicyTemplateVersion
+        {
+            PolicyTemplateId = template.Id,
+            TenantId = template.TenantId,
+            VersionNumber = template.Versions.Max(v => v.VersionNumber) + 1,
+            EffectiveFrom = DateTime.UtcNow.AddMinutes(-1)
+        }, rules, PolicyVersionStatus.Published, new PolicyPublication { TenantId = template.TenantId, EvidenceRef = "test-legacy" });
+        db.ChangeTracker.Clear();
+        var warnings = new WarningList();
+        var orchestrator = new PolicyOrchestrator(
+            db,
+            CreateStarter(db),
+            new PolicyPublishedSnapshotCache(new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions())),
+            warnings);
+
+        PolicyEnforceRequest Ask(string action, string status)
+        {
+            var request = PolicyDomainFactsBuilders.ForRecruitmentRequisition(
+                requisition.Id, requisition.TenantId, action, status, positionVacant: true, requisition.FundedPositionId);
+            request.Mode = PolicyEnforcementMode.Enforce;
+            return request;
+        }
+
+        // Publish: the rule matches and the decision names the workflow, but nothing starts, and the answer says why.
+        var published = await orchestrator.EnforceAsync(Ask("Publish", "Approved"));
+        Assert.True(published.Allowed);
+        Assert.Contains("LEGACY-PUBLISH-TRIGGER", published.Decision.MatchedRuleIds);
+        Assert.Contains(PolicyEffect.TriggerWorkflow, published.Decision.Effects);
+        Assert.Null(published.WorkflowInstanceId);
+        Assert.Contains(PolicyWorkflowTriggerAllowlist.NotAllowedExplanation, published.Explanations);
+        Assert.Empty(await InstancesOfAsync(db, requisition.Id));
+        var publishRow = await db.PolicyEnforcementLedgers.AsNoTracking().SingleAsync(l => l.Action == "Publish");
+        Assert.Null(publishRow.WorkflowInstanceId);
+        // Inside HR.Core nobody reads the answer's explanation, and the ledger row shows a trigger with no instance: the log says
+        // why, once, with the version the row carries and the code.
+        var declined = Assert.Single(warnings.Messages);
+        Assert.Contains("nothing was started", declined, StringComparison.Ordinal);
+        Assert.Contains("RECRUITMENT-REQUISITION-APPROVAL", declined, StringComparison.Ordinal);
+        Assert.NotNull(publishRow.PolicyVersionId);
+        Assert.Contains(publishRow.PolicyVersionId.Value.ToString(), declined, StringComparison.OrdinalIgnoreCase);
+
+        // SubmitForApproval: the action that starts the requisition's approval, by the seeded rule.
+        var submitted = await orchestrator.EnforceAsync(Ask("SubmitForApproval", "Draft"));
+        Assert.True(submitted.Allowed);
+        Assert.DoesNotContain(PolicyWorkflowTriggerAllowlist.NotAllowedExplanation, submitted.Explanations);
+        Assert.Single(warnings.Messages);
+        var instance = Assert.Single(await InstancesOfAsync(db, requisition.Id));
+        Assert.Equal(submitted.WorkflowInstanceId, instance.Id);
+        Assert.Equal("RECRUITMENT-REQUISITION-APPROVAL", instance.Code);
+
+        // And the validator refuses the rule itself, so no draft and no change set can publish it again.
+        var issues = PolicyRuleValidator.ValidateRule(
+            new PolicyRuleInput("LEGACY-PUBLISH-TRIGGER", "legacy", 1,
+                """{"all":[{"field":"action","operator":"Equals","value":"Publish"}]}""",
+                """[{"effect":"TriggerWorkflow","params":{"workflowCode":"RECRUITMENT-REQUISITION-APPROVAL"}}]"""),
+            await PolicyRuleValidationService.ForCatalog(db).LoadContextAsync(PolicyDomains.CoreRecruitment, PolicyTemplateScope.National));
+        Assert.Contains(issues, i => i.Code == "THEN_WORKFLOW_NOT_ALLOWED");
     }
 
     [Fact]
@@ -353,5 +455,25 @@ public sealed class Pol049CoordinatorWorkflowCodeTests
 
         Assert.Equal(["ApprovalStartCoordinator.cs", "RecruitmentAppealService.cs"], takers.Select(t => t.File).OrderBy(f => f, StringComparer.Ordinal));
         Assert.All(takers, t => Assert.Contains("PolicyWorkflowCodeGuard.RefuseOtherWorkflowAsync(", t.Text, StringComparison.Ordinal));
+    }
+
+    /// <summary>Keeps the warnings the engine writes: inside HR.Core a declined start is told to the log and nowhere else.</summary>
+    private sealed class WarningList : Microsoft.Extensions.Logging.ILogger<PolicyOrchestrator>
+    {
+        public List<string> Messages { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
+
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+
+        public void Log<TState>(
+            Microsoft.Extensions.Logging.LogLevel logLevel,
+            Microsoft.Extensions.Logging.EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            if (logLevel == Microsoft.Extensions.Logging.LogLevel.Warning) Messages.Add(formatter(state, exception));
+        }
     }
 }

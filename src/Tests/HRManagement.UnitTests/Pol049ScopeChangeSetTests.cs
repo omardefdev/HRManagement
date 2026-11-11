@@ -104,6 +104,42 @@ public sealed class Pol049ScopeChangeSetTests
         Assert.StartsWith(serverDigestStart, set.Digest(domain), StringComparison.Ordinal);
     }
 
+    /// <summary>
+    /// The four sets of this plan are applied by its deploy, and from then on they never change either. Their digests are pinned
+    /// here from the day they were written (the review of PLAN-49, finding 7): the fresh seed reads the same constants as the
+    /// sets (CustodyAssignRules, LeaveSelfApprovalRule), so an edit of the seed would otherwise change an applied digest and
+    /// stop the start-up of every database that has it. A change is a new set, with a new id.
+    /// </summary>
+    [Fact]
+    public void The_sets_of_this_plan_keep_the_digests_they_are_applied_with()
+    {
+        var actual = string.Join("\n", new[] { PolicySeedChangeSets.ScopeRetire, PolicySeedChangeSets.AssetsAction, PolicySeedChangeSets.IdCardOrphan, PolicySeedChangeSets.Leave }
+            .SelectMany(set => set.Domains.OrderBy(d => d, StringComparer.Ordinal).Select(domain => $"{set.Id}|{domain}|{set.Digest(domain)[..16]}")));
+
+        Assert.Equal(PinnedDigests.ReplaceLineEndings("\n").Trim(), actual);
+    }
+
+    private const string PinnedDigests = """
+        POL-049-SCOPE-RETIRE|Analytics.ETL|835a349dd50c3ec3
+        POL-049-SCOPE-RETIRE|Archive.Retention|6fe093daadd8462c
+        POL-049-SCOPE-RETIRE|Assets.Procurement|79f3087723c763ad
+        POL-049-SCOPE-RETIRE|Compliance.Disciplinary|5ed79eb759927a2a
+        POL-049-SCOPE-RETIRE|Contracts.Advance|9b814ecc4ab08c58
+        POL-049-SCOPE-RETIRE|Contracts.Contract|5f4ebfb5941067ef
+        POL-049-SCOPE-RETIRE|Contracts.Hire|9d5b26b77ec06182
+        POL-049-SCOPE-RETIRE|Contracts.Separation|ff5f56ca409f7349
+        POL-049-SCOPE-RETIRE|Core.Employment|be63f2513f6e075e
+        POL-049-SCOPE-RETIRE|Health.Insurance|a4ee47fee48e7564
+        POL-049-SCOPE-RETIRE|IT.Tickets|0dd10b1e94a17a43
+        POL-049-SCOPE-RETIRE|Movements.Transfer|886dc34be351ad32
+        POL-049-SCOPE-RETIRE|Movements.Workforce|c1caedee6f86ea35
+        POL-049-SCOPE-RETIRE|Payroll.Period|9b4be45e59909fc4
+        POL-049-SCOPE-RETIRE|Training.Learning|c73eebd962188892
+        POL-049-ASSETS-ACTION|Assets.Custody|7d955f593f6abb43
+        POL-049-IDCARD-ORPHAN|IDCard.Lifecycle|8b97dde760781de0
+        POL-049-LEAVE|Contracts.Leave|ce0c98ed922e5a17
+        """;
+
     [Fact]
     public async Task An_existing_database_gets_a_final_version_for_each_out_of_scope_template_and_keeps_its_history()
     {
@@ -161,6 +197,80 @@ public sealed class Pol049ScopeChangeSetTests
         var template = versions[0].PolicyTemplate;
         template.Versions = versions;
         return template;
+    }
+
+    /// <summary>
+    /// The demo server's Analytics.ETL is not on version 1 like the fixture: the server tours of PLAN-47 and PLAN-48 published
+    /// four more versions of it (a copy and a rollback, twice), so its effective version is the fifth (the last review of
+    /// PLAN-49 noticed that no test retired a template with a history). The retirement is one more version on top of that
+    /// history, which stays as it was.
+    /// </summary>
+    [Fact]
+    public async Task A_template_with_a_version_history_is_retired_by_one_more_version_and_keeps_every_earlier_one()
+    {
+        await using var h = await LegacyAsync();
+        var template = await h.Db.PolicyTemplates.Include(t => t.Versions).ThenInclude(v => v.Rules)
+            .SingleAsync(t => t.Domain == PolicyDomains.AnalyticsEtl);
+        var first = template.Versions.Single();
+        var now = DateTime.UtcNow;
+        first.EffectiveTo = now.AddDays(-4);
+        for (var number = 2; number <= 5; number++)
+        {
+            await PolicySeedVersionWriter.AddAsync(h.Db,
+                new PolicyTemplateVersion
+                {
+                    PolicyTemplateId = template.Id,
+                    TenantId = template.TenantId,
+                    VersionNumber = number,
+                    EffectiveFrom = now.AddDays(number - 6),
+                    EffectiveTo = number < 5 ? now.AddDays(number - 5) : null
+                },
+                first.Rules.Select(r => new PolicyRule
+                {
+                    TenantId = r.TenantId,
+                    RuleKey = r.RuleKey,
+                    Name = r.Name,
+                    Priority = r.Priority,
+                    WhenJson = r.WhenJson,
+                    ThenJson = r.ThenJson
+                }).ToList(),
+                PolicyVersionStatus.Published,
+                new PolicyPublication { TenantId = template.TenantId, EvidenceRef = $"server tour, version {number}" });
+        }
+
+        await h.Db.SaveChangesAsync();
+        h.Db.ChangeTracker.Clear();
+        var before = await VersionsAsync(h, PolicyDomains.AnalyticsEtl);
+        Assert.Equal([1, 2, 3, 4, 5], before.Select(v => v.VersionNumber));
+        Assert.Same(before[4], PolicyDraftService.EffectiveVersion(TemplateOf(before), DateTime.UtcNow));
+        var rulesBefore = await RuleFingerprintAsync(h);
+
+        await BootAsync(h);
+
+        var after = await VersionsAsync(h, PolicyDomains.AnalyticsEtl);
+        Assert.Equal([1, 2, 3, 4, 5, 6], after.Select(v => v.VersionNumber));
+        var final = after[5];
+        Assert.Equal(PolicyVersionStatus.Published, final.Status);
+        Assert.True(final.WithdrawsAllRules);
+        Assert.Empty(final.Rules);
+        Assert.Null(final.EffectiveTo);
+        Assert.Same(final, PolicyDraftService.EffectiveVersion(TemplateOf(after), DateTime.UtcNow));
+
+        // The publication closed the fifth version and touched nothing older: each earlier window is the one it had.
+        Assert.NotNull(after[4].EffectiveTo);
+        for (var i = 0; i < 4; i++)
+        {
+            Assert.Equal(before[i].EffectiveTo, after[i].EffectiveTo);
+            Assert.Equal(PolicyVersionStatus.Published, after[i].Status);
+        }
+
+        var rulesAfter = await RuleFingerprintAsync(h);
+        Assert.All(rulesBefore, kv => Assert.Equal(kv.Value, rulesAfter[kv.Key]));
+        Assert.NotNull((await h.Db.PolicyTemplates.AsNoTracking().SingleAsync(t => t.Id == template.Id)).RetiredAt);
+        var application = await h.Db.PolicySeedApplications.AsNoTracking()
+            .SingleAsync(a => a.ChangeSetId == PolicySeedChangeSets.ScopeRetireId && a.PolicyTemplateId == template.Id);
+        Assert.Equal(PolicySeedChangeSetApplier.OutcomePublished, application.Outcome);
+        Assert.Equal(final.Id, application.ResultVersionId);
     }
 
     [Fact]

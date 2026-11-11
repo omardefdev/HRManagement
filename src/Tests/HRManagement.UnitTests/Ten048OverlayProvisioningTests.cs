@@ -62,11 +62,16 @@ public sealed class Ten048OverlayProvisioningTests
         var version = await db.PolicyTemplateVersions.Include(v => v.PolicyTemplate).Include(v => v.Rules).Include(v => v.Publications)
             .SingleAsync(v => v.TenantId == tenant);
         Assert.Equal(PolicyTemplateScope.TenantOverride, version.PolicyTemplate.Scope);
-        // PLAN-49: the pack's rule is one the domain catalog accepts and a call site consumes (handover proof on Assign); its
-        // old rule (RequireEvidence on leave, an effect nobody consumed) left the pack.
+        // PLAN-49: the pack's old rule (RequireEvidence on leave, an effect nobody consumed) left it. The rule in its place is
+        // one the domain catalog accepts, and it restates the national R-PRIV-EVIDENCE word for word: an example pack decides
+        // nothing the national policy has not decided (asking for more is an owner's decision).
         Assert.Equal(PolicyDomains.AssetsCustody, version.PolicyTemplate.Domain);
         Assert.Equal(PolicyVersionStatus.Published, version.Status);
-        Assert.Equal(new[] { "MOF:R-FIN-HANDOVER-PROOF" }, version.Rules.Select(r => r.RuleKey));
+        var packRule = Assert.Single(version.Rules);
+        Assert.Equal("MOF:R-FIN-HANDOVER-PROOF", packRule.RuleKey);
+        var national = PolicySeedChangeSets.CustodyAssignRules.Single(r => r.Key == "R-PRIV-EVIDENCE");
+        Assert.Equal(national.When, packRule.WhenJson);
+        Assert.Equal(national.Then, packRule.ThenJson);
         var publication = Assert.Single(version.Publications);
         Assert.Equal(PolicyPublicationKind.SystemSeed, publication.Kind);
         Assert.Equal("overlay-policy-ministry-finance-v1", publication.EvidenceRef);

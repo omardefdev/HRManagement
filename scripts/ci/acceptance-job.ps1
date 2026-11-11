@@ -526,6 +526,16 @@ try {
             }
             $piiScanned = $true
         }
+        # PLAN-49: in a run without -Stage, an overlay stage marks the stack, and the next stage of a live stack starts a fresh
+        # one. The scan reads the marked stack before it goes, because it carried the stages before the overlay; the last
+        # stack is scanned by the block above (a stage on another stack follows) or at the end. A stage job is not touched:
+        # the job that holds the last live stage scans its own stack.
+        if (-not $stageMode -and $script:stackChanged -and $script:currentStack -in @("lab", "prodlike") -and [string]$stageEntry.stack -in @("lab", "prodlike")) {
+            Measure-Step "PII scan (before the marked stack goes)" {
+                try { Invoke-RepoScript -Script "scripts/ac026-scan-pii.ps1" }
+                catch { [void]$jobFailures.Add("PII scan: $($_.Exception.Message)") }
+            }
+        }
 
         Use-Stack -Stack ([string]$stageEntry.stack)
         if ([string]$stageEntry.group -eq "meta") { Get-CiJobResults }

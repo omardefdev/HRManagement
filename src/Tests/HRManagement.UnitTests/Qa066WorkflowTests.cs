@@ -226,6 +226,8 @@ public class Qa066WorkflowTests
     [InlineData("docker-compose.acceptance-prodlike.yml")]
     [InlineData("docker-compose.acceptance-leastpriv.yml")]
     [InlineData("docker-compose.acceptance-s2s42.yml")]
+    [InlineData("docker-compose.acceptance-wf46.yml")]
+    [InlineData("docker-compose.acceptance-pol49.yml")]
     public void The_acceptance_overlays_build_nothing(string file)
     {
         var text = System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, file));

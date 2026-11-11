@@ -80,6 +80,11 @@ public sealed class Pol049CatalogCapabilitiesTests
         { PolicyDomains.CoreRecruitment, When(Action("Hire")), Trigger("RECRUITMENT-OFFER-APPROVAL"), "THEN_WORKFLOW_NOT_ALLOWED", "$.then[0].params.workflowCode" },
         { PolicyDomains.CoreRecruitment, When(Action("SubmitForApproval")), Trigger("RECRUITMENT-OFFER-APPROVAL"), "THEN_WORKFLOW_NOT_ALLOWED", "$.then[0].params.workflowCode" },
         { PolicyDomains.CoreRecruitment, When(Action("Issue")), Trigger("RECRUITMENT-REQUISITION-APPROVAL"), "THEN_WORKFLOW_NOT_ALLOWED", "$.then[0].params.workflowCode" },
+        // The entity type's own workflow at an action that does not start it: publishing a requisition takes no instance, so one
+        // started there would wait in an inbox for nobody (the review of PLAN-49, finding 2).
+        { PolicyDomains.CoreRecruitment, When(Action("Publish")), Trigger("RECRUITMENT-REQUISITION-APPROVAL"), "THEN_WORKFLOW_NOT_ALLOWED", "$.then[0].params.workflowCode" },
+        { PolicyDomains.CoreRecruitment, When(Action("PublishInternal")), Trigger("RECRUITMENT-REQUISITION-APPROVAL"), "THEN_WORKFLOW_NOT_ALLOWED", "$.then[0].params.workflowCode" },
+        { PolicyDomains.CoreRecruitment, When(Action("SubmitForApproval,Publish", "In")), Trigger("RECRUITMENT-REQUISITION-APPROVAL"), "THEN_WORKFLOW_NOT_ALLOWED", "$.then[0].params.workflowCode" },
         // No condition on the action: the rule would also fire on Classify and Create, whose entity type has no workflow.
         { PolicyDomains.AssetsCustody, When(Leaf("isPrivileged", "true")), Trigger("ASSET-ASSIGN-APPROVAL"), "THEN_WORKFLOW_NOT_ALLOWED", "$.then[0].params.workflowCode" },
         { PolicyDomains.AssetsCustody, When(Leaf("value", "10000", "GreaterThan")), Trigger("ASSET-ASSIGN-APPROVAL"), "THEN_WORKFLOW_NOT_ALLOWED", "$.then[0].params.workflowCode" },
@@ -169,8 +174,22 @@ public sealed class Pol049CatalogCapabilitiesTests
             {
                 Assert.All(actions, action => Assert.Contains(type, capabilities.SubjectTypesOf(d.Domain, action)));
                 foreach (var trigger in d.WorkflowTriggers.GetValueOrDefault(type) ?? [])
+                {
                     Assert.True(capabilities.AllowsWorkflowCode(d.Domain, type, trigger.WorkflowCode));
+                    // A rule may name the code only at the action that starts it, and that action is one of the type's.
+                    Assert.Contains(trigger.Action, actions);
+                    foreach (var action in actions)
+                    {
+                        Assert.Equal(action == trigger.Action, capabilities.AllowsWorkflowStart(d.Domain, type, action, trigger.WorkflowCode));
+                        // The engine itself starts only what HR.Core's own approval start takes; an owner's workflow starts at its owner.
+                        Assert.Equal(
+                            action == trigger.Action && trigger.StartedBy == PolicyWorkflowStartPath.HrCoreCoordinator,
+                            d.StartsInsideHrCore(type, action, trigger.WorkflowCode));
+                    }
+                }
+
                 Assert.False(capabilities.AllowsWorkflowCode(d.Domain, type, "NOT-A-WORKFLOW"));
+                Assert.All(actions, action => Assert.False(capabilities.AllowsWorkflowStart(d.Domain, type, action, "NOT-A-WORKFLOW")));
             }
 
             Assert.All(d.SetFields, field => Assert.True(capabilities.AllowsSetField(d.Domain, field)));

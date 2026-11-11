@@ -15,8 +15,8 @@ public static class PolicyEngineSeeder
     /// v1 of every governed domain on an empty database (PLAN-49: the five of PolicyDomainCatalog, and no other), the workflow
     /// bindings, then the seed change sets (PLAN-47): every later change of the seeded rules is a new version with a publication
     /// record, never an edit of a published one (the writers that patched published versions in place are gone). The start-up
-    /// inventory of refused rules is logged by the national seeding once the code policies exist
-    /// (<see cref="Services.Policy.PolicyPublishedRuleInventory"/>).
+    /// inventory of refused rules is not taken here: HR.Core takes it once, after every seed of the profile (the step
+    /// policy-rule-inventory of its Program.cs, <see cref="Services.Policy.PolicyPublishedRuleInventory"/>).
     /// </summary>
     public static async Task SeedAsync(HRCoreDbContext db, IServiceProvider? services, CancellationToken ct = default)
     {

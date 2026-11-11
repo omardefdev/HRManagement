@@ -27,13 +27,11 @@ public sealed class Pol049CoordinatorCancelPostgresTests(PostgreSqlFixture fixtu
     private const string OfferCode = RecruitmentOfferService.OfferApprovalWorkflowCode;
     private const string OverrideCode = "RECRUITMENT-OFFER-OVERRIDE-APPROVAL";
 
-    /// <summary>A rule the catalog accepts (an offer may trigger either offer workflow), which wins by its priority.</summary>
-    private static readonly PolicySeedChangeSet WeakOfferRule = new("POL-TEST-PG-WEAK-OFFER",
-    [
-        new(PolicySeedOperationKind.AddRule, PolicyDomains.CoreRecruitment, "ACC-R-OFF-WEAK", "كل عرض ← اعتماد العرض العادي", 1,
-            """{"all":[{"field":"action","operator":"Equals","value":"Issue"}]}""",
-            """[{"effect":"TriggerWorkflow","params":{"workflowCode":"RECRUITMENT-OFFER-APPROVAL"}}]""")
-    ]);
+    /// <summary>
+    /// The rule the pol49 acceptance stage seeds (AC-POL-49f): the catalog accepts it (an offer may trigger either offer
+    /// workflow), and it wins by its priority.
+    /// </summary>
+    private static readonly PolicySeedChangeSet WeakOfferRule = HR.Core.Infrastructure.Seeding.AcceptancePol49WeakOfferPatch.ChangeSet;
 
     private static readonly IConfiguration Enforce = new ConfigurationBuilder()
         .AddInMemoryCollection(new Dictionary<string, string?> { ["PolicyEngine:Core.Recruitment"] = "Enforce" })

@@ -295,11 +295,24 @@ public sealed class Pol049PolicyDomainCatalogTests
             Assert.Equal(owned.Any(d => d.OwnerClientId == client), PolicyDomainOwners.IsOwnerOfAnyDomain(client)));
 
         // PLAN-43's meaning holds: the internal endpoint starts nothing, because the catalog marks no trigger for it.
+        Assert.Empty(PolicyWorkflowTriggerAllowlist.Starts);
         Assert.Empty(PolicyWorkflowTriggerAllowlist.Triples);
         foreach (var d in PolicyDomainCatalog.Governed)
         {
             foreach (var (type, triggers) in d.WorkflowTriggers)
+            {
                 Assert.All(triggers, t => Assert.False(PolicyWorkflowTriggerAllowlist.Allows(d.Domain, type, t.WorkflowCode)));
+                Assert.All(triggers, t => Assert.False(PolicyWorkflowTriggerAllowlist.Allows(d.Domain, type, t.Action, t.WorkflowCode)));
+            }
+        }
+
+        // PLAN-43 (rule 10), kept by the catalog since PLAN-49: the approval of a type another service owns starts at its owner
+        // only. No trigger of a registered type is the engine's own to start, inside HR.Core or at the endpoint; the engine's
+        // stop for registered types stays behind this as a second line.
+        foreach (var d in PolicyDomainCatalog.All)
+        {
+            foreach (var (type, triggers) in d.WorkflowTriggers.Where(kv => HR.Core.Infrastructure.Services.Workflow.External.ExternalApprovalTypes.IsRegistered(kv.Key)))
+                Assert.All(triggers, t => Assert.True(t.StartedBy == PolicyWorkflowStartPath.OwnerApprovalContract, $"{d.Domain}/{type}: {t.WorkflowCode} is started by {t.StartedBy}"));
         }
 
         // Neither file holds a domain, a client or a workflow code of its own.
@@ -385,9 +398,12 @@ public sealed class Pol049PolicyDomainCatalogTests
             "",
             $"## Governed domains ({governed.Count})",
             "",
-            "Each has a proved call site and seeded rules, and runs in Shadow in the Production and Staging files: the engine records",
-            "its decision in the ledger and changes no outcome (D-POL-13: no domain is in Enforce). A rule may use only the effects, the",
-            "SetField fields and the workflow codes listed here, and a condition on `action` may name only the actions listed here.",
+            "Each has a proved call site and a seeded national template, and runs in Shadow in the Production and Staging files: the engine",
+            "records its decision in the ledger and changes no outcome (D-POL-13: no domain is in Enforce). A rule may use only the effects,",
+            "the SetField fields and the workflow codes listed here, a workflow code only at the action it is listed at, and a condition on",
+            "`action` may name only the actions listed here. A governed domain may hold no rule: `IDCard.Lifecycle` holds none since its",
+            "orphan rule was retired (PLAN-49), and a card request is then answered by the engine's default, an allow whose ledger row",
+            "names no version.",
             "",
             "| Domain | Owner service | Owner client | Entity types and actions | Effects | SetField fields | Workflow triggers | Call sites |",
             "|---|---|---|---|---|---|---|---|"
@@ -398,7 +414,7 @@ public sealed class Pol049PolicyDomainCatalogTests
             var actions = d.SubjectActions.OrderBy(kv => kv.Key, StringComparer.Ordinal)
                 .Select(kv => $"{kv.Key}: {string.Join(", ", kv.Value.OrderBy(a => a, StringComparer.Ordinal))}");
             var triggers = d.WorkflowTriggers.OrderBy(kv => kv.Key, StringComparer.Ordinal)
-                .Select(kv => $"{kv.Key}: {string.Join(", ", kv.Value.OrderBy(t => t.WorkflowCode, StringComparer.Ordinal).Select(t => $"{t.WorkflowCode} (started by {t.StartedBy})"))}");
+                .Select(kv => $"{kv.Key}: {string.Join(", ", kv.Value.OrderBy(t => t.WorkflowCode, StringComparer.Ordinal).Select(t => $"{t.WorkflowCode} (at {t.Action}, started by {t.StartedBy})"))}");
             lines.Add(string.Join(" | ", new[]
             {
                 "| " + Code(d.Domain),

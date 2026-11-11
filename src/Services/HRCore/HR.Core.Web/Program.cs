@@ -333,6 +333,12 @@ using (var scope = app.Services.CreateScope())
             await seeds.RunOptionalAsync("acceptance", () =>
                 HR.Core.Infrastructure.Seeding.AcceptanceSeedOrchestrator.ApplyAsync(coreDb, scope.ServiceProvider));
         }
+        // PLAN-47, PLAN-49: reports the published policy rules the validator refuses: the national ones, then every agency's
+        // overrides, each tenant in its own session. After the seeds of the profile, so that the agencies they create are read
+        // at the first start too, and after the code policies a SelectCodePolicy rule is checked against. A report: the
+        // inventory catches its own failures and never stops a start.
+        await seeds.RunOptionalAsync("policy-rule-inventory", () =>
+            HR.Core.Infrastructure.Services.Policy.PolicyPublishedRuleInventory.LogAsync(coreDb, scope.ServiceProvider));
         // PLAN-43 (G-WF-04): reports what the validator finds in the published definitions; it never stops a start.
         await seeds.RunOptionalAsync("workflow-definition-health", () =>
             HR.Core.Infrastructure.Services.Workflow.WorkflowDefinitionHealthReport.RunAsync(coreDb, app.Logger));

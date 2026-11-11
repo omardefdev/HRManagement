@@ -24,6 +24,12 @@ public interface IPolicyDomainCapabilities
     /// <summary>The entity types that have the action.</summary>
     IReadOnlyCollection<string> SubjectTypesOf(string domain, string action);
 
-    /// <summary>Whether a rule may name the workflow code for the entity type (a TriggerWorkflow effect).</summary>
+    /// <summary>Whether the entity type owns the workflow code, at any of its actions.</summary>
     bool AllowsWorkflowCode(string domain, string subjectType, string workflowCode);
+
+    /// <summary>
+    /// Whether a rule may name the workflow code for the entity type at this action (a TriggerWorkflow effect): the action is
+    /// the one whose call site starts the workflow. At any other action of the type the instance would have no taker.
+    /// </summary>
+    bool AllowsWorkflowStart(string domain, string subjectType, string action, string workflowCode);
 }

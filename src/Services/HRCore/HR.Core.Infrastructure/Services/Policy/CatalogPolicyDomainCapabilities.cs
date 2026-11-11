@@ -29,4 +29,7 @@ public sealed class CatalogPolicyDomainCapabilities : IPolicyDomainCapabilities
 
     public bool AllowsWorkflowCode(string domain, string subjectType, string workflowCode) =>
         Governed(domain)?.AllowsWorkflowCode(subjectType, workflowCode) == true;
+
+    public bool AllowsWorkflowStart(string domain, string subjectType, string action, string workflowCode) =>
+        Governed(domain)?.AllowsWorkflowStart(subjectType, action, workflowCode) == true;
 }

@@ -23,7 +23,8 @@ public interface IPolicyOrchestrator
 
     /// <summary>
     /// PLAN-42: the internal endpoint. The caller has already set mode, actor and tenant from the server side. A workflow starts
-    /// only for a triple of <see cref="PolicyWorkflowTriggerAllowlist"/>, and the ledger names the client.
+    /// only for a start of <see cref="PolicyWorkflowTriggerAllowlist"/> (the entity type, the action and the code together;
+    /// the list is empty), and the ledger names the client.
     /// </summary>
     Task<PolicyEnforceResponse> EnforceForServiceAsync(PolicyEnforceRequest request, string callerClientId, CancellationToken ct = default);
 
@@ -94,12 +95,25 @@ public sealed class PolicyOrchestrator(
             && decision.Allowed
             && decision.Effects.Contains(PolicyEffect.TriggerWorkflow))
         {
+            // PLAN-49 (G-POL-11): inside HR.Core a workflow starts only where the catalog says the entity type starts it, at
+            // that action. The validator refuses any other rule; a rule written before it (or a row nobody validated) must not
+            // leave an instance at an action whose call site takes none. A service asks through the PLAN-42 allow-list.
+            var workflowCode = decision.GetWorkflowCode();
             var mayStart = callerClientId is null
-                || PolicyWorkflowTriggerAllowlist.Allows(request.Domain, request.SubjectType, decision.GetWorkflowCode());
+                ? PolicyDomainCatalog.Find(request.Domain)?.StartsInsideHrCore(request.SubjectType, request.Action, workflowCode) == true
+                : PolicyWorkflowTriggerAllowlist.Allows(request.Domain, request.SubjectType, request.Action, workflowCode);
             if (mayStart && request.EntityId is Guid entityId && entityId != Guid.Empty)
                 workflowInstanceId = await TryStartWorkflowAsync(request, decision, entityId, ct);
-            else if (callerClientId is not null)
+            else if (callerClientId is not null || !mayStart)
+            {
                 explanations = [.. decision.Explanations, PolicyWorkflowTriggerAllowlist.NotAllowedExplanation];
+                // A service reads the explanation in its answer. Inside HR.Core nobody does, and the ledger row then shows a
+                // TriggerWorkflow with no instance: the log says why (the version and the code are stored data, not a request's).
+                if (callerClientId is null)
+                    logger.LogWarning(
+                        "Policy engine: version {PolicyVersionId} names workflow {WorkflowCode} at an action where the catalog starts none inside HR.Core; nothing was started",
+                        decision.PolicyVersionId, workflowCode);
+            }
         }
 
         var ledger = new PolicyEnforcementLedger

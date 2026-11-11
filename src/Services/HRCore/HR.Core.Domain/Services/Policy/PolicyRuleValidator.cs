@@ -186,9 +186,10 @@ public static class PolicyRuleValidator
     }
 
     /// <summary>
-    /// PLAN-49 (G-POL-11): a rule may name a workflow only for the entity types the catalog gives that workflow to. The rule's
-    /// condition on <c>action</c> says which actions (and so which entity types) it can match; a rule that can match an action of
-    /// another type is refused, and so is a rule with no condition on the action in a domain with several types.
+    /// PLAN-49 (G-POL-11): a rule may name a workflow only for the entity type the catalog gives that workflow to, at the action
+    /// that starts it. The rule's condition on <c>action</c> says which actions (and so which entity types) it can match; a rule
+    /// that can match an action of another type, or another action of the same type (publishing a requisition does not start its
+    /// approval), is refused, and so is a rule with no condition on the action in a domain with several actions.
     /// </summary>
     private static List<string> WorkflowRefusedFor(string code, PolicyConditionGroup? when, PolicyRuleValidationContext context)
     {
@@ -198,7 +199,7 @@ public static class PolicyRuleValidator
         var capabilities = context.Capabilities;
         return PolicyRuleActionScope.PossibleActions(when, capabilities.Actions(context.Domain))
             .SelectMany(action => capabilities.SubjectTypesOf(context.Domain, action).Select(type => (Action: action, Type: type)))
-            .Where(x => !capabilities.AllowsWorkflowCode(context.Domain, x.Type, code))
+            .Where(x => !capabilities.AllowsWorkflowStart(context.Domain, x.Type, x.Action, code))
             .OrderBy(x => x.Action, StringComparer.Ordinal).ThenBy(x => x.Type, StringComparer.Ordinal)
             .Select(x => $"{x.Action} ({x.Type})")
             .ToList();

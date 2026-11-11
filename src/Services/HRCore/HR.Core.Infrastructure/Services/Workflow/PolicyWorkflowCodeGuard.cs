@@ -15,10 +15,17 @@ namespace HR.Core.Infrastructure.Services.Workflow;
 /// is the one linked to the entity.
 /// <para>
 /// When the engine answers with an instance of another code, that instance is cancelled here the way a repair cancels one
-/// (status, a history entry, an audit row), in the caller's transaction, so the cancel, the refusal and the policy ledger row
-/// commit together. Starting an instance writes the instance row and nothing else (no message, no notification), so nothing
-/// announces the one that is cancelled; a cancelled instance is not in the work inbox (it lists InProgress) and is never
-/// reused (the coordinator reuses InProgress only).
+/// (status, a history entry, an audit row), in the caller's unit of work. <see cref="ApprovalStartCoordinator"/> opens or joins
+/// a transaction around the start, so there the cancel, the refusal and the policy ledger row commit together. Starting an
+/// instance writes the instance row and nothing else (no message, no notification), so nothing announces the one that is
+/// cancelled; a cancelled instance is not in the work inbox (it lists InProgress) and is never reused (the coordinator reuses
+/// InProgress only).
+/// </para>
+/// <para>
+/// The appeal review (RecruitmentAppealService) asks the policy outside the coordinator and opens no transaction of its own: its
+/// instance, its ledger row and this cancel are separate saves there. A rule the validator accepts can name only the review's
+/// own workflow for FileAppeal, so that branch is reached by unvalidated data alone; making the appeal's start one unit of
+/// work goes with its ordering (it stages the reviewer before it asks), recorded for the wave that turns the domain to Enforce.
 /// </para>
 /// </summary>
 public static class PolicyWorkflowCodeGuard

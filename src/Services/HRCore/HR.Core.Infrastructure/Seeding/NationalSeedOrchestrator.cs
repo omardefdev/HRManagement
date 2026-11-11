@@ -52,9 +52,6 @@ public static class NationalSeedOrchestrator
             // orchestrator stays idempotent from its first run).
             await CodePolicyUpgrades.ApplyAsync(db, serviceProvider, logger, ct);
             await CodeGenerationSeeder.LogKindsWithoutPolicyAsync(db, logger, ct);
-            // PLAN-49: after the code policies, so a SelectCodePolicy rule is checked against keys that exist (on a new database
-            // the inventory ran before them and listed R-PRIV-CODE at the first start only).
-            await Services.Policy.PolicyPublishedRuleInventory.LogAsync(db, serviceProvider, ct);
             await MdmReferenceSeeder.SeedAsync(db, ct);
             await LegislationRegisterSeeder.SeedAsync(db, ct);
             var legislationProvider = new Services.Legal.LegislationRegisterProvider(db);
@@ -101,7 +98,6 @@ public static class NationalSeedOrchestrator
         var codeLogger = serviceProvider.GetService<ILoggerFactory>()?.CreateLogger("CodePolicyUpgrades");
         await CodePolicyUpgrades.ApplyAsync(db, serviceProvider, codeLogger, ct);
         await CodeGenerationSeeder.LogKindsWithoutPolicyAsync(db, codeLogger, ct);
-        await Services.Policy.PolicyPublishedRuleInventory.LogAsync(db, serviceProvider, ct);
         await MdmReferenceSeeder.SeedAsync(db, ct);
         await LegislationRegisterSeeder.SeedAsync(db, ct);
         var legislationProvider = new Services.Legal.LegislationRegisterProvider(db);

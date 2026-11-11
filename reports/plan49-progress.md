@@ -19,6 +19,20 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 - Resumed (UTC): 2026-11-10T11:53:50Z — the context was compacted near the end of P4 (its code and tests were in the working
   tree, uncommitted; one PostgreSQL assertion on the audit row's tenant was failing). Read this file and `git log --oneline -20`
   first. `origin/main` and the server were not touched in P4, so nothing remote had to be checked. No owner wait.
+- Resumed (UTC): 2026-11-10T17:36:39Z — the turn stopped at about 14:45Z, when a test run outlived its tool limit (the unit and
+  integration runs it had started both finished, 14:39Z and 14:45Z). Nobody was at the session; the machine went to sleep
+  at 15:53:17Z and woke at 17:34:06Z; the owner said «Try again» at 17:36Z, with the session's multi-agent mode switched on.
+  Read this file and `git log --oneline -20` first: HEAD was still f40c5f01 (P4), P5 uncommitted in the working tree (the
+  acceptance classes, the CI scope, the fixes of the independent review). Nothing remote had been touched. Waited for the
+  owner: 2 h 51 min (14:45Z to 17:36Z), of which the machine slept 1 h 41 min.
+- Resumed (UTC): 2026-11-10T17:47:14Z — the context was compacted in the middle of P5, while two background jobs ran (the
+  local acceptance chain, started 17:40:29Z, and the second, adversarial verification of the P5 diff). Read this file and
+  `git log --oneline -20` first: HEAD f40c5f01 (P4), P5 uncommitted. Nothing remote touched. No owner wait.
+- Resumed (UTC): 2026-11-10T19:32:39Z — the owner restarted the machine at 19:03:44Z (Windows event 1074, a restart from the
+  Start menu), in the middle of the recovery from the disk-full incident below: the last command (`docker desktop stop`, 19:03:13Z)
+  was cut by it. Windows was up at 19:06:17Z, Docker Desktop at 19:09:04Z, and the owner said «اكمل» at 19:32Z. Read this file,
+  the prompt and `git log --oneline -20` first: HEAD f40c5f01 (P4), P5 uncommitted, `origin/main` f99950bf, nothing remote touched.
+  Waited for the owner: 29 min (19:03Z to 19:32Z), of which the restart took about 5.
 
 ## Phase status
 
@@ -29,7 +43,7 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | P2 | done | 2026-11-10T10:50Z |
 | P3 | done | 2026-11-10T11:20Z |
 | P4 | done | 2026-11-10T12:25Z |
-| P5 | pending | |
+| P5 | done | 2026-11-11T00:45Z |
 | P6 | pending | |
 | P7 | pending | |
 | P8 | pending | |
@@ -56,8 +70,17 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | Full unit suite on the P4 tree (5993 tests) | 166 s of tests, 188 s |
 | PostgreSQL filter of P4 (`Pol049\|Pol047\|Ten048\|S2s042\|Hcm025\|Hcm031\|Est00\|RecruitmentRequisitionPolicy\|InternalChannel`, 73 tests) | 364 s of tests |
 | The seven validation scripts at the end of P4 | 88 s together (`pol049-validate` with its tests: 51 s) |
+| Image build of the 16 acceptance images and the first prod-like stack start (P5, 12:30:20Z to 12:50:55Z) | 1235 s (about 12 min of build, 8 min of start) |
+| Full unit suite on the P5 tree, before the review fixes (6000 tests) and after them (6008 tests) | 106 s and 157 s of tests |
+| PostgreSQL and integration filter of P5 with Testcontainers (139 tests) | 289 s of tests |
+| The independent review (one agent, read-only) | 31 min, beside the image build and the first acceptance scenarios |
+| The local acceptance chain on the final images (2026-11-10T22:41Z to 23:52Z; five jobs through `acceptance-job.ps1`) | 71 min: image build 15 min (restore from the filled NuGet cache), stage `pol49` 20 min 31 s in all, prod-like list 14 min 33 s, `s2s42` 7 min 31 s, least-privilege 14 min 6 s (with the migrator build), lab 13 min 39 s |
+| The prod-like list again after the last review fixes (23:56:52Z to 00:21:23Z, with a second image build) | 24 min 31 s (stack 948 s with the build) |
+| The chain of 19:50Z that proved nothing (a failed cold image build, then stale images) | 105 min, of which 39 min in the failed build |
+| The second verification (cut by the restart) and the last one (two launches, nine agents each) | about 80 min of the second before the restart; 80 and 101 min for the two launches of the last, beside the chain |
 | Waiting for CI | 0 so far |
-| Waiting for the owner | about 17 min (the session end of 08:43Z to 09:00Z; nothing was asked of the owner) |
+| Waiting for the owner | 3 h 37 min in all, nothing asked of the owner: about 17 min (the session end of 08:43Z to 09:00Z), 2 h 51 min (the turn that stopped at 14:45Z until «Try again» at 17:36Z), and 29 min (the owner's restart of the machine at 19:03Z until «اكمل» at 19:32Z) |
+| The machine asleep while the session ran (not waiting for an answer) | 61 min: 13:03:12Z to 14:04:33Z, by the power button or the lid (Windows event log), in the middle of an acceptance stack start. That run failed for it: the Keycloak admin session had expired when the machine woke (`kcadm … Session has expired`; "Stack prodlike took 3849 s") |
 
 ## P0 — done
 
@@ -266,6 +289,81 @@ goes through the guard); `S2s042PolicyEnforceClientTests` (each call is timed on
 Shadow and in Enforce, `http-503` in Shadow; Off makes no call and times nothing); `Hcm025ApprovalCoordinatorTests` (its mocked policy instance is now a real row of the requested code);
 `Pol049ShadowLedgerRlsPostgresTests` (3) and `Pol049CoordinatorCancelPostgresTests` (3) on PostgreSQL.
 
+## P5 — done
+
+- **The pieces of the acceptance run (P-10).**
+  - Overlay `docker-compose.acceptance-pol49.yml`: `PolicyEngine__Core.Recruitment=Enforce` and `Seed__Pol49WeakOfferRule=true` on
+    hr-core-web only. The weak rule (`ACC-POL49-WEAK-OFFER`: every offer `Issue` → `RECRUITMENT-OFFER-APPROVAL`, priority 1) has
+    one definition, `AcceptancePol49WeakOfferPatch`, applied by the acceptance seed only when the switch is on, through the
+    change-set applier; it is never in `PolicySeedChangeSets.All` (`Pol049AcceptanceWeakOfferPatchTests`).
+  - `scripts/pol049-outofscope-mode-boot-check.ps1` (ASCII, PowerShell 5.1): a one-off container of a service with
+    `PolicyEngine__IT.Tickets=Shadow` must exit non-zero with the start-up check's message; the running container is untouched.
+  - `tests/acceptance/ci-scope.json`: `AcPol49EngineScopeTests` in the prod-like list (group main), `AcPol49EnforceOverlayTests`
+    in the group `pol49`; the stage `prodLike:pol49` has its own job `prodlike-policy` (matrix of `ci.yml`, 25 min);
+    `tests/acceptance/ac-ownership.json`: `AC-POL-49` owned by PLAN-49.
+- **The classes.** `AcPol49EngineScopeTests` (49a the page, the start-up inventory, no draft for a domain out of scope; 49b leave
+  from the HR page, the portal, an edit and an approval, with sixty maternity days allowed and an overlapping portal request
+  created `Rejected`; 49c a processed card; 49d a privileged handover with and without evidence, and `Create`/`Classify`
+  without a trigger; 49e the central submission, the branch manager's 403, the deny rule by simulation; 49g drafts of agency A:
+  what the catalog allows and what it refuses). `AcPol49EnforceOverlayTests` (49f: in Enforce the ordinary offer starts its
+  workflow and the exception offer is refused, its policy instance cancelled, an audit row, nothing in an inbox;
+  49a-boot: the boot-check script). Every ledger row is read with its facts hash, compared with the hash of what the facts
+  builder sends.
+- **Tests of earlier plans moved to governed domains:** AC-TEN-48e step 1 (was `Analytics.ETL`) now writes its agency rule in
+  `Contracts.Leave`; AC-MSG-40c now publishes in `Assets.Custody`; PLAN-47's server tour (`AcPol47VpsChecks`) runs on
+  `Contracts.Leave`. Their assertions are the same.
+- **First local run** (12:30Z to 13:00Z, images of f40c5f01 with the weak-rule patch): the six scenarios of
+  `AcPol49EngineScopeTests` and the two of the overlay class passed. Shadow cost on the local prod-like stack: 4 to 8 ms per
+  call in steady state (the first call of a service 43 to 56 ms).
+- **`scripts/acceptance-verify.ps1` cannot run here** (it needs PowerShell 7, which this machine does not have, and the plan
+  forbids `pwsh`): its 32 seeded row counts were compared by psql on the fresh stack instead, 32 of 32 equal. CI runs the
+  script itself.
+- **The independent review** (one read-only agent, 31 min): no high finding. Eight findings, all answered:
+  - F1 (medium) the start-up inventory read the national tenant only → `PolicyPublishedRuleInventory.FindAgencyOverridesAsync`
+    walks every agency tenant in its own session and logs `PLAN-49 agency override inventory`; `pol047-validate.ps1` requires
+    that summary and zero findings (or `-AllowAgencyOverrideFindings` on the acceptance stack);
+    `Pol049OverrideInventoryPostgresTests` as a non-owner role under forced row security.
+  - F2 a `TriggerWorkflow` rule could match an action that starts nothing (publishing a requisition) → a trigger of the
+    catalog now names its action (`PolicyWorkflowTrigger(Code, StartedBy, Action)`), the validator and the engine ask
+    `AllowsWorkflowStart` / `StartsInsideHrCore`, and inside HR.Core the engine starts a workflow only there.
+  - F3 an engine outage on a portal request was recorded as a rejection → the consumer throws (the message is retried);
+    F5 a retry asked for a second reference number → the number is taken first, once.
+  - F4 the appeal's cancel is not one transaction with the assignment → recorded for wave 2 (open issues); the guard's
+    comment says so.
+  - F6 the finance pack's rule was a product rule nobody decided → it now equals the national `R-PRIV-EVIDENCE`
+    (`Ten048OverlayProvisioningTests`).
+  - F7 the digests of this plan's sets were not pinned → `Pol049ScopeChangeSetTests` pins the 18 of them.
+  - F8 decision 3's wording was too wide → corrected below (decision 37).
+- **Second verification** (the session's multi-agent mode, two agents at a time): three read-only reviewers over the P5 diff
+  (the engine; the channels and the inventory; the acceptance classes and CI), two refuters for each finding, then a
+  completeness critic. Its result is recorded below when it ends.
+- **The first local chain** (17:40Z to 18:30Z, images of the working tree as of 17:40Z; stopped at the start of its lab run):
+  - stage `pol49`: 2 of 2 (49f and 49a-boot), 20 min with the image build (stack 1156 s, of which about 12 min of build);
+  - prod-like (stack 264 s): journey 1/1; main 20 of 21; `AcInt37` 8/8; `AcMsg40` 8/8; `AcWf45` 8/8; `AcWf46` 9/9; `AcPol47` 1/1.
+    **The one failure was 49a:** "the agency override inventory read 0 tenant(s)". A real defect of the review fix F1, not of
+    the test: at a first start the inventory ran inside the national seed, before the profile's seed created the agencies
+    (decision 48). `pol047-validate -Container` passed on that stack for the same wrong reason;
+  - stage `s2s42`: `AcS2s42TrustBoundaryTests` 9/9, `AcWf46PolicyOrphanTests` 1/1;
+  - stage `leastpriv`: 6 of 9, three failures ("hr-core-web is not ready", "HR.Core holds no hr_core_app session"). **Not a
+    defect of the code:** the stage ran with `-NoBuild`, which reuses `hr-migrate:local` when it exists, and that image was
+    PLAN-48's (built 2026-11-09T20:35Z), so the database had no `RetiredAt` column. CI builds the migrator for the commit.
+    The local chain now runs this stage without `-NoBuild` (it rebuilds the migrator only).
+- **The second verification, as far as it has reported** (two of three reviewers; refuters and the critic still running):
+  nine findings, two of them medium, none high. Medium: the outage exception was never retried (decision 49), and 49a's
+  inventory assertion could not hold on a first start (decision 48, found by the chain at the same time). Low: the
+  allow-list ignored the action (51); a declined start left no trace (52); the walk inside a request, and the script's
+  pairing (53); a spent number on an outage (50); the test of registered external types proved the catalog's stop, not the
+  engine's (it now says so, and `Pol049PolicyDomainCatalogTests` keeps every registered type out of the engine's own starts).
+  All fixed with tests; the images are rebuilt once and the whole chain runs again on the final code.
+- **Docs written in P5:** the «الحالة» lines of G-POL-02, 04, 09 and 11 in `docs/POL_001_GAP_STUDY.md`; "What the engine
+  governs (PLAN-49)" in `docs/POLICY_ENGINE_UAT.md`; the stage and the job in `docs/CI_AND_TESTING.md`;
+  `scripts/policy-inventory.ps1` rewritten (reads the catalog; `-Check`), `docs/policy-rules-inventory.csv` regenerated (65
+  rows for 64 files, with «محكوم/محلي»), kept true by `Pol049RulesInventoryTests`.
+- **Written for P7** (in the test project since 2026-11-10T18:40Z, committed with P7):
+  `AcPol49VpsChecks.cs` (three server checks: the migration, the sets, the templates, the modes and the services without the
+  client; a leave and an establishment change that each leave Shadow rows and are cancelled again; every governed domain with
+  rows since the deploy, and the page). The last verification changed it before its first run (decisions 60, 61, 64).
+
 ## Decisions (with reasons)
 
 | # | Phase | Decision | Reason |
@@ -306,6 +404,42 @@ Shadow and in Enforce, `http-503` in Shadow; Off makes no call and times nothing
 | 34 | P4 | `Assets.Custody: "Shadow"` is written on prod-like hr-core-web although HR.Core's Production file would give the same | compose merges the lab file first, and that file says Enforce; without the explicit line the prod-like engine would enforce custody while the owner asked in Shadow |
 | 35 | P4 | New `appsettings.Staging.json` for Admin.Logistics and IDCard holding the `PolicyEngine` section only | "Production, Staging and prod-like"; the two services had no Staging file, and a file with one section changes nothing else there |
 | 36 | P4 | The timing test `S2s042GatewayProofV2Tests.One_hundred_proofs…` failed once in the full run (5.6 s against 5 s) and passes alone (54 / 54 in 9 s); left as it is | another project's containers and builds were loading the machine; PLAN-42's test, untouched here; a guard is not weakened for a local load spike |
+| 37 | P5 | **Decision 3, corrected (review finding F8):** at the internal endpoint a service client that owns no domain is refused 403 by the endpoint's authorization policy before the action runs; inside the action a domain out of scope answers 400 before the per-domain ownership check, so the 400 is what the three owner clients see | decision 3 said "one answer for every caller"; that is true only of callers the policy lets in. Nothing changes in the code: a client with no domain never reaches the catalog, and learns nothing about it |
+| 38 | P5 | **Deviation from the prompt:** the stage `prodLike:pol49` runs in its own job `prodlike-policy` and sits before `s2s42` in `order[]`, not "in the prodlike job after s2s42" | (a) `Qa066WorkflowTests` forbids a later stage on the same stack in one job after an overlay stage; (b) the PII scan runs in the job that holds the last lab/prodlike entry of `order[]` and must keep reading the stack the prod-like classes used; (c) a second stack start would pass the prodlike job's 35-minute limit (it takes 18 to 24 minutes) |
+| 39 | P5 | AC-TEN-48e (step 1), AC-MSG-40c and PLAN-47's server tour move from `Analytics.ETL` to a governed domain, with the same assertions | a domain out of scope takes no draft; the tests prove the override layer, the atomic publication and the four-eyes tour, not that domain |
+| 40 | P5 | The weak offer rule of AC-POL-49f has one definition (`AcceptancePol49WeakOfferPatch`), applied through the change-set applier when `Seed:Pol49WeakOfferRule` is on, and never listed in `PolicySeedChangeSets.All` | the unit test and the stack then use the same rule; no production path can seed it; a published rule is still written only by the applier |
+| 41 | P5 | The acceptance classes prove "facts match the schema" by the ledger's facts hash: the hash of what the facts builder sends must equal the row's | the ledger keeps a hash, not the facts; a hash of the builder's output says exactly which facts the engine decided on |
+| 42 | P5 | AC-POL-49b inserts an annual leave balance for the portal's employee by SQL when the seed gave none (test-only precondition, said in the evidence) | the seed gives balances to the first employees of the agency and for the year it ran in only; the approval debits the balance of the leave's year |
+| 43 | P5 | `scripts/acceptance-verify.ps1` is replaced locally by a psql comparison of its 32 seeded counts; CI runs the script | the script needs PowerShell 7; this machine has 5.1 only and the plan forbids `pwsh` (P-12) |
+| 44 | P5 | Inside HR.Core the engine starts a workflow only at the action the catalog gives HR.Core the start of (review finding F2); PLAN-42's test "a decision inside HR.Core is not limited by the allow-list" now says so, with a negative beside it | an Enforce decision for `Publish` of a requisition named `RECRUITMENT-REQUISITION-APPROVAL` would have started an instance no call site takes (G-POL-11, the same defect as R-ID-PROCESS) |
+| 45 | P5 | A portal leave request whose policy question fails for an outage is retried (the consumer throws), not recorded as rejected (F3); its reference number is taken once, before the question (F5) | a rejection is a decision; an outage is not one. The employee would have been told "rejected" for a network error |
+| 46 | P5 | The finance pack's custody rule is the national `R-PRIV-EVIDENCE` again, word for word (F6) | decision 6 had turned it into a rule of its own (evidence for every handover), which nobody decided; an agency pack restates or tightens what the owner decided, it does not invent |
+| 47 | P5 | The session's multi-agent mode (switched on by the owner at 17:36Z) is used for a second, adversarial verification of the P5 diff, still two agents at a time | the owner asked for the most exhaustive answer; the prompt's economy rule is about load on this machine, and reading agents put none on Docker |
+| 48 | P5 | The start-up inventory is taken in HR.Core's `Program.cs` after every seed of the profile (step `policy-rule-inventory`), no longer inside the national seed; it sets the national tenant itself for its first part and restores what it found | found by the acceptance run of 18:00Z: scenario 49a failed with "the agency override inventory read 0 tenant(s)". At a first start the profile's seed creates the agencies after the national seed, so the inventory read none (and `pol047-validate -Container` passed on a fresh stack without seeing agencies B and C); the acceptance seed also leaves no tenant in the flow. It ran again at every agency provisioning too (the provisioning calls the national seed). Production data was never affected: the server's tenants exist before a start |
+| 49 | P5 | A self-service leave whose policy question fails for an outage now throws `PolicyEngineUnavailableException` (ServiceDefaults, derived from `Exception`), not `InvalidOperationException` | the second review read the bus's retry policy: `ConfigureMessageRetry` ignores `InvalidOperationException` unless it wraps a transient fault, so decision 45's "retried" was false: the message reached `_error` at the first failed call. `Pol049EngineOutageRetryTests` runs the policy itself: retried, consumed when the engine is back, faulted only after the last retry; the old type faulted at once |
+| 50 | P5 | The reference number of a self-service leave stays first (decision 45); the comment now says what it costs | in Enforce a delivery that ends in an engine outage has spent its number (numbers are not gapless, as in the other inbound handlers); in Shadow, production's mode, an unanswered question never stops the request, so none is lost. Asking the engine first would write a second Shadow ledger row whenever the number call is retried. For wave 2, before Enforce: a stable request key on the number call |
+| 51 | P5 | The internal endpoint's allow-list also carries the action a code starts at (`Allows(domain, type, action, code)`), and the engine asks it that way | the catalog's "at which action it starts" then holds on both paths; latent today (the list is empty), but the day a trigger is marked `InternalEndpoint` the defect F2 closed inside HR.Core would have been open at the endpoint |
+| 52 | P5 | When the engine declines a start for a caller inside HR.Core it logs one warning (the policy version and the code: stored data, not a request's) | the answer's explanation reaches a service; inside HR.Core nobody read it, and the ledger row showed a `TriggerWorkflow` with no instance and no reason |
+| 53 | P5 | The per-tenant walk of the inventory takes nothing when a session it opens is not the tenant's own; `pol047-validate.ps1` pairs the two parts of a start-up by their place in the log and fails on a part that could not be taken at the last start-up | inside a request the token's tenant comes before the flow, so the walk would read the caller's tenant once for each agency and call them all read (reachable from the onboarding request until decision 48 took the inventory out of the national seed). The script read the two parts as two unordered lists: a start-up whose national part threw passed on the numbers of the start-up before. Eleven sample logs: two pass, nine fail, each for its own reason |
+| 54 | P5 | AC-POL-49a asserts the override inventory rule by rule: exactly the three pre-ceiling rules of agency B and of agency C, six in force | the second review (acceptance lens): the check only bounded what may be listed, so a walk that read three tenants and found nothing passed too |
+| 55 | P5 | In a run without `-Stage`, `scripts/ci/acceptance-job.ps1` runs the PII scan on a stack an overlay stage marked, before that stack goes; the last stack is still scanned at the end; a stage job is untouched | the second review (acceptance lens): with `pol49` before `s2s42` (decision 38) a sequential run scanned a fresh stack that had carried the `s2s42` classes only. Only a person runs that path, but a guard does not get weaker for that |
+| 56 | P5 | The declined start of decision 52 has a test (the warning carries the version of the ledger row and the code, once) | a refuter of the second review: every test built the engine with a null logger, so the only trace a declined start leaves inside HR.Core was unpinned |
+| 57 | P5 | The local image build restores from BuildKit's cache mount, filled beforehand from the host's own NuGet cache with the 182 package versions the lock files name (`artifacts/plan49/nuget-seed/`, local only, nothing committed) | the incident emptied the build cache; the owner's line then gave about 300 KB/s with dropped connections, and the cold build failed after 34 minutes in the first service's restore. With the cache filled a restore takes about 5 s. CI and the server restore from the network as before |
+| 58 | P5 | The local chain stops after its first stage when the images were not rebuilt | the chain of 19:50Z went on with `-NoBuild` after its build had failed, and its green stages said nothing about the final code |
+| 59 | P5 | The national summary of the start-up inventory says how many templates it read (`...; N national template(s) read`); `pol047-validate.ps1` fails when N is 0 or the line has no count, AC-POL-49a requires at least the governed five, the server check requires all twenty | the last review (lens: the late fixes, medium): the test "the first part is read as the national tenant, whatever the caller holds" could not fail. A session that is nobody's sees no template and printed the same "0 rule(s)", so "nothing refused" and "nothing read" looked alike. The test now asserts the count; the comments no longer say the acceptance seed empties the flow (it does not: an `AsyncLocal` set inside an awaited method never reaches its caller) |
+| 60 | P5 | One reader of the inventory lines for the acceptance class and for the server check (`PolicyScopeJourney.ParseStartUpInventory`): the last start-up by its place in the log, both parts, and a part that could not be taken fails | the last review (both lenses): decision 53's pairing had reached the script only; the two C# readers still took the last summary of each prefix anywhere in the log |
+| 61 | P5 | The server checks of this plan: the policy page is decoded before the catalog's Arabic reasons are compared; the second check cancels what it left open (what an earlier run left, at its start, and its own, in a `finally`, by its marker and through the pages' own actions), keeps its leave inside the year that has balances, and counts the ledger rows by who asked since the check began | the last review (lens: acceptance and server; one medium, three low): the third check could not have passed on the server (Razor writes Arabic as character references, as the other server checks already know); a failure between a write and its cancel would have left an approved leave or a pending approval on the demo; from 2026-11-23 the leave would have fallen in 2027, where the demo has no balance; "nothing else was written" counted only the rows it had already counted |
+| 62 | P5 | The extra PII scan of decision 55 runs only when the next stage needs a live stack | the last review (both lenses): before a stage on another stack the older block had just scanned the same stack, so it was scanned twice |
+| 63 | P5 | Wording only: the cost of decision 50 is one number for each attempt of a delivery (1 + `RetryCount`), not one for a delivery; the seeder's comment points at the start-up step; the script's server recipe, `OPS_VPS_SINGLE_HOST.md` and `PROD_001_VERSIONING.md` name both prefixes | the last review (lens: the late fixes, three low) |
+| 64 | P5 | The server check places its leave on the first Sunday past the notice of the annual policy (read from the server, at least seven days, one to spare); it deletes a leave it left Pending and cancels one it left Approved, and fails when a row it meant to remove is still open | the critic of the last verification (medium, both refuters could not refute it): decision 61 had moved the leave to three to six days ahead on four weekdays from 2026-11-23, and the approval refuses a leave that starts sooner than the notice (seven days in the demo seed); the page cancels approved leaves only, so the clean-up of a Pending one did nothing and said nothing |
+| 65 | P5 | In `docs/policy-rules-inventory.csv` a file of HR.Core is governed only when its name states an entity the catalog lists for the domain (a requisition, an offer, a committee session, an appeal, a hire; an establishment change); the other rules of the service have no policy domain | the critic (low): every other rules file of HR.Core was mapped to `Core.Recruitment`, so competition scoring, exam marking and two indicator formulas read as governed although the engine is never asked about them. The mapping errs on the side of local now: a file whose rules sit beside an engine question under another name (the recruitment workflow rules, the legal source rules) is listed as local |
+| 66 | P5 | Correction of decision 39: AC-MSG-40c published in `Training.Learning`, not in `Analytics.ETL` (AC-TEN-48e step 1 and PLAN-47 server tour were the two in `Analytics.ETL`). `docs/CI_AND_TESTING.md` now says the PII-scan sentence holds for the stage jobs and what a run without `-Stage` does. `docs/OPS_VPS_SINGLE_HOST.md` and the plan document (its `Status` and its notes) are committed in P8, with the section they point to | the critic (low): three sentences in documents were not true, or not true yet |
+| 67 | P5 | Not changed, recorded for the final report: when HR.Core accepts a connection and does not answer, a Shadow call waits the client timeout of 15 s (an asset creation makes two calls) and the circuit breaker does not count that timeout; a refused connection is immediate | the critic (low), an answer to "what does Shadow add on the server when HR.Core is slow": nothing is refused and no error is added, but an action of the three owner services can take 15 s longer while HR.Core hangs. Before Enforce or a real load: a shorter timeout of its own for the policy client, and a breaker that counts timeouts |
+| 68 | P5 | The rule key of the acceptance-only weak offer rule is defined as the change set id constant (one literal, the same compiled value) | the first launch of the last verification (high as reported, low to medium after two refuters, neither could refute it): a constant whose name ends in Key, set to a quoted value with digits and enough entropy, is what the pinned secret scanner reports as a generic key. It would have turned the first scan after the P5 commit red, as a look-alike did in PLAN-48, and the prompt asks to write such a literal differently rather than allow-list it |
+| 69 | P5 | PLAN-47 server tour (now on `Contracts.Leave`, decision 39) discards a draft it left open, in a `finally`; its comment says that each run adds two versions to the national leave policy in force | the first launch (critic, low): on a governed template an open draft postpones every later change set of that template, and nothing cleaned up after a tour that stopped between a draft and its publication |
+| 70 | P5 | New unit test: a template with a version history (five published versions, the last one in force, as the server Analytics.ETL after the tours of PLAN-47 and PLAN-48) is retired by a sixth version and every earlier version keeps its window and its rules | the first launch (critic, low): the fixture has every template on version 1, so the first start-up on the server would have been the first execution of the retirement on a multi-version template |
+| 71 | P5 | Wording and small proofs from the first launch: the generated registry text and the catalog comment say a governed domain may hold no rule (the card domain holds none, and its ledger rows then name no version); the gap study limits the G-POL-09 status to the coordinator and names the open point of the appeal path; `pol047-validate.ps1 -Out` writes both parts; the retry test of decision 49 no longer waits with the test harness default idle window; two comments name the allow-list by its present shape; the server check evidence says what it counts and what it does not | the first launch (seven low findings) |
+| 72 | P5 | **Deviation from decision 47 (two agents at a time):** for about fifty minutes four reading agents ran at once | the first launch of the last verification looked dead after the turn was cut at 22:48Z (its two transcripts had stopped growing) and a second was started at 22:58Z; the first had only been suspended and went on, so both ran to their end (nine agents each, the same prompts, independent answers). Their load was on the model, not on Docker; the acceptance chain ran beside them. The second answers were not wasted: the two launches agree on the two medium findings and each found things the other did not |
 
 ## Files changed
 
@@ -339,6 +473,33 @@ Shadow and in Enforce, `http-503` in Shadow; Off makes no call and times nothing
   Production files of HR.Core, HR.Contracts, Admin.Logistics and IDCard, the Staging files of HR.Core and HR.Contracts,
   `docker-compose.acceptance-prodlike.yml`, `scripts/pol049-validate.ps1`, `Pol047PostgresSupport.cs`,
   `Hcm025ApprovalCoordinatorTests.cs`, `Hcm028AppealTestSupport.cs`, `S2s042PolicyEnforceClientTests.cs`.
+- P5: new `docker-compose.acceptance-pol49.yml`, `scripts/pol049-outofscope-mode-boot-check.ps1`,
+  `AcceptancePol49WeakOfferPatch.cs` (HR.Core seeding), `AcPol49EngineScopeTests.cs`, `AcPol49EnforceOverlayTests.cs`
+  (acceptance), `Pol049OverrideInventoryPostgresTests.cs` (integration), `Pol049AcceptanceWeakOfferPatchTests.cs`,
+  `Architecture/Pol049RulesInventoryTests.cs` (unit); changed: `.github/workflows/ci.yml` (one matrix entry),
+  `tests/acceptance/ci-scope.json`, `tests/acceptance/ac-ownership.json`, `docker-compose.acceptance-wf46.yml` (a comment),
+  `PolicyDomainCatalog.cs`, `IPolicyDomainCapabilities.cs`, `CatalogPolicyDomainCapabilities.cs`, `PolicyRuleValidator.cs`,
+  `PolicyOrchestrator.cs`, `PolicyPublishedRuleInventory.cs`, `PolicyWorkflowCodeGuard.cs` (a comment),
+  `AcceptanceSeedOrchestrator.cs`, `InboundEventCommands.cs` (HR.Contracts), the finance overlay pack,
+  `scripts/pol047-validate.ps1`, `scripts/policy-inventory.ps1`, `docs/policy-rules-inventory.csv`,
+  `docs/POLICY_DOMAIN_REGISTRY.md`, `docs/POLICY_ENGINE_UAT.md`, `docs/POL_001_GAP_STUDY.md`, `docs/CI_AND_TESTING.md`, and
+  the tests `AcMsg40AtomicPublishingTests`, `AcPol47RuleLifecycleTests`, `AcPol47VpsChecks`, `AcTen48NationalScopeTests`,
+  `AcWf46CrossServiceApprovalTests`, `Pol049CoordinatorCancelPostgresTests`, `S2s042PolicyLedgerCallerPostgresTests`,
+  `Pol049PolicyDomainCatalogTests`, `Pol047RuleValidatorTests`, `Pol049CatalogCapabilitiesTests`,
+  `Pol049CoordinatorWorkflowCodeTests`, `Pol049EffectiveRulesConformTests`, `Pol049LeaveChannelsTests`,
+  `Pol049ScopeChangeSetTests`, `Qa066WorkflowTests`, `Ten048OverlayProvisioningTests`.
+
+- P5, after the second and the last verification: new `PolicyEngineUnavailableException.cs` (ServiceDefaults),
+  `Pol049EngineOutageRetryTests.cs` (integration); changed: `HR.Core.Web/Program.cs` (the step `policy-rule-inventory`),
+  `NationalSeedOrchestrator.cs`, `PolicyPublishedRuleInventory.cs`, `PolicyOrchestrator.cs`, `PolicyWorkflowTriggerAllowlist.cs`,
+  `PolicyEngineSeeder.cs` (a comment), `AcceptancePol49WeakOfferPatch.cs`, `InboundEventCommands.cs`,
+  `scripts/ci/acceptance-job.ps1`, `scripts/pol047-validate.ps1`, `scripts/policy-inventory.ps1`,
+  `docs/policy-rules-inventory.csv`, `docs/POLICY_DOMAIN_REGISTRY.md`, `docs/PROD_001_VERSIONING.md`, `docs/CI_AND_TESTING.md`,
+  `docs/POL_001_GAP_STUDY.md`, `tests/acceptance/ci-scope.json`, and the tests `AcPol49EngineScopeTests`, `AcPol47VpsChecks`,
+  `Pol049OverrideInventoryPostgresTests`, `Pol049CoordinatorWorkflowCodeTests`, `Pol049ScopeChangeSetTests`,
+  `Pol049PolicyDomainCatalogTests`.
+- Not in the P5 commit, on purpose: `AcPol49VpsChecks.cs` (P7), `docs/OPS_VPS_SINGLE_HOST.md` and the plan document (P8, with
+  the section and the status they announce), `reports/plan49-final-report.md` (P8).
 
 ## Test results
 
@@ -365,11 +526,46 @@ Shadow and in Enforce, `http-503` in Shadow; Off makes no call and times nothing
 | P4 | full unit suite | 5992 / 5993; the one failure is the timing test of decision 36, which passes alone (54 / 54 of its class) |
 | P4 | PostgreSQL filter of P4 with Testcontainers | 72 passed, 1 skipped (`Hcm031CompetitionScaleTests`, the 10 000-applicant scale test, which skips itself as before), 0 failed |
 | P4 | `pol049-validate` (with its tests), `pol047-validate`, `wf043-validate`, `hcm025-validate -SkipTests`, `int037-wiring-check`, `vps/lint-compose`, `int037-render-wiring-doc -Check` | all PASS |
+| P5 | build `-warnaserror` (final tree, 2026-11-11T00:33Z) | 0 errors, 0 warnings |
+| P5 | full unit suite | 6012 / 6012 |
+| P5 | integration filter with Testcontainers (`Pol049`, `Pol047`, `Ten048`, `S2s042`, `Hcm025`, `Est00*`, `Ops038`, `OutboxAtomicity`, `SoDPolicy`, `InboundEventConsumer`, `IntegrationHostValidation`, `Fun002`, `Wf043`, `Wf045`, `RecruitmentRequisitionPolicy`) | 141 passed, 1 skipped (`Ops038BootstrapIdempotencyTests`, as before), 0 failed |
+| P5 | `pol049-validate` (with its tests), `pol047-validate`, `wf043-validate`, `hcm025-validate -SkipTests`, `int037-wiring-check`, `vps/lint-compose`, `int037-render-wiring-doc -Check`, `policy-inventory -Check` | all PASS; `pol047-validate` on thirteen sample logs: two pass, eleven fail, each for its own reason |
+| P5 | whitespace formatting of the 37 changed C# files (Windows, folder mode) | no complaint but the end-of-line artefact of Windows (4); the Linux container of ci-local is the judge in P8 |
+| P5 | acceptance, stage `pol49` (AC-POL-49f and the boot check of 49a) | 2 / 2 |
+| P5 | acceptance, prod-like list on the final images (the rerun of 23:56Z) | journey 1/1; main 21/21 (AC-POL-49a..e and g with it); `AcInt37` 8/8; `AcMsg40` 8/8; `AcWf45` 8/8; `AcWf46` 9/9; `AcPol47` 1/1; `pol047-validate -Container` PASS (5 national templates read, six override rules of agencies B and C, 2 of 3 tenants) |
+| P5 | acceptance, stage `s2s42` | `AcS2s42TrustBoundaryTests` 9/9, `AcWf46PolicyOrphanTests` 1/1 |
+| P5 | acceptance, stage `leastpriv` (migrator rebuilt) | `AcTen48LeastPrivilegeTests` 9/9 |
+| P5 | acceptance, lab list | main 20 passed, 1 blocked by design (AC-09, since PLAN-42); journey 1/1; `AcHcm26` 5/5; `AcHcm27` 4/4 |
+| P5 | `scripts/acceptance-verify.ps1` | not run here (it needs PowerShell 7): its 32 seeded counts compared by psql on the first stack of P5, 32 of 32; CI runs the script |
 | P4 | `dotnet format --verify-no-changes` on the 14 changed C# files (Windows) | two end-of-line complaints at a comment inside an argument list of `RecruitmentAppealService.cs` (lines of an earlier plan; the known Windows artefact, the Linux container of ci-local is the judge) |
 
 ## Server changes and their undo commands
 
 None yet (read-only so far: the running tag, the policy picture in `artifacts/plan49/vps/before-p0-policy-picture.txt`).
+
+**Read-only, 2026-11-10T18:00Z (before P7):** `origin/main` is still f99950bf; the server runs 8abd5aa7fe93 (previous
+61816ed7dda2), 20 containers healthy, 56 GB free. No container has a `PolicyEngine__*` key (the Production files decide);
+every .NET service except hr-core-web and file-storage-web has `Integration__HrCoreBaseUrl` today (hr-health-web,
+hr-training-web and dev-analytics-web lose it with this release). The server's facts schemas of the five governed domains
+hold exactly the fields the builders send, and every workflow code a governed rule names has a published definition there.
+
+**The rollback note (P-14), from PLAN-48's code read at 8abd5aa7fe93 with `git show` (to go into `OPS_VPS_SINGLE_HOST.md`):**
+- The migration adds two nullable columns to `PolicyTemplates` (`RetiredAt`, `RetiredReason`) and changes no data. The older
+  model names its columns, so it neither reads nor writes them; the row of `POL049_PolicyDomainRetirement` in
+  `__EFMigrationsHistory` is one the older code never looks for (it applies pending migrations only).
+- The applied sets: the older applier reads the applications of its own two sets only (`POL-2026-10-30-BASELINE`,
+  `POL-2026-10-30-RETIRE-R-REC-HIRE`); both are recorded on the server with the same digest, so it returns at once and
+  re-adds nothing (no `R-LEAVE-MAX`, no `R-ID-PROCESS`). The four `POL-049-*` rows are never read by it.
+- The retired templates and their final versions with no rules: the older engine answers a version with no rules by its
+  static fallback, and no service calls those fifteen domains. The older policy page lists them as ordinary templates and
+  would let an author open a draft there: do not; a draft left there must be discarded before this release returns.
+- The new versions of `Assets.Custody`, `IDCard.Lifecycle` and `Contracts.Leave` stay effective; under the older code those
+  domains are Off (its Production files set `Core.Recruitment: Shadow` only), so nothing evaluates them, and
+  `Core.Recruitment` and `Core.Establishment` have no new version from this plan. HR.Contracts, Admin.Logistics and IDCard
+  stop asking HR.Core; the ledger rows they wrote stay as history.
+- The compose of the older release gives `Integration__HrCoreBaseUrl` back to the three services that lost it.
+- So `scripts/vps/deploy.ps1 -Rollback` needs no SQL and no restore. The versions are not undone by a rollback (undoing one
+  is a new version, never an edit); restore the backup only if data was damaged.
 
 ## Open issues
 
@@ -392,10 +588,120 @@ None yet (read-only so far: the running tag, the policy picture in `artifacts/pl
 
 ## Exact next step
 
-P5: the overlay `docker-compose.acceptance-pol49.yml` (Core.Recruitment in Enforce on hr-core-web, with its own seed flag for
-the weak offer rule `ACC-POL49-WEAK-OFFER`, never in `PolicySeedChangeSets.All`), `scripts/pol049-outofscope-mode-boot-check.ps1`,
-the group `pol49` after `s2s42` in `tests/acceptance/ci-scope.json` and `AC-POL-49` in `ac-ownership.json`,
-`AcPol49EngineScopeTests` (49a..e, g on the prod-like stack) and `AcPol49EnforceOverlayTests` (49f and the boot check); move
-AC-TEN-48e step 1, AC-MSG-40c and the server tour of `AcPol47VpsChecks` to governed domains; fix the stale wording of three
-files; start the prod-like stack (record the time), run the plan's classes and P-11's list, read the Shadow latency lines,
-`acceptance-verify`, `down -v`, restore the committed evidence; one independent review, its fixes with tests; commit P5.
+P5 is committed. Next, in order:
+
+1. P6: `git fetch origin`; merge only if `origin/main` moved from f99950bf (it had not at 2026-11-10T22:45Z).
+2. P7: the running tag on `origin/main`; the backup and its check (`artifacts/plan49/vps/backup-remote.sh`); the read-only
+   before-picture (`policy-picture.sql`, `modes-remote.sh`); one detached build of the P5 commit
+   (`bash artifacts/plan49/vps-build.sh <sha12>`); `scripts/vps/deploy.ps1 -Tag <sha12>`; then the checks, by name and in this
+   order (xUnit does not keep the order of a class): `AC_POL_49_vps_the_migration...`, the server suites of PLAN-36..48 with
+   this plan second check (`...a_leave_and_an_establishment_change...`), then `...every_governed_domain_has_Shadow_rows...`
+   last (`artifacts/plan49/run-vps.ps1 -Filter ...`). Commit `AcPol49VpsChecks.cs` with P7.
+3. P8: the documents (the runbook section «نطاق محرك السياسات» that `OPS_VPS_SINGLE_HOST.md` already points to, the plan
+   `Status` and notes, both uncommitted on purpose), `ci-local.ps1`, `plan035-prepush.ps1`, the final report
+   (`reports/plan49-final-report.md` is a draft with `[[TBD]]` marks: none may remain), the release branch, the PR, the merge.
+
+## Incident: the system disk filled and the Docker engine stopped (2026-11-10T18:40Z)
+
+- **What happened.** The second local chain started its image build at 18:39Z. At 18:40:41Z drive C had 0 bytes free;
+  `dockerd` and `initd` inside Docker Desktop's VM died with SIGBUS (two crash dumps in `%TEMP%\wsl-crashes`), the stage
+  `pol49` and the runs after it failed at once, and a test run on the host ended with "No space left on device". Docker's
+  data disk (`docker_data.vhdx`, 245.3 GB, not sparse) is on C; the rest of C's free space was taken by the Windows page file
+  under memory pressure (the image build, the test runs and another project's builds at once): 16 GB came back by itself
+  within minutes of the chain stopping.
+- **This plan's part in it.** The image builds of today grew the virtual disk, and the least-privilege stage of 18:22Z
+  (decision: the stale migrator image) left hr-core-web in a crash loop, whose eight dumps (2.7 GB) the VM wrote to
+  `%TEMP%\wsl-crashes`.
+- **What was done, and nothing else.** The two chain processes were stopped. The eight dumps of this repository's test
+  containers were **moved** (not deleted) to `artifacts/plan49/wsl-crashes/` on drive D; the two dumps of Docker itself stay
+  where Docker wrote them. No file of the owner or of another project was deleted or moved. C had 23 GB free at 18:46Z.
+- **Next:** the engine does not answer (its API hangs), so Docker Desktop is restarted with its own command
+  (`docker desktop restart`); then only this repository's leftovers are removed inside Docker (the `hrm-*` projects and
+  their volumes, the images of earlier builds), and the free space of C is checked before every image build from here on.
+- **What followed (18:53Z to 19:40Z).** `docker desktop restart` failed ("Docker Desktop terminated unexpectedly"), and
+  `docker desktop start` could not mount the data disk (`/dev/sde is not usable: device or resource busy`: the WSL machine
+  of the crashed engine still held it). The owner then restarted Windows (19:03:44Z); Docker Desktop came up by itself with
+  the data disk intact (143 images, the other projects' containers running). No `hrm-*` container or volume was left.
+  The build cache was damaged (`docker system df` and `docker buildx du` failed on a snapshot the crash never finished
+  writing) and was emptied by Docker itself within minutes of the start (177 MB at 19:39Z; nothing was pruned by hand).
+  Removed by hand, and nothing else: 74 untagged images of this repository's earlier builds (each checked: its entry point
+  is this repository's `APP_DLL`, no tag, no container). Inside the data disk the used space went from 242 GB to 40 GB, so
+  new layers reuse freed blocks and the disk file on C (245.3 GB) need not grow. C had 35 GB free at 19:40Z.
+  Left alone: the images `repo-*` (this repository's services, built 2026-11-09/10 by a compose project named `repo`, of
+  unknown origin), `hr-rabbitmq`, the two exited RabbitMQ containers, every image and volume of the other projects.
+- **From here on:** one heavy job at a time (never an image build beside a host test run); a watchdog
+  (`artifacts/plan49/disk-watch.ps1`) logs C's free space every minute and stops this plan's own run below 8 GB. The next
+  image build is cold (the NuGet cache went with the build cache).
+- **For the owner (not done by the agent, a setting of the machine):** Docker's data disk (245 GB) sits on C, which has
+  35 GB free of 457; drive D has 262 GB free. Moving the disk image to D (Docker Desktop, Settings, Resources, Disk image
+  location) or compacting it would remove the cause.
+
+## Checkpoint: the turn ended at the usage limit of the session (2026-11-10T19:59:51Z)
+
+- **The final tree, checked before the chain:** build `-warnaserror` 0 errors, 0 warnings; unit 6011 / 6011
+  (`artifacts/plan49/p5b/unit-final.log`); the integration filter with Testcontainers 141 passed, 1 skipped, 0 failed
+  (`integration-final.log`, 220 s). After two more test edits: `Pol049CoordinatorWorkflowCodeTests|Qa066` 142 / 142, and the
+  acceptance project builds.
+- **The second verification** (workflow `wf_95877ac7-863`, cut by the restart; what it returned is in
+  `artifacts/plan49/second-verification/journal-results.txt`): the engine lens (4 low) and the channels lens (2 medium,
+  3 low) were all fixed already (decisions 48 to 53; the eight refuters that ran say so). The acceptance and CI lens:
+  (1) high, 49a on a first boot: the running chain is its proof; (2) low: 49a now asserts the six seeded pairs of agencies
+  B and C exactly; (3) low: in a run without `-Stage`, `scripts/ci/acceptance-job.ps1` now scans a marked stack before it
+  goes (the stage jobs are untouched), and the description of `ci-scope.json` says so. Also: the declined-start warning of
+  decision 52 has a test, and a stale test comment is corrected. **Not run:** the refuters of the acceptance/CI and
+  channels findings, and the completeness critic.
+- **Running in the background when the turn ended** (started 19:50:54Z): `bash artifacts/plan49/run-acceptance-chain.sh all`
+  (a cold image build first), the disk watchdog (`artifacts/plan49/disk-watch.log`), and a waiter that brings this
+  repository's stacks down when the chain ends (`artifacts/plan49/acceptance/final-reset.log`).
+- **Next:** read `artifacts/plan49/acceptance/chain.log`; rerun a red stage alone; then steps 4 and 5 of "Exact next step"
+  (the validation scripts, `policy-inventory -Check`, restore the test outputs, commit P5, gitleaks), then P6, P7, P8.
+  `AcPol49VpsChecks.cs` is already in the test project (it is committed with P7).
+
+- Resumed (UTC): 2026-11-10T22:33:50Z — the turn of 19:32Z ended at 20:02Z at the usage limit of the owner's plan, with the
+  acceptance chain running in the background (it ended by itself at 21:35:27Z and its stacks were brought down at 21:35:35Z).
+  The owner said the limit had reset. Read this file first; HEAD f40c5f01, P5 uncommitted, nothing remote touched.
+  Waited for the owner: 58 min of idle time after the chain ended (21:35Z to 22:33Z); the 93 minutes before that were the
+  chain's own run.
+- **The chain of 19:50Z to 21:35Z proved nothing about the final code.** Its image build was cold (the build cache was lost in
+  the incident) and failed in the first service's `dotnet restore` after 34 minutes: `Failed to download package ... from
+  api.nuget.org: Received an unexpected EOF` (the owner's network). No service image was rebuilt, so the later stages
+  (`-NoBuild`) ran on the images of 17:45Z and 18:39Z: 49a failed again for the reason decision 48 fixes (HR.Core's image
+  still took the inventory inside the national seed), and the green stages (s2s42 10/10, leastpriv 9/9 with a rebuilt
+  migrator, lab 30 passed and 1 skipped) are results of stale images. Disk: C never fell below 23.9 GB.
+- Resumed (UTC): 2026-11-10T22:57:56Z — the turn was cut at about 22:48Z (not by the session: no tool call was running, the
+  machine did not sleep) and the owner said «Try again» at 22:57Z. The acceptance chain started at 22:41:10Z kept running in
+  the background (its fifteen images were all rebuilt this time); the read-only verification workflow was killed with the
+  turn before any reviewer had answered and was started again. Waited for the owner: 9 min.
+- **The chain of 22:41Z, on fifteen rebuilt images** (`hr-core-web` built 22:49Z from the final tree; image build 15 min with
+  the filled NuGet cache; the first start-up of HR.Core on a new database logged the national inventory 0 and "6 rule(s) of
+  overrides in force ..., in 2 of 3 agency tenant(s) read", which is what decision 48 was for):
+  - stage `pol49` (22:41:10Z to 23:01:41Z, stack 1174 s with the build): 2 of 2 (49f and the boot check of 49a);
+  - prod-like (23:01:49Z to 23:16:22Z, stack 306 s): journey 1/1; main 21 of 21, **49a with the rule-by-rule assertion
+    included**; `AcInt37` 8/8; `AcMsg40` 7 of 8; `AcWf45` 8/8; `AcWf46` 9/9; `AcPol47` 1/1; `pol047-validate -Container` PASS
+    (eight start-ups of HR.Core in the log, each with its two parts).
+  - **The one failure, `Ac40f_no_unsaved_outbox_message_in_any_of_the_thirteen_services`** (PLAN-40's test, lines this plan
+    did not touch): one of its thirteen plain `GET /metrics` calls through the published ports ended after 31 s with "An
+    existing connection was forcibly closed by the remote host". HR.Core did not restart then (its start-ups are in the log:
+    23:11:03Z, then 23:13:27Z), the VM had no out-of-memory kill, and a minute later all thirteen endpoints answered in 0.15 s.
+    Docker Desktop's own log shows what else was happening: from 23:10:00Z another project's test run (a .NET 8 container,
+    `p9-full`) was creating and deleting Testcontainers containers with published ports every few seconds (a PostgreSQL one,
+    then RabbitMQ ones at 23:11:42Z, 23:12:00Z, 23:12:08Z, ...), each with `exposer.Add` / `exposer.Remove` on the same port
+    forwarder this request went through. The review agents ran no `dotnet` and no `docker` (their transcripts were
+    searched). Read as an environment failure; the class is rerun alone after the chain to make sure.
+  - stage `s2s42` (23:16:39Z to 23:24:10Z): `AcS2s42TrustBoundaryTests` 9/9, `AcWf46PolicyOrphanTests` 1/1;
+  - stage `leastpriv` (23:24:12Z to 23:38:18Z, with the migrator rebuilt for this tree): `AcTen48LeastPrivilegeTests` 9/9;
+  - lab (23:38:23Z to 23:52:02Z): main 20 passed and 1 blocked by design (`Ac09ShadowPolicyTests`: "the mode is derived by the
+    server since PLAN-42 ... PLAN-65 rewrites this scenario", as before this plan); journey 1/1; `AcHcm26` 5/5; `AcHcm27` 4/4.
+  - Disk during the chain: C between 30.4 and 31.7 GB free.
+- **The last verification** (the session's multi-agent mode, read-only, two agents at a time; the first launch was killed with
+  the turn at 22:48Z and it was started again at 22:58Z): two reviewers over what nobody independent had read (the fixes
+  written after the second review; the server-check class and the last acceptance edits), then a critic. The two reviewers:
+  no high finding, two medium, ten low (two of them the same), all fixed (decisions 59 to 63):
+  a test that could not fail and a summary line that could not tell "nothing refused" from "nothing read"; a server check
+  that compared Arabic text with an undecoded page; the server check's clean-up, its dates and its ledger count; the pairing
+  of the two inventory parts in the C# readers; a double PII scan; three wordings. Nothing was run by the reviewers.
+  After the fixes: build `-warnaserror` 0/0; unit `Pol049|Pol047|Qa066|Ten048` 501/501; PostgreSQL
+  `Pol049|Pol047|Ten048|S2s042` 47/47; the stricter inventory test fails when the national-tenant set is removed (tried,
+  then restored); `pol047-validate.ps1` on thirteen sample logs: two pass, eleven fail, each for its own reason.
+  The images are built again for the changed line of HR.Core and the prod-like list runs once more (it also reruns the
+  class of AC-MSG-40f).
