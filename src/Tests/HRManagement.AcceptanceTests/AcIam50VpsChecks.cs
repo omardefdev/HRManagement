@@ -372,7 +372,8 @@ public partial class AcOps36VpsBootTests
             {
                 await PostFormAsync(principal, $"/ui/hr-core/Delegations/Revoke/{delegation}", new Dictionary<string, string>
                 {
-                    ["__RequestVerificationToken"] = await TokenAsync(principal, "/ui/hr-core/Delegations/Create"), ["reason"] = Iam50Marker
+                    ["__RequestVerificationToken"] = await TokenAsync(principal, "/ui/hr-core/Delegations/Create"),
+                    ["reason"] = Iam50Marker
                 });
             }
 
