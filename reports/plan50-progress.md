@@ -106,6 +106,16 @@ Finished (UTC): 2026-11-11T16:14:14Z.
   5/5, `acceptance-job: PASS`; stack down with its volumes. Unit set after the first fixes 179/179; integration `SoD|Iam050|Msg040` 24/24 (+3 Testcontainers skipped
   without the variable; they run in P8's full step).
 
+## P8 — docs, local gates, report, PR
+
+- Docs (one commit with this report): `docs/SOD_MATRIX.md` (the delegation table, its roles and limits, the `sub` match of old rows),
+  `docs/WF_001_WORKFLOW_ENGINE.md` and `docs/WF_002_WORK_INBOX.md` (the real effect), `docs/HIRE_RBAC_MATRIX.md` (the approver's
+  reach; the approvals check the employee's scope and cadre), `docs/USER_GUIDE_AR.md` (section 7, the delegation page),
+  `docs/OPS_VPS_SINGLE_HOST.md` (the PLAN-50 section: the new demo user, the backup, the change-table rows, the rollback note, the
+  deploy), the «الحالة» lines of G-IAM-01, G-MOV-01 and G-WF-11 («جزئي — الأثر في المحرك والحركات»), the plan's Status and
+  «ملاحظات التنفيذ والانحرافات». `reports/plan50-final-report.md`, `reports/plan50-pr.md`.
+- Local gates: the Testcontainers step (above, «Test results»); ci-local and `plan035-prepush.ps1` on the final HEAD: below.
+
 ## Decisions
 
 | # | Decision | Reason |
