@@ -161,7 +161,8 @@ public partial class AcOps36VpsBootTests
             foreach (var left in Sql("hr_core_db", $"select \"Id\" from \"ApprovalDelegations\" where \"PrincipalId\" = '{principalId}' and \"Reason\" like '{Iam50Marker}%' and not \"IsRevoked\""))
                 await PostFormAsync(principal, $"/ui/hr-core/Delegations/Revoke/{left}", new Dictionary<string, string>
                 {
-                    ["__RequestVerificationToken"] = await TokenAsync(principal, "/ui/hr-core/Delegations/Create"), ["reason"] = Iam50Marker
+                    ["__RequestVerificationToken"] = await TokenAsync(principal, "/ui/hr-core/Delegations/Create"),
+                    ["reason"] = Iam50Marker
                 });
 
             var now = DateTime.UtcNow.AddMinutes(-2);
@@ -208,7 +209,8 @@ public partial class AcOps36VpsBootTests
             {
                 await PostFormAsync(principal, $"/ui/hr-core/Delegations/Revoke/{delegation}", new Dictionary<string, string>
                 {
-                    ["__RequestVerificationToken"] = await TokenAsync(principal, "/ui/hr-core/Delegations/Create"), ["reason"] = Iam50Marker
+                    ["__RequestVerificationToken"] = await TokenAsync(principal, "/ui/hr-core/Delegations/Create"),
+                    ["reason"] = Iam50Marker
                 });
                 if (transfer.Length > 0)
                     await Iam50CancelAsync(creator, transfer);
@@ -223,8 +225,13 @@ public partial class AcOps36VpsBootTests
 
             recorder.WriteScenarioDbChecks(new
             {
-                delegation, transfer, principal = principalId, @delegate = delegateId, grantedAfterSeconds = grantedAfter,
-                refusedAfterRevocationSeconds = refusedAfter, internalEndpointForAUser = internalStatus
+                delegation,
+                transfer,
+                principal = principalId,
+                @delegate = delegateId,
+                grantedAfterSeconds = grantedAfter,
+                refusedAfterRevocationSeconds = refusedAfter,
+                internalEndpointForAUser = internalStatus
             });
         }
 

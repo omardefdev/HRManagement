@@ -36,17 +36,17 @@ public class Iam050DelegationMatcherTests
         DateTime? from = null,
         DateTime? until = null,
         bool revoked = false) => new()
-    {
-        PrincipalId = Principal,
-        DelegateEmployeeId = delegateEmployee ?? DelegateEmployee,
-        DelegateId = delegateUser,
-        RoleScope = role,
-        EntityTypeScope = entityType,
-        ActiveFrom = from ?? Now.AddDays(-1),
-        ActiveUntil = until ?? Now.AddDays(6),
-        Reason = "إجازة",
-        IsRevoked = revoked
-    };
+        {
+            PrincipalId = Principal,
+            DelegateEmployeeId = delegateEmployee ?? DelegateEmployee,
+            DelegateId = delegateUser,
+            RoleScope = role,
+            EntityTypeScope = entityType,
+            ActiveFrom = from ?? Now.AddDays(-1),
+            ActiveUntil = until ?? Now.AddDays(6),
+            Reason = "إجازة",
+            IsRevoked = revoked
+        };
 
     // ---- the matcher ----
 
@@ -85,8 +85,12 @@ public class Iam050DelegationMatcherTests
     {
         var old = new ApprovalDelegation
         {
-            PrincipalId = Principal, DelegateId = DelegateUser, RoleScope = Approver,
-            ActiveFrom = Now.AddDays(-1), ActiveUntil = Now.AddDays(1), Reason = "قديم"
+            PrincipalId = Principal,
+            DelegateId = DelegateUser,
+            RoleScope = Approver,
+            ActiveFrom = Now.AddDays(-1),
+            ActiveUntil = Now.AddDays(1),
+            Reason = "قديم"
         };
         Assert.Same(old, ApprovalDelegationMatcher.Match([old], DelegateUser, null, Approver, "TransferRequest", Now));
         Assert.Null(ApprovalDelegationMatcher.Match([old], Guid.NewGuid(), DelegateEmployee, Approver, "TransferRequest", Now));

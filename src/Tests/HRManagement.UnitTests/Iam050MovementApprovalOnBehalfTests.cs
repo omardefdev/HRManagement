@@ -320,16 +320,31 @@ public class Iam050MovementApprovalOnBehalfTests
         var end = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(6));
         var secondment = new SecondmentRequest
         {
-            EmployeeId = principalEmployee, HostOrg = "جهة", StartDate = start, EndDate = end, Status = SecondmentStatus.Pending, RequestedBy = Creator
+            EmployeeId = principalEmployee,
+            HostOrg = "جهة",
+            StartDate = start,
+            EndDate = end,
+            Status = SecondmentStatus.Pending,
+            RequestedBy = Creator
         };
         var loan = new LoanAssignmentRequest
         {
-            EmployeeId = principalEmployee, LendingOrgUnitId = Guid.NewGuid(), BorrowingOrgUnitId = Guid.NewGuid(), StartDate = start, EndDate = end,
-            Status = LoanAssignmentStatus.Pending, RequestedBy = Creator
+            EmployeeId = principalEmployee,
+            LendingOrgUnitId = Guid.NewGuid(),
+            BorrowingOrgUnitId = Guid.NewGuid(),
+            StartDate = start,
+            EndDate = end,
+            Status = LoanAssignmentStatus.Pending,
+            RequestedBy = Creator
         };
         var assignment = new DelegationRequest
         {
-            EmployeeId = principalEmployee, HostOrg = "جهة", StartDate = start, EndDate = end, Status = DelegationRequestStatus.Pending, RequestedBy = Creator
+            EmployeeId = principalEmployee,
+            HostOrg = "جهة",
+            StartDate = start,
+            EndDate = end,
+            Status = DelegationRequestStatus.Pending,
+            RequestedBy = Creator
         };
         db.SecondmentRequests.Add(secondment);
         db.LoanAssignmentRequests.Add(loan);
