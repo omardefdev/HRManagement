@@ -44,8 +44,8 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | P3 | done | 2026-11-10T11:20Z |
 | P4 | done | 2026-11-10T12:25Z |
 | P5 | done | 2026-11-11T00:45Z |
-| P6 | pending | |
-| P7 | pending | |
+| P6 | done (nothing to merge) | 2026-11-11T00:40:48Z |
+| P7 | done | 2026-11-11T01:33:05Z |
 | P8 | pending | |
 
 ## Durations
@@ -78,6 +78,9 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | The prod-like list again after the last review fixes (23:56:52Z to 00:21:23Z, with a second image build) | 24 min 31 s (stack 948 s with the build) |
 | The chain of 19:50Z that proved nothing (a failed cold image build, then stale images) | 105 min, of which 39 min in the failed build |
 | The second verification (cut by the restart) and the last one (two launches, nine agents each) | about 80 min of the second before the restart; 80 and 101 min for the two launches of the last, beside the chain |
+| The server: upload, build, push | 15 s, 1223 s, 17 s |
+| The server: deploy to all healthy | 119.6 s (the services away about 1 min 45 s) |
+| The server suites | 20 min 33 s, then three short runs (69 s, 8 s, 89 s) |
 | Waiting for CI | 0 so far |
 | Waiting for the owner | 3 h 37 min in all, nothing asked of the owner: about 17 min (the session end of 08:43Z to 09:00Z), 2 h 51 min (the turn that stopped at 14:45Z until «Try again» at 17:36Z), and 29 min (the owner's restart of the machine at 19:03Z until «اكمل» at 19:32Z) |
 | The machine asleep while the session ran (not waiting for an answer) | 61 min: 13:03:12Z to 14:04:33Z, by the power button or the lid (Windows event log), in the middle of an acceptance stack start. That run failed for it: the Keycloak admin session had expired when the machine woke (`kcadm … Session has expired`; "Stack prodlike took 3849 s") |
@@ -541,7 +544,54 @@ Shadow and in Enforce, `http-503` in Shadow; Off makes no call and times nothing
 
 ## Server changes and their undo commands
 
-None yet (read-only so far: the running tag, the policy picture in `artifacts/plan49/vps/before-p0-policy-picture.txt`).
+Changes, in the order they were made (P7, 2026-11-11):
+
+1. **The backup** (00:41:10Z): `/opt/hrm/backups/pre-plan49-20261111T004110Z` (700; `pg_dumpall.sql` 28.7 MB, `env.backup`,
+   `SHA256SUMS`: 600). Checked: 17 `CREATE DATABASE` statements for the 17 databases of the server, `hr_core_db` among them;
+   the dump ends with its completion line; `sha256sum -c` OK. Undo: none needed; delete the folder when it is no longer wanted.
+
+2. **The build** (00:42:12Z to 01:03:02Z, detached from the ssh session, with a `.done` file): the source of `046316bde9e7`
+   (the P5 commit, 32.0 MB, uploaded in 15 s), build 1223 s, push 17 s, 17 of 17 images tagged `046316bde9e7` in the server's
+   loopback registry; the source, the build cache and the SDK image were removed by the build script. Undo: none needed (the
+   images of the previous tag are still in the registry).
+3. **The deploy** (01:03:34Z to 01:05:57Z with the self-test; first attempt): `scripts/vps/deploy.ps1 -Tag 046316bde9e7`,
+   119.6 s (pull 2, up 92, bootstrap 38, Keycloak reconcile 8, healthy 13); `deployments.log` says healthy at 01:05:34Z,
+   previous tag 8abd5aa7fe93. The services were away for about 1 min 45 s (from the start of `up` to healthy). Self-test: 50
+   pass, 0 fail, 1 warning (the port probe from the client side, as before). **Undo:** `scripts/vps/deploy.ps1 -Rollback`
+   (no SQL, no restore; the rollback note below).
+4. **What the first start-up wrote** (HR.Core's log, 01:05:04Z to 01:05:11Z): the migration `POL049_PolicyDomainRetirement`;
+   `POL-049-SCOPE-RETIRE` on the fifteen templates out of scope (a final version with no rules each, `Analytics.ETL`'s on
+   top of its five versions), `POL-049-ASSETS-ACTION` (a new version of `Assets.Custody`), `POL-049-IDCARD-ORPHAN`
+   (`IDCard.Lifecycle`), `POL-049-LEAVE` (`Contracts.Leave`), the binding of `ESTABLISHMENT-CHANGE-APPROVAL`. The start-up
+   inventory: `0 rule(s) of effective versions the validator refuses; 23 more in superseded versions (history, unchanged);
+   20 national template(s) read`, and `0 rule(s) of overrides in force ..., in 0 of 0 agency tenant(s) read`. **Undo:** none: a
+   published version is not undone (undoing one is a new version); the previous release runs beside this data.
+5. **The first server check** (01:06:18Z, 69 s, Pass): the migration and the eighteen applications, the fifteen retired
+   templates and their final versions, the governed versions without the withdrawn rules, `action=Assign` and
+   `action=Approve` where they belong, no draft, the inventory, Shadow in the four services and no Enforce, the eight
+   services without the client healthy. It writes nothing on the server.
+6. **The server suites** (01:07:52Z to 01:28:26Z, 20 min 33 s, nothing heavy beside them; `artifacts/plan49/vps/suites/`): 34 of
+   35 passed: `AcOps36VpsBootTests` a to k without 36j (excepted as before), `AcInt37VpsServerTests` 3/3, the server checks of
+   PLAN-38, 39, 40, 43, 44, 45, 46, 47, 48, and this plan second check. The one failure,
+   `AC_WF_46_vps_the_sweeps_run_and_the_metrics_exist`, read idcard-web log before its first sweep cycle (AC-OPS-39f had
+   recreated every service at 01:21Z; the sweep runs every ten minutes): it passed alone at 01:32Z, as in PLAN-46..48.
+   Then this plan third check, with its first again: 2/2 (01:29Z).
+   **What the checks left on the server** (left as it is): from this plan, the leave `63b55b26` (22 to 24 November, approved,
+   then cancelled: the balance is back at 9 days used) and the freeze request `77115597` of a vacant position (submitted, then
+   cancelled with its approval instance), both marked «PLAN-49 server check», their numbers, the archive item of the
+   approval, audit rows, three ledger rows; from PLAN-47 tour, versions 3 and 4 of the national `Contracts.Leave` policy
+   (the rules are those of version 2); from the checks of PLAN-38 and PLAN-43..46, what they leave at every run.
+7. **The ledger since the deploy** (all Shadow, each domain asked by its owner only): `Assets.Custody` 8 rows
+   (`svc-admin-logistics`), `Contracts.Leave` 4 (`svc-hr-contracts`), `IDCard.Lifecycle` 1 (`svc-idcard`), `Core.Recruitment` 2 and
+   `Core.Establishment` 1 (inside HR.Core); 15 rows of `Core.Recruitment` from before. The policy page shows five governed
+   domains in Shadow and fifteen out of scope. **The cost of Shadow on the server** (the client clock): leave 76, 6, 14, 11 ms;
+   custody 351, 13, 17, 15, 9, 13, 7, 10 ms (the first call of each container is the slow one); the card service log went with
+   its container when AC-OPS-39f recreated it.
+8. **At the end** (01:33Z): tag `046316bde9e7`, 20 containers healthy, the self-test with mandatory wiring 50 pass, 0 fail,
+   1 warning, no draft open. The committed evidence the suites rewrote (`acceptance-evidence/`) is restored; a copy of what
+   they wrote is in `artifacts/plan49/vps/suites/acceptance-evidence-from-run/`.
+
+Read-only before it: the running tag, the policy picture of P0 in `artifacts/plan49/vps/before-p0-policy-picture.txt`.
 
 **Read-only, 2026-11-10T18:00Z (before P7):** `origin/main` is still f99950bf; the server runs 8abd5aa7fe93 (previous
 61816ed7dda2), 20 containers healthy, 56 GB free. No container has a `PolicyEngine__*` key (the Production files decide);
@@ -567,6 +617,17 @@ hold exactly the fields the builders send, and every workflow code a governed ru
 - So `scripts/vps/deploy.ps1 -Rollback` needs no SQL and no restore. The versions are not undone by a rollback (undoing one
   is a new version, never an edit); restore the backup only if data was damaged.
 
+**P6 (2026-11-11T00:40:48Z):** `origin/main` is still f99950bf, so nothing was merged and P6 has no commit.
+
+**Read-only before the deploy (00:41Z, `artifacts/plan49/vps/before-p7-policy-picture.txt` and `before-p7-modes.txt`):** the
+running tag 8abd5aa7fe93 is on `origin/main`; 20 of 22 containers report healthy (the two others have no health check), 56 GB
+free. The templates, versions and rules are those of the P0 picture, line for line; no draft is open; the ledger holds 15 rows,
+all `Core.Recruitment` in Shadow asked inside HR.Core. The four services run as Production with no `PolicyEngine__*` key in
+their environment; only hr-core-web has a `PolicyEngine` section in its Production file (`Core.Recruitment: Shadow`); all eleven
+services that had the policy client still have `Integration__HrCoreBaseUrl`. What the server check will need is there: the
+legal source it names, 75 vacant positions with no open request, the published establishment definition, 425 annual balances of
+2026 with ten days or more, and the four demo users.
+
 ## Open issues
 
 - `AcWf46PolicyOrphanTests` probably runs with hr-core-web out of Enforce (the s2s42 class recreates it without the wf46
@@ -588,18 +649,15 @@ hold exactly the fields the builders send, and every workflow code a governed ru
 
 ## Exact next step
 
-P5 is committed. Next, in order:
+P7 is committed. P8, in this order (a commit after a green local CI means another full run, so the commits come first):
 
-1. P6: `git fetch origin`; merge only if `origin/main` moved from f99950bf (it had not at 2026-11-10T22:45Z).
-2. P7: the running tag on `origin/main`; the backup and its check (`artifacts/plan49/vps/backup-remote.sh`); the read-only
-   before-picture (`policy-picture.sql`, `modes-remote.sh`); one detached build of the P5 commit
-   (`bash artifacts/plan49/vps-build.sh <sha12>`); `scripts/vps/deploy.ps1 -Tag <sha12>`; then the checks, by name and in this
-   order (xUnit does not keep the order of a class): `AC_POL_49_vps_the_migration...`, the server suites of PLAN-36..48 with
-   this plan second check (`...a_leave_and_an_establishment_change...`), then `...every_governed_domain_has_Shadow_rows...`
-   last (`artifacts/plan49/run-vps.ps1 -Filter ...`). Commit `AcPol49VpsChecks.cs` with P7.
-3. P8: the documents (the runbook section «نطاق محرك السياسات» that `OPS_VPS_SINGLE_HOST.md` already points to, the plan
-   `Status` and notes, both uncommitted on purpose), `ci-local.ps1`, `plan035-prepush.ps1`, the final report
-   (`reports/plan49-final-report.md` is a draft with `[[TBD]]` marks: none may remain), the release branch, the PR, the merge.
+1. The documents (`docs/OPS_VPS_SINGLE_HOST.md`, the plan document), `reports/plan49-final-report.md` (no `[[TBD` mark may
+   remain except those the merge note fills), `reports/plan49-pr.md`: one commit on the feature branch.
+2. `git switch -c release/plan-49 origin/main`, `git merge --no-ff feature/plan-49-pol-engine-scope-orphans`.
+3. On that HEAD: the Testcontainers category on the host (the owner VPN is on), `scripts/ci-local.ps1 -SkipTestcontainers`,
+   `scripts/plan035-prepush.ps1`.
+4. `git push -u origin release/plan-49`, `gh pr create`, `gh pr checks <n> --watch --interval 60`, and when every check is
+   green `gh pr merge <n> --merge`. Then the merge note on `docs/plan-49-merge-note`.
 
 ## Incident: the system disk filled and the Docker engine stopped (2026-11-10T18:40Z)
 
