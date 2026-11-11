@@ -43,9 +43,9 @@ public class Iam050MovementApprovalOnBehalfTests
         }
     }
 
-    private static ApprovalActing OnBehalf(Guid? principalScope = null) =>
-        new(Delegate, null, false,
-            new ActiveDelegation(Guid.NewGuid(), Principal, null, "الأصيل", HrManagementRoles.HrManagementApprover, null, DateTime.UtcNow.AddDays(1), principalScope));
+    private static ApprovalActing OnBehalf(Guid? principalScope = null, Guid? principalEmployee = null, Guid? delegateEmployee = null) =>
+        new(Delegate, delegateEmployee, false,
+            new ActiveDelegation(Guid.NewGuid(), Principal, principalEmployee, "الأصيل", HrManagementRoles.HrManagementApprover, null, DateTime.UtcNow.AddDays(1), principalScope));
 
     private static readonly ApprovalActing Direct = new(Delegate, null, true, null);
     private static readonly ApprovalActing Nobody = new(Delegate, null, false, null);
@@ -53,12 +53,12 @@ public class Iam050MovementApprovalOnBehalfTests
     private static MovementsDbContext Db() =>
         new(new DbContextOptionsBuilder<MovementsDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
 
-    private static ClaimsPrincipal User() =>
-        new(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, Delegate.ToString("D")), new Claim(ClaimTypes.Role, HrManagementRoles.HrCore)], "Test"));
+    private static ClaimsPrincipal User(string role = HrManagementRoles.HrCore) =>
+        new(new ClaimsIdentity([new Claim(ClaimTypes.NameIdentifier, Delegate.ToString("D")), new Claim(ClaimTypes.Role, role)], "Test"));
 
-    private static T With<T>(T controller) where T : Controller
+    private static T With<T>(T controller, string role = HrManagementRoles.HrCore) where T : Controller
     {
-        var http = new DefaultHttpContext { User = User() };
+        var http = new DefaultHttpContext { User = User(role) };
         controller.ControllerContext = new ControllerContext { HttpContext = http };
         controller.TempData = new TempDataDictionary(http, Mock.Of<ITempDataProvider>());
         return controller;
@@ -171,6 +171,185 @@ public class Iam050MovementApprovalOnBehalfTests
         var inside = await TransferAsync(db, Creator, branch.Id, child.Id);
         await Transfers(db, OnBehalf(principalScope: branch.Id)).Approve(inside.Id);
         Assert.Equal(ApprovalStatus.Approved, (await db.TransferRequests.SingleAsync(t => t.Id == inside.Id)).Status);
+    }
+
+    // ---- review 3: the subject rule on behalf ----
+
+    [Fact]
+    public async Task A_delegate_does_not_approve_a_movement_of_his_principal_or_of_himself()
+    {
+        await using var db = Db();
+        var principalEmployee = Guid.NewGuid();
+        var delegateEmployee = Guid.NewGuid();
+        foreach (var subject in new[] { principalEmployee, delegateEmployee })
+        {
+            var transfer = await TransferAsync(db, Creator);
+            transfer.EmployeeId = subject;
+            await db.SaveChangesAsync();
+
+            var approve = Transfers(db, OnBehalf(principalEmployee: principalEmployee, delegateEmployee: delegateEmployee));
+            await approve.Approve(transfer.Id);
+            Assert.Equal(MovementApprovalActing.SubjectMessage, approve.TempData["Error"]);
+            var reject = Transfers(db, OnBehalf(principalEmployee: principalEmployee, delegateEmployee: delegateEmployee));
+            await reject.Reject(transfer.Id, "x");
+            Assert.Equal(MovementApprovalActing.SubjectMessage, reject.TempData["Error"]);
+            Assert.Equal(ApprovalStatus.Pending, (await db.TransferRequests.SingleAsync(t => t.Id == transfer.Id)).Status);
+        }
+
+        // A holder of the direct role is not touched by the on-behalf rule.
+        Assert.Null(MovementApprovalActing.Subject(Direct, delegateEmployee));
+    }
+
+    [Fact]
+    public async Task A_promotion_of_the_principal_is_not_approved_on_behalf()
+    {
+        await using var db = Db();
+        var principalEmployee = Guid.NewGuid();
+        var promotion = new PromotionRequest
+        {
+            EmployeeId = principalEmployee,
+            TransitionDecisionRef = "IAM50-UNIT",
+            Status = PromotionRequestStatus.Pending,
+            RequestedBy = Creator
+        };
+        db.PromotionRequests.Add(promotion);
+        await db.SaveChangesAsync();
+
+        var controller = With(new PromotionRequestsController(db, Mock.Of<IPublishEndpoint>(), new FakeHrCoreActiveRegimeClient(), new FixedActing(OnBehalf(principalEmployee: principalEmployee))));
+        await controller.Approve(promotion.Id);
+        Assert.Equal(MovementApprovalActing.SubjectMessage, controller.TempData["Error"]);
+        Assert.Equal(PromotionRequestStatus.Pending, (await db.PromotionRequests.SingleAsync(p => p.Id == promotion.Id)).Status);
+    }
+
+    // ---- review 4: without the acting context, only a direct role approves ----
+
+    [Fact]
+    public async Task Without_the_acting_context_a_caller_without_a_direct_role_is_refused()
+    {
+        await using var db = Db();
+        var transfer = await TransferAsync(db, Creator);
+        var noRole = With(new TransferRequestsController(db, Mock.Of<IPublishEndpoint>(), new FakeHrCoreActiveRegimeClient()), HrManagementRoles.HrMovements);
+        Assert.IsType<ForbidResult>(await noRole.Approve(transfer.Id));
+        Assert.Equal(ApprovalStatus.Pending, (await db.TransferRequests.SingleAsync(t => t.Id == transfer.Id)).Status);
+
+        var approver = With(new TransferRequestsController(db, Mock.Of<IPublishEndpoint>(), new FakeHrCoreActiveRegimeClient()), HrManagementRoles.HrManagementApprover);
+        await approver.Approve(transfer.Id);
+        Assert.Equal(ApprovalStatus.Approved, (await db.TransferRequests.SingleAsync(t => t.Id == transfer.Id)).Status);
+    }
+
+    // ---- review 1: a reader admitted through a delegation reads inside the principal's stored scope ----
+
+    [Fact]
+    public async Task A_reader_admitted_by_a_delegation_reads_inside_the_principals_branch_only()
+    {
+        await using var db = Db();
+        var branch = new OrgUnitSnapshot { Id = Guid.NewGuid(), TenantId = Guid.Empty, Code = "B1", NameAr = "B1" };
+        branch.MaterializedPath = $"/{branch.Id:D}/";
+        var child = new OrgUnitSnapshot { Id = Guid.NewGuid(), TenantId = Guid.Empty, Code = "B1a", NameAr = "B1a", ParentId = branch.Id };
+        child.MaterializedPath = $"{branch.MaterializedPath}{child.Id:D}/";
+        var elsewhere = new OrgUnitSnapshot { Id = Guid.NewGuid(), TenantId = Guid.Empty, Code = "B2", NameAr = "B2" };
+        elsewhere.MaterializedPath = $"/{elsewhere.Id:D}/";
+        db.OrgUnitSnapshots.AddRange(branch, child, elsewhere);
+        await db.SaveChangesAsync();
+        var inside = await TransferAsync(db, Creator, branch.Id, child.Id);
+        var outside = await TransferAsync(db, Creator, branch.Id, elsewhere.Id);
+
+        TransferRequestsController Reader(Guid? principalScope)
+        {
+            var controller = Transfers(db, Nobody);
+            controller.HttpContext.Items[ApprovalActingContext.ItemKey] = OnBehalf(principalScope).OnBehalfOf;
+            return controller;
+        }
+
+        var list = Assert.IsAssignableFrom<IEnumerable<TransferRequest>>(Assert.IsType<ViewResult>(await Reader(branch.Id).Index("all")).Model);
+        Assert.Equal([inside.Id], list.Select(t => t.Id).ToArray());
+        Assert.IsType<ViewResult>(await Reader(branch.Id).Details(inside.Id));
+        Assert.IsType<ForbidResult>(await Reader(branch.Id).Details(outside.Id));
+
+        // A central principal (no stored scope) sets no limit beyond the reader's own.
+        Assert.Equal(2, Assert.IsAssignableFrom<IEnumerable<TransferRequest>>(Assert.IsType<ViewResult>(await Reader(null).Index("all")).Model).Count());
+        Assert.IsType<ViewResult>(await Reader(null).Details(outside.Id));
+    }
+
+    [Fact]
+    public async Task A_reader_admitted_by_a_delegation_reads_loans_inside_the_principals_branch_only()
+    {
+        await using var db = Db();
+        var branch = new OrgUnitSnapshot { Id = Guid.NewGuid(), TenantId = Guid.Empty, Code = "B1", NameAr = "B1" };
+        branch.MaterializedPath = $"/{branch.Id:D}/";
+        var child = new OrgUnitSnapshot { Id = Guid.NewGuid(), TenantId = Guid.Empty, Code = "B1a", NameAr = "B1a", ParentId = branch.Id };
+        child.MaterializedPath = $"{branch.MaterializedPath}{child.Id:D}/";
+        var elsewhere = new OrgUnitSnapshot { Id = Guid.NewGuid(), TenantId = Guid.Empty, Code = "B2", NameAr = "B2" };
+        elsewhere.MaterializedPath = $"/{elsewhere.Id:D}/";
+        db.OrgUnitSnapshots.AddRange(branch, child, elsewhere);
+        LoanAssignmentRequest Loan(Guid borrowing) => new()
+        {
+            EmployeeId = Guid.NewGuid(),
+            LendingOrgUnitId = branch.Id,
+            BorrowingOrgUnitId = borrowing,
+            StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            EndDate = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(6)),
+            Status = LoanAssignmentStatus.Pending,
+            RequestedBy = Creator
+        };
+        var inside = Loan(child.Id);
+        var outside = Loan(elsewhere.Id);
+        db.LoanAssignmentRequests.AddRange(inside, outside);
+        await db.SaveChangesAsync();
+
+        LoanAssignmentRequestsController Reader(Guid? principalScope)
+        {
+            var controller = With(new LoanAssignmentRequestsController(db, Mock.Of<IPublishEndpoint>(), new FixedActing(Nobody)));
+            controller.HttpContext.Items[ApprovalActingContext.ItemKey] = OnBehalf(principalScope).OnBehalfOf;
+            return controller;
+        }
+
+        var list = Assert.IsAssignableFrom<IEnumerable<LoanAssignmentRequest>>(Assert.IsType<ViewResult>(await Reader(branch.Id).Index("all")).Model);
+        Assert.Equal([inside.Id], list.Select(l => l.Id).ToArray());
+        Assert.IsType<ViewResult>(await Reader(branch.Id).Details(inside.Id));
+        Assert.IsType<ForbidResult>(await Reader(branch.Id).Details(outside.Id));
+        Assert.Equal(2, Assert.IsAssignableFrom<IEnumerable<LoanAssignmentRequest>>(Assert.IsType<ViewResult>(await Reader(null).Index("all")).Model).Count());
+    }
+
+    [Fact]
+    public async Task The_subject_rule_holds_on_secondments_loans_and_assignments()
+    {
+        await using var db = Db();
+        var principalEmployee = Guid.NewGuid();
+        var start = DateOnly.FromDateTime(DateTime.UtcNow);
+        var end = DateOnly.FromDateTime(DateTime.UtcNow.AddMonths(6));
+        var secondment = new SecondmentRequest
+        {
+            EmployeeId = principalEmployee, HostOrg = "جهة", StartDate = start, EndDate = end, Status = SecondmentStatus.Pending, RequestedBy = Creator
+        };
+        var loan = new LoanAssignmentRequest
+        {
+            EmployeeId = principalEmployee, LendingOrgUnitId = Guid.NewGuid(), BorrowingOrgUnitId = Guid.NewGuid(), StartDate = start, EndDate = end,
+            Status = LoanAssignmentStatus.Pending, RequestedBy = Creator
+        };
+        var assignment = new DelegationRequest
+        {
+            EmployeeId = principalEmployee, HostOrg = "جهة", StartDate = start, EndDate = end, Status = DelegationRequestStatus.Pending, RequestedBy = Creator
+        };
+        db.SecondmentRequests.Add(secondment);
+        db.LoanAssignmentRequests.Add(loan);
+        db.DelegationRequests.Add(assignment);
+        await db.SaveChangesAsync();
+        var acting = new FixedActing(OnBehalf(principalEmployee: principalEmployee));
+
+        var secondments = With(new SecondmentRequestsController(db, Mock.Of<IPublishEndpoint>(), acting));
+        await secondments.Approve(secondment.Id);
+        Assert.Equal(MovementApprovalActing.SubjectMessage, secondments.TempData["Error"]);
+        var loans = With(new LoanAssignmentRequestsController(db, Mock.Of<IPublishEndpoint>(), acting));
+        await loans.Approve(loan.Id);
+        Assert.Equal(MovementApprovalActing.SubjectMessage, loans.TempData["Error"]);
+        var assignments = With(new DelegationRequestsController(db, Mock.Of<IPublishEndpoint>(), acting));
+        await assignments.Approve(assignment.Id);
+        Assert.Equal(MovementApprovalActing.SubjectMessage, assignments.TempData["Error"]);
+
+        Assert.Equal(SecondmentStatus.Pending, (await db.SecondmentRequests.SingleAsync(s => s.Id == secondment.Id)).Status);
+        Assert.Equal(LoanAssignmentStatus.Pending, (await db.LoanAssignmentRequests.SingleAsync(l => l.Id == loan.Id)).Status);
+        Assert.Equal(DelegationRequestStatus.Pending, (await db.DelegationRequests.SingleAsync(d => d.Id == assignment.Id)).Status);
     }
 
     [Fact]

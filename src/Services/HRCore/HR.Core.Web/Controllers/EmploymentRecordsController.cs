@@ -191,6 +191,20 @@ public class EmploymentRecordsController : Controller
     {
         var record = await _context.EmploymentRecords.FindAsync(id);
         if (record == null) return NotFound();
+
+        // PLAN-50 (verification): the approver reaches this action through the gateway since PLAN-50; he acts only on an employee he may
+        // read: in his org scope and, if restricted, of his cadre (as Index checks the scope).
+        var employee = await _context.Employees.AsNoTracking()
+            .Where(e => e.Id == record.EmployeeId)
+            .Select(e => new { e.PrimaryOrgUnitId, e.Cadre })
+            .FirstOrDefaultAsync();
+        if (employee == null) return NotFound();
+        var scope = await _orgScope.GetAllowedOrgUnitIdsAsync(User);
+        if (this.ForbidIfOrgUnitOutOfScope(scope, employee.PrimaryOrgUnitId) is { } outOfScope)
+            return outOfScope;
+        if (HrCadreVisibility.GetRestrictedCadre(User) is { } approverCadre && employee.Cadre != approverCadre)
+            return Forbid();
+
         if (record.ApprovedBy != null)
         {
             TempData["Error"] = "السجل معتمد مسبقاً";

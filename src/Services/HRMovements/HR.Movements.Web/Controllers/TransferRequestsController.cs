@@ -45,6 +45,9 @@ public class TransferRequestsController : Controller
     /// <summary>FUN-003: source AND target must both be in scope (closes IDOR OR-gap).</summary>
     private async Task<IActionResult?> EnsureTransferInScopeAsync(TransferRequest t)
     {
+        // PLAN-50 (review 1): a reader admitted through a delegation stays inside the principal's stored scope as well.
+        var principalScope = await MovementApprovalActing.PrincipalScopeAsync(MovementApprovalActing.AdmittedBy(HttpContext), _db.OrgUnitSnapshots);
+        if (!MovementApprovalActing.Allows(principalScope, t.FromOrgUnitId, t.ToOrgUnitId)) return Forbid();
         var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, _db.OrgUnitSnapshots);
         if (scope.IsDenied) return Forbid();
         if (scope.IsUnrestricted) return null;
@@ -77,6 +80,14 @@ public class TransferRequestsController : Controller
         if (scope.MustFilter)
             query = query.Where(x => scope.AllowedOrgUnitIds.Contains(x.FromOrgUnitId)
                                      && scope.AllowedOrgUnitIds.Contains(x.ToOrgUnitId));
+        // PLAN-50 (review 1): a reader admitted through a delegation lists inside the principal's stored scope as well.
+        if (await MovementApprovalActing.PrincipalScopeAsync(MovementApprovalActing.AdmittedBy(HttpContext), _db.OrgUnitSnapshots) is { } principalScope)
+        {
+            if (principalScope.IsDenied) return Forbid();
+            if (principalScope.MustFilter)
+                query = query.Where(x => principalScope.AllowedOrgUnitIds.Contains(x.FromOrgUnitId)
+                                         && principalScope.AllowedOrgUnitIds.Contains(x.ToOrgUnitId));
+        }
         // PLAN-50 (D-IAM-1): the approver's list shows what awaits approval by default.
         if (MovementApprovalUi.PendingOnly(User, show, ViewData))
             query = query.Where(x => x.Status == ApprovalStatus.Pending && !x.IsCancelled);
@@ -231,6 +242,11 @@ public class TransferRequestsController : Controller
             TempData["Error"] = onBehalfCreator;
             return RedirectToAction(nameof(Details), new { id });
         }
+        if (MovementApprovalActing.Subject(acting, t.EmployeeId) is { } onBehalfSubject)
+        {
+            TempData["Error"] = onBehalfSubject;
+            return RedirectToAction(nameof(Details), new { id });
+        }
 
         if (t.RequestedBy.HasValue && by.Value == t.RequestedBy.Value)
         {
@@ -320,6 +336,11 @@ public class TransferRequestsController : Controller
         if (MovementApprovalActing.CreatorOrPrincipal(acting, t.RequestedBy) is { } onBehalfCreator)
         {
             TempData["Error"] = onBehalfCreator;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        if (MovementApprovalActing.Subject(acting, t.EmployeeId) is { } onBehalfSubject)
+        {
+            TempData["Error"] = onBehalfSubject;
             return RedirectToAction(nameof(Details), new { id });
         }
 

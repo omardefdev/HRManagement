@@ -152,7 +152,8 @@ public class DelegationsController(HRCoreDbContext db, IConfiguration configurat
         var rules = new DelegationRules(
             DelegationOptions.DelegableRoles(configuration),
             DelegationOptions.EntityTypes(configuration),
-            DirectRoles());
+            DirectRoles(),
+            DateTime.UtcNow); // PLAN-50 (review 2): the period ends within 90 days of the creation, not only of its own start.
         var validation = SeparationOfDutiesService.ValidateDelegation(model, rules);
         if (!validation.Allowed)
             return Refused(vm, validation.DenialReason ?? "تفويض غير صالح");

@@ -977,6 +977,24 @@
           "00000000-0000-4000-8000-000000000001"
         ]
       }
+    },
+    {
+      "username": "e2e-delegate-hr",
+      "email": "e2e-delegate-hr@hrm.local",
+      "firstName": "E2E",
+      "lastName": "DelegateHr",
+      "realmRoles": [
+        "hr-core",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ],
+        "employee_id": [
+          "98655dae-f87e-4d46-9703-a17c0b5cc09a"
+        ]
+      }
     }
   ]
 }

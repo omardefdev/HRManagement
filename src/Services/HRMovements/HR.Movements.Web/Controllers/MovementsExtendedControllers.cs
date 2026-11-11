@@ -378,6 +378,11 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
             TempData["Error"] = onBehalfCreator;
             return RedirectToAction(nameof(Details), new { id });
         }
+        if (MovementApprovalActing.Subject(acting, s.EmployeeId) is { } onBehalfSubject)
+        {
+            TempData["Error"] = onBehalfSubject;
+            return RedirectToAction(nameof(Details), new { id });
+        }
         if (s.RequestedBy.HasValue && by.Value == s.RequestedBy.Value)
         {
             TempData["Error"] = "لا يمكن للمنشئ اعتماد عمله الخاص.";
@@ -643,6 +648,9 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
     /// <summary>FUN-003: lending AND borrowing must both be in scope.</summary>
     private async Task<IActionResult?> EnsureLoanInScopeAsync(LoanAssignmentRequest s)
     {
+        // PLAN-50 (review 1): a reader admitted through a delegation stays inside the principal's stored scope as well.
+        var principalScope = await MovementApprovalActing.PrincipalScopeAsync(MovementApprovalActing.AdmittedBy(HttpContext), db.OrgUnitSnapshots);
+        if (!MovementApprovalActing.Allows(principalScope, s.LendingOrgUnitId, s.BorrowingOrgUnitId)) return Forbid();
         var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, db.OrgUnitSnapshots);
         if (scope.IsDenied) return Forbid();
         if (scope.IsUnrestricted) return null;
@@ -669,6 +677,14 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
         if (scope.MustFilter)
             query = query.Where(x => scope.AllowedOrgUnitIds.Contains(x.LendingOrgUnitId)
                 && scope.AllowedOrgUnitIds.Contains(x.BorrowingOrgUnitId));
+        // PLAN-50 (review 1): a reader admitted through a delegation lists inside the principal's stored scope as well.
+        if (await MovementApprovalActing.PrincipalScopeAsync(MovementApprovalActing.AdmittedBy(HttpContext), db.OrgUnitSnapshots) is { } principalScope)
+        {
+            if (principalScope.IsDenied) return Forbid();
+            if (principalScope.MustFilter)
+                query = query.Where(x => principalScope.AllowedOrgUnitIds.Contains(x.LendingOrgUnitId)
+                    && principalScope.AllowedOrgUnitIds.Contains(x.BorrowingOrgUnitId));
+        }
         // PLAN-50 (D-IAM-1): the approver's list shows what awaits approval by default.
         if (MovementApprovalUi.PendingOnly(User, show, ViewData))
             query = query.Where(x => x.Status == LoanAssignmentStatus.Pending && !x.IsCancelled);
@@ -753,6 +769,11 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
         if (MovementApprovalActing.CreatorOrPrincipal(acting, s.RequestedBy) is { } onBehalfCreator)
         {
             TempData["Error"] = onBehalfCreator;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        if (MovementApprovalActing.Subject(acting, s.EmployeeId) is { } onBehalfSubject)
+        {
+            TempData["Error"] = onBehalfSubject;
             return RedirectToAction(nameof(Details), new { id });
         }
         if (s.RequestedBy.HasValue && by.Value == s.RequestedBy.Value)
@@ -1063,6 +1084,11 @@ public class PromotionRequestsController(
             TempData["Error"] = onBehalfCreator;
             return RedirectToAction(nameof(Details), new { id });
         }
+        if (MovementApprovalActing.Subject(acting, item.EmployeeId) is { } onBehalfSubject)
+        {
+            TempData["Error"] = onBehalfSubject;
+            return RedirectToAction(nameof(Details), new { id });
+        }
 
         if (item.RequestedBy.HasValue && by.Value == item.RequestedBy.Value)
         {
@@ -1242,6 +1268,11 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
         if (MovementApprovalActing.CreatorOrPrincipal(acting, item.RequestedBy) is { } onBehalfCreator)
         {
             TempData["Error"] = onBehalfCreator;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        if (MovementApprovalActing.Subject(acting, item.EmployeeId) is { } onBehalfSubject)
+        {
+            TempData["Error"] = onBehalfSubject;
             return RedirectToAction(nameof(Details), new { id });
         }
 

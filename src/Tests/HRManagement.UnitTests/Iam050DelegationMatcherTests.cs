@@ -195,6 +195,38 @@ public class Iam050DelegationMatcherTests
     public void Ninety_days_exactly_is_allowed() =>
         Assert.True(SeparationOfDutiesService.ValidateDelegation(Proposed(x => x.ActiveUntil = x.ActiveFrom.AddDays(90)), Rules).Allowed);
 
+    // ---- review 2: the bound from the creation instant ----
+
+    [Fact]
+    public void A_window_set_far_ahead_is_refused_from_the_creation_instant()
+    {
+        // Each window alone is 30 days, but it starts 80 days after its creation: chained, such windows would cover far more than 90 days.
+        var ahead = Proposed(x => { x.ActiveFrom = Now.AddDays(80); x.ActiveUntil = Now.AddDays(110); });
+        Assert.True(SeparationOfDutiesService.ValidateDelegation(ahead, Rules).Allowed); // without the creation instant (old callers)
+
+        var result = SeparationOfDutiesService.ValidateDelegation(ahead, Rules with { CreatedAt = Now });
+        Assert.False(result.Allowed);
+        Assert.Equal("لا يجوز أن ينتهي التفويض بعد أكثر من 90 يوماً من إنشائه.", result.DenialReason);
+    }
+
+    [Fact]
+    public void A_window_that_ended_before_its_creation_is_refused()
+    {
+        var past = Proposed(x => { x.ActiveFrom = Now.AddDays(-10); x.ActiveUntil = Now.AddDays(-1); });
+        var result = SeparationOfDutiesService.ValidateDelegation(past, Rules with { CreatedAt = Now });
+        Assert.False(result.Allowed);
+        Assert.Equal("تنتهي فترة التفويض قبل إنشائه.", result.DenialReason);
+    }
+
+    [Fact]
+    public void Ninety_days_from_the_creation_instant_is_allowed()
+    {
+        Assert.True(SeparationOfDutiesService.ValidateDelegation(
+            Proposed(x => { x.ActiveFrom = Now.AddHours(-2); x.ActiveUntil = Now.AddDays(89).AddHours(22); }), Rules with { CreatedAt = Now }).Allowed);
+        Assert.True(SeparationOfDutiesService.ValidateDelegation(
+            Proposed(x => { x.ActiveFrom = Now; x.ActiveUntil = Now.AddDays(90); }), Rules with { CreatedAt = Now }).Allowed);
+    }
+
     // ---- options ----
 
     [Fact]

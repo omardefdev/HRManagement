@@ -44,13 +44,17 @@ public class EmployeeCorrectionsController(HRCoreDbContext db, OrgScopeService o
         {
             var employeeScope = await db.Employees.AsNoTracking()
                 .Where(e => e.Id == eid)
-                .Select(e => new { e.PrimaryOrgUnitId })
+                .Select(e => new { e.PrimaryOrgUnitId, e.Cadre })
                 .FirstOrDefaultAsync(ct);
             if (employeeScope is null)
                 return NotFound();
 
             if (this.ForbidIfOrgUnitOutOfScope(scope, employeeScope.PrimaryOrgUnitId) is { } empDenied)
                 return empDenied;
+
+            // PLAN-50 (review 9): an employee of the other cadre is refused, as on the employee's own page, not listed empty with his name.
+            if (HrCadreVisibility.GetRestrictedCadre(User) is { } readerCadre && employeeScope.Cadre != readerCadre)
+                return Forbid();
         }
 
         var q = db.EmployeeCorrections.AsNoTracking().AsQueryable();
@@ -62,6 +66,15 @@ public class EmployeeCorrectionsController(HRCoreDbContext db, OrgScopeService o
                 .Where(e => e.PrimaryOrgUnitId.HasValue && scope.AllowedOrgUnitIds.Contains(e.PrimaryOrgUnitId.Value))
                 .Select(e => e.Id);
             q = q.Where(c => allowedEmployees.Contains(c.EmployeeId));
+        }
+
+        // PLAN-50 (review): the class now reads under HrCore.ReadOnly, so a cadre-restricted reader sees the corrections of his cadre only,
+        // as on the employees list.
+        var restrictedCadre = HrCadreVisibility.GetRestrictedCadre(User);
+        if (restrictedCadre is { } cadre)
+        {
+            var cadreEmployees = db.Employees.AsNoTracking().Where(e => e.Cadre == cadre).Select(e => e.Id);
+            q = q.Where(c => cadreEmployees.Contains(c.EmployeeId));
         }
 
         if (status is ApprovalStatus st)
@@ -144,6 +157,14 @@ public class EmployeeCorrectionsController(HRCoreDbContext db, OrgScopeService o
 
         var employee = await db.Employees.FirstOrDefaultAsync(e => e.Id == correction.EmployeeId, ct);
         if (employee is null) return NotFound();
+
+        // PLAN-50 (verification): the approver reaches this action through the gateway since PLAN-50 (before, HrCore.Write kept it to
+        // unscoped central roles); he acts only on an employee he may read: in his org scope and, if restricted, of his cadre.
+        var scope = await orgScope.GetAllowedOrgUnitIdsAsync(User, ct);
+        if (this.ForbidIfOrgUnitOutOfScope(scope, employee.PrimaryOrgUnitId) is { } outOfScope)
+            return outOfScope;
+        if (HrCadreVisibility.GetRestrictedCadre(User) is { } approverCadre && employee.Cadre != approverCadre)
+            return Forbid();
 
         if (correction.RequiresLegalApproval)
         {

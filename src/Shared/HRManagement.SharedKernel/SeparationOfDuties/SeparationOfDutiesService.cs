@@ -177,7 +177,8 @@ public class SeparationOfDutiesService
     /// <summary>
     /// PLAN-50 (D-WF-5, D-50-1): the full check at creation. The role is mandatory, delegable, and one the principal holds directly in his
     /// token (so a delegated role, which never reaches a token, cannot be delegated again); the entity type, when given, is one of the closed
-    /// list; then <see cref="ValidateDelegation(ApprovalDelegation)"/>.
+    /// list; then <see cref="ValidateDelegation(ApprovalDelegation)"/>; and, when <see cref="DelegationRules.CreatedAt"/> is given, the period
+    /// ends after the creation and within 90 days of it (review 2: a window set far ahead cannot chain past the 90 days).
     /// </summary>
     public static SodResult ValidateDelegation(ApprovalDelegation delegation, DelegationRules rules)
     {
@@ -195,7 +196,17 @@ public class SeparationOfDutiesService
             && !rules.EntityTypes.Contains(delegation.EntityTypeScope.Trim(), StringComparer.OrdinalIgnoreCase))
             return SodResult.Deny($"نوع الكيان «{delegation.EntityTypeScope.Trim()}» ليس من الأنواع التي يجوز التفويض فيها.");
 
-        return ValidateDelegation(delegation);
+        var result = ValidateDelegation(delegation);
+        if (!result.Allowed || rules.CreatedAt is not DateTime created)
+            return result;
+
+        if (delegation.ActiveUntil <= created)
+            return SodResult.Deny("تنتهي فترة التفويض قبل إنشائه.");
+
+        if ((delegation.ActiveUntil - created).TotalDays > SodMatrixDefaults.MaxDelegationDays)
+            return SodResult.Deny($"لا يجوز أن ينتهي التفويض بعد أكثر من {SodMatrixDefaults.MaxDelegationDays} يوماً من إنشائه.");
+
+        return result;
     }
 
     /// <summary>The identities, the self rule (by user and by employee), the period, the 90 days and the reason.</summary>
@@ -259,9 +270,10 @@ public class SeparationOfDutiesService
 /// <summary>
 /// PLAN-50 (D-WF-5, D-50-1): what a delegation may name. <see cref="DelegableRoles"/> is <c>Delegation:DelegableRoles</c>,
 /// <see cref="EntityTypes"/> is <c>Delegation:EntityTypes</c>, and <see cref="PrincipalDirectRoles"/> are the roles of the principal's own
-/// token at creation.
+/// token at creation. <see cref="CreatedAt"/> (UTC) is the creation instant; null skips the bound from it.
 /// </summary>
 public sealed record DelegationRules(
     IReadOnlyCollection<string> DelegableRoles,
     IReadOnlyCollection<string> EntityTypes,
-    IReadOnlyCollection<string> PrincipalDirectRoles);
+    IReadOnlyCollection<string> PrincipalDirectRoles,
+    DateTime? CreatedAt = null);
