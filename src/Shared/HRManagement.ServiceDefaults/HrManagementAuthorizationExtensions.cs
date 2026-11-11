@@ -89,17 +89,22 @@ public static class HrManagementAuthorizationExtensions
                 ServiceCallerPrincipal.IsServiceAccount(c.User)
                 && ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreWorkflow)));
 
-            options.AddPolicy(HrManagementPolicies.WorkflowStepAction, p => p.RequireAssertion(c =>
-                !ServiceCallerPrincipal.IsServiceAccount(c.User)
-                && (c.User.IsInRole(HrManagementRoles.Admin)
-                    || c.User.IsInRole(HrManagementRoles.HrCore)
-                    || c.User.IsInRole(HrManagementRoles.BranchManager)
-                    || c.User.IsInRole(HrManagementRoles.HrManagementApprover)
+            // PLAN-50 (§6, P-6): the roles, or a delegate of any delegable role (the evaluator then decides on the step, the type and the
+            // principal); still never a service account.
+            options.AddPolicy(HrManagementPolicies.WorkflowStepAction, p => p
+                .RequireAssertion(c => !ServiceCallerPrincipal.IsServiceAccount(c.User))
+                .AddRequirements(new Delegation.RoleOrDelegationRequirement(
+                [
+                    HrManagementRoles.Admin,
+                    HrManagementRoles.HrCore,
+                    HrManagementRoles.BranchManager,
+                    HrManagementRoles.HrManagementApprover,
                     // PLAN-45, PLAN-46: the steps of custody, loss, the card and discipline. These roles reach no other page of HR.Core than the
                     // inbox and the approval page: they stay out of ModuleHrCore and HrCoreReadOnly.
-                    || c.User.IsInRole(HrManagementRoles.AdminLogistics)
-                    || c.User.IsInRole(HrManagementRoles.IdCard)
-                    || c.User.IsInRole(HrManagementRoles.Compliance))));
+                    HrManagementRoles.AdminLogistics,
+                    HrManagementRoles.IdCard,
+                    HrManagementRoles.Compliance
+                ], delegatedRole: null, anyDelegableRole: true)));
 
             options.AddPolicy(HrManagementPolicies.WorkflowDefinitionRead, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
@@ -189,15 +194,18 @@ public static class HrManagementAuthorizationExtensions
                 || c.User.IsInRole(HrManagementRoles.PayrollPoster)
                 || c.User.IsInRole(HrManagementRoles.PayrollReverser)));
 
-            options.AddPolicy(HrManagementPolicies.HrManagementApprove, p => p.RequireAssertion(c =>
-                c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.HrManagementApprover)));
+            // PLAN-50 (§5, rule 3): or an active delegate of hr-management-approver for the action's entity type. With no lookup registered
+            // (the gateway, HR.Contracts' HireWizard.Step3Approve) it is the two roles only.
+            options.AddPolicy(HrManagementPolicies.HrManagementApprove, p => p.AddRequirements(
+                new Delegation.RoleOrDelegationRequirement(
+                    [HrManagementRoles.Admin, HrManagementRoles.HrManagementApprover], HrManagementRoles.HrManagementApprover)));
 
-            // PLAN-50 (D-IAM-1, D-MOV-2): the approval screens of the five movement types, and the movement writes, made explicit.
-            options.AddPolicy(HrManagementPolicies.HrMovementsApprovalAccess, p => p.RequireAssertion(c =>
-                c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.HrMovements)
-                || c.User.IsInRole(HrManagementRoles.HrManagementApprover)));
+            // PLAN-50 (D-IAM-1, D-MOV-2, D-50-3): the approval screens of the five movement types (and their delegates), and the movement
+            // writes, made explicit.
+            options.AddPolicy(HrManagementPolicies.HrMovementsApprovalAccess, p => p.AddRequirements(
+                new Delegation.RoleOrDelegationRequirement(
+                    [HrManagementRoles.Admin, HrManagementRoles.HrMovements, HrManagementRoles.HrManagementApprover],
+                    HrManagementRoles.HrManagementApprover)));
             options.AddPolicy(HrManagementPolicies.HrMovementsWrite, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
                 || c.User.IsInRole(HrManagementRoles.HrMovements)));

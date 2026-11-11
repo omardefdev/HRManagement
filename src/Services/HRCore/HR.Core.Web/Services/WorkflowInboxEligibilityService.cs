@@ -24,13 +24,29 @@ public sealed class WorkflowInboxEligibilityService(WorkflowStepRoleOptions? ste
         ClaimsPrincipal user,
         Guid? userId,
         WorkflowInboxEntityContext context,
-        OrgAccessScope orgScope)
+        OrgAccessScope orgScope) =>
+        Evaluate(instance, definition, user, userId, context, orgScope).Actionable;
+
+    /// <summary>
+    /// PLAN-50 (§6): whether the item is the user's to act on, and through which delegation when he lacks the step's role. An item acted on
+    /// behalf must also lie in the principal's stored scope (<paramref name="principalScopes"/>, by the stored root), as the evaluator
+    /// requires on the server.
+    /// </summary>
+    public (bool Actionable, HRManagement.SharedKernel.SeparationOfDuties.ActiveDelegation? OnBehalfOf) Evaluate(
+        WorkflowInstance instance,
+        WorkflowDefinition definition,
+        ClaimsPrincipal user,
+        Guid? userId,
+        WorkflowInboxEntityContext context,
+        OrgAccessScope orgScope,
+        IReadOnlyList<HRManagement.SharedKernel.SeparationOfDuties.ActiveDelegation>? delegations = null,
+        IReadOnlyDictionary<Guid, OrgAccessScope>? principalScopes = null)
     {
         if (!WorkflowInboxOrgScope.Allows(orgScope, context.ScopeOrgUnitId))
-            return false;
+            return (false, null);
 
         if (userId is Guid actorId && context.EntityMakers.Contains(actorId))
-            return false;
+            return (false, null);
 
         var options = BuildOptions(
             instance, context, HrOrgScopeVisibility.GetEmployeeId(user), RecruitmentAppealAccess.HasReviewerRole(user));
@@ -48,9 +64,21 @@ public sealed class WorkflowInboxEligibilityService(WorkflowStepRoleOptions? ste
                         && OfferOverrideApprovalRules.HasApprovedEarlierStep(inst.StepHistoryJson, inst.CurrentStepLevel, actorId)
                             ? OfferOverrideApprovalRules.SameApproverMessage
                             : null),
-                StepRoleOptions = _stepRoleOptions
+                StepRoleOptions = _stepRoleOptions,
+                Delegations = delegations
             });
-        return panel.CanApprove;
+        if (!panel.CanApprove)
+            return (false, null);
+
+        if (panel.OnBehalfOf is { PrincipalScopeOrgUnitId: Guid root } onBehalf)
+        {
+            if (principalScopes is null || !principalScopes.TryGetValue(root, out var principalScope)
+                || !WorkflowInboxOrgScope.Allows(principalScope, context.ScopeOrgUnitId))
+                return (false, null);
+            return (true, onBehalf);
+        }
+
+        return (true, panel.OnBehalfOf);
     }
 
     internal static WorkflowPanelBuildOptions BuildOptions(

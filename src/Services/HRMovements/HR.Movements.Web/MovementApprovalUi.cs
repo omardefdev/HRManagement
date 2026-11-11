@@ -33,10 +33,12 @@ public static class MovementApprovalUi
     public static async Task<bool> CanWriteAsync(IAuthorizationService authorization, ClaimsPrincipal user) =>
         (await authorization.AuthorizeAsync(user, HrManagementPolicies.HrMovementsWrite)).Succeeded;
 
-    /// <summary>Approve and reject (<see cref="HrManagementPolicies.HrManagementApprove"/>) for this movement type.</summary>
-    public static async Task<bool> CanApproveAsync(IAuthorizationService authorization, ClaimsPrincipal user, string entityType)
-    {
-        _ = entityType;
-        return (await authorization.AuthorizeAsync(user, HrManagementPolicies.HrManagementApprove)).Succeeded;
-    }
+    /// <summary>
+    /// Approve and reject (<see cref="HrManagementPolicies.HrManagementApprove"/>) for this movement type: the direct role, or (PLAN-50) a
+    /// delegation in force that covers the type.
+    /// </summary>
+    public static async Task<bool> CanApproveAsync(IAuthorizationService authorization, ClaimsPrincipal user, string entityType) =>
+        (await authorization.AuthorizeAsync(
+            user, new HRManagement.ServiceDefaults.Delegation.ApprovalEntityTypeResource(entityType), HrManagementPolicies.HrManagementApprove))
+        .Succeeded;
 }

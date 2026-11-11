@@ -23,6 +23,7 @@
             <tr><th>تاريخ النفاذ</th><td>@Model.EffectiveDate</td></tr>
             <tr><th>الحالة</th><td>@Html.HrEnumDisplay(Model.Status)</td></tr>
         </table>
+        <partial name="_MovementApprovalRecord" />
         <div class="mt-3 d-flex flex-wrap gap-2">
             @if (canApprove && Model.Status == PromotionRequestStatus.Pending)
             {

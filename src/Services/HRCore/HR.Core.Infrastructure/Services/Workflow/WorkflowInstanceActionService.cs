@@ -105,10 +105,10 @@ public sealed class WorkflowInstanceActionService(
             return new WorkflowActionResult(false, "Workflow definition not found for this instance version.", null);
 
         // Stage guard (status, no skipping, initiator, step role) then the entity gate (SoD, quorum, reviewer, scope).
-        var blockReason = await _evaluator.GetBlockReasonAsync(
+        var decision = await _evaluator.GetDecisionAsync(
             instance, definition, actor, WorkflowActionKind.Approve, targetStepLevel, ct);
-        if (blockReason is not null)
-            return new WorkflowActionResult(false, blockReason, null);
+        if (decision.BlockReason is not null)
+            return new WorkflowActionResult(false, decision.BlockReason, null);
 
         var snapshot = WorkflowDefinitionMapper.ToSnapshot(definition);
         var state = WorkflowDefinitionMapper.ToState(instance);
@@ -117,6 +117,7 @@ public sealed class WorkflowInstanceActionService(
         var result = engine.ApproveStep(state, snapshot, actor.UserId, actor.UserName, comments);
         if (!result.Success)
             return new WorkflowActionResult(false, result.Error, null);
+        var entry = OnBehalf(result.HistoryEntry, decision);
 
         // PLAN-44: every refusal is above, so nothing a caller staged (the appeal's outcome) is saved by a refused action.
         try
@@ -126,11 +127,11 @@ public sealed class WorkflowInstanceActionService(
                 instance.CurrentStepLevel = result.NewStepLevel;
                 instance.Status = result.NewStatus;
 
-                if (result.HistoryEntry is not null)
+                if (entry is not null)
                 {
-                    AppendHistory(instance, result.HistoryEntry);
+                    AppendHistory(instance, entry);
                     await signatures.RecordStepActionAsync(
-                        instance, definition, result.HistoryEntry, "approve", actor.UserId, actor.SignatureRole(stepRole), token);
+                        instance, definition, entry, "approve", actor.UserId, SignerRole(actor, stepRole, decision), token);
                 }
 
                 if (result.NewStatus == WorkflowStatus.Completed)
@@ -167,10 +168,11 @@ public sealed class WorkflowInstanceActionService(
         if (definition is null)
             return new WorkflowActionResult(false, "Workflow definition not found for this instance version.", null);
 
-        // PLAN-25 (G-04): a reject passes the same role check and gates (the committee quorum is approve-only).
-        var blockReason = await _evaluator.GetBlockReasonAsync(instance, definition, actor, WorkflowActionKind.Reject, ct: ct);
-        if (blockReason is not null)
-            return new WorkflowActionResult(false, blockReason, null);
+        // PLAN-25 (G-04): a reject passes the same role check and gates (the committee quorum is approve-only); PLAN-50: and the same
+        // delegation rules, recorded on behalf as well.
+        var decision = await _evaluator.GetDecisionAsync(instance, definition, actor, WorkflowActionKind.Reject, ct: ct);
+        if (decision.BlockReason is not null)
+            return new WorkflowActionResult(false, decision.BlockReason, null);
 
         var stepRole = WorkflowDefinitionMapper.ToSnapshot(definition).Steps
             .FirstOrDefault(s => s.Level == instance.CurrentStepLevel)?.RoleRequired;
@@ -178,6 +180,7 @@ public sealed class WorkflowInstanceActionService(
         var result = engine.Reject(state, actor.UserId, actor.UserName, comments);
         if (!result.Success)
             return new WorkflowActionResult(false, result.Error, null);
+        var entry = OnBehalf(result.HistoryEntry, decision);
 
         try
         {
@@ -185,11 +188,11 @@ public sealed class WorkflowInstanceActionService(
             {
                 instance.Status = result.NewStatus;
 
-                if (result.HistoryEntry is not null)
+                if (entry is not null)
                 {
-                    AppendHistory(instance, result.HistoryEntry);
+                    AppendHistory(instance, entry);
                     await signatures.RecordStepActionAsync(
-                        instance, definition, result.HistoryEntry, "reject", actor.UserId, actor.SignatureRole(stepRole), token);
+                        instance, definition, entry, "reject", actor.UserId, SignerRole(actor, stepRole, decision), token);
                 }
 
                 instance.CompletedAt = DateTime.UtcNow;
@@ -224,6 +227,21 @@ public sealed class WorkflowInstanceActionService(
         WorkflowIntegrityMetrics.RecordConflict(action);
         return new WorkflowActionResult(false, WorkflowConcurrency.ConflictMessage, null);
     }
+
+    /// <summary>PLAN-50 (§6): an action on behalf names the principal and the delegation in its history entry; a direct one is unchanged.</summary>
+    private static WorkflowStepHistoryEntry? OnBehalf(WorkflowStepHistoryEntry? entry, WorkflowApprovalDecision decision) =>
+        entry is null || decision.OnBehalfOf is not { } delegation
+            ? entry
+            : entry with
+            {
+                OnBehalfOfId = delegation.PrincipalUserId,
+                OnBehalfOfName = delegation.PrincipalName,
+                DelegationId = delegation.Id
+            };
+
+    /// <summary>PLAN-50 (§6): on behalf, the signer's role is the delegated role; otherwise what it was.</summary>
+    private static string? SignerRole(WorkflowActionActor actor, string? stepRole, WorkflowApprovalDecision decision) =>
+        decision.OnBehalfOf?.Role ?? actor.SignatureRole(stepRole);
 
     private static void AppendHistory(WorkflowInstance instance, WorkflowStepHistoryEntry entry)
     {

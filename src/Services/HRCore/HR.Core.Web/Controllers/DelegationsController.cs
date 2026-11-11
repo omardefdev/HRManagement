@@ -73,10 +73,16 @@ public class DelegationsController(HRCoreDbContext db, IConfiguration configurat
             query = query.Where(d => !d.IsRevoked && d.ActiveUntil >= now && d.ActiveFrom <= now);
         else if (activeOnly == false)
             query = query.Where(d => d.IsRevoked || d.ActiveUntil < now || d.ActiveFrom > now);
-        if (from is DateTime f)
+        if (from is DateTime fromValue)
+        {
+            var f = Utc(fromValue);
             query = query.Where(d => d.ActiveUntil >= f);
-        if (to is DateTime t)
+        }
+        if (to is DateTime toValue)
+        {
+            var t = Utc(toValue);
             query = query.Where(d => d.ActiveFrom <= t);
+        }
 
         var items = await query.OrderByDescending(d => d.ActiveFrom).Take(200).ToListAsync();
         return View(new DelegationsIndexViewModel
@@ -137,8 +143,8 @@ public class DelegationsController(HRCoreDbContext db, IConfiguration configurat
             DelegateName = BoundedName(delegateName),
             EntityTypeScope = string.IsNullOrWhiteSpace(vm.EntityTypeScope) ? null : vm.EntityTypeScope.Trim(),
             RoleScope = vm.RoleScope?.Trim(),
-            ActiveFrom = vm.ActiveFrom,
-            ActiveUntil = vm.ActiveUntil,
+            ActiveFrom = Utc(vm.ActiveFrom),
+            ActiveUntil = Utc(vm.ActiveUntil),
             Reason = vm.Reason.Trim(),
             IsRevoked = false
         };
@@ -234,6 +240,14 @@ public class DelegationsController(HRCoreDbContext db, IConfiguration configurat
         Response.StatusCode = StatusCodes.Status400BadRequest;
         return View(nameof(Create), WithLists(vm));
     }
+
+    /// <summary>The form's datetime-local value is UTC (the page shows UTC); a timestamptz column needs the kind said.</summary>
+    private static DateTime Utc(DateTime value) => value.Kind switch
+    {
+        DateTimeKind.Utc => value,
+        DateTimeKind.Local => value.ToUniversalTime(),
+        _ => DateTime.SpecifyKind(value, DateTimeKind.Utc)
+    };
 
     private static string? BoundedName(string? name) =>
         string.IsNullOrWhiteSpace(name) ? null : name.Length > 200 ? name[..200] : name;

@@ -190,7 +190,7 @@ public sealed class SelectionCommitteesController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+    [Authorize(Policy = HrManagementPolicies.WorkflowStepAction)] // PLAN-50 (P-6): roles or a delegate; the evaluator decides
     public async Task<IActionResult> ApproveWorkflow(Guid id, SelectionCommitteeWorkflowActionViewModel vm)
     {
         if (id != vm.SessionId) return BadRequest();
@@ -225,7 +225,7 @@ public sealed class SelectionCommitteesController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+    [Authorize(Policy = HrManagementPolicies.WorkflowStepAction)] // PLAN-50 (P-6): roles or a delegate; the evaluator decides
     public async Task<IActionResult> RejectWorkflow(Guid id, SelectionCommitteeWorkflowActionViewModel vm)
     {
         if (id != vm.SessionId) return BadRequest();

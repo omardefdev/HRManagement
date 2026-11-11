@@ -32,11 +32,14 @@ public static class WorkflowSodRules
     public static string? Subject(WorkflowSodFacts facts, Guid? actorEmployeeId) =>
         actorEmployeeId is Guid employee && employee == facts.SubjectEmployeeId ? SubjectMessage : null;
 
-    /// <summary>Approving only: an actor who approved another level of this instance, when the definition requires it.</summary>
+    /// <summary>
+    /// Approving only: an actor who approved another level of this instance, when the definition requires it. PLAN-50: an approval on
+    /// behalf counts for the delegate and for the principal, so neither approves another level of the same instance.
+    /// </summary>
     public static string? DistinctApprover(WorkflowSodFacts facts, Guid? actorUserId) =>
         facts.RequireDistinctApprovers
         && actorUserId is Guid actor
-        && facts.History.Any(h => h.Status == WorkflowStepStatus.Approved && h.ActorId == actor && h.Level != facts.CurrentStepLevel)
+        && facts.History.Any(h => h.Status == WorkflowStepStatus.Approved && h.WasActedBy(actor) && h.Level != facts.CurrentStepLevel)
             ? DistinctApproverMessage
             : null;
 

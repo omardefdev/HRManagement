@@ -47,6 +47,10 @@ public class WorkInboxItem
     [MaxLength(200)]
     public string? DelegatedFromId { get; set; }
 
+    /// <summary>PLAN-50 (§6): the principal for whom the user would act through a delegation («بالنيابة عن»); null when direct.</summary>
+    [MaxLength(200)]
+    public string? OnBehalfOfName { get; set; }
+
     public int AgingDays => (DateTime.UtcNow - CreatedAt).Days;
 }
 

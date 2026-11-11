@@ -24,6 +24,7 @@
             @if (!string.IsNullOrEmpty(Model.Terms)) { <tr><th>الشروط</th><td>@Model.Terms</td></tr> }
         </table>
 
+        <partial name="_MovementApprovalRecord" />
         <div class="mt-3 d-flex flex-wrap gap-2">
             @if (canWrite && Model.Status == SecondmentStatus.Pending)
             {

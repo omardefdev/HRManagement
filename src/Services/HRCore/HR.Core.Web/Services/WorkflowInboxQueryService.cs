@@ -18,8 +18,40 @@ public sealed class WorkflowInboxQueryService(
     HRCoreDbContext db,
     WorkflowInboxEligibilityService eligibility,
     WorkflowDeepLinkResolver deepLinkResolver,
-    OrgScopeService orgScope)
+    OrgScopeService orgScope,
+    // PLAN-50 (§6): a delegate sees his principal's items; optional so manual constructions stay role-only.
+    HRManagement.ServiceDefaults.Delegation.IApprovalDelegationLookup? delegationLookup = null)
 {
+    /// <summary>The user's delegations in force (none on any failure), and each stored principal scope among them.</summary>
+    private async Task<(IReadOnlyList<HRManagement.SharedKernel.SeparationOfDuties.ActiveDelegation> Delegations,
+        IReadOnlyDictionary<Guid, OrgAccessScope> PrincipalScopes)> DelegationsOfAsync(ClaimsPrincipal user, CancellationToken ct)
+    {
+        if (delegationLookup is null || ServiceCallerPrincipal.IsServiceAccount(user))
+            return ([], new Dictionary<Guid, OrgAccessScope>());
+
+        IReadOnlyList<HRManagement.SharedKernel.SeparationOfDuties.ActiveDelegation> delegations;
+        try
+        {
+            delegations = await delegationLookup.GetActiveForAsync(user, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            // Fail-closed: no delegation; the user's own items are listed as before.
+            return ([], new Dictionary<Guid, OrgAccessScope>());
+        }
+
+        var scopes = new Dictionary<Guid, OrgAccessScope>();
+        foreach (var delegation in delegations.Where(d => d.PrincipalScopeOrgUnitId is not null))
+        {
+            var root = delegation.PrincipalScopeOrgUnitId!.Value;
+            if (!scopes.ContainsKey(root))
+                scopes[root] = await orgScope.GetAllowedOrgUnitIdsAsync(
+                    HR.Core.Infrastructure.Services.Workflow.WorkflowActionActor.PrincipalOf(delegation).ToPrincipal(), ct);
+        }
+
+        return (delegations, scopes);
+    }
+
     private static readonly string[] SupportedEntityTypes =
     [
         "RecruitmentRequisition",
@@ -59,8 +91,10 @@ public sealed class WorkflowInboxQueryService(
 
         var definitions = await LoadDefinitionsAsync(definitionKeys, ct);
         var contexts = await LoadEntityContextsAsync(instances, ct);
+        var (delegations, principalScopes) = await DelegationsOfAsync(user, ct);
 
         var eligiblePairs = new List<(WorkflowInstance Instance, WorkflowDefinition Definition)>();
+        var onBehalf = new Dictionary<Guid, HRManagement.SharedKernel.SeparationOfDuties.ActiveDelegation>();
         foreach (var instance in instances)
         {
             if (!definitions.TryGetValue((instance.DefinitionId, instance.DefinitionVersion, instance.TenantId), out var definition))
@@ -69,8 +103,14 @@ public sealed class WorkflowInboxQueryService(
             if (!contexts.TryGetValue(instance.Id, out var context))
                 continue;
 
-            if (eligibility.IsActionable(instance, definition, user, userId, context, accessScope))
-                eligiblePairs.Add((instance, definition));
+            var (actionable, delegation) = eligibility.Evaluate(
+                instance, definition, user, userId, context, accessScope, delegations, principalScopes);
+            if (!actionable)
+                continue;
+
+            eligiblePairs.Add((instance, definition));
+            if (delegation is not null)
+                onBehalf[instance.Id] = delegation;
         }
 
         if (eligiblePairs.Count == 0)
@@ -88,7 +128,15 @@ public sealed class WorkflowInboxQueryService(
                     pair.Instance.EntityType,
                     null,
                     pair.Definition.Name);
-                return WorkInboxItemMapper.FromWorkflow(pair.Instance, pair.Definition, link, userId.Value);
+                var item = WorkInboxItemMapper.FromWorkflow(pair.Instance, pair.Definition, link, userId.Value);
+                // PLAN-50 (§6): «بالنيابة عن {الأصيل}».
+                if (onBehalf.TryGetValue(pair.Instance.Id, out var delegation))
+                {
+                    item.DelegatedFromId = delegation.PrincipalUserId.ToString("D");
+                    item.OnBehalfOfName = delegation.PrincipalName ?? delegation.PrincipalUserId.ToString("D");
+                }
+
+                return item;
             })
             .ToList();
     }

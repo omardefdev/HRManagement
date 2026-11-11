@@ -40,6 +40,11 @@
                     <i class="fas fa-check-circle text-success me-2 mt-1"></i>
                     <div>
                         <span class="fw-bold">@a.ApprovedAt.ToString("yyyy/MM/dd HH:mm")</span> — المعتمد: @a.ApprovedBy
+                        @if (a.OnBehalfOfUserId is not null)
+                        {
+                            @* PLAN-50 (§7) *@
+                            <span class="text-muted" data-on-behalf-of="@a.OnBehalfOfUserId">بالنيابة عن @(a.OnBehalfOfName ?? a.OnBehalfOfUserId.ToString())</span>
+                        }
                         @if (!string.IsNullOrEmpty(a.Notes)) { <span class="text-muted"> — @a.Notes</span> }
                     </div>
                 </div>

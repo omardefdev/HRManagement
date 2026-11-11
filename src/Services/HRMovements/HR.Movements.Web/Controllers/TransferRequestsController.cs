@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Delegation;
 using HRManagement.ServiceDefaults.Messaging;
 using MassTransit;
 using Microsoft.AspNetCore.Authorization;
@@ -18,20 +19,27 @@ using HRManagement.SharedKernel.ViewModels;
 
 namespace HR.Movements.Web.Controllers;
 
+// PLAN-50 (§7): a delegation scoped to another entity type does not reach these screens.
+[ApprovalEntityType(EntityType)]
 public class TransferRequestsController : Controller
 {
+    public const string EntityType = "TransferRequest";
+
     private readonly MovementsDbContext _db;
     private readonly IPublishEndpoint _publish;
     private readonly IHrCoreActiveRegimeClient _activeRegimeClient;
+    private readonly IApprovalActingContext? _acting;
 
     public TransferRequestsController(
         MovementsDbContext db,
         IPublishEndpoint publish,
-        IHrCoreActiveRegimeClient activeRegimeClient)
+        IHrCoreActiveRegimeClient activeRegimeClient,
+        IApprovalActingContext? acting = null)
     {
         _db = db;
         _publish = publish;
         _activeRegimeClient = activeRegimeClient;
+        _acting = acting;
     }
 
     /// <summary>FUN-003: source AND target must both be in scope (closes IDOR OR-gap).</summary>
@@ -206,10 +214,21 @@ public class TransferRequestsController : Controller
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        var by = ParseUserId(User);
+        // PLAN-50 (§7): the direct role acts in its own name; a delegate on behalf of his principal, or not at all (fail-closed).
+        var acting = await MovementApprovalActing.ResolveAsync(_acting, User, EntityType, HttpContext.RequestAborted);
+        if (!acting.MayAct)
+            return Forbid();
+
+        var by = acting.UserId;
         if (by == null)
         {
             TempData["Error"] = "تعذر تحديد هوية المعتمد من التوكن؛ سجّل الدخول بمستخدم يحمل معرفاً GUID";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (MovementApprovalActing.CreatorOrPrincipal(acting, t.RequestedBy) is { } onBehalfCreator)
+        {
+            TempData["Error"] = onBehalfCreator;
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -221,12 +240,18 @@ public class TransferRequestsController : Controller
 
         var sod = new SeparationOfDutiesService();
         var sodResult = sod.ValidateAction(
-            by.Value, null, "TransferRequest", t.Id, SodAction.Check, t.RequestedBy, null);
+            by.Value, null, EntityType, t.Id, SodAction.Check, t.RequestedBy, null);
+        if (sodResult.Allowed && acting.OnBehalfOf is { } principal)
+            sodResult = sod.ValidateAction(principal.PrincipalUserId, null, EntityType, t.Id, SodAction.Check, t.RequestedBy, null);
         if (!sodResult.Allowed)
         {
             TempData["Error"] = sodResult.DenialReason;
             return RedirectToAction(nameof(Details), new { id });
         }
+
+        // PLAN-50 (P-7): the principal's stored scope applies as well as the delegate's own.
+        if (!await MovementApprovalActing.PrincipalScopeAllowsAsync(acting, _db.OrgUnitSnapshots, t.FromOrgUnitId, t.ToOrgUnitId))
+            return Forbid();
 
         if (string.IsNullOrWhiteSpace(t.SourceLegalRegimeId))
             await SnapshotSourceRegimeAsync(t);
@@ -241,18 +266,23 @@ public class TransferRequestsController : Controller
         t.Status = ApprovalStatus.Approved;
         t.ApprovedBy = by;
         t.ApprovedDate = DateOnly.FromDateTime(now);
-        _db.TransferApprovals.Add(new TransferApproval
+        var approval = new TransferApproval
         {
             TransferRequestId = t.Id,
             ApprovedBy = by.Value,
             ApprovedAt = now,
             Notes = "اعتماد طلب نقل"
-        });
+        };
+        MovementApprovalActing.Record(acting, approval);
+        _db.TransferApprovals.Add(approval);
 
         var approved = await _db.MovementChecklists.FirstOrDefaultAsync(c =>
             c.CorrelationId == t.Id && c.Step == MovementChecklistStep.Approved);
         if (approved is not null && !approved.IsCompleted)
+        {
             MovementWorkflowRules.MarkStep(approved, by, $"transfer:{t.Id}:approved");
+            MovementApprovalActing.Record(acting, approved);
+        }
 
         await _db.SaveChangesAsync();
         TempData["Success"] = "تم اعتماد طلب النقل";
@@ -275,12 +305,26 @@ public class TransferRequestsController : Controller
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        var by = ParseUserId(User);
+        // PLAN-50 (§7): a reject follows the same rules of who acts.
+        var acting = await MovementApprovalActing.ResolveAsync(_acting, User, EntityType, HttpContext.RequestAborted);
+        if (!acting.MayAct)
+            return Forbid();
+
+        var by = acting.UserId;
         if (by == null)
         {
             TempData["Error"] = "تعذر تحديد هوية المعتمد من التوكن";
             return RedirectToAction(nameof(Details), new { id });
         }
+
+        if (MovementApprovalActing.CreatorOrPrincipal(acting, t.RequestedBy) is { } onBehalfCreator)
+        {
+            TempData["Error"] = onBehalfCreator;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (!await MovementApprovalActing.PrincipalScopeAllowsAsync(acting, _db.OrgUnitSnapshots, t.FromOrgUnitId, t.ToOrgUnitId))
+            return Forbid();
 
         t.Status = ApprovalStatus.Rejected;
         t.ApprovedBy = by;

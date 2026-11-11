@@ -223,6 +223,13 @@ namespace HR.Movements.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<string>("OnBehalfOfName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("OnBehalfOfUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("OwnerRole")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -493,6 +500,13 @@ namespace HR.Movements.Infrastructure.Migrations
 
                     b.Property<string>("Notes")
                         .HasColumnType("text");
+
+                    b.Property<string>("OnBehalfOfName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid?>("OnBehalfOfUserId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");

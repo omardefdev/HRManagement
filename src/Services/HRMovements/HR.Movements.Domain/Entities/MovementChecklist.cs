@@ -35,4 +35,10 @@ public class MovementChecklist : BaseEntity
 
     [MaxLength(1000)]
     public string? Notes { get; set; }
+
+    /// <summary>PLAN-50 (§7): the principal for whom <see cref="CompletedBy"/> approved through a delegation; null otherwise.</summary>
+    public Guid? OnBehalfOfUserId { get; set; }
+
+    [MaxLength(200)]
+    public string? OnBehalfOfName { get; set; }
 }

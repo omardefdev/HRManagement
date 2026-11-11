@@ -19,6 +19,10 @@ public class WorkflowPanelViewModel
     public string? MissingWorkflowWarning { get; set; }
     /// <summary>PLAN-25: the stuck item can be given its workflow from the panel (HrCoreWrite).</summary>
     public bool CanRestartApproval { get; set; }
+    /// <summary>PLAN-50 (§6): the delegation through which the user may act on this step (he does not hold its role); null when direct.</summary>
+    public HRManagement.SharedKernel.SeparationOfDuties.ActiveDelegation? OnBehalfOf { get; set; }
+    /// <summary>«بالنيابة عن {الأصيل}».</summary>
+    public string? OnBehalfOfName => OnBehalfOf is null ? null : OnBehalfOf.PrincipalName ?? OnBehalfOf.PrincipalUserId.ToString("D");
     public IReadOnlyList<WorkflowStepViewModel> Steps { get; set; } = [];
 }
 

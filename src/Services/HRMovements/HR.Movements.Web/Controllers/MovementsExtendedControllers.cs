@@ -8,6 +8,7 @@ using HR.Movements.Infrastructure.Services;
 using HRManagement.MessageContracts.Commands;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Delegation;
 using HRManagement.SharedKernel.Legal;
 using HRManagement.SharedKernel.ViewModels;
 using MassTransit;
@@ -242,7 +243,9 @@ public class DistributionPlansController(MovementsDbContext db) : Controller
     }
 }
 
-public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoint publish) : Controller
+// PLAN-50 (§7): a delegation scoped to another entity type does not reach these screens.
+[ApprovalEntityType("SecondmentRequest")]
+public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoint publish, IApprovalActingContext? actingContext = null) : Controller
 {
     private static Guid? ParseUserId(System.Security.Claims.ClaimsPrincipal user)
     {
@@ -359,10 +362,20 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        var by = ParseUserId(User);
+        // PLAN-50 (§7): the direct role acts in its own name; a delegate on behalf of his principal, or not at all (fail-closed).
+        var acting = await MovementApprovalActing.ResolveAsync(actingContext, User, "SecondmentRequest", HttpContext.RequestAborted);
+        if (!acting.MayAct)
+            return Forbid();
+
+        var by = acting.UserId;
         if (by == null)
         {
             TempData["Error"] = "تعذر تحديد هوية المعتمد من التوكن";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        if (MovementApprovalActing.CreatorOrPrincipal(acting, s.RequestedBy) is { } onBehalfCreator)
+        {
+            TempData["Error"] = onBehalfCreator;
             return RedirectToAction(nameof(Details), new { id });
         }
         if (s.RequestedBy.HasValue && by.Value == s.RequestedBy.Value)
@@ -375,6 +388,10 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
         var sodResult = sod.ValidateAction(
             by.Value, null, "SecondmentRequest", s.Id,
             HRManagement.SharedKernel.SeparationOfDuties.SodAction.Check, s.RequestedBy, null);
+        if (sodResult.Allowed && acting.OnBehalfOf is { } principal)
+            sodResult = sod.ValidateAction(
+                principal.PrincipalUserId, null, "SecondmentRequest", s.Id,
+                HRManagement.SharedKernel.SeparationOfDuties.SodAction.Check, s.RequestedBy, null);
         if (!sodResult.Allowed)
         {
             TempData["Error"] = sodResult.DenialReason;
@@ -385,7 +402,10 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
         var approved = await db.MovementChecklists.FirstOrDefaultAsync(c =>
             c.CorrelationId == s.Id && c.Step == MovementChecklistStep.Approved);
         if (approved is not null && !approved.IsCompleted)
+        {
             MovementWorkflowRules.MarkStep(approved, by, $"secondment:{s.Id}:approved");
+            MovementApprovalActing.Record(acting, approved);
+        }
         await db.SaveChangesAsync();
         TempData["Success"] = "تم اعتماد الانتداب";
         return RedirectToAction(nameof(Details), new { id });
@@ -609,7 +629,9 @@ public class TransferFinancialImpactsController(MovementsDbContext db) : Control
     }
 }
 
-public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEndpoint publish) : Controller
+// PLAN-50 (§7): a delegation scoped to another entity type does not reach these screens.
+[ApprovalEntityType("LoanAssignmentRequest")]
+public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEndpoint publish, IApprovalActingContext? actingContext = null) : Controller
 {
     private static Guid? ParseUserId(System.Security.Claims.ClaimsPrincipal user)
     {
@@ -717,10 +739,20 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        var by = ParseUserId(User);
+        // PLAN-50 (§7): the direct role acts in its own name; a delegate on behalf of his principal, or not at all (fail-closed).
+        var acting = await MovementApprovalActing.ResolveAsync(actingContext, User, "LoanAssignmentRequest", HttpContext.RequestAborted);
+        if (!acting.MayAct)
+            return Forbid();
+
+        var by = acting.UserId;
         if (by == null)
         {
             TempData["Error"] = "تعذر تحديد هوية المعتمد من التوكن";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        if (MovementApprovalActing.CreatorOrPrincipal(acting, s.RequestedBy) is { } onBehalfCreator)
+        {
+            TempData["Error"] = onBehalfCreator;
             return RedirectToAction(nameof(Details), new { id });
         }
         if (s.RequestedBy.HasValue && by.Value == s.RequestedBy.Value)
@@ -733,17 +765,28 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
         var sodResult = sod.ValidateAction(
             by.Value, null, "LoanAssignmentRequest", s.Id,
             HRManagement.SharedKernel.SeparationOfDuties.SodAction.Check, s.RequestedBy, null);
+        if (sodResult.Allowed && acting.OnBehalfOf is { } principal)
+            sodResult = sod.ValidateAction(
+                principal.PrincipalUserId, null, "LoanAssignmentRequest", s.Id,
+                HRManagement.SharedKernel.SeparationOfDuties.SodAction.Check, s.RequestedBy, null);
         if (!sodResult.Allowed)
         {
             TempData["Error"] = sodResult.DenialReason;
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        // PLAN-50 (P-7): the principal's stored scope applies as well as the delegate's own.
+        if (!await MovementApprovalActing.PrincipalScopeAllowsAsync(acting, db.OrgUnitSnapshots, s.LendingOrgUnitId, s.BorrowingOrgUnitId))
+            return Forbid();
+
         s.Status = LoanAssignmentStatus.Approved;
         var approved = await db.MovementChecklists.FirstOrDefaultAsync(c =>
             c.CorrelationId == s.Id && c.Step == MovementChecklistStep.Approved);
         if (approved is not null && !approved.IsCompleted)
+        {
             MovementWorkflowRules.MarkStep(approved, by, $"loan:{s.Id}:approved");
+            MovementApprovalActing.Record(acting, approved);
+        }
         await db.SaveChangesAsync();
         TempData["Success"] = "تم اعتماد الإعارة";
         return RedirectToAction(nameof(Details), new { id });
@@ -910,10 +953,13 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
     }
 }
 
+// PLAN-50 (§7): a delegation scoped to another entity type does not reach these screens.
+[ApprovalEntityType("PromotionRequest")]
 public class PromotionRequestsController(
     MovementsDbContext db,
     IPublishEndpoint publish,
-    IHrCoreActiveRegimeClient activeRegimeClient) : Controller
+    IHrCoreActiveRegimeClient activeRegimeClient,
+    IApprovalActingContext? actingContext = null) : Controller
 {
     private static Guid? ParseUserId(ClaimsPrincipal user)
     {
@@ -1000,10 +1046,21 @@ public class PromotionRequestsController(
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        var by = ParseUserId(User);
+        // PLAN-50 (§7): the direct role acts in its own name; a delegate on behalf of his principal, or not at all (fail-closed).
+        var acting = await MovementApprovalActing.ResolveAsync(actingContext, User, "PromotionRequest", HttpContext.RequestAborted);
+        if (!acting.MayAct)
+            return Forbid();
+
+        var by = acting.UserId;
         if (by is null)
         {
             TempData["Error"] = "تعذر تحديد هوية المعتمد من التوكن";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (MovementApprovalActing.CreatorOrPrincipal(acting, item.RequestedBy) is { } onBehalfCreator)
+        {
+            TempData["Error"] = onBehalfCreator;
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -1024,7 +1081,10 @@ public class PromotionRequestsController(
         var approved = await db.MovementChecklists.FirstOrDefaultAsync(c =>
             c.CorrelationId == item.Id && c.Step == MovementChecklistStep.Approved);
         if (approved is not null && !approved.IsCompleted)
+        {
             MovementWorkflowRules.MarkStep(approved, by, $"promotion:{item.Id}:approved");
+            MovementApprovalActing.Record(acting, approved);
+        }
         await db.SaveChangesAsync();
         TempData["Success"] = "تم اعتماد الترفيع";
         return RedirectToAction(nameof(Details), new { id });
@@ -1080,7 +1140,9 @@ public class PromotionRequestsController(
     }
 }
 
-public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoint publish) : Controller
+// PLAN-50 (§7): a delegation scoped to another entity type does not reach these screens.
+[ApprovalEntityType("DelegationRequest")]
+public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoint publish, IApprovalActingContext? actingContext = null) : Controller
 {
     private static Guid? ParseUserId(ClaimsPrincipal user)
     {
@@ -1165,10 +1227,21 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        var by = ParseUserId(User);
+        // PLAN-50 (§7): the direct role acts in its own name; a delegate on behalf of his principal, or not at all (fail-closed).
+        var acting = await MovementApprovalActing.ResolveAsync(actingContext, User, "DelegationRequest", HttpContext.RequestAborted);
+        if (!acting.MayAct)
+            return Forbid();
+
+        var by = acting.UserId;
         if (by is null)
         {
             TempData["Error"] = "تعذر تحديد هوية المعتمد من التوكن";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (MovementApprovalActing.CreatorOrPrincipal(acting, item.RequestedBy) is { } onBehalfCreator)
+        {
+            TempData["Error"] = onBehalfCreator;
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -1182,7 +1255,10 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
         var approved = await db.MovementChecklists.FirstOrDefaultAsync(c =>
             c.CorrelationId == item.Id && c.Step == MovementChecklistStep.Approved);
         if (approved is not null && !approved.IsCompleted)
+        {
             MovementWorkflowRules.MarkStep(approved, by, $"delegation:{item.Id}:approved");
+            MovementApprovalActing.Record(acting, approved);
+        }
         await db.SaveChangesAsync();
         TempData["Success"] = "تم اعتماد الندب";
         return RedirectToAction(nameof(Details), new { id });
