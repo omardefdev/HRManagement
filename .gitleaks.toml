@@ -58,3 +58,10 @@ condition = "AND"
 paths = ['''^src/Tests/HRManagement\.AcceptanceTests/AcTen48LeastPrivilegeTests\.cs$''']
 regexTarget = "match"
 regexes = ['''ScenarioKey\s*=\s*"48-leastpriv"''']
+
+[[allowlists]]
+description = "PLAN-50 shared code: the HttpContext.Items slot name under which the delegation policy handler leaves the delegation it matched (ItemKey = \"PLAN50.ApprovalDelegation\"). It names a dictionary entry, not a secret; 'Key' trips generic-api-key. Only that exact assignment, only in that file."
+condition = "AND"
+paths = ['''^src/Shared/HRManagement\.ServiceDefaults/Delegation/ApprovalActingContext\.cs$''']
+regexTarget = "match"
+regexes = ['''ItemKey\s*=\s*"PLAN50\.ApprovalDelegation"''']
