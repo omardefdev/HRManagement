@@ -439,7 +439,16 @@ public sealed class RecruitmentAppealService(
             var policyResult = await policyOrchestrator.EnforceAsync(policyRequest, ct);
             if (!policyResult.Allowed)
                 return (null, policyResult.Decision.DenyReason ?? "مرفوض بسياسة الاستئناف.");
-            instanceId = policyResult.WorkflowInstanceId;
+            // PLAN-49 (G-POL-09): as in ApprovalStartCoordinator: the policy's instance is taken only when it runs the review
+            // workflow this service asks for; any other is cancelled and the start refused.
+            if (policyResult.WorkflowInstanceId is Guid policyInstanceId)
+            {
+                var refused = await PolicyWorkflowCodeGuard.RefuseOtherWorkflowAsync(
+                    db, policyInstanceId, AppealReviewWorkflowCode, actorUserId, actorUserName, ct);
+                if (refused is not null)
+                    return (null, refused);
+                instanceId = policyInstanceId;
+            }
         }
 
         // PLAN-25: always start workflow — HCM-028 (H5) already does so for policy Off outside lab scale, and when the

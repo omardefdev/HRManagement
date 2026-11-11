@@ -57,6 +57,17 @@ public class S2s042PolicyLedgerCallerPostgresTests : IAsyncLifetime
         Facts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["isPrivileged"] = "true", ["value"] = "20000", ["action"] = "Assign" }
     };
 
+    private static PolicyEnforceRequest SubmittedRequisition(Guid entityId) => new()
+    {
+        Domain = PolicyDomains.CoreRecruitment,
+        SubjectType = "RecruitmentRequisition",
+        Action = "SubmitForApproval",
+        EntityId = entityId,
+        TenantId = TenantId,
+        Mode = PolicyEnforcementMode.Enforce,
+        Facts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["action"] = "SubmitForApproval" }
+    };
+
     private static Mock<IWorkflowStarter> Starter(Guid instance)
     {
         var starter = new Mock<IWorkflowStarter>();
@@ -156,11 +167,40 @@ public class S2s042PolicyLedgerCallerPostgresTests : IAsyncLifetime
         await using var db = await MigrateAsync();
         var instance = Guid.NewGuid();
 
-        var response = await Orchestrator(db, Starter(instance).Object).EnforceAsync(Privileged("Asset", Guid.NewGuid()));
+        // PLAN-49: inside HR.Core a workflow starts where the catalog says HR.Core starts it for the entity type (a requisition,
+        // when it is submitted). The allow-list of PLAN-42 is for services, and it is empty: it has no say here.
+        var response = await Orchestrator(db, Starter(instance).Object).EnforceAsync(SubmittedRequisition(Guid.NewGuid()));
 
         var row = await db.PolicyEnforcementLedgers.IgnoreQueryFilters().AsNoTracking().SingleAsync(l => l.Id == response.LedgerId);
         Assert.Null(row.CallerClientId);
         Assert.Equal(instance, response.WorkflowInstanceId);
+        Assert.False(PolicyWorkflowTriggerAllowlist.Allows(PolicyDomains.CoreRecruitment, "RecruitmentRequisition", "RECRUITMENT-REQUISITION-APPROVAL"));
+    }
+
+    /// <summary>
+    /// PLAN-49 (the review, finding 2): the engine's own start has a limit too, the catalog's. The handover approval of an asset
+    /// starts at its owner service through the approval contract, so a decision taken inside HR.Core for an asset, or for its
+    /// assignment, starts nothing and says so (this test asserted the opposite for an asset before the catalog existed).
+    /// </summary>
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task Inside_HR_Core_a_workflow_starts_only_where_the_catalog_gives_HR_Core_the_start()
+    {
+        Skip.IfNot(Enabled, "Set RUN_TESTCONTAINERS=true");
+        await using var db = await MigrateAsync();
+        var starter = Starter(Guid.NewGuid());
+
+        var asset = await Orchestrator(db, starter.Object).EnforceAsync(Privileged("Asset", Guid.NewGuid()));
+        var assignment = await Orchestrator(db, starter.Object).EnforceAsync(Privileged("AssetAssignment", Guid.NewGuid()));
+
+        VerifyNoStart(starter);
+        foreach (var response in new[] { asset, assignment })
+        {
+            Assert.True(response.Allowed);
+            Assert.Contains(PolicyEffect.TriggerWorkflow, response.Decision.Effects);
+            Assert.Null(response.WorkflowInstanceId);
+            Assert.Contains(PolicyWorkflowTriggerAllowlist.NotAllowedExplanation, response.Explanations);
+        }
     }
 
     [Trait("Category", "Testcontainers")]

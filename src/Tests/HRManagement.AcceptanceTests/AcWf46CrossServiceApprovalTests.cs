@@ -450,7 +450,8 @@ public class AcWf46CrossServiceApprovalTests
 
 /// <summary>
 /// AC-WF-46j (PLAN-46) with the card policy in Enforce (docker-compose.acceptance-wf46.yml, applied with the s2s42 overlay): the four orphan
-/// definitions are unpublished, and R-ID-PROCESS starts nothing.
+/// definitions are unpublished, and processing a card starts nothing. PLAN-49 retired the rule that fired there (R-ID-PROCESS,
+/// TriggerWorkflow ID-CARD-ISSUANCE): the count this scenario keeps now holds because no rule is left to fire.
 /// </summary>
 [RequiredAcceptance]
 public class AcWf46PolicyOrphanTests
@@ -490,7 +491,7 @@ public class AcWf46PolicyOrphanTests
         r.WriteScenarioDbChecks(new { orphansPublished = 0, request, instancesBefore, instancesAfter = instancesBefore, requestStatusAfterProcess = outcome, alerts = AcS2s42TrustBoundaryTests.Alerts(page) });
         r.WriteScenarioSteps(
             "1. GET api/workflow-definitions?publishedOnly=true lists none of HIRE-WIZARD, TRANSFER-APPROVAL, IT-TICKET, SEPARATION-WIZARD (and none is published in psql).\n" +
-            "2. Negative: with PolicyEngine:IDCard.Lifecycle=Enforce on idcard-web and hr-core-web, a-idcard processes an approved request: R-ID-PROCESS starts no instance in HR.Core (psql).");
+            "2. Negative: with PolicyEngine:IDCard.Lifecycle=Enforce on idcard-web and hr-core-web, a-idcard processes an approved request: no instance starts in HR.Core (psql). PLAN-49 retired R-ID-PROCESS, the rule that fired here.");
         r.WriteResult("Pass");
     }
 }

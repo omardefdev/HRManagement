@@ -41,7 +41,12 @@ public sealed class Pol047SeedApplierPostgresTests(PostgreSqlFixture fixture)
 
         Assert.Equal(versions, await Pol047Pg.ScalarAsync<long>(admin, """SELECT count(*) FROM "PolicyTemplateVersions" """));
         Assert.Equal(applications, await Pol047Pg.ScalarAsync<long>(admin, """SELECT count(*) FROM "PolicySeedApplications" """));
-        Assert.True(published >= 3, $"the baseline publishes v2 of Leave, Recruitment and Archive on a new database (got {published})");
+        // PLAN-49: Archive.Retention is out of the engine's scope, so the baseline's operation there publishes nothing.
+        Assert.True(published >= 2, $"the baseline publishes v2 of Leave and Recruitment on a new database (got {published})");
+        Assert.Equal(0L, await Pol047Pg.ScalarAsync<long>(admin, $"""
+            SELECT count(*) FROM "PolicySeedApplications" a JOIN "PolicyTemplates" t ON t."Id" = a."PolicyTemplateId"
+            WHERE a."Outcome" = 'Published' AND a."ChangeSetId" = '{PolicySeedChangeSets.BaselineId}' AND t."Domain" = '{PolicyDomains.ArchiveRetention}'
+            """));
         // Every row the national session wrote is the national tenant's.
         Assert.Equal(0L, await Pol047Pg.ScalarAsync<long>(admin, $"""SELECT count(*) FROM "PolicySeedApplications" WHERE "TenantId" <> '{Pol047Pg.National}'"""));
         // Core.Recruitment: v2 effective, published as SystemSeed by the baseline.
@@ -71,8 +76,9 @@ public sealed class Pol047SeedApplierPostgresTests(PostgreSqlFixture fixture)
         await BootAsync(provider);
         var set = new PolicySeedChangeSet("POL-TEST-TWO-INSTANCES",
         [
-            new(PolicySeedOperationKind.AddRule, PolicyDomains.ArchiveRetention, "R-ARC-TWO", "مرتان", 20,
-                """{"all":[{"field":"action","operator":"Equals","value":"Note"}]}""", """[{"effect":"RequireEvidence"}]""")
+            // PLAN-49: a governed domain and a rule its catalog accepts (the applier adds nothing to an out-of-scope domain).
+            new(PolicySeedOperationKind.AddRule, PolicyDomains.CoreRecruitment, "R-REQ-TWO", "مرتان", 20,
+                """{"all":[{"field":"action","operator":"Equals","value":"PublishInternal"}]}""", """[{"effect":"Allow"}]""")
         ]);
         var before = await Pol047Pg.ScalarAsync<long>(admin, """SELECT count(*) FROM "PolicyTemplateVersions" """);
 

@@ -2,11 +2,16 @@ using HRManagement.SharedKernel.Policy;
 
 namespace HRManagement.ServiceDefaults.Policy;
 
-/// <summary>Shared facts builders for policy domains (wave 1 + wave 2 adapters).</summary>
+/// <summary>
+/// The facts each call site of a governed domain sends the policy engine. PLAN-49 (G-POL-04): every key a builder sends is a
+/// field of its domain's facts schema (the strict evaluation refuses a request that carries any other key), and every field a
+/// rule of the domain reads is sent by the builder of the action the rule is bound to. Pol049FactsBuildersMatchSchemasTests
+/// holds both. A builder exists only for a domain the catalog governs.
+/// </summary>
 public static class PolicyDomainFactsBuilders
 {
-    public static PolicyEnforceRequest ForIDCardRequest(
-        Guid requestId, Guid? tenantId, Guid employeeId, string purpose, string action) =>
+    /// <summary><paramref name="tenantId"/>: the card request's own tenant.</summary>
+    public static PolicyEnforceRequest ForIDCardRequest(Guid requestId, Guid? tenantId, string purpose, string action) =>
         new()
         {
             Domain = PolicyDomains.IDCardLifecycle,
@@ -16,46 +21,38 @@ public static class PolicyDomainFactsBuilders
             EntityId = requestId,
             Facts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
             {
-                ["employeeId"] = employeeId.ToString(),
                 ["purpose"] = purpose,
                 ["action"] = action
             }
         };
 
+    /// <summary>
+    /// <paramref name="tenantId"/>: the leave request's own tenant (empty for a request not saved yet: the engine then takes the
+    /// tenant of the call). <paramref name="durationDays"/>: working days, on every channel. <paramref name="isSelfApproval"/>:
+    /// sent with <c>Approve</c> only: whether the approver decides a leave that is his own or that he recorded.
+    /// </summary>
     public static PolicyEnforceRequest ForLeaveRequest(
-        Guid leaveId, Guid? tenantId, Guid employeeId, int durationDays, string leaveType, string action) =>
-        new()
+        Guid leaveId, Guid? tenantId, int durationDays, string leaveType, string action, bool? isSelfApproval = null)
+    {
+        var facts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["durationDays"] = durationDays.ToString(System.Globalization.CultureInfo.InvariantCulture),
+            ["leaveType"] = leaveType,
+            ["action"] = action
+        };
+        if (isSelfApproval is bool self)
+            facts["isSelfApproval"] = self ? "true" : "false";
+
+        return new PolicyEnforceRequest
         {
             Domain = PolicyDomains.ContractsLeave,
             TenantId = tenantId,
             SubjectType = "LeaveRequest",
             Action = action,
             EntityId = leaveId,
-            Facts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["employeeId"] = employeeId.ToString(),
-                ["durationDays"] = durationDays.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                ["leaveType"] = leaveType,
-                ["action"] = action
-            }
+            Facts = facts
         };
-
-    public static PolicyEnforceRequest ForAdvanceRequest(
-        Guid advanceId, Guid? tenantId, Guid employeeId, decimal amount, string action) =>
-        new()
-        {
-            Domain = PolicyDomains.ContractsAdvance,
-            TenantId = tenantId,
-            SubjectType = "AdvanceRequest",
-            Action = action,
-            EntityId = advanceId,
-            Facts = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-            {
-                ["employeeId"] = employeeId.ToString(),
-                ["amount"] = amount.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                ["action"] = action
-            }
-        };
+    }
 
     public static PolicyEnforceRequest ForRecruitmentRequisition(
         Guid requisitionId,
@@ -139,13 +136,18 @@ public static class PolicyDomainFactsBuilders
             }
         };
 
+    /// <summary>
+    /// <paramref name="actorIsBranchScoped"/>: whether the person who submits is limited to a branch
+    /// (<c>HrOrgScopeVisibility.IsBranchScoped</c>). It is the fact <c>hasOrgScope</c> of this domain, which R-EST-DENY-BRANCH
+    /// reads; it has no default, so no call site sends a constant.
+    /// </summary>
     public static PolicyEnforceRequest ForEstablishmentChange(
         Guid changeRequestId,
         Guid? tenantId,
         string action,
         string changeType,
         string changeStatus,
-        bool hasOrgScope = false,
+        bool actorIsBranchScoped,
         string? contextJson = null) =>
         new()
         {
@@ -160,7 +162,7 @@ public static class PolicyDomainFactsBuilders
                 ["action"] = action,
                 ["changeType"] = changeType,
                 ["changeStatus"] = changeStatus,
-                ["hasOrgScope"] = hasOrgScope ? "true" : "false"
+                ["hasOrgScope"] = actorIsBranchScoped ? "true" : "false"
             }
         };
 

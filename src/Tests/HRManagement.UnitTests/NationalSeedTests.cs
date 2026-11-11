@@ -70,8 +70,12 @@ public class NationalSeedTests
         await WorkflowPackSeeder.SeedAsync(db);
         await PolicyEngineSeeder.SeedAsync(db);
 
+        // PLAN-49 (plan section 3): a new database binds the codes a rule of a governed domain may name, and no other (it bound
+        // thirteen before, seven of them for domains with no call site or for retired codes). Pol049FreshSeedTests compares the
+        // seven with the catalog.
         var bindings = await db.PolicyWorkflowBindings.ToListAsync();
-        Assert.True(bindings.Count >= 9);
+        Assert.Equal(7, bindings.Count);
+        Assert.All(bindings, b => Assert.True(HRManagement.SharedKernel.Policy.PolicyDomainCatalog.IsGoverned(b.Domain), b.Domain));
 
         foreach (var binding in bindings)
         {

@@ -161,6 +161,14 @@ public sealed class PolicyPublishService(
         CancellationToken ct,
         IReadOnlySet<string>? onlyRuleKeys = null)
     {
+        // PLAN-49 (D-POL-1): nothing is published in a domain the engine does not govern. The one exception is its retirement:
+        // the final version with no rules. Only the retirement change set writes that draft (PolicyDraftService opens no draft of
+        // any other kind there), and it publishes it itself, or leaves it for an approver when seeds require one (D-POL-11).
+        var outOfScope = validation.ValidateDomain(version.PolicyTemplate.Domain);
+        var retirement = outOfScope.Count > 0 && version.WithdrawsAllRules && version.Rules.Count == 0;
+        if (outOfScope.Count > 0 && !retirement)
+            return new(PolicyPublishOutcome.Invalid, outOfScope[0].MessageAr, outOfScope);
+
         // §5: no empty version, except the explicit "withdraw every rule of the domain" draft with a written reason.
         if (version.WithdrawsAllRules)
         {
@@ -204,6 +212,20 @@ public sealed class PolicyPublishService(
         var gate = guard?.ValidateInvalidPublish(isValid: issues.Count == 0, published: true);
         if (issues.Count > 0)
             return new(PolicyPublishOutcome.Invalid, gate ?? "الإصدار لا يجتاز التحقق", issues);
+
+        // PLAN-49: the retirement marks its template, in the save that publishes the final version; and a template of a domain
+        // that came back into scope (a descriptor, a call site, a change set) stops being marked when it publishes rules again.
+        var template = version.PolicyTemplate;
+        if (retirement)
+        {
+            template.RetiredAt = DateTime.UtcNow;
+            template.RetiredReason = version.ChangeReason;
+        }
+        else if (template.RetiredAt is not null)
+        {
+            template.RetiredAt = null;
+            template.RetiredReason = null;
+        }
 
         try
         {

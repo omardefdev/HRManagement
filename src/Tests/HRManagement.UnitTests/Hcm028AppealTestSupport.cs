@@ -26,10 +26,11 @@ internal static class Hcm028AppealTestSupport
         HRCoreDbContext db,
         IConfiguration? config = null,
         RecruitmentOptions? options = null,
-        IWorkflowStarter? starter = null) =>
+        IWorkflowStarter? starter = null,
+        IPolicyOrchestrator? orchestrator = null) =>
         new(
             db,
-            Mock.Of<IPolicyOrchestrator>(),
+            orchestrator ?? Mock.Of<IPolicyOrchestrator>(),
             starter ?? Hcm027TestSupport.CreateStarter(db),
             config ?? Hcm027TestSupport.Config(),
             Microsoft.Extensions.Options.Options.Create(options ?? new RecruitmentOptions()),

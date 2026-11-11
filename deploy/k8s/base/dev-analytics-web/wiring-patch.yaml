@@ -11,8 +11,6 @@ spec:
       containers:
         - name: app
           env:
-            - name: Integration__HrCoreBaseUrl
-              value: http://hr-core-web:8080
             - name: ServiceIdentity__ClientId
               value: svc-dev-analytics
             - name: ServiceIdentity__Scope

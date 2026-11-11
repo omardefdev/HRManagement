@@ -119,7 +119,6 @@ public class S2s042PolicyEnforceInternalTests
     [Theory]
     [InlineData(PolicyDomains.CoreRecruitment)]
     [InlineData(PolicyDomains.CoreEstablishment)]
-    [InlineData(PolicyDomains.CoreEmployment)]
     [InlineData("Unknown.Domain")]
     public async Task Core_domains_and_unknown_domains_are_never_reached_over_http(string domain)
     {
@@ -128,6 +127,26 @@ public class S2s042PolicyEnforceInternalTests
         body.Domain = domain;
 
         Assert.IsType<ForbidResult>(await harness.Controller("svc-admin-logistics").Enforce(body, CancellationToken.None));
+        Assert.Null(harness.Seen);
+    }
+
+    /// <summary>PLAN-49 (G-POL-02): the catalog answers before the ownership check, whoever asks and whatever the body says.</summary>
+    [Theory]
+    [InlineData(PolicyDomains.AssetsProcurement, "svc-admin-logistics", "SupplyOrder")]
+    [InlineData(PolicyDomains.ContractsAdvance, "svc-hr-contracts", "AdvanceRequest")]
+    [InlineData(PolicyDomains.ITTickets, "svc-idcard", "Ticket")]
+    [InlineData(PolicyDomains.CoreEmployment, "svc-admin-logistics", "EmploymentRecord")]
+    public async Task A_domain_out_of_the_engine_scope_is_400_with_the_catalog_message(string domain, string client, string subject)
+    {
+        var harness = new Harness();
+        var body = Body();
+        body.Domain = domain;
+        body.SubjectType = subject;
+        body.Mode = PolicyEnforcementMode.Enforce;
+
+        var result = Assert.IsType<BadRequestObjectResult>(await harness.Controller(client).Enforce(body, CancellationToken.None));
+
+        Assert.Equal(PolicyDomainCatalog.OutOfScopeMessageAr, result.Value);
         Assert.Null(harness.Seen);
     }
 
@@ -142,6 +161,39 @@ public class S2s042PolicyEnforceInternalTests
 
         Assert.IsType<BadRequestObjectResult>(await harness.Controller("svc-admin-logistics").Enforce(body, CancellationToken.None));
         Assert.Null(harness.Seen);
+    }
+
+    /// <summary>PLAN-49: the catalog lists the actions of each subject type; any other pair is refused before the engine sees it.</summary>
+    [Theory]
+    [InlineData("Asset", "Assign")]
+    [InlineData("AssetAssignment", "Create")]
+    [InlineData("AssetAssignment", "MarkLost")]
+    [InlineData("AssetAssignment", "assign")]
+    [InlineData("AssetAssignment", "")]
+    public async Task An_action_outside_the_catalog_for_the_subject_type_is_400(string subject, string action)
+    {
+        var harness = new Harness();
+        var body = Body();
+        body.SubjectType = subject;
+        body.Action = action;
+
+        Assert.IsType<BadRequestObjectResult>(await harness.Controller("svc-admin-logistics").Enforce(body, CancellationToken.None));
+        Assert.Null(harness.Seen);
+    }
+
+    [Theory]
+    [InlineData("Asset", "Classify")]
+    [InlineData("Asset", "Create")]
+    [InlineData("AssetAssignment", "Assign")]
+    public async Task Every_pair_the_catalog_lists_for_custody_reaches_the_engine(string subject, string action)
+    {
+        var harness = new Harness();
+        var body = Body();
+        body.SubjectType = subject;
+        body.Action = action;
+
+        Assert.IsType<OkObjectResult>(await harness.Controller("svc-admin-logistics").Enforce(body, CancellationToken.None));
+        Assert.Equal(action, harness.Seen!.Action);
     }
 
     [Fact]
@@ -200,11 +252,22 @@ public class S2s042PolicyEnforceInternalTests
     public void The_allowlist_is_empty_since_PLAN_43(string domain, string subject, string? code, bool expected) =>
         Assert.Equal(expected, PolicyWorkflowTriggerAllowlist.Allows(domain, subject, code));
 
+    /// <summary>
+    /// PLAN-49: owners come from the catalog. A governed domain outside HR.Core has one; <c>Core.*</c> has none (never reached
+    /// over HTTP) and an out-of-scope domain has none (nobody may ask).
+    /// </summary>
     [Fact]
-    public void Every_domain_is_owned_except_the_core_ones()
+    public void Every_governed_domain_outside_hr_core_is_owned_and_no_other_domain_is()
     {
         foreach (var domain in PolicyDomains.All)
-            Assert.Equal(!domain.StartsWith("Core.", StringComparison.Ordinal), PolicyDomainOwners.OwnedDomains.Contains(domain));
+        {
+            var expected = PolicyDomainCatalog.IsGoverned(domain) && !domain.StartsWith("Core.", StringComparison.Ordinal);
+            Assert.Equal(expected, PolicyDomainOwners.OwnedDomains.Contains(domain));
+        }
+
+        Assert.Equal(
+            [PolicyDomains.AssetsCustody, PolicyDomains.ContractsLeave, PolicyDomains.IDCardLifecycle],
+            PolicyDomainOwners.OwnedDomains.OrderBy(d => d, StringComparer.Ordinal));
     }
 
     [Fact]
@@ -232,6 +295,25 @@ public class S2s042PolicyEnforceInternalTests
         Assert.False(await Passes(new Claim("azp", "svc-hr-core"), new Claim("scope", "hr-core.workflow")));
         Assert.False(await Passes(new Claim("azp", "hr-gateway-client"), new Claim("scope", "hr-core.workflow"), new Claim("sub", Actor.ToString())));
     }
+
+    /// <summary>
+    /// PLAN-49: the clients that hold hr-core.workflow for code generation or approvals, and owned a domain the catalog now puts
+    /// out of scope, no longer pass the policy (they got a 200 on their own domain before, with nothing behind it).
+    /// </summary>
+    [Theory]
+    [InlineData("svc-records-archive")]
+    [InlineData("svc-it-infra")]
+    [InlineData("svc-compliance")]
+    [InlineData("svc-payroll")]
+    public async Task The_owner_of_a_retired_domain_no_longer_passes_the_policy(string client) =>
+        Assert.False(await Passes(new Claim("azp", client), new Claim("scope", "hr-core.workflow")));
+
+    [Theory]
+    [InlineData("svc-admin-logistics")]
+    [InlineData("svc-idcard")]
+    [InlineData("svc-hr-contracts")]
+    public async Task The_three_owners_of_governed_domains_pass_the_policy(string client) =>
+        Assert.True(await Passes(new Claim("azp", client), new Claim("scope", "hr-core.workflow")));
 
     [Fact]
     public void Enforce_left_the_user_controller()

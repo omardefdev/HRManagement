@@ -1,6 +1,6 @@
 {
   "card": "PLAN-41",
-  "description": "PLAN-41: what the Acceptance job runs. Every class of HRManagement.AcceptanceTests appears exactly once, in lab[], in prodLike[] (class, required, group) or in excluded[] (class or Class.Method, reason, ownerPlan, reviewBy). Exclude only for an environment CI cannot provide, never because a class is red. order[] is the order of the stages; stack is the stack a stage needs; ciOnly stages read the results of the CI job of the same commit, so they do not run on the owner\u0027s machine. A class in the isolated group stops or recreates containers and runs alone, in its own test process (P-7). PLAN-42: a stage with composeFiles applies them on the running stack, recreating the services in recreate; its classes also run alone, and the stack is torn down before its next use, so such a stage comes last on its stack. A class in a trx that is not listed here fails the job. PLAN-66: stageJobs[] groups order[] into the parallel jobs of ci.yml; every entry of order[] belongs to one of them. waitFor names the jobs whose evidence a stage must read: its class looks at the folders of the run. metaRule: the stage that runs on demand (D-QA-66-1) and what its classes read; the guard and the validator accept not run by rule only for the classes of that stage.",
+  "description": "PLAN-41: what the Acceptance job runs. Every class of HRManagement.AcceptanceTests appears exactly once, in lab[], in prodLike[] (class, required, group) or in excluded[] (class or Class.Method, reason, ownerPlan, reviewBy). Exclude only for an environment CI cannot provide, never because a class is red. order[] is the order of the stages; stack is the stack a stage needs; ciOnly stages read the results of the CI job of the same commit, so they do not run on the owner\u0027s machine. A class in the isolated group stops or recreates containers and runs alone, in its own test process (P-7). PLAN-42: a stage with composeFiles applies them on the running stack, recreating the services in recreate; its classes also run alone, and the stack is torn down before its next use, so such a stage comes last on its stack. A class in a trx that is not listed here fails the job. PLAN-66: stageJobs[] groups order[] into the parallel jobs of ci.yml; every entry of order[] belongs to one of them. waitFor names the jobs whose evidence a stage must read: its class looks at the folders of the run. metaRule: the stage that runs on demand (D-QA-66-1) and what its classes read; the guard and the validator accept not run by rule only for the classes of that stage. PLAN-49: pol49 is a second stage with composeFiles on the prod-like stack (Core.Recruitment in Enforce with the weak offer rule of AC-POL-49f). It has its own stage job, on a stack started for it, so each overlay stage stays the last of its stack in its job; and it comes before s2s42 in order[], so in the stage jobs the last live stage, whose stack the PII scan reads, is still the one that has carried the main and isolated groups. In a run without -Stage each overlay stage is followed by a fresh stack, so the scan also reads a marked stack before it goes.",
   "order": [
     { "part": "lab", "group": "main", "stack": "lab" },
     { "part": "lab", "group": "journey", "stack": "lab" },
@@ -9,6 +9,7 @@
     { "part": "prodLike", "group": "main", "stack": "prodlike" },
     { "part": "prodLike", "group": "isolated", "stack": "prodlike" },
     { "part": "prodLike", "group": "final", "stack": "prodlike" },
+    { "part": "prodLike", "group": "pol49", "stack": "prodlike", "composeFiles": ["docker-compose.acceptance-pol49.yml"], "recreate": ["hr-core-web"] },
     { "part": "prodLike", "group": "s2s42", "stack": "prodlike", "composeFiles": ["docker-compose.acceptance-s2s42.yml", "docker-compose.acceptance-wf46.yml"], "recreate": ["hr-core-web", "admin-logistics-web", "idcard-web"] },
     { "part": "prodLike", "group": "leastpriv", "stack": "leastpriv" },
     { "part": "lab", "group": "meta", "stack": "base", "ciOnly": true }
@@ -18,6 +19,7 @@
     { "name": "lab-rest", "stages": ["lab:journey", "lab:isolated"] },
     { "name": "prodlike", "stages": ["prodLike:journey", "prodLike:main", "prodLike:isolated", "prodLike:s2s42"] },
     { "name": "prodlike-final", "stages": ["prodLike:final"], "waitFor": ["lab-main", "lab-rest", "prodlike"] },
+    { "name": "prodlike-policy", "stages": ["prodLike:pol49"] },
     { "name": "leastpriv", "stages": ["prodLike:leastpriv"] },
     { "name": "meta", "stages": ["lab:meta"] }
   ],
@@ -143,6 +145,7 @@
     { "class": "AcHcm25ProductionApprovalTests", "required": true, "group": "main" },
     { "class": "AcWf43DefinitionGovernanceTests", "required": true, "group": "main" },
     { "class": "AcTen48NationalScopeTests", "required": true, "group": "main" },
+    { "class": "AcPol49EngineScopeTests", "required": true, "group": "main" },
     { "class": "AcInt37ProductionWiringTests", "required": true, "group": "isolated" },
     { "class": "AcMsg40AtomicPublishingTests", "required": true, "group": "isolated" },
     { "class": "AcWf44InstanceIntegrityTests", "required": true, "group": "isolated" },
@@ -153,6 +156,7 @@
     { "class": "AcQa41AcceptanceBaselineTests", "required": true, "group": "final" },
     { "class": "AcS2s42TrustBoundaryTests", "required": true, "group": "s2s42" },
     { "class": "AcWf46PolicyOrphanTests", "required": true, "group": "s2s42" },
+    { "class": "AcPol49EnforceOverlayTests", "required": true, "group": "pol49" },
     { "class": "AcOps38FirstBootTests", "required": true, "group": "leastpriv" },
     { "class": "AcTen48LeastPrivilegeTests", "required": true, "group": "leastpriv" }
   ],

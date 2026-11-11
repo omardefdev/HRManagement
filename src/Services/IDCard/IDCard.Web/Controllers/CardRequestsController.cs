@@ -203,7 +203,7 @@ public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient pol
 
         // PLAN-43/46: the policy is a signal here; it starts no instance (the type is started only through the contract).
         var policyResult = await policyClient.EnforceAsync(
-            PolicyDomainFactsBuilders.ForIDCardRequest(id, e.TenantId, e.EmployeeId, e.Purpose.ToString(), "Process"),
+            PolicyDomainFactsBuilders.ForIDCardRequest(id, e.TenantId, e.Purpose.ToString(), "Process"),
             HttpContext.RequestAborted);
         if (!policyResult.Allowed)
         {

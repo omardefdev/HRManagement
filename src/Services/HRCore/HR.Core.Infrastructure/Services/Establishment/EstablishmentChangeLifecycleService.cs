@@ -69,12 +69,18 @@ public sealed class EstablishmentChangeLifecycleService(
         return (true, null);
     }
 
+    /// <summary>
+    /// <paramref name="actorIsBranchScoped"/> (PLAN-49, G-POL-04): whether the person who submits is limited to a branch
+    /// (<c>HrOrgScopeVisibility.IsBranchScoped(User)</c>). It is the policy fact <c>hasOrgScope</c>, which R-EST-DENY-BRANCH reads;
+    /// it was a constant <c>false</c>, so that rule could never match. It has no default: every caller says who is submitting.
+    /// </summary>
     public async Task<(bool Success, string? Error)> SubmitForApprovalAsync(
         Guid id,
         string? legalSourceId,
         string? decisionReference,
         Guid? actorUserId,
         string? actorUserName,
+        bool actorIsBranchScoped,
         DateTime? effectiveFrom = null,
         CancellationToken ct = default)
     {
@@ -106,7 +112,7 @@ public sealed class EstablishmentChangeLifecycleService(
                     "SubmitForApproval",
                     request.ChangeType.ToString(),
                     request.Status.ToString(),
-                    hasOrgScope: false,
+                    actorIsBranchScoped: actorIsBranchScoped,
                     contextJson: contextJson),
                 "مرفوض بسياسة الملاك."),
             async instanceId =>

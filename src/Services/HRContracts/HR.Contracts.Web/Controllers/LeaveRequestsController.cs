@@ -180,7 +180,8 @@ public class LeaveRequestsController : Controller
         var (denied, _) = await EnsureLeaveInScopeAsync(id);
         if (denied is not null) return denied;
         var by = ParseUserId(User);
-        var result = await _mediator.Send(new ApproveLeaveRequestCommand(id, by));
+        // PLAN-49: the approver's own employee record, for the policy fact isSelfApproval (a leave recorded for him by somebody else).
+        var result = await _mediator.Send(new ApproveLeaveRequestCommand(id, by, HrOrgScopeVisibility.GetEmployeeId(User)));
         if (!result.Success)
         {
             if (result.Error is null) return NotFound();
@@ -216,7 +217,7 @@ public class LeaveRequestsController : Controller
         var (denied, _) = await EnsureLeaveInScopeAsync(req.Id);
         if (denied is not null) return denied;
         var by = ParseUserId(User);
-        var result = await _mediator.Send(new ApproveLeaveRequestCommand(req.Id, by));
+        var result = await _mediator.Send(new ApproveLeaveRequestCommand(req.Id, by, HrOrgScopeVisibility.GetEmployeeId(User)));
         if (!result.Success)
             return result.Error is null ? NotFound() : BadRequest(new { message = result.Error });
         return Ok(new { success = true, message = "تم اعتماد طلب الإجازة" });

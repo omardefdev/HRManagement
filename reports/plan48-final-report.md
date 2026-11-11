@@ -46,6 +46,7 @@ Owner decisions D-TEN-1..10 and D-POL-4 applied as written. Decisions taken duri
 - **Deviation (P7 check 4):** two funded positions were not created on the demo (two approvals per change with users the server checks do not drive); proved on PostgreSQL and through the real change applier.
 - **Deviation (P-9 prefixless scan after the run):** the script ran once on a freshly seeded prod-like stack (0); the retry could not start the stack because Windows reserved TCP 53248-53347, which covers ClamAV's host port 53310 (freeing it is a system change for the owner). AC-TEN-48a's own check (no issuance starting with '-') passed in the green run.
 - **P-3 least-privilege class:** added (`AcTen48LeastPrivilegeTests`): the national read through the running services as `hr_core_app` under FORCE.
+- **Deviation (the server's code after the merge):** the server runs 8abd5aa7fe93. The merge also carries 95228ffa (the CI fix), whose only server-side change is one HR.Core log line (the code-generation log no longer writes the scope key, for CodeQL). Not redeployed for a log line; the next deploy carries it.
 
 ## 4. Inventories
 
@@ -73,7 +74,19 @@ Owner decisions D-TEN-1..10 and D-POL-4 applied as written. Decisions taken duri
 - **Unit:** full suite 5758/5758 on the final code (Windows); 5753/5753 in the Linux container of `ci-local.ps1`.
 - **Integration (Testcontainers):** Ten048, CodeGeneration, Pol047, Policy, NationalSeed, CrossTenantRls, Hcm025, Prod001, S2s042, Wf04, Mig003, CodSequence: 131/131 at P4, 23/23 after the review fixes.
 - **Acceptance (local, P-10):** prod-like run 2: journey 1, main 15 (AC-HCM-25 a..h, AC-WF-43, AC-TEN-48 a..g), AC-INT-37 8, AC-MSG-40 8, AC-WF-44 5, AC-WF-45 8, AC-WF-46 9, AC-POL-47 1, AC-S2S-42 9, AC-WF-46 orphans 1; least-privilege 9 (AC-OPS-38 8, AcTen48LeastPrivilegeTests 1); lab main 39 (AC-13 with 120 issuances in two tenants and exact counters, AC-10, AC-11, AC-32, AC-33, AC-EST-10..18, AC-EST-24, AC-HCM-21, AC-HCM-30, AC-WF-23) and the lab journey 1.
-- **Evidence of record:** the PR run's Acceptance artifact (linked in the merge note of `reports/plan48-progress.md`). Local evidence was kept under `artifacts/plan48/` and never committed.
+- **CI:** PR run 42767277527 on 95228ffa was 14 of 14 green, after one fix round. The red run 42729557053 on ccf95c6b had three causes:
+  - the acceptance data verification still expected 64 auth users, and the new persona makes 65;
+  - a log line CodeQL reports as log forging;
+  - a ClamAV host-port collision.
+
+  In the green run, the PLAN-48 classes all passed:
+  - AC-TEN-48 a..g in prodlike main, 15/15;
+  - `AcTen48LeastPrivilegeTests` in leastpriv, 9/9;
+  - AC-13 in lab main (required; guard PASS);
+  - AcQa41, 4/4.
+
+  The four payroll classes marked not required (Ac21, Ac23, Ac24, Ac25) fail exactly as they do on main.
+- **Evidence of record:** the PR run's acceptance-evidence artifact, https://github.com/omardefdev/HRManagement/actions/runs/42767277527/artifacts/13741829144 (details in the merge note of `reports/plan48-progress.md`). Local evidence was kept under `artifacts/plan48/` and never committed.
 
 ## 7. The demo server
 
@@ -108,20 +121,35 @@ tenant, a new scope (and connection) per tenant.
 
 - `GET api/codes/policies` and `GET api/policies/templates/{id}` serialise EF graphs with back-navigations: a JSON cycle and a 500
   (present at the base 61816ed7; no test calls them).
-- The acceptance compose maps ClamAV to host port 53310, inside a range Windows may reserve dynamically (53248-53347 here): a local
-  stack cannot start until the reservation moves.
+- The acceptance compose maps ClamAV to host port 53310. That port is inside Linux's ephemeral range and inside a range Windows may
+  reserve dynamically (53248-53347 here). Locally, the stack cannot start until the reservation moves. On GitHub runners the bind
+  collides now and then: three of about 49 stack starts (PLAN-48's first run, and the nightly 42593445588 on main). Suggested fix:
+  `"6350:3310"`, or drop the unused host mapping. It is proposed as a separate task.
 
 ## 11. Timing
 
-- **Wall-clock:** started 2026-11-09T15:27:17Z (progress file); last phase commit before the PR 2026-11-09T23:15Z; the merge time is in
-  the merge note.
+- **Wall-clock:** 15 h 41 min in all.
+  - Started 2026-11-09T15:27:17Z (progress file).
+  - Last phase commit before the PR 2026-11-09T23:15Z.
+  - First push 2026-11-10T00:36:00Z.
+  - Merged 07:08:47Z.
+- **Active time against waiting for CI:** 9 h 09 min of work before the first push. From the first push to the merge took 6 h 33 min:
+  - CI ran 1 h 28 min: 36 min 33 s red, then 51 min 02 s green;
+  - 3 h 07 min idle until the owner's Auto-fix instruction;
+  - about 45 min for the fix and the local gates;
+  - the push then waited for a read-only CI-risk review until the owner said to continue.
 - **Phases:** P0 35 min, P1 24 min, P2 66 min, P3 17 min, P4 44 min, P5 3 h 49 min (two prod-like runs, one with a cold build, a lab
   run, least-privilege reruns, the review and the verification workflow), P6/P7 58 min.
 - **Builds, acceptance and deploy:** local prod-like run 1 44 min (stack 1145 s, cold), run 2 56 min (with the image build), lab
   19 min, least-privilege stage 6 min; server build 1244 s plus 16 s push; deploy 128 s to all healthy; server suites 19 min 47 s.
-- **CI wait and Actions minutes:** in the merge note (the PR run).
-- **`scripts/plan-timing.ps1 -From 25 -To 48`** (before the merge; Riyadh time): PLAN-48 8 commits, first commit 2026-11-09 18:28,
-  end 2026-11-10 02:15, span 7:47, wall-clock 7:48; for comparison PLAN-47 24:24, PLAN-46 15:32, PLAN-45 6:15, PLAN-44 19:14.
+- **Actions minutes:**
+  - run 1: 146.6 runner-minutes (153 billed, per job rounded up);
+  - run 2: 221.9 runner-minutes (230 billed);
+  - the post-merge run: under 1 min (deduplicated).
+- **`scripts/plan-timing.ps1 -From 25 -To 48`** (after the merge; Riyadh time):
+  - PLAN-48: 11 commits, first commit 2026-11-09 18:28, end 2026-11-10 02:18, span 7:50, wall-clock 7:51. The script stops at the
+    feature merge into release/plan-48, before the PR wait.
+  - For comparison: PLAN-47 24:24, PLAN-46 15:32, PLAN-45 6:15, PLAN-44 19:14.
 
 ## 12. Readiness note for PLAN-49
 

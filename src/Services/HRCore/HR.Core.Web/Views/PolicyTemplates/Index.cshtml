@@ -1,7 +1,9 @@
 @model IEnumerable<HR.Core.Domain.Entities.Policy.PolicyTemplate>
 @using HR.Core.Domain.Entities.Policy
+@using HR.Core.Web.Controllers
+@using HRManagement.SharedKernel.Policy
 @using HRManagement.SharedKernel.Tenancy
-@{ ViewData["Title"] = "قوالب السياسات"; var domains = ViewBag.Domains as IReadOnlyList<(string Domain, string Service, string MigrationStatus)>; var sessionIsNational = ViewBag.SessionIsNational is true; }
+@{ ViewData["Title"] = "قوالب السياسات"; var domains = ViewBag.Domains as IReadOnlyList<PolicyDomainRow>; var sessionIsNational = ViewBag.SessionIsNational is true; var canAuthor = ViewBag.CanAuthor is true; }
 <div class="card">
     <div class="card-header d-flex justify-content-between">
         <h3 class="mb-0">محرك السياسات</h3>
@@ -17,9 +19,16 @@
                 @foreach (var t in Model)
                 {
                     var inherited = t.TenantId == NationalTenant.Id && t.Scope == PolicyTemplateScope.National && !sessionIsNational;
-                    <tr data-domain="@t.Domain" data-origin="@(inherited ? "inherited" : t.Scope == PolicyTemplateScope.TenantOverride ? "override" : "national")">
+                    <tr data-domain="@t.Domain" data-origin="@(inherited ? "inherited" : t.Scope == PolicyTemplateScope.TenantOverride ? "override" : "national")" data-retired="@(t.RetiredAt is null ? "false" : "true")">
                         <td><code>@t.Domain</code></td>
-                        <td>@t.Name</td>
+                        <td>
+                            @t.Name
+                            @if (t.RetiredAt is { } retiredAt)
+                            {
+                                @* PLAN-49: the template of a domain out of the engine's scope, closed by its final version with no rules. *@
+                                <span class="badge bg-dark ms-1" data-testid="badge-retired" title="@t.RetiredReason">مسحوب @retiredAt.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)</span>
+                            }
+                        </td>
                         <td>
                             @if (inherited)
                             {
@@ -44,19 +53,69 @@
 </div>
 @if (domains is not null)
 {
-    <div class="card mt-3">
-        <div class="card-header">سجل Domains — حالة الترحيل</div>
+    @* PLAN-49 (G-POL-02): this table is read from PolicyDomainCatalog; the page keeps no list of its own. *@
+    <div class="card mt-3" data-testid="policy-domain-catalog">
+        <div class="card-header">ما يحكمه محرك السياسات — كتالوج المجالات</div>
         <div class="card-body p-0">
             <table class="table table-sm mb-0">
-                <thead><tr><th>Domain</th><th>Service</th><th>Status</th><th></th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Domain</th>
+                        <th>الحالة</th>
+                        <th>الخدمة المالكة</th>
+                        <th>الوضع الفعّال</th>
+                        <th>آخر قرار في الدفتر</th>
+                        <th>نقاط الاستدعاء / سبب الاستبعاد</th>
+                        <th></th>
+                    </tr>
+                </thead>
                 <tbody>
-                    @foreach (var d in domains)
+                    @foreach (var row in domains)
                     {
-                        <tr>
+                        var d = row.Descriptor;
+                        <tr data-testid="policy-domain-row" data-domain="@d.Domain" data-status="@(d.IsGoverned ? "governed" : "out-of-scope")" data-mode="@row.Mode">
                             <td><code>@d.Domain</code></td>
-                            <td>@d.Service</td>
-                            <td><span class="badge bg-secondary">@d.MigrationStatus</span></td>
-                        <td><a asp-action="CreateDraft" asp-route-domain="@d.Domain" asp-route-subjectType="@d.Domain.Split('.').Last()" class="btn btn-xs btn-link">مسودة</a></td>
+                            <td>
+                                @if (d.IsGoverned)
+                                {
+                                    <span class="badge bg-success" data-testid="domain-status">محكوم</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary" data-testid="domain-status">خارج النطاق</span>
+                                }
+                            </td>
+                            <td>@d.OwnerService</td>
+                            <td><span class="badge @(row.Mode == PolicyEnforcementMode.Off ? "bg-light text-dark" : row.Mode == PolicyEnforcementMode.Shadow ? "bg-warning text-dark" : "bg-danger")" data-testid="domain-mode">@row.Mode</span></td>
+                            <td>
+                                @if (row.LastDecision is { } last)
+                                {
+                                    <span data-testid="domain-last-decision" dir="ltr">@last.OccurredAt.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture) UTC · @last.Action · @last.Mode@(last.CallerClientId is null ? "" : " · " + last.CallerClientId)</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                            </td>
+                            <td class="small">
+                                @if (d.IsGoverned)
+                                {
+                                    foreach (var site in d.CallSiteFiles)
+                                    {
+                                        <div><code dir="ltr">@System.IO.Path.GetFileName(site)</code></div>
+                                    }
+                                }
+                                else
+                                {
+                                    <span data-testid="domain-out-of-scope-reason">@d.OutOfScopeReasonAr</span>
+                                }
+                            </td>
+                            <td>
+                                @if (d.IsGoverned && canAuthor)
+                                {
+                                    <a asp-action="CreateDraft" asp-route-domain="@d.Domain" asp-route-subjectType="@d.SubjectActions.Keys.First()" class="btn btn-xs btn-link" data-testid="domain-draft-link">مسودة</a>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>

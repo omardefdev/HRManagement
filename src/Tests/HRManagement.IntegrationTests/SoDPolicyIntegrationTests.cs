@@ -58,6 +58,8 @@ public class SoDPolicyIntegrationTests
         services.AddScoped<HR.Contracts.Application.Abstractions.IContractsRepository, HR.Contracts.Infrastructure.Repositories.ContractsRepository>();
         services.AddScoped<HR.Contracts.Application.Abstractions.IEventPublisher>(_ => Mock.Of<HR.Contracts.Application.Abstractions.IEventPublisher>());
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<ApproveLeaveRequestHandler>());
+        // PLAN-49: the approval asks the policy engine after the local separation of duties; the fake records the question.
+        HRManagement.TestSupport.Policy.FakePolicyEnforceClientExtensions.ReplacePolicyEnforceClientWithFake(services);
         await using var root = services.BuildServiceProvider();
         await using var scope = root.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ContractsDbContext>();
@@ -89,6 +91,8 @@ public class SoDPolicyIntegrationTests
         var (success, error) = await mediator.Send(new ApproveLeaveRequestCommand(leave.Id, creator));
         Assert.False(success);
         Assert.Contains("منشئ", error!);
+        // PLAN-49: the local check refuses first; the engine is asked only for an approval it lets through.
+        Assert.Empty(scope.ServiceProvider.GetRequiredService<HRManagement.TestSupport.Policy.FakePolicyEnforceClient>().Requests);
     }
 
     [Fact]

@@ -16,6 +16,13 @@ namespace HR.Core.Infrastructure.Services.Policy;
 /// </summary>
 public interface IPolicyRuleValidationService
 {
+    /// <summary>
+    /// PLAN-49 (D-POL-1): the refusal of a draft or a publication in a domain the catalog does not govern (empty when governed).
+    /// Every draft entry point and every publication ask it; the retirement change set's final version is the one exception, and
+    /// <see cref="PolicyPublishService"/> decides it.
+    /// </summary>
+    IReadOnlyList<PolicyRuleIssue> ValidateDomain(string domain);
+
     Task<PolicyRuleValidationContext> LoadContextAsync(string domain, PolicyTemplateScope scope, CancellationToken ct = default);
 
     Task<IReadOnlyList<PolicyRuleIssue>> ValidateRuleAsync(string domain, PolicyTemplateScope scope, PolicyRuleInput rule, CancellationToken ct = default);
@@ -25,6 +32,11 @@ public interface IPolicyRuleValidationService
 
 public sealed class PolicyRuleValidationService(HRCoreDbContext db, IPolicyDomainCapabilities capabilities) : IPolicyRuleValidationService
 {
+    /// <summary>PLAN-49: the validation every path uses when no container is at hand (seeders, tools): the catalog's capabilities.</summary>
+    public static PolicyRuleValidationService ForCatalog(HRCoreDbContext db) => new(db, CatalogPolicyDomainCapabilities.Instance);
+
+    public IReadOnlyList<PolicyRuleIssue> ValidateDomain(string domain) => PolicyRuleValidator.ValidateDomain(domain, capabilities);
+
     public async Task<PolicyRuleValidationContext> LoadContextAsync(string domain, PolicyTemplateScope scope, CancellationToken ct = default)
     {
         // PLAN-48: the facts schemas, workflow definitions, bindings and code templates are read through the one national read

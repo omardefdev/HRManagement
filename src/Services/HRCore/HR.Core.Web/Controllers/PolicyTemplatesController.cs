@@ -5,6 +5,7 @@ using HR.Core.Domain.Services.Policy;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Policy;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Policy;
 using HRManagement.SharedKernel.Policy;
 using HRManagement.SharedKernel.Tenancy;
 using Microsoft.AspNetCore.Authorization;
@@ -26,16 +27,45 @@ public class PolicyTemplatesController(
     PolicyDraftService drafts,
     IAuthorizationService authorization) : Controller
 {
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index([FromServices] IPolicyModeResolver modeResolver)
     {
         // PLAN-48: the agency's own templates and the national ones it inherits (read-only).
         var templates = await db.ReadablePolicyTemplates().AsNoTracking()
             .Include(t => t.Versions)
             .OrderBy(t => t.Domain)
             .ToListAsync();
-        ViewBag.Domains = PolicyDomainRegistry.All;
+        ViewBag.Domains = await BuildDomainRowsAsync(modeResolver);
         ViewBag.SessionIsNational = NationalTenant.IsNational(db.CurrentTenantId);
+        ViewBag.CanAuthor = (await authorization.AuthorizeAsync(User, HrManagementPolicies.PolicyAuthor)).Succeeded;
         return View(templates);
+    }
+
+    /// <summary>
+    /// PLAN-49 (G-POL-02): the domain table of the page, read from <see cref="PolicyDomainCatalog"/> (the registry that lived in
+    /// this file is gone): status, owner, the mode HR.Core applies (the resolver), the latest ledger row of the session's tenant,
+    /// and the call sites or the reason the domain is out of scope.
+    /// </summary>
+    private async Task<IReadOnlyList<PolicyDomainRow>> BuildDomainRowsAsync(IPolicyModeResolver modeResolver)
+    {
+        var rows = new List<PolicyDomainRow>();
+        foreach (var descriptor in PolicyDomainCatalog.All)
+        {
+            PolicyDomainLastDecision? last = null;
+            if (descriptor.IsGoverned)
+            {
+                var row = await db.PolicyEnforcementLedgers.AsNoTracking()
+                    .Where(l => l.Domain == descriptor.Domain)
+                    .OrderByDescending(l => l.OccurredAt)
+                    .Select(l => new { l.OccurredAt, l.Action, l.Mode, l.CallerClientId })
+                    .FirstOrDefaultAsync();
+                if (row is not null)
+                    last = new PolicyDomainLastDecision(row.OccurredAt, row.Action, row.Mode.ToString(), row.CallerClientId);
+            }
+
+            rows.Add(new PolicyDomainRow(descriptor, modeResolver.Resolve(descriptor.Domain), last));
+        }
+
+        return rows;
     }
 
     public async Task<IActionResult> Details(Guid id)
@@ -127,8 +157,15 @@ public class PolicyTemplatesController(
 
     [HttpGet]
     [Authorize(Policy = HrManagementPolicies.PolicyAuthor)]
-    public IActionResult CreateDraft(string domain, string subjectType)
+    public IActionResult CreateDraft(string domain, string subjectType, [FromServices] IPolicyRuleValidationService validation)
     {
+        // PLAN-49 (D-POL-1): no draft form for a domain the engine does not govern; the validator's refusal, shown on the page.
+        if (validation.ValidateDomain(domain) is { Count: > 0 } outOfScope)
+        {
+            TempData["Error"] = outOfScope[0].MessageAr;
+            return RedirectToAction(nameof(Index));
+        }
+
         ViewBag.Domain = domain;
         ViewBag.SubjectType = subjectType;
         ViewBag.SessionIsNational = NationalTenant.IsNational(db.CurrentTenantId);
@@ -359,28 +396,11 @@ public class PolicyTemplatesController(
     }
 }
 
-public static class PolicyDomainRegistry
-{
-    public static IReadOnlyList<(string Domain, string Service, string MigrationStatus)> All { get; } =
-    [
-        (PolicyDomains.AssetsCustody, "Admin.Logistics", "Shadow"),
-        (PolicyDomains.AssetsProcurement, "Admin.Logistics", "Shadow"),
-        (PolicyDomains.IDCardLifecycle, "IDCard", "Shadow"),
-        (PolicyDomains.ContractsLeave, "HR.Contracts", "Shadow"),
-        (PolicyDomains.ContractsAdvance, "HR.Contracts", "Static"),
-        (PolicyDomains.ContractsHire, "HR.Contracts", "Static"),
-        (PolicyDomains.ContractsSeparation, "HR.Contracts", "Static"),
-        (PolicyDomains.ContractsContract, "HR.Contracts", "Static"),
-        (PolicyDomains.MovementsTransfer, "HR.Movements", "Shadow"),
-        (PolicyDomains.MovementsWorkforce, "HR.Movements", "Shadow"),
-        (PolicyDomains.CoreRecruitment, "HR.Core", "Shadow"),
-        (PolicyDomains.CoreEmployment, "HR.Core", "Shadow"),
-        (PolicyDomains.HealthInsurance, "HR.Health", "Shadow"),
-        (PolicyDomains.ComplianceDisciplinary, "Compliance", "Shadow"),
-        (PolicyDomains.PayrollPeriod, "Payroll", "Shadow"),
-        (PolicyDomains.ITTickets, "IT.Infra", "Shadow"),
-        (PolicyDomains.ArchiveRetention, "Records.Archive", "Shadow"),
-        (PolicyDomains.TrainingLearning, "HR.Training", "Shadow"),
-        (PolicyDomains.AnalyticsEtl, "Dev.Analytics", "Shadow")
-    ];
-}
+/// <summary>PLAN-49: the latest ledger row of a domain in the session's tenant, as the policy page shows it.</summary>
+public sealed record PolicyDomainLastDecision(DateTime OccurredAt, string Action, string Mode, string? CallerClientId);
+
+/// <summary>
+/// PLAN-49 (G-POL-02): one row of the domain table on the policy page: the catalog's descriptor, the mode HR.Core applies and
+/// the domain's latest ledger row. The page has no list of its own.
+/// </summary>
+public sealed record PolicyDomainRow(PolicyDomainDescriptor Descriptor, PolicyEnforcementMode Mode, PolicyDomainLastDecision? LastDecision);

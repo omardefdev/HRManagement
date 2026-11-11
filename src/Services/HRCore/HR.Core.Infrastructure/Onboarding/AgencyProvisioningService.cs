@@ -441,7 +441,7 @@ public static class AgencyPolicySeeder
             return (scopedValidation, scopedPublisher);
 
         // No service container over this context (tests, tools): the same services, without the bus (no IPolicyPublished).
-        var validation = new PolicyRuleValidationService(db, AllowAllPolicyDomainCapabilities.Instance);
+        var validation = PolicyRuleValidationService.ForCatalog(db);
         var cache = services?.GetService<IPolicyPublishedSnapshotCache>()
                     ?? new PolicyPublishedSnapshotCache(new Microsoft.Extensions.Caching.Memory.MemoryCache(new Microsoft.Extensions.Caching.Memory.MemoryCacheOptions()));
         return (validation, new PolicyPublishService(db, validation, new PolicyVersionPublisher(db, cache, services?.GetService<IPublishEndpoint>())));

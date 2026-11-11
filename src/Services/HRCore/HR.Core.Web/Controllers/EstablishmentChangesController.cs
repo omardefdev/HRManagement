@@ -143,12 +143,15 @@ public class EstablishmentChangesController(
             return View("Details", vm);
         }
 
+        // PLAN-49 (G-POL-04): the policy is told who really submits. The central-write guard above already turned a
+        // branch-scoped user away, so this is false here; it is the user's scope all the same, never a constant.
         var (success, error) = await lifecycleService.SubmitForApprovalAsync(
             id,
             submit.LegalSourceId,
             submit.DecisionReference,
             ParseUserId(User),
             User.Identity?.Name,
+            HrOrgScopeVisibility.IsBranchScoped(User),
             submit.EffectiveFrom);
 
         if (!success)

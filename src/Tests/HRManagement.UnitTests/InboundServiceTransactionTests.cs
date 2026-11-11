@@ -13,7 +13,7 @@ public class InboundServiceTransactionTests
     {
         await using var db = CreateDb();
         var repo = new ContractsRepository(db);
-        var handler = new ProcessLeaveRequestedHandler(repo, CodeGenerationTestSupport.CreateClient());
+        var handler = new ProcessLeaveRequestedHandler(repo, CodeGenerationTestSupport.CreateClient(), new HRManagement.TestSupport.Policy.FakePolicyEnforceClient());
         var requestId = Guid.NewGuid();
         var employeeId = Guid.NewGuid();
 
@@ -27,6 +27,9 @@ public class InboundServiceTransactionTests
             "ESS leave"), CancellationToken.None);
 
         var leave = await db.LeaveRequests.FirstAsync(x => x.Id == requestId);
+        // PLAN-49: Tuesday to Saturday is three working days; the portal's "5" (calendar days) is not what is stored.
+        Assert.Equal(3, leave.DurationDays);
+        Assert.Equal(HRManagement.SharedKernel.Enums.ApprovalStatus.Pending, leave.Status);
         Assert.NotNull(leave.ServiceTransactionId);
         var tx = await db.ServiceTransactions.FindAsync(leave.ServiceTransactionId);
         Assert.NotNull(tx);

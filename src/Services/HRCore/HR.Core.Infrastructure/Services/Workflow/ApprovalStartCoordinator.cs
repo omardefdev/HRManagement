@@ -55,9 +55,11 @@ public sealed record ApprovalStartResult(Guid? InstanceId, string? Error)
 }
 
 /// <summary>
-/// PLAN-25 (G-02): the single place that decides how an approval starts. The policy engine may deny or start a different
-/// workflow; it never removes the approval. Steps: (1) policy mode ≠ Off → enforce, a denial is returned; (2) an instance
-/// started by the policy is used; (3) an in-progress instance of the same entity is reused, and one that cannot be reused
+/// PLAN-25 (G-02): the single place that decides how an approval starts. The policy engine may deny, or start the workflow the
+/// service asked for; it never removes the approval, and (PLAN-49, G-POL-09) it never swaps it for another one. Steps:
+/// (1) policy mode ≠ Off → enforce, a denial is returned; (2) an instance started by the policy is used when it runs the
+/// requested code, and is cancelled with a refusal when it runs any other
+/// (<see cref="PolicyWorkflowCodeGuard"/>); (3) an in-progress instance of the same entity is reused, and one that cannot be reused
 /// refuses the start (never two: PLAN-44's index decides a race); (4) otherwise the default workflow is started (<see cref="RecruitmentApprovalOptions.AlwaysStartWorkflow"/>); (5) no published definition →
 /// <see cref="MissingDefinitionMessage"/>.
 /// </summary>
@@ -105,7 +107,16 @@ public sealed class ApprovalStartCoordinator(
             if (!policyResult.Allowed)
                 return new ApprovalStartResult(null, policyResult.Decision.DenyReason ?? request.PolicyDeniedMessage);
             if (policyResult.WorkflowInstanceId is Guid policyInstanceId)
-                return new ApprovalStartResult(policyInstanceId, null);
+            {
+                // PLAN-49 (G-POL-09): the policy's instance is taken only when it runs the workflow the service asked for.
+                // Any other is cancelled here and the start is refused; the entity is not touched (StartAndApplyAsync applies
+                // nothing without an instance, and commits the cancel with the ledger row).
+                var refused = await PolicyWorkflowCodeGuard.RefuseOtherWorkflowAsync(
+                    db, policyInstanceId, request.WorkflowCode, request.ActorUserId, request.ActorUserName, ct);
+                return refused is null
+                    ? new ApprovalStartResult(policyInstanceId, null)
+                    : new ApprovalStartResult(null, refused);
+            }
         }
 
         var existing = await FindReusableInstanceAsync(request, ct);
@@ -156,7 +167,8 @@ public sealed class ApprovalStartCoordinator(
             if (result.InstanceId is Guid instanceId)
                 await applyAsync(instanceId);
 
-            // A refusal leaves only the policy ledger row in the transaction; it is kept.
+            // A refusal leaves only the policy ledger row in the transaction, and (PLAN-49) the instance the policy started on
+            // another workflow, cancelled; both are kept, together.
             if (transaction is not null)
                 await transaction.CommitAsync(ct);
 

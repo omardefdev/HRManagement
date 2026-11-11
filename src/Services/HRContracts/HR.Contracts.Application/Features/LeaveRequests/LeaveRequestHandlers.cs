@@ -20,7 +20,13 @@ public record CreateLeaveRequestCommand(LeaveRequestDto Model) : IRequest<Guid>;
 public record UpdateLeaveRequestCommand(Guid Id, LeaveRequestDto Model) : IRequest<bool>;
 public record DeleteLeaveRequestCommand(Guid Id) : IRequest<bool>;
 public record CancelLeaveRequestCommand(Guid Id, Guid? CancelledBy) : IRequest<(bool Success, string? Error)>;
-public record ApproveLeaveRequestCommand(Guid Id, Guid? ApproverId) : IRequest<(bool Success, string? Error)>;
+/// <summary>
+/// <paramref name="ApproverEmployeeId"/> (PLAN-49): the employee record of the approver, from his token, when he has one. The
+/// policy fact isSelfApproval compares it with the leave's employee: a leave that somebody else, or the self-service portal,
+/// recorded for the approver is his own leave all the same, and the local separation of duties (creator against approver, both
+/// user ids) does not see that.
+/// </summary>
+public record ApproveLeaveRequestCommand(Guid Id, Guid? ApproverId, Guid? ApproverEmployeeId = null) : IRequest<(bool Success, string? Error)>;
 public record RejectLeaveRequestCommand(Guid Id, Guid? ApproverId) : IRequest<(bool Success, string? Error)>;
 
 public class LeaveRequestDtoValidator : AbstractValidator<LeaveRequestDto>
@@ -60,18 +66,11 @@ public class CreateLeaveRequestHandler(
             throw new ValidationException(leaveError);
         }
 
-        var leaveId = Guid.NewGuid();
-        var policyResult = await policyClient.EnforceAsync(
-            PolicyDomainFactsBuilders.ForLeaveRequest(leaveId, null, vm.EmployeeId, durationDays, vm.LeaveType.ToString(), "Create"),
-            cancellationToken);
-        if (!policyResult.Allowed)
-            throw new ValidationException(policyResult.Decision.DenyReason ?? "مرفوض بسياسة الإجازات");
-
         // A new request is always Pending with no approver, whatever the caller supplied.
         // Taking these from the request allowed a self-approved leave that debited no balance.
         var entity = new LeaveRequest
         {
-            Id = leaveId,
+            Id = Guid.NewGuid(),
             EmployeeId = vm.EmployeeId,
             LeaveType = vm.LeaveType,
             StartDate = vm.StartDate,
@@ -81,6 +80,14 @@ public class CreateLeaveRequestHandler(
             ApprovedBy = null,
             Notes = string.IsNullOrWhiteSpace(vm.Notes) ? null : vm.Notes.Trim()
         };
+
+        // PLAN-49 (G-POL-04): the facts are the leave's (no employee id: the schema has none), and the tenant is the entity's:
+        // empty until the save stamps it, which tells the engine to take the tenant of the call.
+        var policyResult = await policyClient.EnforceAsync(
+            PolicyDomainFactsBuilders.ForLeaveRequest(entity.Id, entity.TenantId, durationDays, vm.LeaveType.ToString(), LeavePolicyActions.Create),
+            cancellationToken);
+        if (!policyResult.Allowed)
+            throw new ValidationException(policyResult.Decision.DenyReason ?? LeavePolicyActions.DeniedMessage);
 
         var transaction = new ServiceTransaction
         {
@@ -98,7 +105,9 @@ public class CreateLeaveRequestHandler(
     }
 }
 
-public class UpdateLeaveRequestHandler(IContractsRepository repository) : IRequestHandler<UpdateLeaveRequestCommand, bool>
+public class UpdateLeaveRequestHandler(
+    IContractsRepository repository,
+    IPolicyEnforceClient policyClient) : IRequestHandler<UpdateLeaveRequestCommand, bool>
 {
     public async Task<bool> Handle(UpdateLeaveRequestCommand request, CancellationToken cancellationToken)
     {
@@ -118,6 +127,14 @@ public class UpdateLeaveRequestHandler(IContractsRepository repository) : IReque
         // approval already debited, so detail edits are confined to Pending requests.
         if (entity.Status != HRManagement.SharedKernel.Enums.ApprovalStatus.Pending)
             throw new ValidationException("لا يمكن تعديل طلب إجازة بعد البتّ فيه.");
+
+        // PLAN-49 (G-POL-04): an edit passes the engine as a new request does, with the values it would save; a refusal in
+        // Enforce is the same validation error. Nothing is changed before the answer.
+        var policyResult = await policyClient.EnforceAsync(
+            PolicyDomainFactsBuilders.ForLeaveRequest(entity.Id, entity.TenantId, durationDays, vm.LeaveType.ToString(), LeavePolicyActions.Update),
+            cancellationToken);
+        if (!policyResult.Allowed)
+            throw new ValidationException(policyResult.Decision.DenyReason ?? LeavePolicyActions.DeniedMessage);
 
         entity.EmployeeId = vm.EmployeeId;
         entity.LeaveType = vm.LeaveType;
@@ -234,7 +251,10 @@ public class CancelLeaveRequestHandler(IContractsRepository repository, IEventPu
     }
 }
 
-public class ApproveLeaveRequestHandler(IContractsRepository repository, IEventPublisher eventPublisher) : IRequestHandler<ApproveLeaveRequestCommand, (bool Success, string? Error)>
+public class ApproveLeaveRequestHandler(
+    IContractsRepository repository,
+    IEventPublisher eventPublisher,
+    IPolicyEnforceClient policyClient) : IRequestHandler<ApproveLeaveRequestCommand, (bool Success, string? Error)>
 {
     public const string LeaveRequestChangedError = "تغيّر طلب الإجازة منذ قراءته؛ أعد فتحه ثم اعتمده.";
 
@@ -261,6 +281,19 @@ public class ApproveLeaveRequestHandler(IContractsRepository repository, IEventP
             null);
         if (!sodResult.Allowed)
             return (false, sodResult.DenialReason);
+
+        // PLAN-49 (G-POL-04): the approval passes the engine, after the local separation of duties and before anything is
+        // claimed. isSelfApproval is the one fact only this action can send: the approver recorded the request (the local check
+        // above already refuses that) or it is his own leave (which that check does not see when somebody else, or the
+        // self-service portal, recorded it).
+        var isSelfApproval = request.ApproverId == entity.CreatedBy
+            || (request.ApproverEmployeeId is Guid approverEmployee && approverEmployee == entity.EmployeeId);
+        var policyResult = await policyClient.EnforceAsync(
+            PolicyDomainFactsBuilders.ForLeaveRequest(
+                entity.Id, entity.TenantId, entity.DurationDays, entity.LeaveType.ToString(), LeavePolicyActions.Approve, isSelfApproval),
+            cancellationToken);
+        if (!policyResult.Allowed)
+            return (false, policyResult.Decision.DenyReason ?? LeavePolicyActions.DeniedMessage);
 
         var maxDurError = LeaveAndAdvanceRules.ValidateMaxDuration(entity.LeaveType, entity.DurationDays);
         if (maxDurError is not null) return (false, maxDurError);

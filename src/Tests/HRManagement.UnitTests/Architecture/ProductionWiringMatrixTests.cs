@@ -103,7 +103,10 @@ public partial class ProductionWiringMatrixTests
         {
             "ServicePolicies.DirectorySync", "ServicePolicies.HrCoreInternalS2S", "ServicePolicies.HrCoreLifecycleS2S",
             "ServicePolicies.FileStorageReferences", "ServicePolicies.DsarSubjectRead", "ServicePolicies.DsarSubjectErase",
-            "ServicePolicies.PayrollGradeLookup", "ServicePolicies.FileStorageServiceUpload", "ServicePolicies.CodeGenerate"
+            "ServicePolicies.PayrollGradeLookup", "ServicePolicies.FileStorageServiceUpload", "ServicePolicies.CodeGenerate",
+            // PLAN-49: the owners of the policy endpoint come from the domain catalog (governed domains only), so the policy now
+            // admits exactly its three matrix callers; it used to admit every client that owned any of the twenty domains.
+            "ServicePolicies.PolicyEnforceS2S"
         };
         var allClients = ServiceClientIds.All.Append(ServiceClientIds.Gateway).ToArray();
         var problems = new List<string>();

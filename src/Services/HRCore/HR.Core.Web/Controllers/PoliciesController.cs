@@ -121,6 +121,10 @@ public class PoliciesController(
             .FirstOrDefaultAsync(v => v.Id == versionId, ct);
         if (version is null) return NotFound();
 
+        // PLAN-49 (G-POL-02): nothing is evaluated for a domain the catalog does not govern, a stored version included.
+        if (!PolicyDomainCatalog.IsGoverned(version.PolicyTemplate.Domain))
+            return Ok(PolicyOrchestrator.OutOfScopeDecision());
+
         var schemaEntity = await db.PolicyFactsSchemas.NationalOnly().AsNoTracking()
             .FirstOrDefaultAsync(s => s.Domain == version.PolicyTemplate.Domain, ct);
         var snapshot = PolicyEntityMapper.ToSnapshot(version.PolicyTemplate, version, PolicyEntityMapper.ParseSchema(schemaEntity));
