@@ -28,6 +28,22 @@ public class MassAssignmentArchitectureTests
     /// </summary>
     private static readonly HashSet<string> KnownEntityBindingActions = new(StringComparer.Ordinal)
     {
+        // PLAN-50: the scan probed HR.Movements.Web but skipped it until the test project referenced it (PLAN-50 adds the reference for
+        // GatewayApproverReachTests). These actions are older than PLAN-50 and were invisible, not new; each sets the fields the server owns
+        // (RequestedBy, Status) itself, and none is an approval action. Replacing them with view models belongs with the movement write
+        // policies of PLAN-51 (G-IAM-08).
+        "HR.Movements.Web.Controllers.DelegationRequestsController.Create",
+        "HR.Movements.Web.Controllers.DistributionPlansController.Create",
+        "HR.Movements.Web.Controllers.DistributionPlansController.Edit",
+        "HR.Movements.Web.Controllers.LoanAssignmentRequestsController.Create",
+        "HR.Movements.Web.Controllers.MovementNoticesController.Create",
+        "HR.Movements.Web.Controllers.MovementNoticesController.Edit",
+        "HR.Movements.Web.Controllers.PromotionRequestsController.Create",
+        "HR.Movements.Web.Controllers.SecondmentRequestsController.Create",
+        "HR.Movements.Web.Controllers.SecondmentRequestsController.Edit",
+        "HR.Movements.Web.Controllers.TransferFinancialImpactsController.Create",
+        "HR.Movements.Web.Controllers.TransferRequestsController.Create",
+        "HR.Movements.Web.Controllers.TransferRequestsController.Edit",
     };
 
     private static IEnumerable<Assembly> WebAssemblies()

@@ -89,9 +89,9 @@ public sealed class Hcm031MarkerAccessTests
     [InlineData("GET", "/ui/hr-core/RecruitmentApplications/Details/7", HrManagementPolicies.HrCoreReadOnly)]
     [InlineData("POST", "/ui/hr-core/Competitions/SetAttendance/7", HrManagementPolicies.HrCoreWrite)]
     // AC-HCM-31d (found live): the results approval steps are workflow actions, open to hr-management-approver.
-    [InlineData("POST", "/ui/hr-core/Competitions/ApproveWorkflow/7", HrManagementPolicies.HrCoreBranchOperation)]
-    [InlineData("POST", "/ui/hr-core/Competitions/ApproveResultsWorkflow/7", HrManagementPolicies.HrCoreBranchOperation)]
-    [InlineData("POST", "/ui/hr-core/Competitions/RejectResultsWorkflow/7", HrManagementPolicies.HrCoreBranchOperation)]
+    [InlineData("POST", "/ui/hr-core/Competitions/ApproveWorkflow/00000000-0000-0000-0000-000000000001", HrManagementPolicies.GatewayApprovalReach)]
+    [InlineData("POST", "/ui/hr-core/Competitions/ApproveResultsWorkflow/00000000-0000-0000-0000-000000000001", HrManagementPolicies.GatewayApprovalReach)]
+    [InlineData("POST", "/ui/hr-core/Competitions/RejectResultsWorkflow/00000000-0000-0000-0000-000000000001", HrManagementPolicies.GatewayApprovalReach)]
     public void The_gateway_maps_only_the_marking_paths_to_the_marker_policy(string method, string path, string expected)
     {
         Assert.True(GatewayPathAuthorizationMiddleware.TryGetFineGrainedPolicy("hr-core", method, new PathString(path), out var policy));

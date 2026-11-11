@@ -14,8 +14,12 @@ using HRManagement.SharedKernel.Enums;
 
 namespace HR.Core.Web.Controllers;
 
-/// <summary>DATA-002-C: request / approve demographic corrections.</summary>
-[Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+/// <summary>
+/// DATA-002-C: request / approve demographic corrections. PLAN-50 (§3): the class reads (HrCore.ReadOnly), the two requests write
+/// (HrCore.Write) and the two approvals carry HrCore.Approve alone, so the management approver reaches them (the class policy was
+/// HrCore.Write, which every action had to pass as well).
+/// </summary>
+[Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
 public class EmployeeCorrectionsController(HRCoreDbContext db, OrgScopeService orgScope) : Controller
 {
     public record CorrectionRequestDto(
@@ -88,6 +92,7 @@ public class EmployeeCorrectionsController(HRCoreDbContext db, OrgScopeService o
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public async Task<IActionResult> RequestCorrection([FromForm] Guid employeeId, [FromForm] string reason, [FromForm] string changesJson, CancellationToken ct)
     {
         Dictionary<string, JsonElement> changes;
@@ -106,6 +111,7 @@ public class EmployeeCorrectionsController(HRCoreDbContext db, OrgScopeService o
 
     [HttpPost("api/employee-corrections")]
     [IgnoreAntiforgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public Task<IActionResult> RequestCorrectionApi([FromBody] CorrectionRequestDto dto, CancellationToken ct) =>
         RequestCorrectionCore(dto.EmployeeId, dto.Reason, dto.Changes ?? new(), ct);
 

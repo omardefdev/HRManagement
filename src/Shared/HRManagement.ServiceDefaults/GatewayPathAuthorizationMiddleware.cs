@@ -137,14 +137,7 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
         if (!ui && !api)
             return false;
 
-        var publish = pathValue.EndsWith("/PolicyTemplates/PublishFromUi", StringComparison.OrdinalIgnoreCase)
-                      || PolicyApiPublish.IsMatch(pathValue);
-        if (IsMutating(httpMethod) && publish)
-        {
-            policy = HrManagementPolicies.PolicyApprover;
-            return true;
-        }
-
+        // PLAN-50 (P-4): the two publish actions (PolicyApprover) are rows of GatewayHrCoreActionPolicies, matched before this rule.
         if (IsMutating(httpMethod))
         {
             if (ui && !pathValue.EndsWith("/PolicyTemplates/Simulate", StringComparison.OrdinalIgnoreCase))
@@ -172,11 +165,6 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
         return false;
     }
 
-    private static readonly System.Text.RegularExpressions.Regex PolicyApiPublish = new(
-        @"/api/policies/templates/[0-9a-fA-F-]{36}/publish/?$",
-        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant,
-        TimeSpan.FromSeconds(1));
-
     private static readonly System.Text.RegularExpressions.Regex PolicyApiDrafts = new(
         @"/api/policies/(templates/[0-9a-fA-F-]{36}/(drafts|rollback-drafts)|drafts)/?$",
         System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant,
@@ -193,6 +181,19 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
 
         if (string.Equals(moduleSegment, "hr-core", StringComparison.OrdinalIgnoreCase))
         {
+            // PLAN-50 (§3, P-4): the one table of HR.Core's approval exceptions (HrCore.Approve, SoD.ManageDelegations, and PLAN-47's
+            // publish), matched by exact segment before every other rule; no row overlaps another rule.
+            if (GatewayHrCoreActionPolicies.TryGetPolicy(httpMethod, pathValue, out policy))
+                return true;
+
+            // PLAN-50 (§4, D-50-3): the workflow step actions admit any interactive staff user, matched by segment; WorkflowStepAction and
+            // the evaluator decide in the service (a delegate may hold no operational role).
+            if (GatewayApprovalPaths.IsHrCoreWorkflowApprovalPath(httpMethod, pathValue))
+            {
+                policy = HrManagementPolicies.GatewayApprovalReach;
+                return true;
+            }
+
             // Platform reconciliation is governed by the approval policy for reads and writes.
             if (pathValue.Contains("/api/tenant-quarantine", StringComparison.OrdinalIgnoreCase))
             {
@@ -236,8 +237,8 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
                 return true;
             }
 
-            // PLAN-45: the generic approval page, before the mutating block because its actions carry the names IsHrCoreWorkflowMvcAction
-            // reads. The inbox audience reads it and the step actors decide; the controller narrows both to the instance.
+            // PLAN-45: the generic approval page. Its two step actions are matched above (PLAN-50); the inbox audience reads it, and any other
+            // POST under it keeps the step policy. The controller narrows both to the instance.
             if (pathValue.StartsWith("/ui/hr-core/WorkflowApprovals", StringComparison.OrdinalIgnoreCase))
             {
                 policy = IsMutating(httpMethod) ? HrManagementPolicies.WorkflowStepAction : HrManagementPolicies.HrCoreWorkInbox;
@@ -256,22 +257,11 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
 
             if (IsMutating(httpMethod))
             {
-                if (pathValue.Contains("/api/onboarding/", StringComparison.OrdinalIgnoreCase))
-                    policy = HrManagementPolicies.HrCoreApprove;
-                else if (pathValue.Contains("/api/workflow-instances/", StringComparison.OrdinalIgnoreCase)
-                    && (pathValue.EndsWith("/approve", StringComparison.OrdinalIgnoreCase)
-                        || pathValue.EndsWith("/reject", StringComparison.OrdinalIgnoreCase)))
-                    policy = HrManagementPolicies.WorkflowStepAction;
-                // PLAN-43 (G-WF-05): the rest of this API is for the owning service, which calls HR.Core directly: no user passes.
-                else if (pathValue.Contains("/api/workflow-instances", StringComparison.OrdinalIgnoreCase))
-                    policy = HrManagementPolicies.WorkflowExternalStart;
-                else if (IsHrCoreWorkflowMvcAction(pathValue))
-                    policy = HrManagementPolicies.HrCoreBranchOperation;
-                // PLAN-44: the controller's own policy. A legacy step 2 needs hr-management-approver, which HrCoreWrite does not admit.
-                else if (IsHrCoreLegacyApprovalAction(pathValue))
-                    policy = HrManagementPolicies.HrCoreApprove;
-                else
-                    policy = HrManagementPolicies.HrCoreWrite;
+                // PLAN-43 (G-WF-05): the rest of this API (its step actions are matched above) is for the owning service, which calls
+                // HR.Core directly: no user passes.
+                policy = pathValue.Contains("/api/workflow-instances", StringComparison.OrdinalIgnoreCase)
+                    ? HrManagementPolicies.WorkflowExternalStart
+                    : HrManagementPolicies.HrCoreWrite;
                 return true;
             }
         }
@@ -384,27 +374,6 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
         || (pathValue.StartsWith("/ui/hr-core/", StringComparison.OrdinalIgnoreCase)
             && pathValue.EndsWith(".styles.css", StringComparison.OrdinalIgnoreCase)
             && pathValue.IndexOf('/', "/ui/hr-core/".Length) < 0);
-
-    /// <summary>
-    /// MVC workflow approve/reject actions (PLAN-21..24) use branch-operation policy, not write. HCM-031: the competition
-    /// results approval (<c>Competitions/ApproveResultsWorkflow</c>, step 2 by <c>hr-management-approver</c>) is one of them.
-    /// </summary>
-    private static bool IsHrCoreWorkflowMvcAction(string pathValue) =>
-        pathValue.Contains("/ApproveWorkflow", StringComparison.OrdinalIgnoreCase)
-        || pathValue.Contains("/RejectWorkflow", StringComparison.OrdinalIgnoreCase)
-        || pathValue.Contains("/ApproveResultsWorkflow", StringComparison.OrdinalIgnoreCase)
-        || pathValue.Contains("/RejectResultsWorkflow", StringComparison.OrdinalIgnoreCase);
-
-    /// <summary>The Review form posts the id in its body, so the path may end at the action.</summary>
-    private static bool IsHrCoreLegacyApprovalAction(string pathValue)
-    {
-        var path = pathValue.TrimEnd('/');
-        return IsActionPath(path, "/ui/hr-core/Approvals/Approve") || IsActionPath(path, "/ui/hr-core/Approvals/Reject");
-    }
-
-    private static bool IsActionPath(string path, string action) =>
-        path.Equals(action, StringComparison.OrdinalIgnoreCase)
-        || path.StartsWith(action + "/", StringComparison.OrdinalIgnoreCase);
 
     private static bool TryGetPolicy(PathString path, out string moduleSegment, out string policyName)
     {

@@ -76,10 +76,70 @@ public static class GatewayApprovalPaths
     }
 
     /// <summary>
-    /// The segments after <c>/ui/{module}</c>. False when the path is elsewhere or has an empty segment (a single trailing slash is
-    /// allowed).
+    /// The workflow approval actions of HR.Core's own entities (POST): a delegate may hold no operational role (D-50-3), and the holders of
+    /// admin-logistics, idcard or compliance hold no HR.Core read role (PLAN-45/46), so the gateway admits any staff user and the service's
+    /// <see cref="HrManagementPolicies.WorkflowStepAction"/> and the evaluator decide.
     /// </summary>
-    internal static bool TrySplitModulePath(string pathValue, string module, out IReadOnlyList<string> rest)
+    public static readonly IReadOnlyDictionary<string, IReadOnlyList<string>> HrCoreWorkflowActions =
+        new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["RecruitmentRequisitions"] = ["ApproveWorkflow", "RejectWorkflow"],
+            ["OfferLetters"] = ["ApproveWorkflow", "RejectWorkflow"],
+            ["SelectionCommittees"] = ["ApproveWorkflow", "RejectWorkflow"],
+            ["EstablishmentChanges"] = ["ApproveWorkflow", "RejectWorkflow"],
+            ["Competitions"] = ["ApproveWorkflow", "RejectWorkflow", "ApproveResultsWorkflow", "RejectResultsWorkflow"],
+            // PLAN-45: the generic approval page of the external types.
+            ["WorkflowApprovals"] = ["ApproveWorkflow", "RejectWorkflow"],
+        };
+
+    /// <summary>The step actions of the workflow API (PLAN-43): <c>api/workflow-instances/{guid}/approve|reject</c>.</summary>
+    public static readonly IReadOnlyList<string> HrCoreWorkflowApiTemplates =
+        ["api/workflow-instances/{guid}/approve", "api/workflow-instances/{guid}/reject"];
+
+    /// <summary>
+    /// A workflow step action of HR.Core on POST: <c>/ui/hr-core/{Controller}/{Action}[/{guid}]</c> for the actions above, or the API
+    /// template after <c>/api/hr-core</c> or <c>/ui/hr-core</c>.
+    /// </summary>
+    public static bool IsHrCoreWorkflowApprovalPath(string httpMethod, string pathValue)
+    {
+        if (!string.Equals(httpMethod, HttpMethods.Post, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        if (TrySplitModulePath(pathValue, GatewayHrCoreActionPolicies.Module, out var rest)
+            && rest.Count is 2 or 3
+            && (rest.Count == 2 || Guid.TryParse(rest[2], out _))
+            && HrCoreWorkflowActions.TryGetValue(rest[0], out var actions)
+            && actions.Contains(rest[1], StringComparer.OrdinalIgnoreCase))
+            return true;
+
+        return GatewayHrCoreActionPolicies.TrySplitApiPath(pathValue, out var apiRest)
+               && HrCoreWorkflowApiTemplates.Any(t => MatchesTemplate(t, apiRest));
+    }
+
+    /// <summary>Segments equal to the template's, case-insensitive, where <c>{guid}</c> takes one GUID.</summary>
+    public static bool MatchesTemplate(string template, IReadOnlyList<string> segments)
+    {
+        var parts = template.Split('/');
+        if (parts.Length != segments.Count)
+            return false;
+
+        for (var i = 0; i < parts.Length; i++)
+        {
+            var ok = parts[i] == "{guid}"
+                ? Guid.TryParse(segments[i], out _)
+                : string.Equals(parts[i], segments[i], StringComparison.OrdinalIgnoreCase);
+            if (!ok)
+                return false;
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// The segments after <c>/{root}/{module}</c> (root <c>ui</c> by default). False when the path is elsewhere or has an empty segment
+    /// (a single trailing slash is allowed).
+    /// </summary>
+    internal static bool TrySplitModulePath(string pathValue, string module, out IReadOnlyList<string> rest, string root = "ui")
     {
         rest = [];
         if (string.IsNullOrEmpty(pathValue))
@@ -87,10 +147,10 @@ public static class GatewayApprovalPaths
 
         var value = pathValue.EndsWith('/') ? pathValue[..^1] : pathValue;
         var segments = value.Split('/');
-        // "", "ui", module, ...
+        // "", root, module, ...
         if (segments.Length < 3
             || segments[0].Length != 0
-            || !string.Equals(segments[1], "ui", StringComparison.OrdinalIgnoreCase)
+            || !string.Equals(segments[1], root, StringComparison.OrdinalIgnoreCase)
             || !string.Equals(segments[2], module, StringComparison.OrdinalIgnoreCase))
             return false;
 

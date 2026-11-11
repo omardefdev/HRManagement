@@ -217,8 +217,10 @@ public sealed class Wf045WorkflowApprovalsControllerTests
 
     [Theory]
     [InlineData("/ui/hr-core/WorkflowApprovals/Details/00000000-0000-0000-0000-000000000001", "GET", HrManagementPolicies.HrCoreWorkInbox)]
-    [InlineData("/ui/hr-core/WorkflowApprovals/ApproveWorkflow/00000000-0000-0000-0000-000000000001", "POST", HrManagementPolicies.WorkflowStepAction)]
-    [InlineData("/ui/hr-core/WorkflowApprovals/RejectWorkflow/00000000-0000-0000-0000-000000000001", "POST", HrManagementPolicies.WorkflowStepAction)]
+    [InlineData("/ui/hr-core/WorkflowApprovals/ApproveWorkflow/00000000-0000-0000-0000-000000000001", "POST", HrManagementPolicies.GatewayApprovalReach)]
+    [InlineData("/ui/hr-core/WorkflowApprovals/RejectWorkflow/00000000-0000-0000-0000-000000000001", "POST", HrManagementPolicies.GatewayApprovalReach)]
+    // PLAN-50: any other POST under the page keeps the step policy.
+    [InlineData("/ui/hr-core/WorkflowApprovals/Other/00000000-0000-0000-0000-000000000001", "POST", HrManagementPolicies.WorkflowStepAction)]
     public void The_gateway_applies_the_same_policies(string path, string method, string expected)
     {
         Assert.True(GatewayPathAuthorizationMiddleware.TryGetFineGrainedPolicy("hr-core", method, new PathString(path), out var policy));
