@@ -46,7 +46,7 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | P5 | done | 2026-11-11T00:45Z |
 | P6 | done (nothing to merge) | 2026-11-11T00:40:48Z |
 | P7 | done | 2026-11-11T01:33:05Z |
-| P8 | pending | |
+| P8 | in progress: PR 47 is open; its first run had one red step, fixed on the release branch (`3005a21c`) | |
 
 ## Durations
 
@@ -81,8 +81,10 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | The server: upload, build, push | 15 s, 1223 s, 17 s |
 | The server: deploy to all healthy | 119.6 s (the services away about 1 min 45 s) |
 | The server suites | 20 min 33 s, then three short runs (69 s, 8 s, 89 s) |
-| Waiting for CI | 0 so far |
-| Waiting for the owner | 3 h 37 min in all, nothing asked of the owner: about 17 min (the session end of 08:43Z to 09:00Z), 2 h 51 min (the turn that stopped at 14:45Z until «Try again» at 17:36Z), and 29 min (the owner's restart of the machine at 19:03Z until «اكمل» at 19:32Z) |
+| Local CI on the first release HEAD (`ci-local -SkipTestcontainers`, `17a9076f`) | 925 s |
+| The Testcontainers step on the host with the filter of CI | before the fix 4 min 42 s of tests (7 min 34 s in all: its containers started 2 min 54 s after the command); with the fix 3 min 40 s of tests (3 min 45 s in all) |
+| Waiting for CI | the first PR run: about 48 min (06:46:11Z to 07:34Z). The diagnosis of its red step began at 07:14Z, when that step had failed, so about 28 min were plain waiting. The run on the HEAD with the fix: in the merge note |
+| Waiting for the owner | 11 h 2 min in all, nothing asked of the owner: about 17 min (the session end of 08:43Z to 09:00Z), 2 h 51 min (the turn that stopped at 14:45Z until «Try again» at 17:36Z), 29 min (the owner's restart of the machine at 19:03Z until «اكمل» at 19:32Z), 2 h 31 min (the usage limit, 20:02Z to 22:33Z; an acceptance chain ran by itself for 93 min of it), 9 min (the turn cut at 22:48Z), and 4 h 45 min (the usage limit again, 2026-11-11 01:42Z to 06:27Z; a restart by Windows Update kept the machine down for 3 h 5 min of it) |
 | The machine asleep while the session ran (not waiting for an answer) | 61 min: 13:03:12Z to 14:04:33Z, by the power button or the lid (Windows event log), in the middle of an acceptance stack start. That run failed for it: the Keycloak admin session had expired when the machine woke (`kcadm … Session has expired`; "Stack prodlike took 3849 s") |
 
 ## P0 — done
@@ -443,6 +445,7 @@ Shadow and in Enforce, `http-503` in Shadow; Off makes no call and times nothing
 | 70 | P5 | New unit test: a template with a version history (five published versions, the last one in force, as the server Analytics.ETL after the tours of PLAN-47 and PLAN-48) is retired by a sixth version and every earlier version keeps its window and its rules | the first launch (critic, low): the fixture has every template on version 1, so the first start-up on the server would have been the first execution of the retirement on a multi-version template |
 | 71 | P5 | Wording and small proofs from the first launch: the generated registry text and the catalog comment say a governed domain may hold no rule (the card domain holds none, and its ledger rows then name no version); the gap study limits the G-POL-09 status to the coordinator and names the open point of the appeal path; `pol047-validate.ps1 -Out` writes both parts; the retry test of decision 49 no longer waits with the test harness default idle window; two comments name the allow-list by its present shape; the server check evidence says what it counts and what it does not | the first launch (seven low findings) |
 | 72 | P5 | **Deviation from decision 47 (two agents at a time):** for about fifty minutes four reading agents ran at once | the first launch of the last verification looked dead after the turn was cut at 22:48Z (its two transcripts had stopped growing) and a second was started at 22:58Z; the first had only been suspended and went on, so both ran to their end (nine agents each, the same prompts, independent answers). Their load was on the model, not on Docker; the acceptance chain ran beside them. The second answers were not wasted: the two launches agree on the two medium findings and each found things the other did not |
+| 73 | P8 | The connection strings of `PostgreSqlFixture` close an idle connection after five seconds, with a test that proves it on the server; fixed on the release branch after the first run of the PR | the Testcontainers step of PR 47 failed with 53300 in `CrossTenantRlsIntegrationTests`. **A misreading before the push, recorded as it happened:** the full category had failed the same way on the host (ten tests of that class) and was put down to the many cores of the host, because the class passed alone; nothing was measured then. Measured after the red check: the collection's one server held 90 connections, 89 of them idle, 21 of them left by this plan's ten new tests, when the RLS proofs began. A higher `max_connections` was not chosen: it would hide the build-up until the collection grows again, and it would dull the one signal of a real leak. A short idle lifetime removes what finished tests leave and nothing else: a connection that is never returned is not closed by it |
 
 ## Files changed
 
@@ -503,6 +506,10 @@ Shadow and in Enforce, `http-503` in Shadow; Off makes no call and times nothing
   `Pol049PolicyDomainCatalogTests`.
 - Not in the P5 commit, on purpose: `AcPol49VpsChecks.cs` (P7), `docs/OPS_VPS_SINGLE_HOST.md` and the plan document (P8, with
   the section and the status they announce), `reports/plan49-final-report.md` (P8).
+- P8, after the first run of the PR (release branch only, `3005a21c` and the documents commit after it):
+  `src/Tests/HRManagement.IntegrationTests/TestFixtures.cs` (the two connection-string methods of `PostgreSqlFixture`), new
+  `PostgreSqlFixtureIdleConnectionTests.cs`, `docs/CI_AND_TESTING.md` (the shared server's connections and two rules for a
+  new test), `reports/plan49-final-report.md` (sections 2 and 6), `reports/plan49-pr.md`, the notes of the plan document.
 
 ## Test results
 
@@ -541,6 +548,12 @@ Shadow and in Enforce, `http-503` in Shadow; Off makes no call and times nothing
 | P5 | acceptance, lab list | main 20 passed, 1 blocked by design (AC-09, since PLAN-42); journey 1/1; `AcHcm26` 5/5; `AcHcm27` 4/4 |
 | P5 | `scripts/acceptance-verify.ps1` | not run here (it needs PowerShell 7): its 32 seeded counts compared by psql on the first stack of P5, 32 of 32; CI runs the script |
 | P4 | `dotnet format --verify-no-changes` on the 14 changed C# files (Windows) | two end-of-line complaints at a comment inside an argument list of `RecruitmentAppealService.cs` (lines of an earlier plan; the known Windows artefact, the Linux container of ci-local is the judge) |
+| P8 | `scripts/ci-local.ps1 -SkipTestcontainers` on `17a9076f` (the Linux container) | ok: 89 steps passed, 0 failed, 2 not run (the Testcontainers step and the coverage gate, as the switch allows); unit 6012 / 6012; the in-memory integration step 370 tests, none failed |
+| P8 | `scripts/plan035-prepush.ps1` on `17a9076f` | PRE-PUSH OK: gitleaks (443 commits of history, 11 of the range), actionlint, the ci-local summary of that commit, forbidden files, non-production data, signatures |
+| P8 | PR 47, first run (`42974750826` and `42974750801`, on `17a9076f`) | 13 checks green, 3 red: `CI` (the Testcontainers step: 5 failed, 205 passed, 1 skipped, of 211), `Acceptance stage (meta)` (13 passed, 2 failed: the two tests that read the result of the `CI` job) and `Acceptance` (the roll-up) |
+| P8 | the Testcontainers step on the host, the filter of CI, `17a9076f` (the reproduction) | 10 failed (all in `CrossTenantRlsIntegrationTests`, 53300), 200 passed, 1 skipped, of 211 |
+| P8 | `PostgreSqlFixtureIdleConnectionTests` with Npgsql's default idle lifetime (tried, then restored) | fails at its 60 s limit: "2 idle connection(s) to idle_... are still open"; with the fix it passes in 5 s |
+| P8 | the Testcontainers step on the host, the filter of CI, with the fix | 211 passed, 1 skipped (`Ops038BootstrapIdempotencyTests`, as before), 0 failed, of 212 |
 
 ## Server changes and their undo commands
 
@@ -649,15 +662,15 @@ legal source it names, 75 vacant positions with no open request, the published e
 
 ## Exact next step
 
-P7 is committed. P8, in this order (a commit after a green local CI means another full run, so the commits come first):
+P8, on `release/plan-49` after the fix (`3005a21c`) and the documents commit that follows it, in this order:
 
-1. The documents (`docs/OPS_VPS_SINGLE_HOST.md`, the plan document), `reports/plan49-final-report.md` (no `[[TBD` mark may
-   remain except those the merge note fills), `reports/plan49-pr.md`: one commit on the feature branch.
-2. `git switch -c release/plan-49 origin/main`, `git merge --no-ff feature/plan-49-pol-engine-scope-orphans`.
-3. On that HEAD: the Testcontainers category on the host (the owner VPN is on), `scripts/ci-local.ps1 -SkipTestcontainers`,
-   `scripts/plan035-prepush.ps1`.
-4. `git push -u origin release/plan-49`, `gh pr create`, `gh pr checks <n> --watch --interval 60`, and when every check is
-   green `gh pr merge <n> --merge`. Then the merge note on `docs/plan-49-merge-note`.
+1. `scripts/ci-local.ps1 -SkipTestcontainers` and `scripts/plan035-prepush.ps1` on the new HEAD. The Testcontainers step
+   has run on the host with the fix (211 passed, 1 skipped, 0 failed); a change of the test project after that needs it again.
+2. `git push origin release/plan-49` (that branch only), then `gh pr checks 47 --watch --interval 60`.
+3. When every check is green: `gh pr merge 47 --merge`, `git switch main`, `git pull --ff-only`, `main` = `origin/main`.
+4. The merge note on the local branch `docs/plan-49-merge-note`: every check of the last run, the merge commit, the
+   post-merge run, the timing with `scripts/plan-timing.ps1 -From 25 -To 49`, sections 6 and 11 of the final report.
+   Never a second PR for it.
 
 ## Incident: the system disk filled and the Docker engine stopped (2026-11-10T18:40Z)
 
@@ -763,3 +776,62 @@ P7 is committed. P8, in this order (a commit after a green local CI means anothe
   then restored); `pol047-validate.ps1` on thirteen sample logs: two pass, eleven fail, each for its own reason.
   The images are built again for the changed line of HR.Core and the prod-like list runs once more (it also reruns the
   class of AC-MSG-40f).
+
+## P8 — the pull request, its first run and the fix (2026-11-11)
+
+- Resumed (UTC): 2026-11-11T06:27:25Z — the turn that wrote P7 and the P8 documents ended at about 01:42Z at the usage limit
+  of the owner's plan, with `scripts/ci-local.ps1 -SkipTestcontainers` running on the release HEAD. It finished green by
+  itself at 01:54Z; an automatic wake-up at 01:55Z read its result and pushed nothing, because nobody had spoken. Windows
+  Update restarted the machine at 03:18:05Z (event 1074, `MoUsoCoreWorker.exe`); the event log starts again at 06:21:11Z, a
+  second restart for servicing follows at 06:21:33Z, and Windows is up at 06:23:21Z. The owner said «اكمل» at 06:27Z. Read
+  this file, the prompt and `git log --oneline -20` first: `release/plan-49` at `17a9076f`, the tree clean but for the
+  owner's `global.json`, `origin/main` still `f99950bf`, the server on `046316bde9e7` with its 20 containers healthy. Docker
+  Desktop was not running after the restart: the first `docker desktop start` failed on a stale socket of its secrets
+  engine, and the engine was up at 06:29Z. Waited for the owner: 4 h 45 min (01:42Z to 06:27Z); the machine was down for
+  3 h 5 min of it.
+- Resumed (UTC): 2026-11-11T07:17Z (to the minute) — the context was compacted while the checks of the PR were being
+  watched; the `CI` check had just turned red (07:14Z). Read the summary and this file first. No owner wait.
+- **Local gates on `17a9076f`:** `ci-local -SkipTestcontainers` ok (89 steps passed, 0 failed, 2 not run; 925 s; the summary
+  names that exact commit and no dirty tracked file); `plan035-prepush.ps1` ended at 06:44Z with PRE-PUSH OK.
+- **Push and PR:** `git push -u origin release/plan-49` at 06:45:45Z; PR 47 opened at 06:46:00Z
+  (https://github.com/omardefdev/HRManagement/pull/47). Runs `42974750826` (`ci`) and `42974750801` (`hardening-check`)
+  started at 06:46:11Z. The stage jobs run side by side since PLAN-66, so the whole run ended at about 07:34Z.
+- **The first run, check by check.** Green: Gitleaks (1 min), Dedupe post-merge run (7 s), Reuse check (33 s), HARD-001
+  compliance scan (2 min 18 s), E2E (11 min 40 s), CodeQL (14 min 16 s), Acceptance images (18 min 56 s), and six
+  acceptance stages: `leastpriv` (8 min 47 s), `prodlike-policy` (9 min 12 s; AC-POL-49f and the boot check, on CI for the
+  first time), `lab-rest` (17 min 13 s), `prodlike` (21 min 38 s), `lab-main` (26 min 20 s), `prodlike-final`
+  (27 min 38 s). **Red:** `CI` (26 min 33 s), in the step "Integration tests (Testcontainers)": 5 failed, 205 passed,
+  1 skipped, of 211, every failure in `CrossTenantRlsIntegrationTests` with `53300` ("sorry, too many clients already",
+  "remaining connection slots are reserved for roles with the SUPERUSER attribute"); `Acceptance stage (meta)`
+  (10 min 53 s): 13 passed, 2 failed, the two tests that read the result of the `CI` job (`AcQa34PushableBaselineTests`:
+  "Failed step 'Integration tests (Testcontainers)'", and `AcQa35RemoteCiTests`); and `Acceptance`, the roll-up.
+  One cause for the three.
+- **The cause, measured.** The full step ran on the host with the filter of CI while a sampler read `pg_stat_activity` of
+  the run's own PostgreSQL containers every few seconds (`artifacts/plan49/tc-host/baseline/`, local): 10 failed, 200
+  passed, 1 skipped, of 211, the same class and the same error. The server of the `PostgreSql` collection climbed without a
+  fall, from 1 connection to 90 in 2 min 43 s (07:27:28Z to 07:30:11Z), and at 90 it held 89 idle ones and one in a
+  transaction: one to three for each database of each test that had finished, 64 of the superuser and 26 of the app role.
+  21 of the 90 belonged to the ten tests this plan added (`pol047_p49...`, ten databases). The RLS proofs take eighteen
+  databases, most of them with an owner connection and an app connection, and the server has 100 slots, three of them
+  reserved.
+  Nothing leaks: every test takes a database of its own, so a pool of its own, and Npgsql keeps an idle pooled connection
+  for five minutes (`Connection Idle Lifetime`, 300 s). Without this plan's tests the same moment would show 69 on this
+  host: the collection was already close to its limit, and the ten new tests crossed it.
+  The server of the `PgRabbit` collection stood at 81 in the same run: it was the next to fail.
+- **The fix (`3005a21c`, decision 73).** `PostgreSqlFixture.CreateDatabaseAsync` and `CreateAppConnectionAsync` return
+  connection strings with an idle lifetime of 5 s and a pruning interval of 1 s; a string a test derives from them (another
+  user, for instance) keeps both. New test `PostgreSqlFixtureIdleConnectionTests`: it holds one owner and one app
+  connection (the server shows 2), gives them back, and waits for the server to show none; it fails at its 60 s limit with
+  Npgsql's defaults (tried, then restored) and passes in 5 s with the fix. `docs/CI_AND_TESTING.md` says why, and gives two
+  rules for a new test.
+- **After the fix, same host, same filter** (`artifacts/plan49/tc-host/fixed/`): 211 passed, 1 skipped, 0 failed, of 212,
+  in 3 min 40 s (4 min 42 s before). The shared server's peak: 25, all idle, at the end of the RLS class (its own
+  databases); it stayed under 10 until that class. The `PgRabbit` server's peak: 11.
+- **What was misread, and the rule it leaves.** Before the push the same ten failures had shown in the host run of the full
+  category, and they were put down to the many cores of the host because the class passed alone (18 of 18). A class that
+  fails in the full step and passes alone is a real failure: the server is shared, and CI runs the whole step. The local
+  CI of that night could not catch it (the VPN keeps its container from Testcontainers, so that step was "not run"), which
+  is why the host run of the full step is the gate when the switch `-SkipTestcontainers` is used.
+- **Not done for the first run:** no job was rerun. The failure is not from the environment (it shows on the host too, and
+  it depends on how fast the tests before the RLS class run), so a rerun that happened to pass would have proved nothing.
+  Nothing was merged, and the demo server was not touched: the change is in the test project and one document.

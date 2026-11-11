@@ -32,9 +32,12 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | `f40c5f01` | P4 | feat(pol049): the five governed domains run in Shadow in Production, Staging and prod-like; a policy may start only the workflow the service asked for |
 | `046316bd` | P5 | test(pol049): AC-POL-49a..g pass on the prod-like stack; Shadow ledger rows proved under forced row security; review fixes; CI scope and ownership updated |
 | `2e14fbac` | P7 | test(pol049): demo server on the domain catalog (fifteen domains retired, five in Shadow with live ledger rows), PLAN-36..48 server checks still green |
-| this commit | P8 | docs(pol049): the engine scope in the server runbook with the rollback note; the plan status and notes; the final report and the PR body |
+| `710bf420` | P8 | docs(pol049): the engine scope in the server runbook with the rollback note; the plan status and notes; the final report and the PR body |
+| `3005a21c` | P8, after the PR's first run | fix(qa): a finished test's idle connections leave the shared PostgreSQL server after seconds, not five minutes |
+| this commit | P8, after the PR's first run | docs(pol049): the PR's first run, its one red step and the fix, in the reports and the plan's notes |
 
-P6 has no commit. The release branch adds one merge commit (`release/plan-49`, `--no-ff`).
+P6 has no commit. The release branch adds one merge commit (`17a9076f`, `release/plan-49`, `--no-ff`); the two last commits
+are on the release branch only, as the prompt orders for a red check.
 
 ## 3. Decisions applied and deviations
 
@@ -139,10 +142,13 @@ AC-POL-49a asserts it.
 | AC-POL-49f and the boot check of 49a (`AcPol49EnforceOverlayTests`, stage `prodLike:pol49`) | Pass (2 / 2) |
 | The rest of P-11's list, local | prod-like: journey 1/1, main 21/21, `AcInt37` 8/8, `AcMsg40` 8/8, `AcWf45` 8/8, `AcWf46` 9/9, `AcPol47` 1/1; `s2s42`: 9/9 and 1/1; least-privilege: 9/9; lab: 20 passed and AC-09 blocked by design since PLAN-42, journey 1/1, `AcHcm26` 5/5, `AcHcm27` 4/4 |
 | `scripts/acceptance-verify.ps1` | not run locally (PowerShell 7); its 32 seeded counts compared by psql, 32 of 32; CI runs it |
-| Local CI (`scripts/ci-local.ps1`, the Linux container) and the pre-push check | run on the release HEAD after this report was committed; the result is in the merge note. The Testcontainers steps run on the host, because the VPN of the owner keeps the container from reaching them (allowed since PLAN-48) |
-| The PR run (the evidence of record) | the PR link, every check and the link of the acceptance artifact are in the merge note |
+| Local CI (`scripts/ci-local.ps1 -SkipTestcontainers`, the Linux container) and the pre-push check | on the first release HEAD `17a9076f`: ok, 89 steps passed, 0 failed, 2 not run (the Testcontainers step and the coverage gate, which needs it), 925 s; pre-push OK. Both run again on the HEAD that carries the fix below, before its push: that result is in the merge note. The Testcontainers step runs on the host, because the VPN of the owner keeps the container from reaching it (allowed since PLAN-48) |
+| The Testcontainers step on the host, with the filter of CI, on the tree with the fix below | 211 passed, 1 skipped (`Ops038BootstrapIdempotencyTests`, as before), 0 failed, of 212 |
+| The PR run (the evidence of record) | PR 47. Its first run (`42974750826`, on `17a9076f`): the six other acceptance stages, the images, CodeQL, E2E, gitleaks, the reuse check and the hardening scan green; **red: the Testcontainers step of the `CI` job** (below), and with it the `meta` stage, whose two tests read that job's result, and the `Acceptance` roll-up. The run on the HEAD with the fix, every check and the link of the acceptance artifact are in the merge note |
 
 One local failure was not a defect: in the first run on the final images `Ac40f` (PLAN-40's test) lost one of its thirteen `GET /metrics` calls to a connection reset. Docker Desktop's own log shows another project's test run creating and deleting published-port containers every few seconds at that moment; the class passed 8 of 8 when it ran again.
+
+One local failure was a defect, and it was misread before the push. The full Testcontainers category on the host had ended with ten failures of `CrossTenantRlsIntegrationTests` (53300, no connection slot left); the class passed alone, 18 of 18, and the failure was put down to the many cores of the host. It was the collection's shared server. Every test takes a database of its own, so a pool of its own; Npgsql keeps an idle pooled connection for five minutes; and this plan's ten new PostgreSQL tests added 21 idle connections to a server of 100 slots that was already near its limit. Measured afterwards: 90 connections, 89 of them idle, at the moment the RLS proofs began, and they take eighteen databases. The PR's first run failed on the same class (five tests). The fix is on the release branch (`3005a21c`): the connection strings of `PostgreSqlFixture` close an idle connection after five seconds, and `PostgreSqlFixtureIdleConnectionTests` proves it on the server itself (it fails with Npgsql's defaults; tried). A connection that is never returned to its pool is not closed by this, so a real leak would still fill the server. Before and after, same filter, same host: 10 failed of 211, then 0 of 212; the shared server's peak 90, then 25; the server of the `PgRabbit` collection 81, then 11 (it was the next to fail). The rule this leaves is in `docs/CI_AND_TESTING.md`: a class that fails in the full step and passes alone is a real failure, because the server is shared and CI runs the whole step.
 
 ## 7. The cost of Shadow
 
