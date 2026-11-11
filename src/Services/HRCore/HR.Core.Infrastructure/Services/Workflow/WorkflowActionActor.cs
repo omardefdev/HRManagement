@@ -24,6 +24,30 @@ public sealed record WorkflowActionActor(
 
     public bool HasRole(string role) => Roles.Contains(role);
 
+    /// <summary>
+    /// PLAN-50 (§6): the delegations in force whose delegate is this actor, when the caller loaded them; null means "not loaded", and the
+    /// evaluator then asks its lookup. They are never roles of the actor.
+    /// </summary>
+    public IReadOnlyList<HRManagement.SharedKernel.SeparationOfDuties.ActiveDelegation>? Delegations { get; init; }
+
+    /// <summary>
+    /// PLAN-50 (§6, P-6): the principal of a delegation, for the second pass of every identity rule. His roles are the delegated role,
+    /// and, when he was branch-scoped at creation, the branch role with his stored scope: a delegate never gets a wider scope than his
+    /// principal had.
+    /// </summary>
+    public static WorkflowActionActor PrincipalOf(HRManagement.SharedKernel.SeparationOfDuties.ActiveDelegation delegation)
+    {
+        var roles = new List<string> { delegation.Role };
+        if (delegation.PrincipalScopeOrgUnitId is not null)
+            roles.Add(HrManagementRoles.BranchManager);
+        return new WorkflowActionActor(
+            delegation.PrincipalUserId,
+            delegation.PrincipalName,
+            ToRoleSet(roles),
+            delegation.PrincipalEmployeeId,
+            delegation.PrincipalScopeOrgUnitId?.ToString("D"));
+    }
+
     /// <summary>The role recorded on the step signature: the step's own role when the actor holds it.</summary>
     public string? SignatureRole(string? stepRoleRequired) =>
         stepRoleRequired is not null && HasRole(stepRoleRequired)

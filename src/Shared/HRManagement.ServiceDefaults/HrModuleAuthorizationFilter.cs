@@ -24,6 +24,15 @@ public sealed class HrModuleAuthorizationFilter(string modulePolicy) : IAsyncAut
             .Any(m => m.Policy?.StartsWith("Service.", StringComparison.Ordinal) == true))
             return;
 
+        // PLAN-50 (§1): an action (or its controller) may name the policy that replaces the module's. Checked before the name list below,
+        // which stays as it is (PLAN-51 replaces it with this attribute).
+        var policy = ModulePolicyOverrideAttribute.For(context.ActionDescriptor)?.Policy;
+        if (policy is not null)
+        {
+            await AuthorizeAsync(context, policy);
+            return;
+        }
+
         var controller = context.RouteData.Values["controller"]?.ToString() ?? "";
         if (controller.StartsWith("Ess", StringComparison.OrdinalIgnoreCase)
             || string.Equals(controller, "EssPortal", StringComparison.OrdinalIgnoreCase)
@@ -51,14 +60,20 @@ public sealed class HrModuleAuthorizationFilter(string modulePolicy) : IAsyncAut
             || string.Equals(controller, "WorkflowDefinitions", StringComparison.OrdinalIgnoreCase))
             return;
 
+        await AuthorizeAsync(context, modulePolicy);
+    }
+
+    private static async Task AuthorizeAsync(AuthorizationFilterContext context, string policy)
+    {
         if (context.HttpContext.User.Identity?.IsAuthenticated != true)
         {
             context.Result = new Microsoft.AspNetCore.Mvc.ChallengeResult();
             return;
         }
 
+        // The HttpContext is the resource, as for an [Authorize] attribute, so a requirement can read the endpoint's metadata.
         var auth = context.HttpContext.RequestServices.GetRequiredService<IAuthorizationService>();
-        var result = await auth.AuthorizeAsync(context.HttpContext.User, modulePolicy);
+        var result = await auth.AuthorizeAsync(context.HttpContext.User, context.HttpContext, policy);
         if (!result.Succeeded)
             context.Result = new ForbidResult();
     }

@@ -38,23 +38,7 @@ public sealed class WorkflowSignatureService(
         if (tenantId == Guid.Empty)
             tenantId = TenantDefaults.DefaultTenantId;
 
-        var payload = new
-        {
-            workflowInstanceId = instance.Id,
-            definitionId = definition.Id,
-            definitionVersion = definition.Version,
-            definitionCode = definition.Code,
-            entityType = instance.EntityType,
-            entityId = instance.EntityId,
-            stepLevel = historyEntry.Level,
-            stepName = historyEntry.StepName,
-            intent,
-            actorId,
-            comments = historyEntry.Comments,
-            actionAt = historyEntry.ActionAt
-        };
-
-        var hash = CanonicalPayloadBuilder.ComputeHash(payload);
+        var hash = CanonicalPayloadBuilder.ComputeHash(Payload(instance, definition, historyEntry, intent, actorId));
         var subjectType = string.IsNullOrWhiteSpace(instance.EntityType)
             ? "WorkflowInstance"
             : instance.EntityType;
@@ -72,4 +56,45 @@ public sealed class WorkflowSignatureService(
         await db.SaveChangesAsync(cancellationToken);
         return record;
     }
+
+    /// <summary>
+    /// The signed payload. A direct action signs the twelve fields it always signed, so an existing signature still verifies; PLAN-50 (§6):
+    /// an action on behalf (<see cref="WorkflowStepHistoryEntry.OnBehalfOfId"/>) adds <c>onBehalfOfUserId</c> and <c>delegationId</c>, and
+    /// its caller signs with the delegated role.
+    /// </summary>
+    public static object Payload(
+        WorkflowInstance instance, WorkflowDefinition definition, WorkflowStepHistoryEntry historyEntry, string intent, Guid? actorId) =>
+        historyEntry.OnBehalfOfId is null
+            ? new
+            {
+                workflowInstanceId = instance.Id,
+                definitionId = definition.Id,
+                definitionVersion = definition.Version,
+                definitionCode = definition.Code,
+                entityType = instance.EntityType,
+                entityId = instance.EntityId,
+                stepLevel = historyEntry.Level,
+                stepName = historyEntry.StepName,
+                intent,
+                actorId,
+                comments = historyEntry.Comments,
+                actionAt = historyEntry.ActionAt
+            }
+            : new
+            {
+                workflowInstanceId = instance.Id,
+                definitionId = definition.Id,
+                definitionVersion = definition.Version,
+                definitionCode = definition.Code,
+                entityType = instance.EntityType,
+                entityId = instance.EntityId,
+                stepLevel = historyEntry.Level,
+                stepName = historyEntry.StepName,
+                intent,
+                actorId,
+                comments = historyEntry.Comments,
+                actionAt = historyEntry.ActionAt,
+                onBehalfOfUserId = historyEntry.OnBehalfOfId,
+                delegationId = historyEntry.DelegationId
+            };
 }

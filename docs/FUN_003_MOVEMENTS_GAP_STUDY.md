@@ -80,6 +80,8 @@
 - **الخطة:** [PLAN-50](acceptance-plans/PLAN-50-iam-approver-reach-delegation.md) (وصول المعتمد، ودور المنشئ لا يعتمد، والمنشئ لا يعتمد طلبه؛ يغطيها AC-IAM-50a)
 - **التحقق المطلوب:** AC-MOV-Aa: `a-movements` ينشئ نقلاً، و`a-management-approver` يفتح التفاصيل ويعتمد عبر البوابة (Approved). سالب: `a-management-approver` لا ينشئ ولا ينفّذ (403)؛ `a-movements` لا يعتمد (403).
 
+- **الحالة:** جزئي — الأثر في المحرك والحركات ([PLAN-50](acceptance-plans/PLAN-50-iam-approver-reach-delegation.md)). المعتمد يفتح قائمة الأنواع الخمسة (بانتظار الاعتماد افتراضياً) وتفاصيلها ويعتمدها عبر البوابة؛ الإنشاء والتعديل والتنفيذ والإلغاء لـ `HrMovements.Write` صريحاً؛ ومنشئ الطلب صار دائماً المستخدم نفسه؛ والمفوَّض يعتمد بالنيابة عن أصيله (`OnBehalfOfUserId` على `TransferApproval` وخطوة الاعتماد في `MovementChecklist`) ولا يعتمد ما أنشأه هو أو أصيله (AC-IAM-50a، AC-IAM-50e). بقي: «التعديل ثم الاعتماد» (G-MOV-11) ونطاق الفرع (G-MOV-10) ← الموجة 2 وPLAN-52.
+
 #### G-MOV-02 — حزمة أنظمة الخدمة لا تُشحن مع HR.Movements
 - **الحالة:** ✅ عولجت في [PLAN-37](acceptance-plans/PLAN-37-int-production-wiring-legal-pack.md) — `seed-packs/syr003-service-regimes-v1/regimes.json` في صورة HR.Movements (`Int037PublishOutputTests`)، وفحص الجاهزية وسطر البصمة؛ إنشاء النقل والترفيع ينجح على الملف الشبيه بالإنتاج (AC-INT-37e). وصول المعتمد (G-MOV-01) ← PLAN-50.
 - **الدليل:**

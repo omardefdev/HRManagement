@@ -21,5 +21,13 @@ public class TransferApproval : BaseEntity
     [Display(Name = "ملاحظات")]
     public string? Notes { get; set; }
 
+    /// <summary>PLAN-50 (§7): the principal for whom <see cref="ApprovedBy"/> approved through a delegation; null for a direct approval.</summary>
+    [Display(Name = "بالنيابة عن")]
+    public Guid? OnBehalfOfUserId { get; set; }
+
+    [MaxLength(200)]
+    [Display(Name = "اسم الأصيل")]
+    public string? OnBehalfOfName { get; set; }
+
     public TransferRequest TransferRequest { get; set; } = null!;
 }

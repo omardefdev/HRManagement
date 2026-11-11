@@ -133,6 +133,12 @@ public static class ServiceAuthorizationExtensions
                 && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.HrCoreWorkflow)
                 && PolicyDomainOwners.IsOwnerOfAnyDomain(ServiceCallerPrincipal.GetClientId(ctx.User))));
 
+            // PLAN-50 (P-5): the delegations of a user, for the movement approvals (D-50-3); the tenant is the call's X-Tenant-ID only.
+            options.AddPolicy(ServicePolicies.ApprovalDelegationRead, p => p.RequireAssertion(ctx =>
+                ServiceCallerPrincipal.IsServiceAccount(ctx.User)
+                && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.HrCoreLookup)
+                && IsAllowedClient(ctx.User, ServiceClientIds.HrMovements)));
+
             // EVD-003: CI/service accounts publish evidence; append-only (no update/delete policy).
             options.AddPolicy(ServicePolicies.EvidenceIngest, p => p.RequireAssertion(ctx =>
                 ServiceCallerPrincipal.IsServiceAccount(ctx.User)

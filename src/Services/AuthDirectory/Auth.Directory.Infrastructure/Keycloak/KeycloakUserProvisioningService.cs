@@ -11,6 +11,9 @@ namespace Auth.Directory.Infrastructure.Keycloak;
 /// </summary>
 public sealed class KeycloakUserProvisioningService : IKeycloakUserProvisioningService
 {
+    /// <summary>PLAN-50: the user attribute the realm's <c>employee_id</c> mapper reads (docker/keycloak/realm-manifest.json).</summary>
+    public const string EmployeeIdAttribute = "employee_id";
+
     private readonly HttpClient _http;
     private readonly IConfiguration _configuration;
     private readonly ILogger<KeycloakUserProvisioningService> _logger;
@@ -69,9 +72,11 @@ public sealed class KeycloakUserProvisioningService : IKeycloakUserProvisioningS
         if (string.IsNullOrEmpty(accessToken))
             return KeycloakProvisionResult.Failed("empty access token");
 
+        // PLAN-50 (D-50-2): employee_id, the name the realm's user profile declares and its token mapper reads (it was employeeId, which
+        // the profile does not declare, so Keycloak dropped it and the user's token carried no employee_id).
         var attributes = new Dictionary<string, string[]>
         {
-            ["employeeId"] = [employeeId.ToString("D")]
+            [EmployeeIdAttribute] = [employeeId.ToString("D")]
         };
         if (scopeOrgUnitId.HasValue)
             attributes["scope_org_unit_id"] = [scopeOrgUnitId.Value.ToString("D")];

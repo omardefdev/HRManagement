@@ -215,7 +215,9 @@ public class S2s042InternalRoutesAreServiceOnlyTests
         foreach (var expected in new[]
                  {
                      "PolicyEnforceInternalController", "CodeGenerationInternalController", "EmployeeLifecycleInternalController",
-                     "ServiceRegimeInternalController", "DsarInternalController", "PayGradeLookupInternalController", "DirectoryInternalSyncController"
+                     "ServiceRegimeInternalController", "DsarInternalController", "PayGradeLookupInternalController", "DirectoryInternalSyncController",
+                     // PLAN-50: the active approval delegations of a user.
+                     "ApprovalDelegationsInternalController"
                  })
             Assert.Contains(expected, names);
     }

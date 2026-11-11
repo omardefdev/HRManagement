@@ -1,4 +1,6 @@
-# WF-001 Workflow Engine — Validation Script
+# WF-001 Workflow Engine - Validation Script
+# PLAN-50: the unused WorkflowDelegation entity and its DbSet are gone (one delegation entity: ApprovalDelegation). The WF001 migration
+# still creates the table in history; HCM050_ApprovalDelegationScope drops it.
 # Verifies that all required artifacts for WF-001 are present and well-formed.
 
 $ErrorActionPreference = 'Stop'
@@ -18,7 +20,6 @@ $requiredFiles = @(
     "src/Shared/HRManagement.SharedKernel/Workflow/WorkflowCondition.cs",
     "src/Services/HRCore/HR.Core.Domain/Entities/Workflow/WorkflowDefinition.cs",
     "src/Services/HRCore/HR.Core.Domain/Entities/Workflow/WorkflowInstance.cs",
-    "src/Services/HRCore/HR.Core.Domain/Entities/Workflow/WorkflowDelegation.cs",
     "src/Shared/HRManagement.ServiceDefaults/Workflow/IWorkflowEngine.cs",
     "src/Shared/HRManagement.ServiceDefaults/Workflow/WorkflowEngine.cs",
     "src/Shared/HRManagement.ServiceDefaults/Workflow/WorkflowEngineExtensions.cs",
@@ -46,7 +47,11 @@ Write-Host "`nChecking DbContext registrations..." -ForegroundColor Yellow
 $dbContextPath = Join-Path $root "src/Services/HRCore/HR.Core.Infrastructure/Data/HRCoreDbContext.cs"
 if (Test-Path $dbContextPath) {
     $content = Get-Content $dbContextPath -Raw
-    $dbSets = @("WorkflowDefinitions", "WorkflowInstances", "WorkflowDelegations")
+    $dbSets = @("WorkflowDefinitions", "WorkflowInstances")
+    if ($content -match "WorkflowDelegations") {
+        Write-Host "  [FAIL] DbSet<WorkflowDelegations> is back (PLAN-50 removed it)" -ForegroundColor Red
+        $errors += "WorkflowDelegations DbSet present"
+    }
     foreach ($ds in $dbSets) {
         if ($content -match $ds) {
             Write-Host "  [OK] DbSet<$ds> registered" -ForegroundColor Green

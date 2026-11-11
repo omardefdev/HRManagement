@@ -10,18 +10,38 @@
             <h3 class="card-title mb-0">@ViewData["Title"]</h3>
         </div>
         <div class="card-body">
-            <div asp-validation-summary="All" class="text-danger"></div>
+            <div asp-validation-summary="All" class="text-danger" data-delegation-errors></div>
+            @if (Model.DelegableRoles.Count == 0)
+            {
+                <div class="alert alert-warning">لا تحمل دوراً قابلاً للتفويض. يُفوَّض حالياً دور الاعتماد الإداري وحده، ولمن يحمله مباشرة.</div>
+            }
             <div class="mb-3">
-                <label asp-for="DelegateId" class="form-label">معرّف المفوَّض (GUID)</label>
-                <input asp-for="DelegateId" class="form-control" />
+                <label asp-for="DelegateEmployeeId" class="form-label">المفوَّض إليه (موظف من الدليل)</label>
+                <select asp-for="DelegateEmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف...">
+                    @if (Model.DelegateEmployeeId is Guid selected)
+                    {
+                        <option value="@selected" selected>@selected</option>
+                    }
+                </select>
             </div>
             <div class="mb-3">
-                <label asp-for="EntityTypeScope" class="form-label">نوع الكيان (اختياري)</label>
-                <input asp-for="EntityTypeScope" class="form-control" placeholder="LeaveRequest / PayrollRun / ..." />
+                <label asp-for="RoleScope" class="form-label">الدور المفوَّض</label>
+                <select asp-for="RoleScope" class="form-select">
+                    @foreach (var role in Model.DelegableRoles)
+                    {
+                        <option value="@role">@role</option>
+                    }
+                </select>
             </div>
             <div class="mb-3">
-                <label asp-for="RoleScope" class="form-label">نطاق الدور (اختياري)</label>
-                <input asp-for="RoleScope" class="form-control" />
+                <label asp-for="EntityTypeScope" class="form-label">نوع الكيان (اختياري؛ الفراغ يعني كل الأنواع)</label>
+                <select asp-for="EntityTypeScope" class="form-select">
+                    <option value="">— كل الأنواع —</option>
+                    @foreach (var type in Model.EntityTypes)
+                    {
+                        <option value="@type">@type</option>
+                    }
+                </select>
             </div>
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -37,7 +57,10 @@
                 <label asp-for="Reason" class="form-label">السبب</label>
                 <textarea asp-for="Reason" class="form-control" rows="2"></textarea>
             </div>
-            <p class="text-muted small">الحد الأقصى لمدة التفويض 90 يوماً. لا يمكن التفويض للنفس.</p>
+            <p class="text-muted small">
+                الحد الأقصى لمدة التفويض 90 يوماً. لا يمكن التفويض للنفس، ولا تفويض الدور المفوَّض إليك مرة أخرى.
+                لا يعتمد المفوَّض ما أنشأه هو أو أصيله.
+            </p>
         </div>
         <div class="card-footer">
             <button type="submit" class="btn btn-primary">حفظ</button>

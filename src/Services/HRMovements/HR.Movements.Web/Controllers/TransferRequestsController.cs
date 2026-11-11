@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Delegation;
 using HRManagement.ServiceDefaults.Messaging;
 using MassTransit;
 using Microsoft.AspNetCore.Authorization;
@@ -18,25 +19,35 @@ using HRManagement.SharedKernel.ViewModels;
 
 namespace HR.Movements.Web.Controllers;
 
+// PLAN-50 (§7): a delegation scoped to another entity type does not reach these screens.
+[ApprovalEntityType(EntityType)]
 public class TransferRequestsController : Controller
 {
+    public const string EntityType = "TransferRequest";
+
     private readonly MovementsDbContext _db;
     private readonly IPublishEndpoint _publish;
     private readonly IHrCoreActiveRegimeClient _activeRegimeClient;
+    private readonly IApprovalActingContext? _acting;
 
     public TransferRequestsController(
         MovementsDbContext db,
         IPublishEndpoint publish,
-        IHrCoreActiveRegimeClient activeRegimeClient)
+        IHrCoreActiveRegimeClient activeRegimeClient,
+        IApprovalActingContext? acting = null)
     {
         _db = db;
         _publish = publish;
         _activeRegimeClient = activeRegimeClient;
+        _acting = acting;
     }
 
     /// <summary>FUN-003: source AND target must both be in scope (closes IDOR OR-gap).</summary>
     private async Task<IActionResult?> EnsureTransferInScopeAsync(TransferRequest t)
     {
+        // PLAN-50 (review 1): a reader admitted through a delegation stays inside the principal's stored scope as well.
+        var principalScope = await MovementApprovalActing.PrincipalScopeAsync(MovementApprovalActing.AdmittedBy(HttpContext), _db.OrgUnitSnapshots);
+        if (!MovementApprovalActing.Allows(principalScope, t.FromOrgUnitId, t.ToOrgUnitId)) return Forbid();
         var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, _db.OrgUnitSnapshots);
         if (scope.IsDenied) return Forbid();
         if (scope.IsUnrestricted) return null;
@@ -60,7 +71,8 @@ public class TransferRequestsController : Controller
         return Guid.TryParse(v, out var g) ? g : null;
     }
 
-    public async Task<IActionResult> Index()
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
+    public async Task<IActionResult> Index(string? show = null)
     {
         var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, _db.OrgUnitSnapshots);
         if (scope.IsDenied) return Forbid();
@@ -68,9 +80,21 @@ public class TransferRequestsController : Controller
         if (scope.MustFilter)
             query = query.Where(x => scope.AllowedOrgUnitIds.Contains(x.FromOrgUnitId)
                                      && scope.AllowedOrgUnitIds.Contains(x.ToOrgUnitId));
+        // PLAN-50 (review 1): a reader admitted through a delegation lists inside the principal's stored scope as well.
+        if (await MovementApprovalActing.PrincipalScopeAsync(MovementApprovalActing.AdmittedBy(HttpContext), _db.OrgUnitSnapshots) is { } principalScope)
+        {
+            if (principalScope.IsDenied) return Forbid();
+            if (principalScope.MustFilter)
+                query = query.Where(x => principalScope.AllowedOrgUnitIds.Contains(x.FromOrgUnitId)
+                                         && principalScope.AllowedOrgUnitIds.Contains(x.ToOrgUnitId));
+        }
+        // PLAN-50 (D-IAM-1): the approver's list shows what awaits approval by default.
+        if (MovementApprovalUi.PendingOnly(User, show, ViewData))
+            query = query.Where(x => x.Status == ApprovalStatus.Pending && !x.IsCancelled);
         return View(await query.OrderByDescending(x => x.RequestDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public IActionResult Create() => View(new TransferRequest
     {
         RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
@@ -80,6 +104,7 @@ public class TransferRequestsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Create(TransferRequest model)
     {
         if (!ModelState.IsValid) return View(model);
@@ -115,6 +140,7 @@ public class TransferRequestsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Details(Guid id)
     {
         var t = await _db.TransferRequests
@@ -132,6 +158,7 @@ public class TransferRequestsController : Controller
         return View(t);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Edit(Guid id)
     {
         var t = await _db.TransferRequests.FindAsync(id);
@@ -147,6 +174,7 @@ public class TransferRequestsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Edit(Guid id, TransferRequest model)
     {
         if (id != model.Id) return BadRequest();
@@ -184,6 +212,7 @@ public class TransferRequestsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Approve(Guid id)
     {
         var t = await _db.TransferRequests.FirstOrDefaultAsync(x => x.Id == id);
@@ -196,10 +225,26 @@ public class TransferRequestsController : Controller
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        var by = ParseUserId(User);
+        // PLAN-50 (§7): the direct role acts in its own name; a delegate on behalf of his principal, or not at all (fail-closed).
+        var acting = await MovementApprovalActing.ResolveAsync(_acting, User, EntityType, HttpContext.RequestAborted);
+        if (!acting.MayAct)
+            return Forbid();
+
+        var by = acting.UserId;
         if (by == null)
         {
             TempData["Error"] = "تعذر تحديد هوية المعتمد من التوكن؛ سجّل الدخول بمستخدم يحمل معرفاً GUID";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (MovementApprovalActing.CreatorOrPrincipal(acting, t.RequestedBy) is { } onBehalfCreator)
+        {
+            TempData["Error"] = onBehalfCreator;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        if (MovementApprovalActing.Subject(acting, t.EmployeeId) is { } onBehalfSubject)
+        {
+            TempData["Error"] = onBehalfSubject;
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -211,12 +256,18 @@ public class TransferRequestsController : Controller
 
         var sod = new SeparationOfDutiesService();
         var sodResult = sod.ValidateAction(
-            by.Value, null, "TransferRequest", t.Id, SodAction.Check, t.RequestedBy, null);
+            by.Value, null, EntityType, t.Id, SodAction.Check, t.RequestedBy, null);
+        if (sodResult.Allowed && acting.OnBehalfOf is { } principal)
+            sodResult = sod.ValidateAction(principal.PrincipalUserId, null, EntityType, t.Id, SodAction.Check, t.RequestedBy, null);
         if (!sodResult.Allowed)
         {
             TempData["Error"] = sodResult.DenialReason;
             return RedirectToAction(nameof(Details), new { id });
         }
+
+        // PLAN-50 (P-7): the principal's stored scope applies as well as the delegate's own.
+        if (!await MovementApprovalActing.PrincipalScopeAllowsAsync(acting, _db.OrgUnitSnapshots, t.FromOrgUnitId, t.ToOrgUnitId))
+            return Forbid();
 
         if (string.IsNullOrWhiteSpace(t.SourceLegalRegimeId))
             await SnapshotSourceRegimeAsync(t);
@@ -231,18 +282,23 @@ public class TransferRequestsController : Controller
         t.Status = ApprovalStatus.Approved;
         t.ApprovedBy = by;
         t.ApprovedDate = DateOnly.FromDateTime(now);
-        _db.TransferApprovals.Add(new TransferApproval
+        var approval = new TransferApproval
         {
             TransferRequestId = t.Id,
             ApprovedBy = by.Value,
             ApprovedAt = now,
             Notes = "اعتماد طلب نقل"
-        });
+        };
+        MovementApprovalActing.Record(acting, approval);
+        _db.TransferApprovals.Add(approval);
 
         var approved = await _db.MovementChecklists.FirstOrDefaultAsync(c =>
             c.CorrelationId == t.Id && c.Step == MovementChecklistStep.Approved);
         if (approved is not null && !approved.IsCompleted)
+        {
             MovementWorkflowRules.MarkStep(approved, by, $"transfer:{t.Id}:approved");
+            MovementApprovalActing.Record(acting, approved);
+        }
 
         await _db.SaveChangesAsync();
         TempData["Success"] = "تم اعتماد طلب النقل";
@@ -252,6 +308,7 @@ public class TransferRequestsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Reject(Guid id, string? notes)
     {
         var t = await _db.TransferRequests.FirstOrDefaultAsync(x => x.Id == id);
@@ -264,12 +321,31 @@ public class TransferRequestsController : Controller
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        var by = ParseUserId(User);
+        // PLAN-50 (§7): a reject follows the same rules of who acts.
+        var acting = await MovementApprovalActing.ResolveAsync(_acting, User, EntityType, HttpContext.RequestAborted);
+        if (!acting.MayAct)
+            return Forbid();
+
+        var by = acting.UserId;
         if (by == null)
         {
             TempData["Error"] = "تعذر تحديد هوية المعتمد من التوكن";
             return RedirectToAction(nameof(Details), new { id });
         }
+
+        if (MovementApprovalActing.CreatorOrPrincipal(acting, t.RequestedBy) is { } onBehalfCreator)
+        {
+            TempData["Error"] = onBehalfCreator;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+        if (MovementApprovalActing.Subject(acting, t.EmployeeId) is { } onBehalfSubject)
+        {
+            TempData["Error"] = onBehalfSubject;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (!await MovementApprovalActing.PrincipalScopeAllowsAsync(acting, _db.OrgUnitSnapshots, t.FromOrgUnitId, t.ToOrgUnitId))
+            return Forbid();
 
         t.Status = ApprovalStatus.Rejected;
         t.ApprovedBy = by;
@@ -284,6 +360,7 @@ public class TransferRequestsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Idempotent]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Execute(Guid id, decimal? salaryChange, decimal? allowanceChange, string? financialNotes)
     {
         var t = await _db.TransferRequests.FirstOrDefaultAsync(x => x.Id == id);
@@ -418,6 +495,7 @@ public class TransferRequestsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Cancel(Guid id, string? reason)
     {
         var t = await _db.TransferRequests.FirstOrDefaultAsync(x => x.Id == id);

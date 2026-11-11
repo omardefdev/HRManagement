@@ -384,7 +384,7 @@ public sealed class CompetitionsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+    [Authorize(Policy = HrManagementPolicies.WorkflowStepAction)] // PLAN-50 (P-6): roles or a delegate; the evaluator decides
     public async Task<IActionResult> ApproveResultsWorkflow(Guid id, Guid versionId, string? comments, int? targetStepLevel, CancellationToken ct)
     {
         var instanceId = await db.CompetitionResultVersions.Where(v => v.Id == versionId && v.CompetitionId == id)
@@ -397,7 +397,7 @@ public sealed class CompetitionsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+    [Authorize(Policy = HrManagementPolicies.WorkflowStepAction)] // PLAN-50 (P-6): roles or a delegate; the evaluator decides
     public async Task<IActionResult> RejectResultsWorkflow(Guid id, Guid versionId, string? comments, int? targetStepLevel, CancellationToken ct)
     {
         var instanceId = await db.CompetitionResultVersions.Where(v => v.Id == versionId && v.CompetitionId == id)
@@ -737,7 +737,7 @@ public sealed class CompetitionsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+    [Authorize(Policy = HrManagementPolicies.WorkflowStepAction)] // PLAN-50 (P-6): roles or a delegate; the evaluator decides
     public async Task<IActionResult> ApproveWorkflow(Guid id, string? comments, int? targetStepLevel, CancellationToken ct)
     {
         var instanceId = await db.RecruitmentCompetitions.Where(c => c.Id == id).Select(c => c.ApprovalWorkflowInstanceId).FirstOrDefaultAsync(ct);
@@ -749,7 +749,7 @@ public sealed class CompetitionsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+    [Authorize(Policy = HrManagementPolicies.WorkflowStepAction)] // PLAN-50 (P-6): roles or a delegate; the evaluator decides
     public async Task<IActionResult> RejectWorkflow(Guid id, string? comments, int? targetStepLevel, CancellationToken ct)
     {
         var instanceId = await db.RecruitmentCompetitions.Where(c => c.Id == id).Select(c => c.ApprovalWorkflowInstanceId).FirstOrDefaultAsync(ct);

@@ -17,8 +17,7 @@ SharedKernel/Workflow/          → Enums + DTOs (cross-service)
 
 HR.Core.Domain/Entities/Workflow/ → EF Entities
   ├── WorkflowDefinition.cs
-  ├── WorkflowInstance.cs
-  └── WorkflowDelegation.cs
+  └── WorkflowInstance.cs          (PLAN-50 removed the unused WorkflowDelegation.cs)
 
 ServiceDefaults/Workflow/       → Engine Implementation
   ├── IWorkflowEngine.cs
@@ -53,8 +52,21 @@ Simple field-based evaluation: `{ Field, Operator, Value }`.
 Operators: Equals, NotEquals, GreaterThan, LessThan, GreaterThanOrEqual, Contains, In.
 Evaluated against a JSON context dictionary attached to the instance.
 
-### Delegation
-`WorkflowDelegation` allows a principal to delegate workflow actions to another user, optionally scoped to a specific workflow code or entity type, with time bounds.
+### Delegation (PLAN-50)
+A delegation is an `ApprovalDelegation` (the only delegation entity; rules in `docs/SOD_MATRIX.md`). It has a real effect in the
+engine:
+- `WorkflowApprovalEvaluator.GetDecisionAsync` keeps its order — structure, step role (direct, then delegated), `WorkflowSodRules`,
+  the entity gate, the initiator rule. When the actor lacks the step's role, a delegation in force of that role covering the
+  instance's entity type stands in for it (`ApprovalDelegationMatcher`); the evaluator reads the actor's loaded delegations or asks
+  `IApprovalDelegationLookup` (HR.Core: `DbApprovalDelegationLookup`, no cache). Every identity rule after the role then runs twice,
+  as the delegate and as the principal (`WorkflowActionActor.PrincipalOf`, with the principal's stored branch scope); any refusal wins.
+  The direct role wins (`OnBehalfOf` stays null). A failing lookup means no delegation. Exempt types are untouched.
+- The route policy `WorkflowStepAction` is roles or a delegate of any delegable role (still no service account); it replaces
+  `HrCore.BranchOperation` on the MVC workflow actions of requisitions, offers, committees, establishment changes and competitions.
+- An action on behalf writes `OnBehalfOfId`, `OnBehalfOfName` and `DelegationId` into its `WorkflowStepHistoryEntry` (optional
+  fields, never written by a direct action, so older history reads unchanged); its signature adds `onBehalfOfUserId` and
+  `delegationId` to the payload and is signed with the delegated role. A direct action signs the twelve fields it always signed.
+- The distinct-approver rules count an approval on behalf for the delegate and for the principal.
 
 ### Server-side step role and entity gates (PLAN-25, G-04)
 Every approve **and** reject through `WorkflowInstanceActionService` (HR.Core) goes through `WorkflowApprovalEvaluator`
@@ -249,7 +261,7 @@ Reads: `WorkflowDefinitionRead` (the HR.Core readers and `workflow-admin`). Ever
 ## Database Tables
 - `WorkflowDefinitions` — indexed on (Code, Version) unique + (DomainEntityType, IsPublished)
 - `WorkflowInstances` — indexed on (EntityType, EntityId) + Status + DefinitionId
-- `WorkflowDelegations` — indexed on (PrincipalId, DelegateId, ActiveFrom) + (IsRevoked, ActiveUntil)
+- `WorkflowDelegations` — dropped by `HCM050_ApprovalDelegationScope` (PLAN-50); delegations live in `ApprovalDelegations`
 
 Migration: `20260731161000_WF001_WorkflowEngine`
 

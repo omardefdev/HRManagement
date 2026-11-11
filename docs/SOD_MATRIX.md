@@ -39,10 +39,26 @@
 
 ## Delegation
 
-- Max duration: 90 days
-- No self-delegation
-- Scoped by optional `EntityTypeScope` / `RoleScope`
-- Managed via `DelegationsController` (policy `SoD.ManageDelegations`)
+PLAN-50 (D-WF-5, D-50-1..D-50-5). One entity, `ApprovalDelegation` (`WorkflowDelegation` was removed).
+
+| Rule | Where |
+|------|-------|
+| One role per delegation (`RoleScope`, mandatory), from `Delegation:DelegableRoles` (`hr-management-approver` only), held **directly** in the principal's own token at creation | `SeparationOfDutiesService.ValidateDelegation(d, DelegationRules)`; the check constraint `CK_ApprovalDelegations_ActiveHasRole` |
+| No chain: a delegated role never reaches a token, a claim or `IsInRole`, so a delegate cannot delegate it again | `RoleOrDelegationRequirement`, the evaluator, the movement acting context are the only decision points |
+| Optional `EntityTypeScope`, from the closed list `Delegation:EntityTypes` | `ValidateDelegation`; `ApprovalDelegationMatcher` |
+| At most 90 days, ending within 90 days of the creation; no self-delegation, by user or by employee | `ValidateDelegation` (`DelegationRules.CreatedAt`) |
+| The delegate is an employee chosen from HR.Core's directory (`DelegateEmployeeId`), matched with the `employee_id` claim; a row older than PLAN-50 that holds only `DelegateId` is matched with `sub` | `ApprovalDelegationMatcher.IsDelegate` |
+| A delegate approves nothing that he or his principal created: every identity rule runs twice (as the delegate, then as the principal) | `WorkflowApprovalEvaluator`, the inbox's bulk check, `MovementApprovalActing.CreatorOrPrincipal`; on behalf, no movement of the delegate's or the principal's own employee: `MovementApprovalActing.Subject` |
+| A delegate never gets a wider org scope than his principal had: a branch-scoped principal's scope is stored on the delegation (`PrincipalScopeOrgUnitId`) and applies to the delegate | `WorkflowActionActor.PrincipalOf`, `MovementApprovalActing.PrincipalScopeAllowsAsync`; a reader of transfers and loans admitted by a delegation lists and opens only that scope (`MovementApprovalActing.AdmittedBy`) |
+| The direct role wins: a holder of the role acts in his own name | evaluator, acting context |
+| A revocation acts at once in HR.Core (no cache) and within `Delegation:CacheSeconds` (60) in HR.Movements, which asks HR.Core's service-only endpoint; any lookup failure means no delegation | `DbApprovalDelegationLookup`, `HttpApprovalDelegationLookup` |
+| Every creation and revocation writes an `EntityAuditLog` row; the step history, the signature and the movement approval record name the principal («بالنيابة عن») | `DelegationsController`, `WorkflowInstanceActionService`, `TransferApproval`, `MovementChecklist` |
+
+Managed on `/ui/hr-core/Delegations` (policy `SoD.ManageDelegations`; the gateway table admits the approver on `Create` and `Revoke`).
+A user sees the delegations he made and those made to him; `hr-admin` and `platform-admin` see the tenant's. The migration
+`HCM050_ApprovalDelegationScope` revoked every row in force with no role or a role that is not delegable ("PLAN-50 migration").
+Out of scope (wave 2): other delegable roles, `HireWizard.Step3Approve` and the legacy `Approvals`, automatic absence, escalation,
+revoking a leaver's delegations.
 
 ## Reporting
 

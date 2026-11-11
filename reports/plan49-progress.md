@@ -46,7 +46,7 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | P5 | done | 2026-11-11T00:45Z |
 | P6 | done (nothing to merge) | 2026-11-11T00:40:48Z |
 | P7 | done | 2026-11-11T01:33:05Z |
-| P8 | in progress: PR 47 is open; its first run had one red step, fixed on the release branch (`3005a21c`) | |
+| P8 | done: PR 47 merged (merge commit `1ee60c47`) | 2026-11-11T09:13:33Z |
 
 ## Durations
 
@@ -83,7 +83,8 @@ Specification: `docs/acceptance-plans/execution/PLAN-49-AGENT-PROMPT.md` (it win
 | The server suites | 20 min 33 s, then three short runs (69 s, 8 s, 89 s) |
 | Local CI on the first release HEAD (`ci-local -SkipTestcontainers`, `17a9076f`) | 925 s |
 | The Testcontainers step on the host with the filter of CI | before the fix 4 min 42 s of tests (7 min 34 s in all: its containers started 2 min 54 s after the command); with the fix 3 min 40 s of tests (3 min 45 s in all) |
-| Waiting for CI | the first PR run: about 48 min (06:46:11Z to 07:34Z). The diagnosis of its red step began at 07:14Z, when that step had failed, so about 28 min were plain waiting. The run on the HEAD with the fix: in the merge note |
+| Waiting for CI | the first PR run: about 48 min (06:46:11Z to 07:34Z). The diagnosis of its red step began at 07:14Z, when that step had failed, so about 28 min were plain waiting. The second run: 43 min 2 s (08:28:45Z to 09:11:47Z). Waited for CI in all: about 1 h 11 min |
+| Local CI and the pre-push check on the HEAD with the fix (`a58e7194`) | 18 min 24 s (07:48:40Z to 08:07:04Z), then about 20 min (08:07:30Z to 08:27Z) |
 | Waiting for the owner | 11 h 2 min in all, nothing asked of the owner: about 17 min (the session end of 08:43Z to 09:00Z), 2 h 51 min (the turn that stopped at 14:45Z until «Try again» at 17:36Z), 29 min (the owner's restart of the machine at 19:03Z until «اكمل» at 19:32Z), 2 h 31 min (the usage limit, 20:02Z to 22:33Z; an acceptance chain ran by itself for 93 min of it), 9 min (the turn cut at 22:48Z), and 4 h 45 min (the usage limit again, 2026-11-11 01:42Z to 06:27Z; a restart by Windows Update kept the machine down for 3 h 5 min of it) |
 | The machine asleep while the session ran (not waiting for an answer) | 61 min: 13:03:12Z to 14:04:33Z, by the power button or the lid (Windows event log), in the middle of an acceptance stack start. That run failed for it: the Keycloak admin session had expired when the machine woke (`kcadm … Session has expired`; "Stack prodlike took 3849 s") |
 
@@ -662,15 +663,8 @@ legal source it names, 75 vacant positions with no open request, the published e
 
 ## Exact next step
 
-P8, on `release/plan-49` after the fix (`3005a21c`) and the documents commit that follows it, in this order:
-
-1. `scripts/ci-local.ps1 -SkipTestcontainers` and `scripts/plan035-prepush.ps1` on the new HEAD. The Testcontainers step
-   has run on the host with the fix (211 passed, 1 skipped, 0 failed); a change of the test project after that needs it again.
-2. `git push origin release/plan-49` (that branch only), then `gh pr checks 47 --watch --interval 60`.
-3. When every check is green: `gh pr merge 47 --merge`, `git switch main`, `git pull --ff-only`, `main` = `origin/main`.
-4. The merge note on the local branch `docs/plan-49-merge-note`: every check of the last run, the merge commit, the
-   post-merge run, the timing with `scripts/plan-timing.ps1 -From 25 -To 49`, sections 6 and 11 of the final report.
-   Never a second PR for it.
+None for this plan: PR 47 is merged and the merge note below is written. The next plan brings the local branch
+`docs/plan-49-merge-note` in (one commit on top of `1ee60c47`), as this plan did for the note of PLAN-48.
 
 ## Incident: the system disk filled and the Docker engine stopped (2026-11-10T18:40Z)
 
@@ -835,3 +829,69 @@ P8, on `release/plan-49` after the fix (`3005a21c`) and the documents commit tha
 - **Not done for the first run:** no job was rerun. The failure is not from the environment (it shows on the host too, and
   it depends on how fast the tests before the RLS class run), so a rerun that happened to pass would have proved nothing.
   Nothing was merged, and the demo server was not touched: the change is in the test project and one document.
+
+## Merge note (2026-11-11)
+
+- **The local gates on the HEAD with the fix (`a58e7194`):** `ci-local -SkipTestcontainers` ok (89 steps passed, 0 failed,
+  2 not run; unit 6012 / 6012; the in-memory integration step 370 tests, none failed; summary generated 08:07:04Z, no dirty
+  tracked file); `plan035-prepush.ps1`: PRE-PUSH OK (gitleaks 445 commits of history and 13 of the range, actionlint,
+  the ci-local summary of that commit, forbidden files, non-production data, signatures). The Testcontainers step had run
+  on the host with the fix: 211 passed, 1 skipped, 0 failed, of 212.
+- **The second push:** `git push origin release/plan-49` at 08:28:39Z (`17a9076f..a58e7194`; the push hook: PRE-PUSH OK).
+  The description of the PR was updated from `reports/plan49-pr.md`. `origin/main` was still `f99950bf`.
+- **CI run `42987351533` on `a58e7194`** (pull_request; with `42987351570`, `hardening-check`), 08:28:45Z to 09:11:47Z:
+  **16 of 16 green.**
+  - `CI` 31 min 25 s: unit 6012 / 6012; the in-memory integration step 366 passed and 4 skipped, of 370; **the
+    Testcontainers step 211 passed, 1 skipped, 0 failed, of 212, in 6 min 22 s** (5 failed in 7 min 58 s in the first run);
+    the coverage gate 91.6 % (12169 of 13290 lines; floor 60 %).
+  - E2E 15 min 35 s; CodeQL 14 min 23 s; Gitleaks 1 min 2 s; Reuse check 25 s; Dedupe post-merge run 7 s; HARD-001
+    compliance scan 1 min 43 s; Acceptance images 14 min 46 s.
+  - Acceptance stages: `lab-main` 25 min 49 s; `lab-rest` 13 min 38 s; `prodlike` 20 min 32 s; `prodlike-policy`
+    11 min 17 s; `prodlike-final` 26 min 55 s; `leastpriv` 8 min 45 s; `meta` 18 min 53 s (`AcQa34PushableBaselineTests`
+    8 of 8 and `AcQa35RemoteCiTests` 7 of 7: the `CI` job they read was green this time).
+  - `Acceptance` (the required roll-up), 36 s: PASS. 81 classes, 276 tests passed. 4 failed: the four payroll classes
+    marked not required in `ci-scope.json` (`Ac21`, `Ac23`, `Ac24`, `Ac25`), as in the green runs of PLAN-47 and PLAN-48.
+    2 blocked: `Ac09` (by design since PLAN-42) and `Ac12` (it needs a payroll run). **This plan's classes:
+    `AcPol49EngineScopeTests` 6 of 6 (prod-like, group main: AC-POL-49a..e and g) and `AcPol49EnforceOverlayTests` 2 of 2
+    (stage `pol49`: AC-POL-49f and the boot check of 49a).** The prod-like stacks in all: 18 classes, 94 tests, none
+    failed; beside this plan's two: `AcHcm25` 8, `AcInt37` 8, `AcMsg40` 8, `AcOps38` 8, `AcOps39` 8, `AcPol47` 1, `AcQa41` 4,
+    `AcS2s42` 9, `AcTen48LeastPrivilegeTests` 1, `AcTen48NationalScopeTests` 1, `AcWf43` 6, `AcWf44` 5, `AcWf45` 8,
+    `AcWf46` 9, `AcWf46PolicyOrphanTests` 1 and the prod-like journey 1.
+  - Evidence of record: the `acceptance-evidence` artifact, https://github.com/omardefdev/HRManagement/actions/runs/42987351533/artifacts/13842207523
+    (kept until 2026-12-11).
+- Merged by agent on owner instruction (UTC): 2026-11-11T09:13:33Z. PR https://github.com/omardefdev/HRManagement/pull/47
+  was merged with a merge commit (`gh pr merge 47 --merge`) at head `a58e7194`, every one of the 16 checks green, the merge
+  state CLEAN and `origin/main` still `f99950bf` (no other PR had merged first). Merge commit:
+  `1ee60c47490b1b1a3f73ebe2fefe64908b0e3b03` ("Merge pull request #47 from omardefdev/release/plan-49"). The remote branch
+  `release/plan-49` is kept. The side PRs 40 and 42 and their branches were not touched.
+- `git switch main`; `git pull --ff-only`: `main` = `origin/main` = `1ee60c47490b`, verified. This note is committed on the
+  local branch `docs/plan-49-merge-note`, cut from that `main`: not pushed, no second PR; the next plan brings it in.
+- **Post-merge runs** on `main` at `1ee60c47` (push): `42993370773` (`ci`), 09:13:35Z to 09:14:40Z, success: the dedupe job
+  found that the PR run had tested this tree, so only Gitleaks ran, and the build, CodeQL, E2E and the acceptance jobs were
+  skipped by design (PLAN-66); `42993370689` (`hardening-check`): success.
+- WAITING-CI: none (PR 47 merged).
+- **Timing:**
+  - Start 2026-11-10T08:35:40Z. First push 2026-11-11T06:45:45Z, 22 h 10 min after the start. Merge 09:13:33Z. Total
+    wall-clock 24 h 38 min; the session stood still for 11 h 2 min of it without anybody being asked anything (six stops,
+    in the durations table), which leaves about 13 h 36 min of session time.
+  - From the first push to the merge, 2 h 28 min: 28 min until the red step of the first run showed (07:13Z); 1 h 15 min
+    from there to the second push (08:28:39Z): the job log and the measurement on the host (07:17Z to 07:32Z), the fix and
+    its proof (to 07:41Z), the documents and the two commits (to 07:48Z), local CI (18 min), the pre-push check (20 min);
+    43 min for the second run; 2 min from green to the merge. CI ran 1 h 31 min in all (47 min 55 s, then 43 min 2 s).
+  - Waited for CI: about 1 h 11 min (28 min of the first run before its red step showed, and the second run; the server
+    was checked and the figures of this note were gathered beside it).
+  - Actions: run 1 197.6 runner-minutes (205 billed, each job rounded up); run 2 205.8 (213 billed); the two post-merge
+    runs 3.2 (6 billed).
+  - `scripts/plan-timing.ps1 -From 25 -To 49` after the merge: PLAN-49 10 commits, started 2026-11-10 11:35, first commit
+    11:37, end 2026-11-11 04:35 (Riyadh time), span 16:58, wall-clock 17:00. The script takes the merge of the feature
+    branch into `release/plan-49` (`17a9076f`, 01:35Z) for the merge, so its figure stops before the PR, as for PLAN-48.
+- **Demo server, checked after the merge** (09:19Z): 22 containers up, the 20 with a health check all healthy, the 16
+  service images tagged `046316bde9e7`; the public site answers 302 to the login. The server runs the product code of
+  `main`: between `046316bd` and the merge commit only tests, documents and reports changed (nothing under `src` outside
+  `src/Tests`, nothing under `docker` or `scripts/vps`), so nothing was deployed after the merge.
+- **Seen beside the plan, not part of it:** the nightly run of 2026-11-10 on the old `main` (`42791270343`) failed in
+  "Verify Docker builds" on a network error of its runner (apt index files failed to download inside an image build), with
+  the `meta` stage and the roll-up behind it. Both PR runs of this plan passed that step. The nightly of 2026-11-11
+  (`42991787350`) started at 09:02Z on the old `main`, eleven minutes before the merge.
+- **For the owner** (also in the final report): Docker Desktop keeps its data disk on drive C, which had about 28 GB free
+  during this plan and filled once; moving it to drive D (about 250 GB free) is a setting of the owner.

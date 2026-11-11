@@ -185,6 +185,8 @@
   - **AC-IAM-Aa:** `a-management-approver` يعتمد عبر البوابة نقلاً أنشأه `a-movements` (200، الحالة `Approved`). سلبي: لا يستطيع الإنشاء ولا التنفيذ (403)، و`a-movements` لا يعتمد (403).
   - **AC-IAM-Ab:** معتمد يفوّض زميلاً لمدة. المفوَّض يعتمد خطوة `hr-management-approver` داخل المدة، ويُرفض بعدها، ويظهر التفويض في سجل الخطوة.
 
+- **الحالة:** جزئي — الأثر في المحرك والحركات ([PLAN-50](acceptance-plans/PLAN-50-iam-approver-reach-delegation.md)). `hr-management-approver` وحده يقرأ ويعتمد الأنواع الخمسة من الحركات عبر البوابة (سمة `ModulePolicyOverride`، `HrMovements.ApprovalAccess` و`HrMovements.Write`) ولا ينشئ ولا ينفّذ، و`hr-movements` لا يعتمد؛ ويصل إلى إجراءات `HrCore.Approve` وصفحة التفويض عبر جدول `GatewayHrCoreActionPolicies` (يحرسه `GatewayApproverReachTests`)؛ وللتفويض أثر فعلي في المحرك والحركات بـ«بالنيابة عن» (AC-IAM-50a..e). بقي: استبدال قائمة الأسماء في مرشح الوحدة وسياسات الكتابة لبقية متحكمات الحركات ← PLAN-51؛ تفويض أدوار أخرى ← الموجة 2.
+
 #### G-IAM-02 — الراتب الأساسي وسلّم الرواتب يُعدَّلان بدور الوحدة `payroll` وحده وبلا معتمد
 - **الدليل:**
   - `EmployeePayProfilesController` بلا `[Authorize]` على الصنف ولا على `Create` POST ([EmployeePayProfilesController.cs:14, 79-101](../src/Services/Payroll/Payroll.Web/Controllers/EmployeePayProfilesController.cs)). فيكفي `Module.Payroll`، أي `payroll` أو Admin ([HrManagementAuthorizationExtensions.cs:41](../src/Shared/HRManagement.ServiceDefaults/HrManagementAuthorizationExtensions.cs)). والبوابة تفرض `Module.Payroll` فقط على كتابة الرواتب ([GatewayPathAuthorizationMiddleware.cs:228-235](../src/Shared/HRManagement.ServiceDefaults/GatewayPathAuthorizationMiddleware.cs)).

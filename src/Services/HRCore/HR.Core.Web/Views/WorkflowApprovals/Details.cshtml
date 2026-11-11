@@ -71,7 +71,14 @@
                         <tr>
                             <td>@entry.StepName</td>
                             <td>@EnumDisplayExtensions.GetDisplayName(entry.Status)</td>
-                            <td>@(entry.ActorName ?? "—")</td>
+                            <td>
+                                @(entry.ActorName ?? "—")
+                                @if (entry.OnBehalfOfId is not null)
+                                {
+                                    @* PLAN-50 (§6) *@
+                                    <span class="text-muted small" data-on-behalf-of="@entry.OnBehalfOfId">بالنيابة عن @(entry.OnBehalfOfName ?? entry.OnBehalfOfId.ToString())</span>
+                                }
+                            </td>
                             <td>@entry.Comments</td>
                             <td>@entry.ActionAt.ToString("yyyy/MM/dd HH:mm", System.Globalization.CultureInfo.InvariantCulture)</td>
                         </tr>

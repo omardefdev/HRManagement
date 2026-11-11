@@ -146,6 +146,7 @@
     { "class": "AcWf43DefinitionGovernanceTests", "required": true, "group": "main" },
     { "class": "AcTen48NationalScopeTests", "required": true, "group": "main" },
     { "class": "AcPol49EngineScopeTests", "required": true, "group": "main" },
+    { "class": "AcIam50ApproverReachDelegationTests", "required": true, "group": "main" },
     { "class": "AcInt37ProductionWiringTests", "required": true, "group": "isolated" },
     { "class": "AcMsg40AtomicPublishingTests", "required": true, "group": "isolated" },
     { "class": "AcWf44InstanceIntegrityTests", "required": true, "group": "isolated" },

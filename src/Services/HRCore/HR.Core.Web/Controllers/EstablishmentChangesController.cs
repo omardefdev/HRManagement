@@ -166,7 +166,7 @@ public class EstablishmentChangesController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+    [Authorize(Policy = HrManagementPolicies.WorkflowStepAction)] // PLAN-50 (P-6): roles or a delegate; the evaluator decides
     public async Task<IActionResult> ApproveWorkflow(Guid id, EstablishmentChangeWorkflowActionViewModel vm)
     {
         if (id != vm.ChangeRequestId) return BadRequest();
@@ -204,7 +204,7 @@ public class EstablishmentChangesController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+    [Authorize(Policy = HrManagementPolicies.WorkflowStepAction)] // PLAN-50 (P-6): roles or a delegate; the evaluator decides
     public async Task<IActionResult> RejectWorkflow(Guid id, EstablishmentChangeWorkflowActionViewModel vm)
     {
         if (id != vm.ChangeRequestId) return BadRequest();

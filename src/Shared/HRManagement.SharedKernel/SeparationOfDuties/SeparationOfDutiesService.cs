@@ -153,36 +153,75 @@ public class SeparationOfDutiesService
     }
 
     /// <summary>
-    /// Returns the delegate user id if the principal has an active, non-revoked delegation covering the entity type.
+    /// PLAN-50: the principal's delegation in force for the role and the entity type at the instant (its role scope respected), on
+    /// <see cref="ApprovalDelegationMatcher"/>; null when there is none.
     /// </summary>
-    public Guid? ResolveDelegate(Guid principalId, string entityType, DateTime asOf)
-    {
-        var match = _delegations.FirstOrDefault(d =>
-            !d.IsRevoked
-            && d.PrincipalId == principalId
-            && d.ActiveFrom <= asOf
-            && d.ActiveUntil >= asOf
-            && (d.EntityTypeScope is null
-                || string.Equals(d.EntityTypeScope, entityType, StringComparison.OrdinalIgnoreCase)));
-
-        return match?.DelegateId;
-    }
+    public ApprovalDelegation? ResolveDelegate(Guid principalId, string role, string entityType, DateTime asOf) =>
+        _delegations
+            .Where(d => d.PrincipalId == principalId
+                        && ApprovalDelegationMatcher.IsInForce(d, asOf)
+                        && ApprovalDelegationMatcher.RoleMatches(d.RoleScope, role)
+                        && ApprovalDelegationMatcher.EntityTypeMatches(d.EntityTypeScope, entityType))
+            .OrderByDescending(d => d.ActiveUntil)
+            .ThenBy(d => d.Id)
+            .FirstOrDefault();
 
     /// <summary>
-    /// Returns whether <paramref name="actorId"/> may act for <paramref name="principalId"/> via active delegation.
+    /// PLAN-50: whether the actor (by employee, or by user for a row older than PLAN-50) acts for <paramref name="principalId"/> in the role on
+    /// the entity type at the instant, on <see cref="ApprovalDelegationMatcher"/>.
     /// </summary>
-    public bool IsActingAsDelegate(Guid actorId, Guid principalId, string entityType, DateTime asOf)
+    public bool IsActingAsDelegate(Guid? actorUserId, Guid? actorEmployeeId, Guid principalId, string role, string entityType, DateTime asOf) =>
+        ApprovalDelegationMatcher.Match(
+            _delegations.Where(d => d.PrincipalId == principalId), actorUserId, actorEmployeeId, role, entityType, asOf) is not null;
+
+    /// <summary>
+    /// PLAN-50 (D-WF-5, D-50-1): the full check at creation. The role is mandatory, delegable, and one the principal holds directly in his
+    /// token (so a delegated role, which never reaches a token, cannot be delegated again); the entity type, when given, is one of the closed
+    /// list; then <see cref="ValidateDelegation(ApprovalDelegation)"/>; and, when <see cref="DelegationRules.CreatedAt"/> is given, the period
+    /// ends after the creation and within 90 days of it (review 2: a window set far ahead cannot chain past the 90 days).
+    /// </summary>
+    public static SodResult ValidateDelegation(ApprovalDelegation delegation, DelegationRules rules)
     {
-        var resolved = ResolveDelegate(principalId, entityType, asOf);
-        return resolved.HasValue && resolved.Value == actorId;
+        if (string.IsNullOrWhiteSpace(delegation.RoleScope))
+            return SodResult.Deny("يجب تحديد الدور المفوَّض.");
+
+        var role = delegation.RoleScope.Trim();
+        if (!rules.DelegableRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
+            return SodResult.Deny($"الدور «{role}» غير قابل للتفويض.");
+
+        if (!rules.PrincipalDirectRoles.Contains(role, StringComparer.OrdinalIgnoreCase))
+            return SodResult.Deny($"لا يمكن تفويض الدور «{role}» لأنك لا تحمله مباشرة.");
+
+        if (!string.IsNullOrWhiteSpace(delegation.EntityTypeScope)
+            && !rules.EntityTypes.Contains(delegation.EntityTypeScope.Trim(), StringComparer.OrdinalIgnoreCase))
+            return SodResult.Deny($"نوع الكيان «{delegation.EntityTypeScope.Trim()}» ليس من الأنواع التي يجوز التفويض فيها.");
+
+        var result = ValidateDelegation(delegation);
+        if (!result.Allowed || rules.CreatedAt is not DateTime created)
+            return result;
+
+        if (delegation.ActiveUntil <= created)
+            return SodResult.Deny("تنتهي فترة التفويض قبل إنشائه.");
+
+        if ((delegation.ActiveUntil - created).TotalDays > SodMatrixDefaults.MaxDelegationDays)
+            return SodResult.Deny($"لا يجوز أن ينتهي التفويض بعد أكثر من {SodMatrixDefaults.MaxDelegationDays} يوماً من إنشائه.");
+
+        return result;
     }
 
+    /// <summary>The identities, the self rule (by user and by employee), the period, the 90 days and the reason.</summary>
     public static SodResult ValidateDelegation(ApprovalDelegation delegation)
     {
-        if (delegation.PrincipalId == Guid.Empty || delegation.DelegateId == Guid.Empty)
-            return SodResult.Deny("معرّف المفوِّض أو المفوَّض غير صالح.");
+        if (delegation.PrincipalId == Guid.Empty)
+            return SodResult.Deny("معرّف المفوِّض غير صالح.");
 
-        if (delegation.PrincipalId == delegation.DelegateId)
+        var hasDelegateEmployee = delegation.DelegateEmployeeId is Guid employee && employee != Guid.Empty;
+        var hasDelegateUser = delegation.DelegateId is Guid user && user != Guid.Empty;
+        if (!hasDelegateEmployee && !hasDelegateUser)
+            return SodResult.Deny("يجب اختيار المفوَّض من دليل الموظفين.");
+
+        if (delegation.DelegateId == delegation.PrincipalId
+            || (hasDelegateEmployee && delegation.DelegateEmployeeId == delegation.PrincipalEmployeeId))
             return SodResult.Deny("لا يمكن التفويض للنفس.");
 
         if (delegation.ActiveUntil <= delegation.ActiveFrom)
@@ -227,3 +266,14 @@ public class SeparationOfDutiesService
         }
     }
 }
+
+/// <summary>
+/// PLAN-50 (D-WF-5, D-50-1): what a delegation may name. <see cref="DelegableRoles"/> is <c>Delegation:DelegableRoles</c>,
+/// <see cref="EntityTypes"/> is <c>Delegation:EntityTypes</c>, and <see cref="PrincipalDirectRoles"/> are the roles of the principal's own
+/// token at creation. <see cref="CreatedAt"/> (UTC) is the creation instant; null skips the bound from it.
+/// </summary>
+public sealed record DelegationRules(
+    IReadOnlyCollection<string> DelegableRoles,
+    IReadOnlyCollection<string> EntityTypes,
+    IReadOnlyCollection<string> PrincipalDirectRoles,
+    DateTime? CreatedAt = null);

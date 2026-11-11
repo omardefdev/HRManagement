@@ -6,6 +6,7 @@ using HR.Core.Infrastructure.Services.Workflow;
 using HR.Core.Infrastructure.Services.Workflow.Gates;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Workflow;
+using HRManagement.SharedKernel.SeparationOfDuties;
 using HRManagement.SharedKernel.Tenancy;
 using HRManagement.SharedKernel.Workflow;
 using HR.Core.Web.ViewModels;
@@ -24,6 +25,9 @@ public sealed class WorkflowPanelBuildOptions
 
     /// <summary>PLAN-25: the server step-role rule for the inbox list (detail panels ask the evaluator instead).</summary>
     public WorkflowStepRoleOptions StepRoleOptions { get; init; } = new();
+
+    /// <summary>PLAN-50 (§6): the user's delegations in force, loaded once for the inbox's bulk check (the panels ask the evaluator).</summary>
+    public IReadOnlyList<ActiveDelegation>? Delegations { get; init; }
 }
 
 public static class WorkflowPanelDataLoader
@@ -73,15 +77,17 @@ public static class WorkflowPanelBuilder
             || !options.IsAwaitingApproval || instance.Status != WorkflowStatus.InProgress)
             return panel;
 
+        // PLAN-50 (§6): the evaluator asks its delegation lookup when the user lacks the step's role.
         var actor = WorkflowActionActor.FromPrincipal(user);
-        var approveBlock = await evaluator.GetBlockReasonAsync(
+        var approve = await evaluator.GetDecisionAsync(
             instance, definition, actor, WorkflowActionKind.Approve, instance.CurrentStepLevel, ct);
-        var rejectBlock = await evaluator.GetBlockReasonAsync(instance, definition, actor, WorkflowActionKind.Reject, ct: ct);
+        var reject = await evaluator.GetDecisionAsync(instance, definition, actor, WorkflowActionKind.Reject, ct: ct);
 
-        panel.CanApprove = approveBlock is null;
-        panel.CanReject = rejectBlock is null;
-        panel.BlockReason = approveBlock ?? rejectBlock;
+        panel.CanApprove = approve.Allowed;
+        panel.CanReject = reject.Allowed;
+        panel.BlockReason = approve.BlockReason ?? reject.BlockReason;
         panel.ApproveTargetStepLevel = panel.CanApprove ? instance.CurrentStepLevel : null;
+        panel.OnBehalfOf = approve.OnBehalfOf ?? reject.OnBehalfOf;
         return panel;
     }
 
@@ -102,15 +108,18 @@ public static class WorkflowPanelBuilder
             return panel;
 
         var sodFacts = WorkflowDefinitionMapper.ToSodFacts(instance, definition);
-        var blockReason = ResolveBlockReason(instance, currentStep, sodFacts, user, userId, options);
+        var (blockReason, onBehalfOf) = ResolveBlockReason(instance, currentStep, sodFacts, user, userId, options);
         if (blockReason is not null)
         {
             panel.BlockReason = blockReason;
             return panel;
         }
 
-        // PLAN-43: the distinct-approver rule binds approving only, as on the server.
-        if (WorkflowSodRules.DistinctApprover(sodFacts, userId) is { } distinctApprover)
+        panel.OnBehalfOf = onBehalfOf;
+
+        // PLAN-43: the distinct-approver rule binds approving only, as on the server. PLAN-50: for the delegate and the principal.
+        if ((WorkflowSodRules.DistinctApprover(sodFacts, userId)
+             ?? (onBehalfOf is null ? null : WorkflowSodRules.DistinctApprover(sodFacts, onBehalfOf.PrincipalUserId))) is { } distinctApprover)
         {
             panel.BlockReason = distinctApprover;
             panel.CanReject = true;
@@ -197,13 +206,49 @@ public static class WorkflowPanelBuilder
         return "upcoming";
     }
 
-    private static string? ResolveBlockReason(
+    private static (string? Reason, ActiveDelegation? OnBehalfOf) ResolveBlockReason(
         WorkflowInstance instance,
         WorkflowStepSnapshot currentStep,
         WorkflowSodFacts sodFacts,
         ClaimsPrincipal user,
         Guid? userId,
         WorkflowPanelBuildOptions options)
+    {
+        if (MakerOrInitiator(instance, userId, options) is { } own)
+            return (own, null);
+
+        // PLAN-43: exactly the server's rules, exempt types included: role, then the rules of WorkflowSodRules, then the entity's.
+        var actor = WorkflowActionActor.FromPrincipal(user);
+        ActiveDelegation? onBehalfOf = null;
+        var roleError = WorkflowStageGuard.ValidateStepRole(currentStep, instance.EntityType, actor.Roles, options.StepRoleOptions);
+        if (roleError is not null)
+        {
+            // PLAN-50 (§6): a delegation of the step's role that covers the type stands in for it, as in the evaluator.
+            onBehalfOf = options.Delegations is { Count: > 0 } delegations
+                         && !string.IsNullOrWhiteSpace(currentStep.RoleRequired)
+                         && options.StepRoleOptions.IsEnforced(instance.EntityType)
+                ? ApprovalDelegationMatcher.Match(delegations, currentStep.RoleRequired, instance.EntityType, DateTime.UtcNow)
+                : null;
+            if (onBehalfOf is null)
+                return (roleError, null);
+        }
+
+        // PLAN-50 (P-6): every identity rule after the role, as the delegate and then as the principal.
+        var reason = WorkflowSodRules.Excluded(sodFacts, userId)
+            ?? WorkflowSodRules.Subject(sodFacts, actor.EmployeeId)
+            ?? options.AdditionalBlockReason?.Invoke(instance, currentStep, userId);
+        if (reason is null && onBehalfOf is not null)
+        {
+            reason = MakerOrInitiator(instance, onBehalfOf.PrincipalUserId, options)
+                ?? WorkflowSodRules.Excluded(sodFacts, onBehalfOf.PrincipalUserId)
+                ?? WorkflowSodRules.Subject(sodFacts, onBehalfOf.PrincipalEmployeeId)
+                ?? options.AdditionalBlockReason?.Invoke(instance, currentStep, onBehalfOf.PrincipalUserId);
+        }
+
+        return reason is null ? (null, onBehalfOf) : (reason, null);
+    }
+
+    private static string? MakerOrInitiator(WorkflowInstance instance, Guid? userId, WorkflowPanelBuildOptions options)
     {
         if (userId is Guid actorId && options.EntityMakers.Contains(actorId))
             return options.CreatorSoDMessage;
@@ -216,14 +261,6 @@ public static class WorkflowPanelBuilder
             return "لا يمكن لمنشئ المسار اعتماد مراحل لاحقة.";
         }
 
-        // PLAN-43: exactly the server's rules, exempt types included: role, then the rules of WorkflowSodRules, then the entity's.
-        var actor = WorkflowActionActor.FromPrincipal(user);
-        var roleError = WorkflowStageGuard.ValidateStepRole(currentStep, instance.EntityType, actor.Roles, options.StepRoleOptions);
-        if (roleError is not null)
-            return roleError;
-
-        return WorkflowSodRules.Excluded(sodFacts, userId)
-            ?? WorkflowSodRules.Subject(sodFacts, actor.EmployeeId)
-            ?? options.AdditionalBlockReason?.Invoke(instance, currentStep, userId);
+        return null;
     }
 }
