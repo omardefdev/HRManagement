@@ -9,6 +9,7 @@ Prompt: docs/acceptance-plans/execution/PLAN-51-AGENT-PROMPT.md. Plan: docs/acce
 | Phase | Status | Finished (UTC) |
 |-------|--------|----------------|
 | P0 | done | 2026-11-11T23:45:16Z |
+| P1 | done | 2026-11-11T23:55:59Z |
 
 ## Session facts
 
@@ -32,7 +33,7 @@ Prompt: docs/acceptance-plans/execution/PLAN-51-AGENT-PROMPT.md. Plan: docs/acce
 
 ## Next step
 
-P1: commit the architecture project (written, uncommitted: src/Tests/HRManagement.ArchitectureTests, slnx entry), seed the lists, add the steps.json step, planted-defect tests; remove InventoryDumpTemp.cs before committing.
+P2: self-service at the gateway (GatewayEssOptions, exact segment match, 404 + Denied:EssNotExposed audit), HrCore.Lookup for staff and services, Gateway.Authenticated for HR.Core static files, GatewayEssRoutingTests, GatewayPathAuthorizationMiddlewareTests updated.
 
 ## P0 summary (Finished (UTC): 2026-11-11T23:45:16Z)
 
@@ -42,3 +43,27 @@ P1: commit the architecture project (written, uncommitted: src/Tests/HRManagemen
   controller leans on the module filter's `Module.HrCore` (gets `[ModulePolicyOverride(Workflow.ExternalStart)]`).
 - 0.6: no employee or marker page calls the lookup API; they need HR.Core's static files (`Gateway.Authenticated`).
 - Server picture: pending (SSH, decision 1).
+
+## P1 summary (Finished (UTC): 2026-11-11T23:55:59Z)
+
+- `src/Tests/HRManagement.ArchitectureTests` (in the slnx; step "Architecture tests" in `scripts/ci/steps.json` and `ci.yml` after
+  "Unit tests", no coverage collector): `WebAssemblyCatalog` (15 web assemblies + `shared` = ServiceDefaults' controllers),
+  `ActionCatalog` (reflection, MVC's rules), `AllWebAssembliesLoadTests`, `WriteActionsHaveExplicitPolicyTests` (per-service lists and
+  pinned ceilings, PLAN-25's recruitment rule), `SensitiveActionsHaveApprovalPolicyTests` (whole names, the plan's prefixes and named
+  list), `InternalRoutesAreServiceOnlyTests` (moved from `S2s042…`), `ModuleOverridesAreDeclaredTests`,
+  `MassAssignmentArchitectureTests` (moved, all fifteen assemblies), `GuardSelfTests` (planted defects). 128/128 green.
+- Lists seeded: `tests/architecture/write-policy-allowlist/*.txt` (332 rows + 1 shared; Payroll's 16 signed PLAN-53, the rest
+  PLAN-51), `sensitive-actions-allowlist.txt` (39, PLAN-51), `entity-binding-allowlist/*.txt` (125: HR.Movements 12 PLAN-51, 113
+  IAM-F). A reason must start with an owning plan; `CeilingList.Owners` loses PLAN-51 in P4.
+- Planted list defects (a removed row, an extra row) fail the tests; restored.
+- `scripts/classify-test-evidence.py` counts the new project as architecture fitness.
+- Timing: the project compiles in 5 to 24 s; a warm run takes 1.4 s (tests 0.4 s); the first run after a build takes about 2 min 25 s on
+  this machine, outside the tests (host start-up over the freshly built assemblies).
+
+Decisions:
+3. **HR.Core's five sensitive writes that carry `HrCore.Write`** (`Competitions.PublishResults`, `OfferLetters.Revoke`,
+   `RecruitmentRequisitions.Publish/PublishInternal`, `WorkforcePlans.Approve`) fail the plan's own sensitive rule, and `HrCore.Approve`
+   would widen them (it admits the approver and platform-admin). P4 gives them a configurable `HrCore.Decision` with today's roles
+   (hr-admin, hr-core), so nothing widens and the policy can be separated by configuration (D-51-2's pattern).
+4. **`Authorize(Roles=…)` alone is not a named policy**: the nine roles-only writes (Compliance DSAR, gateway platform audit and
+   tenant entry) are seeded and get named policies with the same roles in P4.

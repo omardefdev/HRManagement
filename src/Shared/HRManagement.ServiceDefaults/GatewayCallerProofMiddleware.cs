@@ -11,7 +11,7 @@ namespace HRManagement.ServiceDefaults;
 
 /// <summary>
 /// Rejects direct module access when the gateway proof is required. PLAN-42: a valid service token passes on its own; every other
-/// caller needs a v2 proof. <c>api/internal/*</c> stays exempt because <c>S2s042InternalRoutesAreServiceOnlyTests</c> keeps
+/// caller needs a v2 proof. <c>api/internal/*</c> stays exempt because <c>InternalRoutesAreServiceOnlyTests</c> (HRManagement.ArchitectureTests) keeps
 /// those routes for service accounts alone.
 /// </summary>
 public sealed class GatewayCallerProofMiddleware(

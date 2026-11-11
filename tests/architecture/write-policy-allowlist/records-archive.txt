@@ -1,0 +1,26 @@
+# PLAN-51 (§6, P-8): the writes of records-archive that name no policy, on the action or its class. A list that only shrinks
+# (WriteActionsHaveExplicitPolicyTests); each row is signed by the plan that owns it. Key | reason.
+ArchiveIndexEntries.Create | PLAN-51: P4 gives it its explicit policy
+ArchiveIndexEntries.Edit | PLAN-51: P4 gives it its explicit policy
+ArchiveItems.ApproveDisposal | PLAN-51: P4 gives it its explicit policy
+ArchiveItems.AttestCompleteness | PLAN-51: P4 gives it its explicit policy
+ArchiveItems.CancelDisposalRequest | PLAN-51: P4 gives it its explicit policy
+ArchiveItems.Create | PLAN-51: P4 gives it its explicit policy
+ArchiveItems.Edit | PLAN-51: P4 gives it its explicit policy
+ArchiveItems.PlaceLegalHold | PLAN-51: P4 gives it its explicit policy
+ArchiveItems.RecordDisposal | PLAN-51: P4 gives it its explicit policy
+ArchiveItems.ReleaseLegalHold | PLAN-51: P4 gives it its explicit policy
+ArchiveItems.RequestDisposal | PLAN-51: P4 gives it its explicit policy
+ArchiveItems.ReturnLoan | PLAN-51: P4 gives it its explicit policy
+ArchiveItems.StartLoan | PLAN-51: P4 gives it its explicit policy
+ArchiveItems.UpdateRetention | PLAN-51: P4 gives it its explicit policy
+DigitalFileRecords.Create | PLAN-51: P4 gives it its explicit policy
+DigitalFileRecords.Delete | PLAN-51: P4 gives it its explicit policy
+DigitalFileRecords.Edit | PLAN-51: P4 gives it its explicit policy
+DocumentClassifications.Create | PLAN-51: P4 gives it its explicit policy
+DocumentClassifications.Edit | PLAN-51: P4 gives it its explicit policy
+LoanRecords.Create | PLAN-51: P4 gives it its explicit policy
+LoanRecords.Edit | PLAN-51: P4 gives it its explicit policy
+LoanRecords.OverdueLoanCheck | PLAN-51: P4 gives it its explicit policy
+PhysicalFileRecords.Create | PLAN-51: P4 gives it its explicit policy
+PhysicalFileRecords.Edit | PLAN-51: P4 gives it its explicit policy

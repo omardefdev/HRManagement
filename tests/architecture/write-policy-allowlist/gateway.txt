@@ -1,0 +1,7 @@
+# PLAN-51 (§6, P-8): the writes of gateway that name no policy, on the action or its class. A list that only shrinks
+# (WriteActionsHaveExplicitPolicyTests); each row is signed by the plan that owns it. Key | reason.
+AuditSecurity.CreateHold | PLAN-51: P4 gives it its explicit policy
+AuditSecurity.Ingest | PLAN-51: P4 gives it its explicit policy
+AuditSecurity.TriggerWormExport | PLAN-51: P4 gives it its explicit policy
+PlatformTenant.EnterTenant | PLAN-51: P4 gives it its explicit policy
+PlatformTenant.ExitTenant | PLAN-51: P4 gives it its explicit policy

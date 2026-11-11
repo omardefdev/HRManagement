@@ -1,0 +1,14 @@
+# PLAN-51 (§6, P-8): the actions of hr-movements that bind a persistence entity. A list that only shrinks
+# (MassAssignmentArchitectureTests); each row is signed by the plan that owns it. Key | reason.
+DelegationRequests.Create | PLAN-51: P4 replaces the entity with a view model (PLAN-50 pinned it)
+DistributionPlans.Create | PLAN-51: P4 replaces the entity with a view model (PLAN-50 pinned it)
+DistributionPlans.Edit | PLAN-51: P4 replaces the entity with a view model (PLAN-50 pinned it)
+LoanAssignmentRequests.Create | PLAN-51: P4 replaces the entity with a view model (PLAN-50 pinned it)
+MovementNotices.Create | PLAN-51: P4 replaces the entity with a view model (PLAN-50 pinned it)
+MovementNotices.Edit | PLAN-51: P4 replaces the entity with a view model (PLAN-50 pinned it)
+PromotionRequests.Create | PLAN-51: P4 replaces the entity with a view model (PLAN-50 pinned it)
+SecondmentRequests.Create | PLAN-51: P4 replaces the entity with a view model (PLAN-50 pinned it)
+SecondmentRequests.Edit | PLAN-51: P4 replaces the entity with a view model (PLAN-50 pinned it)
+TransferFinancialImpacts.Create | PLAN-51: P4 replaces the entity with a view model (PLAN-50 pinned it)
+TransferRequests.Create | PLAN-51: P4 replaces the entity with a view model (PLAN-50 pinned it)
+TransferRequests.Edit | PLAN-51: P4 replaces the entity with a view model (PLAN-50 pinned it)

@@ -358,6 +358,9 @@ jobs:
       - name: Unit tests
         run: bash scripts/ci/run-steps.sh --step "Unit tests"
 
+      - name: Architecture tests
+        run: bash scripts/ci/run-steps.sh --step "Architecture tests"
+
       - name: Integration tests (MassTransit InMemory)
         run: bash scripts/ci/run-steps.sh --step "Integration tests (MassTransit InMemory)"
 

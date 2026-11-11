@@ -1,0 +1,26 @@
+# PLAN-51 (§6, P-8): the writes of hr-health that name no policy, on the action or its class. A list that only shrinks
+# (WriteActionsHaveExplicitPolicyTests); each row is signed by the plan that owns it. Key | reason.
+HealthRetirementRecords.Create | PLAN-51: P4 gives it its explicit policy
+HealthRetirementRecords.Edit | PLAN-51: P4 gives it its explicit policy
+HealthStatusEntries.Create | PLAN-51: P4 gives it its explicit policy
+HealthStatusEntries.Edit | PLAN-51: P4 gives it its explicit policy
+InsuranceCards.Activate | PLAN-51: P4 gives it its explicit policy
+InsuranceCards.Cancel | PLAN-51: P4 gives it its explicit policy
+InsuranceCards.Create | PLAN-51: P4 gives it its explicit policy
+InsuranceCards.Edit | PLAN-51: P4 gives it its explicit policy
+InsuranceCards.MarkExpired | PLAN-51: P4 gives it its explicit policy
+InsuranceCards.Revoke | PLAN-51: P4 gives it its explicit policy
+InsuranceCards.Suspend | PLAN-51: P4 gives it its explicit policy
+InsuranceContracts.Create | PLAN-51: P4 gives it its explicit policy
+InsuranceContracts.Delete | PLAN-51: P4 gives it its explicit policy
+InsuranceContracts.Edit | PLAN-51: P4 gives it its explicit policy
+MedicalCommitteeReports.Create | PLAN-51: P4 gives it its explicit policy
+MedicalCommitteeReports.Edit | PLAN-51: P4 gives it its explicit policy
+PeriodicMedicalChecks.Create | PLAN-51: P4 gives it its explicit policy
+PeriodicMedicalChecks.Delete | PLAN-51: P4 gives it its explicit policy
+PeriodicMedicalChecks.Edit | PLAN-51: P4 gives it its explicit policy
+WorkplaceSafety.Create | PLAN-51: P4 gives it its explicit policy
+WorkplaceSafety.CreateFirstAid | PLAN-51: P4 gives it its explicit policy
+WorkplaceSafety.CreateInspection | PLAN-51: P4 gives it its explicit policy
+WorkplaceSafety.Delete | PLAN-51: P4 gives it its explicit policy
+WorkplaceSafety.Edit | PLAN-51: P4 gives it its explicit policy

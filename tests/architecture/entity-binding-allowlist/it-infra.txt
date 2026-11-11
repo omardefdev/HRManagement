@@ -1,0 +1,16 @@
+# PLAN-51 (§6, P-8): the actions of it-infra that bind a persistence entity. A list that only shrinks
+# (MassAssignmentArchitectureTests); each row is signed by the plan that owns it. Key | reason.
+BackupJobs.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+BackupJobs.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+EnvironmentConfigurations.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+EnvironmentConfigurations.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+SecurityIncidents.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+SecurityIncidents.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+ServerDevices.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+ServerDevices.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+SupportTickets.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+SupportTickets.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+SystemPermissionRecords.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+SystemPermissionRecords.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+UserDevices.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+UserDevices.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies

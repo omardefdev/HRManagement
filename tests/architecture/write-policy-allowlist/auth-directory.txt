@@ -1,0 +1,9 @@
+# PLAN-51 (§6, P-8): the writes of auth-directory that name no policy, on the action or its class. A list that only shrinks
+# (WriteActionsHaveExplicitPolicyTests); each row is signed by the plan that owns it. Key | reason.
+AuthUsers.Edit | PLAN-51: P4 gives it its explicit policy
+AuthUsers.SyncFromKeycloak | PLAN-51: P4 gives it its explicit policy
+DirectoryEntries.Create | PLAN-51: P4 gives it its explicit policy
+PermissionPolicies.Create | PLAN-51: P4 gives it its explicit policy
+Roles.Create | PLAN-51: P4 gives it its explicit policy
+Roles.Delete | PLAN-51: P4 gives it its explicit policy
+Roles.Edit | PLAN-51: P4 gives it its explicit policy

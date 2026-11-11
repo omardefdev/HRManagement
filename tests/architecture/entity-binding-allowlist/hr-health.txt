@@ -1,0 +1,22 @@
+# PLAN-51 (§6, P-8): the actions of hr-health that bind a persistence entity. A list that only shrinks
+# (MassAssignmentArchitectureTests); each row is signed by the plan that owns it. Key | reason.
+HealthRetirementRecords.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+HealthRetirementRecords.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+HealthStatusEntries.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+HealthStatusEntries.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+InsuranceCards.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+InsuranceCards.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+InsuranceContracts.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+InsuranceContracts.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+MedicalCommitteeReports.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+MedicalCommitteeReports.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+MedicalRecommendations.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+MedicalRecommendations.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+MedicalRecords.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+MedicalRecords.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+PeriodicMedicalChecks.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+PeriodicMedicalChecks.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+WorkplaceSafety.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+WorkplaceSafety.CreateFirstAid | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+WorkplaceSafety.CreateInspection | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+WorkplaceSafety.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies

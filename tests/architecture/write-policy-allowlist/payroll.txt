@@ -1,0 +1,18 @@
+# PLAN-51 (§6, P-8): the writes of payroll that name no policy, on the action or its class. A list that only shrinks
+# (WriteActionsHaveExplicitPolicyTests); each row is signed by the plan that owns it. Key | reason.
+CompensationTypes.Create | PLAN-53: one of the sixteen payroll policies
+CompensationTypes.Delete | PLAN-53: one of the sixteen payroll policies
+CompensationTypes.Edit | PLAN-53: one of the sixteen payroll policies
+DeductionTypes.Create | PLAN-53: one of the sixteen payroll policies
+DeductionTypes.Delete | PLAN-53: one of the sixteen payroll policies
+DeductionTypes.Edit | PLAN-53: one of the sixteen payroll policies
+EmployeePayProfiles.Create | PLAN-53: one of the sixteen payroll policies
+ExportJobs.Cancel | PLAN-53: one of the sixteen payroll policies
+PayGrades.Create | PLAN-53: one of the sixteen payroll policies
+PayGrades.Delete | PLAN-53: one of the sixteen payroll policies
+PayGrades.Edit | PLAN-53: one of the sixteen payroll policies
+PayrollReports.BulkPayslips | PLAN-53: one of the sixteen payroll policies
+PayrollRuns.Create | PLAN-53: one of the sixteen payroll policies
+SalaryScales.Create | PLAN-53: one of the sixteen payroll policies
+SalaryScales.Delete | PLAN-53: one of the sixteen payroll policies
+SalaryScales.Edit | PLAN-53: one of the sixteen payroll policies

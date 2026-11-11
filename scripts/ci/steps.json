@@ -404,6 +404,12 @@
       "run": "dotnet test src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj --configuration Release --no-build --logger \"trx;LogFileName=unit-results.trx\" --results-directory ./TestResults/unit --settings coverlet.runsettings --collect:\"XPlat Code Coverage\""
     },
     {
+      "name": "Architecture tests",
+      "kind": "test",
+      "run": "dotnet test src/Tests/HRManagement.ArchitectureTests/HRManagement.ArchitectureTests.csproj --configuration Release --no-build --logger \"trx;LogFileName=architecture-results.trx\" --results-directory ./TestResults/architecture",
+      "comment": "PLAN-51 (P-8): one project over the fifteen web assemblies (writes name their policy, sensitive actions their approval policy, internal routes are service-only, overrides never authorize a write by themselves, no entity binding), against ceiling lists under tests/architecture that only shrink. No coverage collector: it adds nothing to the coverage gate."
+    },
+    {
       "name": "Integration tests (MassTransit InMemory)",
       "kind": "test",
       "run": "dotnet test src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTests.csproj --configuration Release --no-build --logger \"trx;LogFileName=integration-results.trx\" --results-directory ./TestResults/integration --filter \"Category!=Testcontainers\" --blame-hang-timeout 5m --settings coverlet.runsettings --collect:\"XPlat Code Coverage\""
