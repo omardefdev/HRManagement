@@ -11,6 +11,7 @@ using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Legal;
 using HRManagement.SharedKernel.ViewModels;
 using MassTransit;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -250,9 +251,17 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
         return Guid.TryParse(v, out var g) ? g : null;
     }
 
-    public async Task<IActionResult> Index() =>
-        View(await db.SecondmentRequests.AsNoTracking().OrderByDescending(x => x.StartDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
+    public async Task<IActionResult> Index(string? show = null)
+    {
+        var query = db.SecondmentRequests.AsNoTracking();
+        // PLAN-50 (D-IAM-1): the approver's list shows what awaits approval by default.
+        if (MovementApprovalUi.PendingOnly(User, show, ViewData))
+            query = query.Where(x => x.Status == SecondmentStatus.Pending && !x.IsCancelled);
+        return View(await query.OrderByDescending(x => x.StartDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public IActionResult Create() => View(new SecondmentRequest
     {
         StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
@@ -262,10 +271,12 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Create(SecondmentRequest model)
     {
         if (!ModelState.IsValid) return View(model);
-        model.RequestedBy ??= ParseUserId(User);
+        // PLAN-50: always the authenticated caller (as for transfers): a client-supplied value would skew the creator check of the approval.
+        model.RequestedBy = ParseUserId(User);
         model.Status = SecondmentStatus.Pending;
         db.SecondmentRequests.Add(model);
         await db.SaveChangesAsync();
@@ -282,6 +293,7 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
         return RedirectToAction(nameof(Index));
     }
 
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Details(Guid id)
     {
         var s = await db.SecondmentRequests
@@ -296,6 +308,7 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
         return View(s);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Edit(Guid id)
     {
         var s = await db.SecondmentRequests.FindAsync(id);
@@ -310,6 +323,7 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Edit(Guid id, SecondmentRequest model)
     {
         if (id != model.Id) return BadRequest();
@@ -333,7 +347,8 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Approve(Guid id)
     {
         var s = await db.SecondmentRequests.FindAsync(id);
@@ -378,6 +393,7 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Activate(Guid id)
     {
         var s = await db.SecondmentRequests.FindAsync(id);
@@ -450,6 +466,7 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Close(Guid id)
     {
         var s = await db.SecondmentRequests.FindAsync(id);
@@ -486,6 +503,7 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Cancel(Guid id, string? reason)
     {
         var s = await db.SecondmentRequests.FindAsync(id);
@@ -620,7 +638,8 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
         return null;
     }
 
-    public async Task<IActionResult> Index()
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
+    public async Task<IActionResult> Index(string? show = null)
     {
         var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, db.OrgUnitSnapshots);
         if (scope.IsDenied) return Forbid();
@@ -628,9 +647,13 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
         if (scope.MustFilter)
             query = query.Where(x => scope.AllowedOrgUnitIds.Contains(x.LendingOrgUnitId)
                 && scope.AllowedOrgUnitIds.Contains(x.BorrowingOrgUnitId));
+        // PLAN-50 (D-IAM-1): the approver's list shows what awaits approval by default.
+        if (MovementApprovalUi.PendingOnly(User, show, ViewData))
+            query = query.Where(x => x.Status == LoanAssignmentStatus.Pending && !x.IsCancelled);
         return View(await query.OrderByDescending(x => x.StartDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public IActionResult Create() => View(new LoanAssignmentRequest
     {
         StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
@@ -640,11 +663,13 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Create(LoanAssignmentRequest model)
     {
         if (!ModelState.IsValid) return View(model);
         if (await EnsureOrgIdsAssignableAsync(model.LendingOrgUnitId, model.BorrowingOrgUnitId) is { } denied) return denied;
-        model.RequestedBy ??= ParseUserId(User);
+        // PLAN-50: always the authenticated caller (as for transfers): a client-supplied value would skew the creator check of the approval.
+        model.RequestedBy = ParseUserId(User);
         model.Status = LoanAssignmentStatus.Pending;
         db.LoanAssignmentRequests.Add(model);
         await db.SaveChangesAsync();
@@ -661,6 +686,7 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
         return RedirectToAction(nameof(Index));
     }
 
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Details(Guid id)
     {
         var s = await db.LoanAssignmentRequests
@@ -678,7 +704,8 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Approve(Guid id)
     {
         var s = await db.LoanAssignmentRequests.FindAsync(id);
@@ -724,6 +751,7 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Execute(Guid id)
     {
         var s = await db.LoanAssignmentRequests.FindAsync(id);
@@ -798,6 +826,7 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Close(Guid id)
     {
         var s = await db.LoanAssignmentRequests.FindAsync(id);
@@ -837,6 +866,7 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Cancel(Guid id, string? reason)
     {
         var s = await db.LoanAssignmentRequests.FindAsync(id);
@@ -891,9 +921,17 @@ public class PromotionRequestsController(
         return Guid.TryParse(v, out var g) ? g : null;
     }
 
-    public async Task<IActionResult> Index() =>
-        View(await db.PromotionRequests.AsNoTracking().OrderByDescending(x => x.EffectiveDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
+    public async Task<IActionResult> Index(string? show = null)
+    {
+        var query = db.PromotionRequests.AsNoTracking();
+        // PLAN-50 (D-IAM-1): the approver's list shows what awaits approval by default.
+        if (MovementApprovalUi.PendingOnly(User, show, ViewData))
+            query = query.Where(x => x.Status == PromotionRequestStatus.Pending && !x.IsCancelled);
+        return View(await query.OrderByDescending(x => x.EffectiveDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public IActionResult Create() => View(new PromotionRequest
     {
         EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow),
@@ -902,6 +940,7 @@ public class PromotionRequestsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Create(PromotionRequest model)
     {
         var regimes = await activeRegimeClient.GetActiveRegimesAsync([model.EmployeeId]);
@@ -913,7 +952,8 @@ public class PromotionRequestsController(
 
         if (!ModelState.IsValid) return View(model);
 
-        model.RequestedBy ??= ParseUserId(User);
+        // PLAN-50: always the authenticated caller (as for transfers): a client-supplied value would skew the creator check of the approval.
+        model.RequestedBy = ParseUserId(User);
         model.Status = PromotionRequestStatus.Pending;
         db.PromotionRequests.Add(model);
         await db.SaveChangesAsync();
@@ -931,6 +971,7 @@ public class PromotionRequestsController(
         return RedirectToAction(nameof(Index));
     }
 
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Details(Guid id)
     {
         var item = await db.PromotionRequests
@@ -947,7 +988,8 @@ public class PromotionRequestsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Approve(Guid id)
     {
         var item = await db.PromotionRequests.FindAsync(id);
@@ -990,6 +1032,7 @@ public class PromotionRequestsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Execute(Guid id)
     {
         var item = await db.PromotionRequests.FindAsync(id);
@@ -1045,9 +1088,17 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
         return Guid.TryParse(v, out var g) ? g : null;
     }
 
-    public async Task<IActionResult> Index() =>
-        View(await db.DelegationRequests.AsNoTracking().OrderByDescending(x => x.StartDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
+    public async Task<IActionResult> Index(string? show = null)
+    {
+        var query = db.DelegationRequests.AsNoTracking();
+        // PLAN-50 (D-IAM-1): the approver's list shows what awaits approval by default.
+        if (MovementApprovalUi.PendingOnly(User, show, ViewData))
+            query = query.Where(x => x.Status == DelegationRequestStatus.Pending && !x.IsCancelled);
+        return View(await query.OrderByDescending(x => x.StartDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
+    }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public IActionResult Create() => View(new DelegationRequest
     {
         StartDate = DateOnly.FromDateTime(DateTime.UtcNow),
@@ -1057,6 +1108,7 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Create(DelegationRequest model)
     {
         var regimeError = MovementRegimeValidationService.ValidatePreservingMovement("delegation", null);
@@ -1065,7 +1117,8 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
 
         if (!ModelState.IsValid) return View(model);
 
-        model.RequestedBy ??= ParseUserId(User);
+        // PLAN-50: always the authenticated caller (as for transfers): a client-supplied value would skew the creator check of the approval.
+        model.RequestedBy = ParseUserId(User);
         model.Status = DelegationRequestStatus.Pending;
         db.DelegationRequests.Add(model);
         await db.SaveChangesAsync();
@@ -1083,6 +1136,7 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
         return RedirectToAction(nameof(Index));
     }
 
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Details(Guid id)
     {
         var item = await db.DelegationRequests
@@ -1099,7 +1153,8 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Microsoft.AspNetCore.Authorization.Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Approve(Guid id)
     {
         var item = await db.DelegationRequests.FindAsync(id);
@@ -1135,6 +1190,7 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Execute(Guid id)
     {
         var item = await db.DelegationRequests.FindAsync(id);
@@ -1183,6 +1239,7 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Close(Guid id)
     {
         var item = await db.DelegationRequests.FindAsync(id);

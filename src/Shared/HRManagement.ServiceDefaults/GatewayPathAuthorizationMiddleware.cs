@@ -276,6 +276,21 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
             }
         }
 
+        // PLAN-50 (§2, P-3): the four approval screens of the five movement types and the module's static files admit any interactive staff
+        // user, because a delegate may hold no module role (D-50-3); HrMovements.ApprovalAccess and HrManagement.Approve decide in the
+        // service. Every other path of the module keeps Module.HrMovements.
+        if (string.Equals(moduleSegment, GatewayApprovalPaths.MovementsModule, StringComparison.OrdinalIgnoreCase))
+        {
+            if (GatewayApprovalPaths.IsMovementApprovalPath(httpMethod, pathValue)
+                || GatewayApprovalPaths.IsModuleStaticAsset(GatewayApprovalPaths.MovementsModule, httpMethod, pathValue))
+            {
+                policy = HrManagementPolicies.GatewayApprovalReach;
+                return true;
+            }
+
+            return false;
+        }
+
         if (string.Equals(moduleSegment, "hr-contracts", StringComparison.OrdinalIgnoreCase)
             && pathValue.Contains("/HireWizard", StringComparison.OrdinalIgnoreCase))
         {

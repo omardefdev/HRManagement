@@ -60,7 +60,8 @@ public class TransferRequestsController : Controller
         return Guid.TryParse(v, out var g) ? g : null;
     }
 
-    public async Task<IActionResult> Index()
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
+    public async Task<IActionResult> Index(string? show = null)
     {
         var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, _db.OrgUnitSnapshots);
         if (scope.IsDenied) return Forbid();
@@ -68,9 +69,13 @@ public class TransferRequestsController : Controller
         if (scope.MustFilter)
             query = query.Where(x => scope.AllowedOrgUnitIds.Contains(x.FromOrgUnitId)
                                      && scope.AllowedOrgUnitIds.Contains(x.ToOrgUnitId));
+        // PLAN-50 (D-IAM-1): the approver's list shows what awaits approval by default.
+        if (MovementApprovalUi.PendingOnly(User, show, ViewData))
+            query = query.Where(x => x.Status == ApprovalStatus.Pending && !x.IsCancelled);
         return View(await query.OrderByDescending(x => x.RequestDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public IActionResult Create() => View(new TransferRequest
     {
         RequestDate = DateOnly.FromDateTime(DateTime.UtcNow),
@@ -80,6 +85,7 @@ public class TransferRequestsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Create(TransferRequest model)
     {
         if (!ModelState.IsValid) return View(model);
@@ -115,6 +121,7 @@ public class TransferRequestsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Details(Guid id)
     {
         var t = await _db.TransferRequests
@@ -132,6 +139,7 @@ public class TransferRequestsController : Controller
         return View(t);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Edit(Guid id)
     {
         var t = await _db.TransferRequests.FindAsync(id);
@@ -147,6 +155,7 @@ public class TransferRequestsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Edit(Guid id, TransferRequest model)
     {
         if (id != model.Id) return BadRequest();
@@ -184,6 +193,7 @@ public class TransferRequestsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Approve(Guid id)
     {
         var t = await _db.TransferRequests.FirstOrDefaultAsync(x => x.Id == id);
@@ -252,6 +262,7 @@ public class TransferRequestsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrManagementApprove)]
+    [ModulePolicyOverride(HrManagementPolicies.HrMovementsApprovalAccess)]
     public async Task<IActionResult> Reject(Guid id, string? notes)
     {
         var t = await _db.TransferRequests.FirstOrDefaultAsync(x => x.Id == id);
@@ -284,6 +295,7 @@ public class TransferRequestsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Idempotent]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Execute(Guid id, decimal? salaryChange, decimal? allowanceChange, string? financialNotes)
     {
         var t = await _db.TransferRequests.FirstOrDefaultAsync(x => x.Id == id);
@@ -418,6 +430,7 @@ public class TransferRequestsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     public async Task<IActionResult> Cancel(Guid id, string? reason)
     {
         var t = await _db.TransferRequests.FirstOrDefaultAsync(x => x.Id == id);

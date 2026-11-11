@@ -154,6 +154,21 @@ public static class HrManagementPolicies
 
     public const string HrManagementApprove = "HrManagement.Approve";
 
+    /// <summary>
+    /// PLAN-50 (D-IAM-1, D-MOV-2): the four approval screens of the five movement types (list, details, approve, reject): the module role,
+    /// the management approver, and an active delegate of the management approver (D-50-3). Used through <see cref="ModulePolicyOverrideAttribute"/>.
+    /// </summary>
+    public const string HrMovementsApprovalAccess = "HrMovements.ApprovalAccess";
+
+    /// <summary>PLAN-50: create, edit, execute, activate, close and cancel a movement: Admin or hr-movements, explicitly.</summary>
+    public const string HrMovementsWrite = "HrMovements.Write";
+
+    /// <summary>
+    /// PLAN-50 (§4): the gateway's coarse layer for the named approval paths only: an interactive user with a valid tenant_id and at least one
+    /// role of the platform that is not a non-staff role (<c>Authorization:NonStaffRoles</c>). The service decides.
+    /// </summary>
+    public const string GatewayApprovalReach = "Gateway.ApprovalReach";
+
     public const string HrContractsHireView = "HrContracts.HireView";
     public const string HrContractsHireExecute = "HrContracts.HireExecute";
 

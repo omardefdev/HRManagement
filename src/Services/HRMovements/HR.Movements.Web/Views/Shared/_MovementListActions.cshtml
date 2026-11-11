@@ -1,0 +1,21 @@
+@* PLAN-50 (D-IAM-1, P-3): the list's filter and its create button. The approver's list shows what awaits approval by default; the create
+   button shows only under HrMovements.Write (the 403 of the action stays the control). *@
+@{
+    var pendingOnly = ViewData[MovementApprovalUi.PendingOnlyKey] as bool? == true;
+    var canWrite = await MovementApprovalUi.CanWriteAsync(AuthorizationService, User);
+}
+<div class="d-flex flex-wrap gap-2 align-items-center">
+    @if (pendingOnly)
+    {
+        <span class="badge bg-warning text-dark" data-movement-filter="pending">بانتظار الاعتماد</span>
+        <a asp-action="Index" asp-route-show="@MovementApprovalUi.ShowAll" class="btn btn-outline-secondary btn-sm">عرض الكل</a>
+    }
+    else
+    {
+        <a asp-action="Index" asp-route-show="@MovementApprovalUi.ShowPending" class="btn btn-outline-secondary btn-sm">بانتظار الاعتماد فقط</a>
+    }
+    @if (canWrite)
+    {
+        <a asp-action="Create" class="btn btn-primary btn-sm">طلب جديد</a>
+    }
+</div>

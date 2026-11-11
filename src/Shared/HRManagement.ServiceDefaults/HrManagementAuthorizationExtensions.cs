@@ -193,6 +193,18 @@ public static class HrManagementAuthorizationExtensions
                 c.User.IsInRole(HrManagementRoles.Admin)
                 || c.User.IsInRole(HrManagementRoles.HrManagementApprover)));
 
+            // PLAN-50 (D-IAM-1, D-MOV-2): the approval screens of the five movement types, and the movement writes, made explicit.
+            options.AddPolicy(HrManagementPolicies.HrMovementsApprovalAccess, p => p.RequireAssertion(c =>
+                c.User.IsInRole(HrManagementRoles.Admin)
+                || c.User.IsInRole(HrManagementRoles.HrMovements)
+                || c.User.IsInRole(HrManagementRoles.HrManagementApprover)));
+            options.AddPolicy(HrManagementPolicies.HrMovementsWrite, p => p.RequireAssertion(c =>
+                c.User.IsInRole(HrManagementRoles.Admin)
+                || c.User.IsInRole(HrManagementRoles.HrMovements)));
+
+            // PLAN-50 (§4): the gateway's coarse layer for the named approval paths.
+            options.AddPolicy(HrManagementPolicies.GatewayApprovalReach, p => p.AddRequirements(new GatewayApprovalReachRequirement()));
+
             options.AddPolicy(HrManagementPolicies.HrContractsHireView, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
                 || c.User.IsInRole(HrManagementRoles.HrContracts)
@@ -230,6 +242,7 @@ public static class HrManagementAuthorizationExtensions
         });
 
         services.AddSingleton<IAuthorizationHandler, PolicyEngineRoleHandler>();
+        services.AddSingleton<IAuthorizationHandler, GatewayApprovalReachHandler>();
         services.AddServiceToServiceAuthorizationPolicies();
         services.AddHrMvcSecurityDefaults();
         return services;
@@ -248,6 +261,8 @@ public static class HrManagementAuthorizationExtensions
     {
         mvc.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(o =>
             o.Filters.Add(new HrModuleAuthorizationFilter(policyName)));
+        // PLAN-50 (§1): a ModulePolicyOverride that names an unknown policy stops the boot.
+        mvc.Services.AddHostedService<ModulePolicyOverrideValidator>();
         return mvc;
     }
 }

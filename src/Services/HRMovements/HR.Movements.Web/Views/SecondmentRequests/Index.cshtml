@@ -1,10 +1,15 @@
 @model IReadOnlyList<HR.Movements.Domain.Entities.SecondmentRequest>
 @using HR.Movements.Domain.Enums
-@{ ViewData["Title"] = "طلبات الانتداب"; }
+@{
+    ViewData["Title"] = "طلبات الانتداب";
+    // PLAN-50 (P-3): each button follows its action's policy; the 403 stays the control.
+    var canWrite = await MovementApprovalUi.CanWriteAsync(AuthorizationService, User);
+    var canApprove = await MovementApprovalUi.CanApproveAsync(AuthorizationService, User, "SecondmentRequest");
+}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0">طلبات الانتداب</h3>
-        <a asp-action="Create" class="btn btn-primary btn-sm">طلب جديد</a>
+        <partial name="_MovementListActions" />
     </div>
     <div class="card-body">
         @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
@@ -20,16 +25,19 @@
                     <td><span data-hr-employee-id="@x.EmployeeId">جاري التحميل...</span></td><td>@x.HostOrg</td><td>@x.StartDate</td><td>@x.EndDate</td><td>@Html.HrEnumDisplay(x.Status)</td>
                     <td>
                         <a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a>
-                        @if (x.Status == SecondmentStatus.Pending)
+                        @if (canWrite && x.Status == SecondmentStatus.Pending)
                         {
                             <a asp-action="Edit" asp-route-id="@x.Id" class="btn btn-outline-primary btn-xs">تعديل</a>
+                        }
+                        @if (canApprove && x.Status == SecondmentStatus.Pending)
+                        {
                             <form asp-action="Approve" asp-route-id="@x.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-success btn-xs">اعتماد</button></form>
                         }
-                        @if (x.Status == SecondmentStatus.Approved)
+                        @if (canWrite && x.Status == SecondmentStatus.Approved)
                         {
                             <form asp-action="Activate" asp-route-id="@x.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-primary btn-xs">تفعيل</button></form>
                         }
-                        @if (x.Status != SecondmentStatus.Closed)
+                        @if (canWrite && x.Status != SecondmentStatus.Closed)
                         {
                             <form asp-action="Close" asp-route-id="@x.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-outline-secondary btn-xs">إغلاق</button></form>
                         }

@@ -1,6 +1,11 @@
 @model HR.Movements.Domain.Entities.TransferRequest
 @using HRManagement.SharedKernel.Enums
-@{ ViewData["Title"] = "تفاصيل طلب النقل"; }
+@{
+    ViewData["Title"] = "تفاصيل طلب النقل";
+    // PLAN-50 (P-3): each button follows its action's policy; the 403 stays the control.
+    var canWrite = await MovementApprovalUi.CanWriteAsync(AuthorizationService, User);
+    var canApprove = await MovementApprovalUi.CanApproveAsync(AuthorizationService, User, "TransferRequest");
+}
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0">طلب نقل</h3>
@@ -57,13 +62,13 @@
         }
 
         <div class="mt-3 d-flex flex-wrap gap-2">
-            @if (Model.Status == ApprovalStatus.Pending)
+            @if (canWrite && Model.Status == ApprovalStatus.Pending)
             {
                 <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary btn-sm">تعديل</a>
             }
         </div>
 
-        @if (Model.Status == ApprovalStatus.Pending)
+        @if (canApprove && Model.Status == ApprovalStatus.Pending)
         {
             <div class="card card-body bg-light mt-3">
                 <p class="mb-2 fw-bold">اعتماد أو رفض الطلب</p>
@@ -82,7 +87,7 @@
             </div>
         }
 
-        @if (Model.Status == ApprovalStatus.Approved)
+        @if (canWrite && Model.Status == ApprovalStatus.Approved)
         {
             <div class="card card-body bg-light mt-3">
                 <p class="mb-2 fw-bold">تنفيذ النقل</p>
