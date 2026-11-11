@@ -65,3 +65,10 @@ condition = "AND"
 paths = ['''^src/Shared/HRManagement\.ServiceDefaults/Delegation/ApprovalActingContext\.cs$''']
 regexTarget = "match"
 regexes = ['''ItemKey\s*=\s*"PLAN50\.ApprovalDelegation"''']
+
+[[allowlists]]
+description = "PLAN-50 final report: its guards table quotes the same HttpContext.Items slot name as the entry above (ItemKey = \"PLAN50.ApprovalDelegation\") to explain that entry. A dictionary entry name, not a secret. Only that exact text, only in that report."
+condition = "AND"
+paths = ['''^reports/plan50-final-report\.md$''']
+regexTarget = "match"
+regexes = ['''ItemKey\s*=\s*"PLAN50\.ApprovalDelegation"''']
