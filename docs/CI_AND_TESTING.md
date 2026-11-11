@@ -38,6 +38,19 @@ RUN_TESTCONTAINERS=true dotnet test src/Tests/HRManagement.IntegrationTests/HRMa
 
 في CI (`ci.yml`) خطوة Testcontainers **إلزامية** على كل PR/push — ليست مشروطة بوسم `integration`.
 SQLite/InMemory تبقى لمسار سريع ولا تغلق وحدها مسارات إنتاجية.
+
+**اتصالات الخادم المشترك (PLAN-49).** كل اختبار في مجموعة `PostgreSql` (وكذلك `PgRabbit` و`PgMinio`) يأخذ قاعدة بيانات
+خاصة به، أي حوض اتصالات خاصاً به، وللخادم الواحد 100 منفذ اتصال. Npgsql يُبقي الاتصال الخامل خمس دقائق افتراضياً، فكان
+الخادم يحمل اتصالات كل اختبار انتهى في آخر خمس دقائق؛ ولما كبرت المجموعة لم يجد صنف إثباتات RLS (ثماني عشرة قاعدة)
+منفذاً فارغاً (`53300` في طلب الدمج 47: تسعون اتصالاً على الخادم، تسعة وثمانون منها خاملة). لذلك تغلق سلاسل الاتصال التي
+يعطيها `PostgreSqlFixture` (`CreateDatabaseAsync` و`CreateAppConnectionAsync`) الاتصال الخامل بعد خمس ثوانٍ، والاختبار
+`PostgreSqlFixtureIdleConnectionTests` يثبت ذلك على الخادم نفسه. قاعدتان لمن يضيف اختباراً:
+
+- خذ سلسلة الاتصال من هاتين الدالتين أو اشتقها من ناتجهما (بتغيير المستخدم مثلاً)، ولا تبنِ سلسلة إلى قاعدة جديدة من
+  `ConnectionString` مباشرة.
+- شغّل قبل طلب الدمج خطوة Testcontainers **كاملة** بمرشح CI نفسه (`Category=Testcontainers&Category!=ObjectStorage`)، لا
+  أصناف خطتك وحدها. صنف يفشل في التشغيل الكامل وينجح وحده فشلٌ حقيقي: الخادم مشترك، وCI يشغّل الخطوة كاملة.
+
 ## التغطية محلياً (QA-001)
 
 ```powershell
@@ -196,6 +209,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -SkipTe
 - **الصنف الجديد:** يُضاف إلى `ci-scope.json` في الالتزام نفسه، وإلا سقطت الوظيفة («ran and is not in the scope file»). ولا يُستبعد إلا لبيئة لا يوفرها CI، ولا يُستبعد لأنه أحمر.
 - **الترتيب:** الأصناف التي توقف الحاويات أو تعيد إنشاءها في المجموعة `isolated`: كل صنف وحده في `dotnet test` خاص به (P-7). وبين الملفين يُعاد المكدّس من مجلدات فارغة لأن بذور القبول تُستهلك.
 - **طبقة لمرحلة (PLAN-42):** مرحلة في `order[]` تحمل `composeFiles` و`recreate` تُطبَّق ملفاتها على المكدّس الجاري قبل تشغيلها، فتُعاد الخدمات المسمّاة في `recreate` وحدها. وأصنافها تعمل كل صنف وحده كالمجموعة `isolated`، ويُهدم المكدّس قبل استعماله التالي. لذلك تأتي هذه المرحلة آخر مراحل مكدّسها: المجموعة `s2s42` بعد `final` على prod-like.
+- **طبقة ثانية على المكدّس نفسه (PLAN-49):** المجموعة `pol49` (`docker-compose.acceptance-pol49.yml`: `Core.Recruitment` بوضع Enforce مع قاعدة القبول `ACC-POL49-WEAK-OFFER`، لسيناريو AC-POL-49f وحده) لها وظيفة مرحلة خاصة بها، `prodlike-policy`، على مكدّس يبدأ لها. فتبقى كل مرحلة بطبقة آخر مراحل مكدّسها في وظيفتها (`Qa066WorkflowTests`). وتسبق `s2s42` في `order[]`، لتبقى في وظائف المراحل آخر مرحلة حيّة، وهي التي يقرأ فحص PII مكدّسها، هي التي حملت المجموعتين `main` و`isolated`. أما التشغيل بلا `-Stage` فيبدأ مكدّساً جديداً بعد كل مرحلة بطبقة، ولذلك يفحص `acceptance-job.ps1` فيه المكدّس الذي عُلّم بطبقة قبل أن يُهدم، ثم المكدّس الأخير. محلياً: `acceptance-job.ps1 -Stage prodLike:pol49`.
 - **الحارس:** `scripts/ci/acceptance-guard.ps1` يسقط الوظيفة إن كان في صنف مطلوب نتيجة غير `Passed`، أو سيناريو `Fail`/`Blocked` في مجلده، أو لم يعمل أصلاً، أو ظهر في trx صنف غير مدرج، أو قال trx إن التشغيل أُجهض، أو تعذرت قراءة `result.json`. والأصناف غير المطلوبة تظهر في ملخص الوظيفة فقط.
 - **السلبي اليدوي:** `gh workflow run ci.yml --ref main -f simulate_missing=<Class.Method>` يحجب سيناريو مطلوباً، فتحمر الوظيفة وتسمّيه. و`-f classes=<A,B>` يعيد تشغيل أصناف بعينها، للتشخيص فقط: خارج `main` تنتهي الوظيفة حمراء وإن نجحت أصنافها، حتى لا تقف فحصاً أخضر لالتزام فرع. واسم صنف خارج النطاق خطأ.
 - **محلياً (المالك):** `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci/acceptance-job.ps1 -Profile Both`، ويكتب كله في `artifacts/acceptance/run/`، ولا يمس `acceptance-evidence/` المودَع. والمرحلة `meta` (AC-QA-34/35) في CI فقط لأنها تقرأ نتائج وظيفة `CI` للالتزام نفسه. وPowerShell 5.1 لا يكفي لبعض سكربتات AC-01..37 (`??`، وتمرير علامات الاقتباس إلى `docker exec`)، وهي غير مطلوبة.
@@ -223,6 +237,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -SkipTe
 | `Acceptance` | يعمل دائماً. يجمع نتائج المراحل في تخطيط التشغيل المتتابع (`scripts/ci/acceptance-merge.ps1`)، ثم الملخص والمدقق والحارس وفحص الأثر، ويسقط إن لم تنجح وظيفة من الوظائف التي يحتاجها (`scripts/ci/acceptance-needs-check.ps1`) |
 
 - `prodlike-final` تحمل `AcQa41AcceptanceBaselineTests`، وهو يقرأ مجلدات التشغيل ويحتاج مكدساً حياً. فتبدأ مكدسها بالتوازي، وتنتظر نتائج ما سمّته `waitFor`، وتقرأها ولا تعيد رفعها.
+- `prodlike-policy` (PLAN-49) تحمل `AcPol49EnforceOverlayTests` وحده: مكدس prod-like جديد، ثم طبقة `pol49` عليه. وهي وظيفة مستقلة لأن الطبقة تغيّر المكدس، ولأن بدء مكدس ثانٍ داخل `prodlike` كان يتجاوز مهلتها.
 - `meta` تبدأ مكدسها وتنتظر نتائج `CI` كما كانت.
 - `E2E` لا ينتظر `CI`: لم يكن يأخذ منه غير نجاحه.
 - دفعة جديدة إلى PR تلغي تشغيله السابق كله (`concurrency` على مستوى سير العمل).

@@ -57,6 +57,27 @@ public class PostgreSqlFixture : IAsyncLifetime
     public const string AppRole = "hrm_rls_app";
     private const string AppRolePassword = "hrm_rls_app_pwd";
 
+    /// <summary>Seconds a pooled connection of a test's own database may stay idle before the pool closes it.</summary>
+    public const int IdleConnectionLifetimeSeconds = 5;
+
+    /// <summary>Seconds between two looks of a pool at its idle connections.</summary>
+    public const int IdleConnectionPruningSeconds = 1;
+
+    /// <summary>
+    /// Every test takes a database of its own, so every test's connection string is a pool of its own, and Npgsql keeps
+    /// an idle pooled connection for five minutes by default. One server of 100 slots then holds the idle connections of
+    /// every test of the last five minutes; once the collection had grown, a class that takes many databases found no
+    /// slot left (PLAN-49, PR 47: 53300 in <c>CrossTenantRlsIntegrationTests</c>, with 90 connections on the shared
+    /// server and 89 of them idle). A connection a test has finished with is therefore closed after a few seconds.
+    /// A connection that is never returned to its pool is not closed by this: a real leak still fills the server.
+    /// </summary>
+    private static string ClosingIdleConnections(Npgsql.NpgsqlConnectionStringBuilder builder)
+    {
+        builder.ConnectionIdleLifetime = IdleConnectionLifetimeSeconds;
+        builder.ConnectionPruningInterval = IdleConnectionPruningSeconds;
+        return builder.ConnectionString;
+    }
+
     public async Task<string> CreateDatabaseAsync(string databaseName)
     {
         if (_container is null)
@@ -67,7 +88,7 @@ public class PostgreSqlFixture : IAsyncLifetime
         {
             Database = databaseName
         };
-        return builder.ConnectionString;
+        return ClosingIdleConnections(builder);
     }
 
     /// <summary>
@@ -114,7 +135,7 @@ public class PostgreSqlFixture : IAsyncLifetime
             Username = AppRole,
             Password = AppRolePassword
         };
-        return builder.ConnectionString;
+        return ClosingIdleConnections(builder);
     }
 
     public async Task InitializeAsync()

@@ -26,7 +26,8 @@ public sealed class PolicyRuleValidationContext
     /// <summary>Policy keys of the code generation templates (SelectCodePolicy).</summary>
     public IReadOnlySet<string> CodePolicyKeys { get; init; } = new HashSet<string>();
 
-    public IPolicyDomainCapabilities Capabilities { get; init; } = AllowAllPolicyDomainCapabilities.Instance;
+    /// <summary>PLAN-49: what the domain catalog allows. Required: there is no allow-all default.</summary>
+    public required IPolicyDomainCapabilities Capabilities { get; init; }
 
     /// <summary>
     /// PLAN-48 (§4, D-TEN-8 = D-POL-4): the rules are an agency's override (a TenantOverride template), so the ceiling applies:
@@ -55,8 +56,25 @@ public static class PolicyRuleValidator
 
     public static bool IsValidRuleKey(string? ruleKey) => ruleKey is not null && RuleKeyPattern.IsMatch(ruleKey);
 
+    public const string OutOfScopeCode = "DOMAIN_OUT_OF_SCOPE";
+
+    /// <summary>
+    /// PLAN-49 (G-POL-02, D-POL-1): the engine governs the domain, or nothing is drafted, added or published in it. The message
+    /// starts with <see cref="PolicyDomainCatalog.OutOfScopeMessageAr"/>. The one exception is not decided here: the final
+    /// version with no rules that the retirement change set writes (<c>PolicyPublishService</c> publishes that one and nothing else).
+    /// </summary>
+    public static IReadOnlyList<PolicyRuleIssue> ValidateDomain(string domain, IPolicyDomainCapabilities capabilities) =>
+        capabilities.IsGoverned(domain)
+            ? []
+            : [new("DOMAIN_OUT_OF_SCOPE", $"المجال خارج نطاق المحرك: لا تُصاغ مسودة ولا تُضاف قاعدة ولا يُنشر إصدار في {domain} (D-POL-1)", "$.domain")];
+
     public static IReadOnlyList<PolicyRuleIssue> ValidateRule(PolicyRuleInput rule, PolicyRuleValidationContext context)
     {
+        // Nothing else about a rule of an out-of-scope domain is worth saying.
+        var scope = ValidateDomain(context.Domain, context.Capabilities);
+        if (scope.Count > 0)
+            return scope;
+
         var issues = new List<PolicyRuleIssue>();
 
         if (!IsValidRuleKey(rule.RuleKey))
@@ -75,7 +93,7 @@ public static class PolicyRuleValidator
         var then = PolicyRuleJson.ParseThenStrict(rule.ThenJson, issues);
         if (then is not null)
         {
-            ValidateEffects(then, context, issues);
+            ValidateEffects(then, when, context, issues);
 
             // PLAN-48: the ceiling refuses at publish (and when the rule is added) what the evaluator would drop.
             if (context.IsAgencyOverride)
@@ -144,10 +162,50 @@ public static class PolicyRuleValidator
 
             if (leaf.Operator == "In" && leaf.Value.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).Length == 0)
                 issues.Add(new("WHEN_IN_EMPTY", "العامل In يتطلب قائمة قيم مفصولة بفواصل", $"{path}.value"));
+
+            if (string.Equals(leaf.Field, PolicyRuleActionScope.ActionField, StringComparison.Ordinal))
+                ValidateActionLeaf(leaf, path, context, issues);
         }
     }
 
-    private static void ValidateEffects(List<PolicyEffectDefinition> then, PolicyRuleValidationContext context, List<PolicyRuleIssue> issues)
+    /// <summary>
+    /// PLAN-49: a condition on the fact <c>action</c> names actions the catalog lists for the domain, by their exact names, with
+    /// an operator that says which actions it means (the evaluator compares without case, so a near name would still match).
+    /// </summary>
+    private static void ValidateActionLeaf(PolicyConditionLeaf leaf, string path, PolicyRuleValidationContext context, List<PolicyRuleIssue> issues)
+    {
+        if (!PolicyRuleActionScope.ActionOperators.Contains(leaf.Operator))
+        {
+            issues.Add(new("WHEN_ACTION_OPERATOR", $"الحقل action يُقارن بالعوامل Equals وNotEquals وIn فقط، لا بالعامل {leaf.Operator}", $"{path}.operator"));
+            return;
+        }
+
+        var actions = context.Capabilities.Actions(context.Domain);
+        foreach (var named in PolicyRuleActionScope.NamedActions(leaf).Where(a => !actions.Contains(a)))
+            issues.Add(new("WHEN_ACTION_UNKNOWN", $"الإجراء \"{named}\" ليس من إجراءات المجال {context.Domain}: {string.Join("، ", actions.OrderBy(a => a, StringComparer.Ordinal))}", $"{path}.value"));
+    }
+
+    /// <summary>
+    /// PLAN-49 (G-POL-11): a rule may name a workflow only for the entity type the catalog gives that workflow to, at the action
+    /// that starts it. The rule's condition on <c>action</c> says which actions (and so which entity types) it can match; a rule
+    /// that can match an action of another type, or another action of the same type (publishing a requisition does not start its
+    /// approval), is refused, and so is a rule with no condition on the action in a domain with several actions.
+    /// </summary>
+    private static List<string> WorkflowRefusedFor(string code, PolicyConditionGroup? when, PolicyRuleValidationContext context)
+    {
+        if (when is null)
+            return [];
+
+        var capabilities = context.Capabilities;
+        return PolicyRuleActionScope.PossibleActions(when, capabilities.Actions(context.Domain))
+            .SelectMany(action => capabilities.SubjectTypesOf(context.Domain, action).Select(type => (Action: action, Type: type)))
+            .Where(x => !capabilities.AllowsWorkflowStart(context.Domain, x.Type, x.Action, code))
+            .OrderBy(x => x.Action, StringComparer.Ordinal).ThenBy(x => x.Type, StringComparer.Ordinal)
+            .Select(x => $"{x.Action} ({x.Type})")
+            .ToList();
+    }
+
+    private static void ValidateEffects(List<PolicyEffectDefinition> then, PolicyConditionGroup? when, PolicyRuleValidationContext context, List<PolicyRuleIssue> issues)
     {
         for (var i = 0; i < then.Count; i++)
         {
@@ -167,8 +225,8 @@ public static class PolicyRuleValidator
                         issues.Add(new("THEN_WORKFLOW_UNKNOWN", $"لا تعريف مسار منشوراً بالرمز {code}", $"{path}.params.workflowCode"));
                     else if (!context.BoundWorkflowCodes.Contains(code))
                         issues.Add(new("THEN_WORKFLOW_UNBOUND", $"المسار {code} غير مربوط بالمجال {context.Domain} في روابط السياسة", $"{path}.params.workflowCode"));
-                    else if (!context.Capabilities.AllowsWorkflowCode(context.Domain, code))
-                        issues.Add(new("THEN_WORKFLOW_NOT_ALLOWED", $"المسار {code} غير مسموح في المجال {context.Domain}", $"{path}.params.workflowCode"));
+                    else if (WorkflowRefusedFor(code, when, context) is { Count: > 0 } refusedFor)
+                        issues.Add(new("THEN_WORKFLOW_NOT_ALLOWED", $"المسار {code} غير مسموح في المجال {context.Domain} للإجراء {string.Join("، ", refusedFor)}: قيّد القاعدة بشرط action على إجراء يملك هذا المسار", $"{path}.params.workflowCode"));
                     break;
                 case PolicyEffect.SetField:
                     if (!context.Capabilities.AllowsSetField(context.Domain, p["field"]))

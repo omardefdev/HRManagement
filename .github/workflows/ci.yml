@@ -625,6 +625,9 @@ jobs:
           - name: prodlike-final
             stages: prodLike:final
             timeout: 40
+          - name: prodlike-policy
+            stages: prodLike:pol49
+            timeout: 25
           - name: leastpriv
             stages: prodLike:leastpriv
             timeout: 20

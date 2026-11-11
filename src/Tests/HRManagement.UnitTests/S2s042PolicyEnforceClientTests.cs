@@ -246,6 +246,63 @@ public class S2s042PolicyEnforceClientTests
         Assert.Contains(PolicyEffect.TriggerWorkflow, shadow.Decision.Effects);
     }
 
+    /// <summary>
+    /// PLAN-49: the cost of Shadow is the call itself, so each call leaves one duration sample (domain, mode, outcome) and one
+    /// line a report can read. Off makes no call and leaves neither.
+    /// </summary>
+    [Theory]
+    [InlineData("Shadow", HttpStatusCode.OK, "ok")]
+    [InlineData("Enforce", HttpStatusCode.OK, "ok")]
+    [InlineData("Shadow", HttpStatusCode.ServiceUnavailable, "http-503")]
+    public async Task Every_call_to_HR_Core_is_timed_once_with_its_domain_mode_and_outcome(string mode, HttpStatusCode status, string outcome)
+    {
+        var samples = new List<(double Value, Dictionary<string, object?> Tags)>();
+        var metrics = new PolicyClientMetrics();
+        using var listener = new System.Diagnostics.Metrics.MeterListener();
+        listener.InstrumentPublished = (instrument, l) =>
+        {
+            if (instrument.Meter.Name == PolicyClientMetrics.MeterName && instrument.Name == PolicyClientMetrics.CallDurationName)
+                l.EnableMeasurementEvents(instrument);
+        };
+        listener.SetMeasurementEventCallback<double>((_, value, tags, _) =>
+        {
+            lock (samples)
+                samples.Add((value, tags.ToArray().ToDictionary(t => t.Key, t => t.Value)));
+        });
+        listener.Start();
+        var logger = new CapturingLogger();
+        var parsed = Enum.Parse<PolicyEnforcementMode>(mode);
+        var client = new PolicyEnforceClient(
+            new Factory(new StubHandler(_ => status == HttpStatusCode.OK ? ServerDecision(true, parsed) : new HttpResponseMessage(status))),
+            new PolicyModeResolver(Config(($"PolicyEngine:{Domain}", mode))), metrics, logger);
+
+        await client.EnforceAsync(Request());
+
+        // Meters of other tests share the name: this call's sample is the one of this domain, mode and outcome.
+        var mine = samples.Where(s => (string?)s.Tags["domain"] == Domain && (string?)s.Tags["mode"] == mode && (string?)s.Tags["outcome"] == outcome).ToList();
+        Assert.NotEmpty(mine);
+        Assert.All(mine, s => Assert.True(s.Value >= 0));
+        Assert.All(mine, s => Assert.Equal(["domain", "mode", "outcome"], s.Tags.Keys.OrderBy(k => k, StringComparer.Ordinal)));
+        var line = Assert.Single(logger.Entries, e => e.Message.StartsWith("policy_client_call ", StringComparison.Ordinal));
+        Assert.Equal(LogLevel.Information, line.Level);
+        Assert.Contains($"domain={Domain} action=Create mode={mode} outcome={outcome} elapsed_ms=", line.Message, StringComparison.Ordinal);
+        Assert.Matches(@"elapsed_ms=\d+$", line.Message);
+    }
+
+    [Fact]
+    public async Task Off_makes_no_call_and_times_nothing()
+    {
+        var logger = new CapturingLogger();
+        var handler = new StubHandler(_ => throw new InvalidOperationException("no call in Off"));
+        var client = Client(Config(($"PolicyEngine:{Domain}", "Off")), handler, logger);
+
+        var result = await client.EnforceAsync(Request());
+
+        Assert.True(result.Allowed);
+        Assert.Equal(0, handler.Calls);
+        Assert.DoesNotContain(logger.Entries, e => e.Message.Contains("policy_client_call", StringComparison.Ordinal));
+    }
+
     [Theory]
     [InlineData(HttpStatusCode.InternalServerError)]
     [InlineData(HttpStatusCode.Forbidden)]

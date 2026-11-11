@@ -25,6 +25,8 @@ public static class AcceptanceSeedOrchestrator
         await AcceptancePlanningPatch.SyncPlanTargetAsync(db, logger, ct);
         // PLAN-42: only with docker-compose.acceptance-s2s42.yml.
         await AcceptanceS2s42PolicyPatch.ApplyAsync(db, serviceProvider.GetRequiredService<IConfiguration>(), ct);
+        // PLAN-49: only with docker-compose.acceptance-pol49.yml.
+        await AcceptancePol49WeakOfferPatch.ApplyAsync(db, serviceProvider, ct);
         await new OrgUnitVersionService(db, serviceProvider.GetRequiredService<IFundedPositionVersionService>())
             .BackfillMissingVersionsAsync(ct);
         var asOf = serviceProvider.GetRequiredService<EstablishmentAsOfService>();

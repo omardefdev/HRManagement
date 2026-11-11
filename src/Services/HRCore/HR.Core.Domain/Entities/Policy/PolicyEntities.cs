@@ -34,6 +34,16 @@ public class PolicyTemplate : AuditableEntity, INationalShared
     [MaxLength(2000)]
     public string? Description { get; set; }
 
+    /// <summary>
+    /// PLAN-49 (D-POL-1): when the template of a domain out of the engine's scope got its final version with no rules (the
+    /// retirement change set). Null for a governed domain. The earlier versions stay as they were.
+    /// </summary>
+    public DateTime? RetiredAt { get; set; }
+
+    /// <summary>PLAN-49: why the domain was retired (the reason the retirement change set recorded).</summary>
+    [MaxLength(1000)]
+    public string? RetiredReason { get; set; }
+
     public ICollection<PolicyTemplateVersion> Versions { get; set; } = [];
 }
 

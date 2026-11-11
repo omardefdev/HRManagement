@@ -144,12 +144,14 @@ public class EstablishmentPlanningApiController(
 
         var userId = Guid.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value, out var g) ? g : (Guid?)null;
         var userName = User.Identity?.Name;
+        // PLAN-49 (G-POL-04): the actor's real scope, as the page sends it (false after the central-write guard above).
         var (success, error) = await changeLifecycle.SubmitForApprovalAsync(
             id,
             body.LegalSourceId,
             body.DecisionReference,
             userId,
             userName,
+            HrOrgScopeVisibility.IsBranchScoped(User),
             body.EffectiveFrom,
             ct);
 

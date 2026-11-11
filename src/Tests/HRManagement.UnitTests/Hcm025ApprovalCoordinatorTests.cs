@@ -80,12 +80,28 @@ public sealed class Hcm025ApprovalCoordinatorTests
         await using var fx = await Fixture.CreateAsync("Enforce", labScale: false,
             policy: new PolicyEnforceResponse { Allowed = true, WorkflowInstanceId = policyInstanceId });
         var req = await fx.SeedDraftRequisitionAsync();
+        // PLAN-49 (G-POL-09): the policy's instance is a real one, of the workflow the service asks for. The coordinator reads
+        // its code before it takes it (an id it cannot read is refused: Pol049CoordinatorWorkflowCodeTests).
+        var definition = await fx.Db.WorkflowDefinitions.AsNoTracking().SingleAsync(d => d.Code == RequisitionCode && d.IsPublished);
+        fx.Db.WorkflowInstances.Add(new WorkflowInstance
+        {
+            Id = policyInstanceId,
+            DefinitionId = definition.Id,
+            DefinitionVersion = definition.Version,
+            EntityType = "RecruitmentRequisition",
+            EntityId = req.Id,
+            InitiatedBy = Fixture.Actor
+        });
+        await fx.Db.SaveChangesAsync();
 
         var (success, error) = await fx.Requisitions.SubmitForApprovalAsync(req, Fixture.Actor, "actor");
 
         Assert.True(success, error);
         Assert.Equal(policyInstanceId, (await fx.Db.RecruitmentRequisitions.AsNoTracking().SingleAsync()).WorkflowInstanceId);
-        Assert.Empty(await fx.Db.WorkflowInstances.ToListAsync());
+        // The policy's instance, and no second one.
+        var instance = Assert.Single(await fx.Db.WorkflowInstances.AsNoTracking().ToListAsync());
+        Assert.Equal(policyInstanceId, instance.Id);
+        Assert.Equal(WorkflowStatus.InProgress, instance.Status);
     }
 
     [Fact]
@@ -211,7 +227,7 @@ public sealed class Hcm025ApprovalCoordinatorTests
         var request = await fx.SeedDraftEstablishmentChangeAsync();
 
         var (success, error) = await fx.Establishment.SubmitForApprovalAsync(
-            request.Id, Syr001LegislationIds.Law50_2004, "DEC-25", Fixture.Actor, "actor");
+            request.Id, Syr001LegislationIds.Law50_2004, "DEC-25", Fixture.Actor, "actor", actorIsBranchScoped: false);
 
         Assert.True(success, error);
         var saved = await fx.Db.EstablishmentChangeRequests.AsNoTracking().SingleAsync();
@@ -228,7 +244,7 @@ public sealed class Hcm025ApprovalCoordinatorTests
         var request = await fx.SeedDraftEstablishmentChangeAsync();
 
         var (success, error) = await fx.Establishment.SubmitForApprovalAsync(
-            request.Id, Syr001LegislationIds.Law50_2004, "DEC-25", Fixture.Actor, "actor");
+            request.Id, Syr001LegislationIds.Law50_2004, "DEC-25", Fixture.Actor, "actor", actorIsBranchScoped: false);
 
         Assert.False(success);
         Assert.Equal(ApprovalStartCoordinator.MissingDefinitionMessage, error);

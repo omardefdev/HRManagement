@@ -184,11 +184,18 @@ public sealed class Ten048CreateDraftScopeTests
         Assert.Equal(PolicyDraftOutcome.Invalid, refused.Outcome);
         Assert.Contains(refused.IssueList, i => i.Code == code && i.JsonPath == "$.then[0].effect");
 
-        // Deny and the stricter effects pass.
+        // Deny and the stricter effect the domain's call sites consume pass.
         var deny = await drafts.AddRuleAsync(draft.Id.Value, new PolicyRuleInput("A-DENY", "x", 1, PrivilegedWhen, DenyThen), Author);
         Assert.True(deny.Succeeded, deny.MessageAr);
-        var dual = await drafts.AddRuleAsync(draft.Id.Value, new PolicyRuleInput("A-DUAL", "x", 2, PrivilegedWhen, """[{"effect":"RequireDualApproval"}]"""), Author);
-        Assert.True(dual.Succeeded, dual.MessageAr);
+        var evidence = await drafts.AddRuleAsync(draft.Id.Value, new PolicyRuleInput("A-EVIDENCE", "x", 2, PrivilegedWhen, """[{"effect":"RequireEvidence"}]"""), Author);
+        Assert.True(evidence.Succeeded, evidence.MessageAr);
+
+        // PLAN-49: an agency rule passes the ceiling AND the domain's capabilities. The ceiling lets RequireDualApproval through
+        // (it is stricter), but no call site of Assets.Custody consumes it, so the catalog refuses it.
+        var dual = await drafts.AddRuleAsync(draft.Id.Value, new PolicyRuleInput("A-DUAL", "x", 3, PrivilegedWhen, """[{"effect":"RequireDualApproval"}]"""), Author);
+        Assert.Equal(PolicyDraftOutcome.Invalid, dual.Outcome);
+        var capability = Assert.Single(dual.IssueList);
+        Assert.Equal("THEN_EFFECT_NOT_ALLOWED", capability.Code);
     }
 
     [Fact]

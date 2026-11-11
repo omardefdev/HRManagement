@@ -1,0 +1,11 @@
+# PLAN-49: AC-POL-49f on top of the prod-like stack (G-POL-09). hr-core-web runs Core.Recruitment in Enforce, and the acceptance
+# seed adds one rule to the national recruitment policy, at the first priority: every offer that is issued fires the ordinary
+# offer approval (AcceptancePol49WeakOfferPatch, the change set ACC-POL49-WEAK-OFFER). An ordinary offer then gets the workflow it
+# asked for; an exception offer, which asks for the override approval, must be refused and the policy's instance cancelled.
+# scripts/ci/acceptance-job.ps1 applies this file before the pol49 group of tests/acceptance/ci-scope.json, on a fresh prod-like
+# stack, and tears the stack down after it. It is a test layer: no production file sets a domain to Enforce (D-POL-13).
+services:
+  hr-core-web:
+    environment:
+      PolicyEngine__Core.Recruitment: "Enforce"
+      Seed__Pol49WeakOfferRule: "true"

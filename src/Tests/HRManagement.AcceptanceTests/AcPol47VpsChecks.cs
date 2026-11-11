@@ -5,13 +5,15 @@ namespace HRManagement.AcceptanceTests;
 /// <summary>
 /// PLAN-47 (P7) on the demo server (<c>VPS_SSH_HOST=hrm-vps</c>) after the deploy, with the AC-OPS-36 helpers. The demo users' password
 /// is read from the server's .env into memory only. Evidence goes under <c>artifacts/plan47/vps</c>: it is never committed. The tour
-/// leaves on the server two new versions of Analytics.ETL (a copy of v1, then a rollback to v1): the rules end as they began.
+/// leaves on the server two new versions of Contracts.Leave (a copy of the effective version, then a rollback to it): the rules end as
+/// they began. PLAN-49: the tour runs on a domain the engine governs; Analytics.ETL, which it used, is retired and takes no draft. So
+/// each run adds two versions to the national leave policy in force, and a tour that stops half-way discards the draft it left.
 /// </summary>
 public partial class AcOps36VpsBootTests
 {
     private const string Pol47Author = "e2e-policy-author";
     private const string Pol47Approver = "e2e-checker-mgmt";
-    private const string Pol47Domain = "Analytics.ETL";
+    private const string Pol47Domain = "Contracts.Leave";
 
     private static EvidenceRecorder StartPol47(string key, string scenario)
     {
@@ -98,7 +100,7 @@ public partial class AcOps36VpsBootTests
     [SkippableFact]
     public async Task AC_POL_47_vps_a_four_eyes_publication_and_a_rollback_that_leave_the_rules_as_they_were()
     {
-        var recorder = StartPol47("vps-tour", "Demo server: the author copies Analytics.ETL, the approver publishes it, the author rolls back to v1, the approver publishes that");
+        var recorder = StartPol47("vps-tour", "Demo server: the author copies Contracts.Leave, the approver publishes it, the author rolls back to the starting version, the approver publishes that");
         var password = DemoPassword();
         var template = Sql("hr_core_db", $"select \"Id\" from \"PolicyTemplates\" where \"Domain\" = '{Pol47Domain}' and \"Scope\" = 'National'").Single();
         string Effective() => Sql("hr_core_db",
@@ -116,53 +118,75 @@ public partial class AcOps36VpsBootTests
         using (author)
         using (approver)
         {
-            var details = $"/ui/hr-core/PolicyTemplates/Details/{template}";
-
-            // 1. The author copies the effective version; the author cannot publish it.
-            await Wf45PostRenderedAsync(author, details, "CreateTemplateDraft");
-            var copy = Draft();
-            Assert.NotNull(copy);
-            Assert.Equal(startRules, Pol47RulesPrint(copy!));
-            var edit = $"/ui/hr-core/PolicyTemplates/EditRules?versionId={copy}";
-            var (selfStatus, _, _) = await PostFormAsync(author, "/ui/hr-core/PolicyTemplates/PublishFromUi", new Dictionary<string, string>
+            try
             {
-                ["__RequestVerificationToken"] = await TokenAsync(author, edit),
-                ["versionId"] = copy!
-            });
-            Assert.Equal(403, selfStatus);
-            Assert.Equal(copy, Draft());
+                var details = $"/ui/hr-core/PolicyTemplates/Details/{template}";
 
-            // 2. The approver reviews the draft and publishes what was reviewed (the page carries the revision).
-            await Wf45PostRenderedAsync(approver, edit, "PublishFromUi", new Dictionary<string, string> { ["evidenceRef"] = "PLAN-47 server check: copy" });
-            Assert.Null(Draft());
-            Assert.Equal(copy, Effective());
-            var first = Sql("hr_core_db", $"select \"Kind\" || '|' || \"MakerUserId\" || '|' || \"CheckerUserId\" from \"PolicyPublications\" where \"PolicyTemplateVersionId\" = '{copy}'").Single();
-            Assert.Equal($"Manual|{authorId}|{approverId}", first);
+                // 1. The author copies the effective version; the author cannot publish it.
+                await Wf45PostRenderedAsync(author, details, "CreateTemplateDraft");
+                var copy = Draft();
+                Assert.NotNull(copy);
+                Assert.Equal(startRules, Pol47RulesPrint(copy!));
+                var edit = $"/ui/hr-core/PolicyTemplates/EditRules?versionId={copy}";
+                var (selfStatus, _, _) = await PostFormAsync(author, "/ui/hr-core/PolicyTemplates/PublishFromUi", new Dictionary<string, string>
+                {
+                    ["__RequestVerificationToken"] = await TokenAsync(author, edit),
+                    ["versionId"] = copy!
+                });
+                Assert.Equal(403, selfStatus);
+                Assert.Equal(copy, Draft());
 
-            // 3. The author makes a rollback draft to the version the tour started from; the approver publishes it.
-            await Wf45PostRenderedAsync(author, details, "CreateRollbackDraft", new Dictionary<string, string> { ["reason"] = "PLAN-47 server check: rollback" });
-            var rollback = Draft();
-            Assert.NotNull(rollback);
-            await Wf45PostRenderedAsync(approver, $"/ui/hr-core/PolicyTemplates/EditRules?versionId={rollback}", "PublishFromUi",
-                new Dictionary<string, string> { ["evidenceRef"] = "PLAN-47 server check: rollback" });
-            Assert.Null(Draft());
-            Assert.Equal(rollback, Effective());
-            var second = Sql("hr_core_db", $"select \"Kind\" || '|' || \"RolledBackFromVersionId\" || '|' || \"MakerUserId\" || '|' || \"CheckerUserId\" from \"PolicyPublications\" where \"PolicyTemplateVersionId\" = '{rollback}'").Single();
-            Assert.Equal($"Rollback|{start}|{authorId}|{approverId}", second);
-            Assert.Equal(startRules, Pol47RulesPrint(rollback!));
+                // 2. The approver reviews the draft and publishes what was reviewed (the page carries the revision).
+                await Wf45PostRenderedAsync(approver, edit, "PublishFromUi", new Dictionary<string, string> { ["evidenceRef"] = "PLAN-47 server check: copy" });
+                Assert.Null(Draft());
+                Assert.Equal(copy, Effective());
+                var first = Sql("hr_core_db", $"select \"Kind\" || '|' || \"MakerUserId\" || '|' || \"CheckerUserId\" from \"PolicyPublications\" where \"PolicyTemplateVersionId\" = '{copy}'").Single();
+                Assert.Equal($"Manual|{authorId}|{approverId}", first);
 
-            // The history shows both publications.
-            var history = await Wf45PageAsync(approver, details);
-            Assert.Contains("Rollback", history);
-            Assert.Contains("Manual", history);
+                // 3. The author makes a rollback draft to the version the tour started from; the approver publishes it.
+                await Wf45PostRenderedAsync(author, details, "CreateRollbackDraft", new Dictionary<string, string> { ["reason"] = "PLAN-47 server check: rollback" });
+                var rollback = Draft();
+                Assert.NotNull(rollback);
+                await Wf45PostRenderedAsync(approver, $"/ui/hr-core/PolicyTemplates/EditRules?versionId={rollback}", "PublishFromUi",
+                    new Dictionary<string, string> { ["evidenceRef"] = "PLAN-47 server check: rollback" });
+                Assert.Null(Draft());
+                Assert.Equal(rollback, Effective());
+                var second = Sql("hr_core_db", $"select \"Kind\" || '|' || \"RolledBackFromVersionId\" || '|' || \"MakerUserId\" || '|' || \"CheckerUserId\" from \"PolicyPublications\" where \"PolicyTemplateVersionId\" = '{rollback}'").Single();
+                Assert.Equal($"Rollback|{start}|{authorId}|{approverId}", second);
+                Assert.Equal(startRules, Pol47RulesPrint(rollback!));
 
-            recorder.WriteScenarioDbChecks(new { template, start, copy, rollback, first, second, selfPublish = selfStatus, rulesUnchanged = true });
-            recorder.WriteScenarioSteps(
-                "1. e2e-policy-author (policy-author only) creates a draft of Analytics.ETL from its page: the rules are the effective version's; its own PublishFromUi is refused (403).\n" +
-                "2. e2e-checker-mgmt opens the draft and publishes it from the rendered form (with the revision): Manual, maker the author, checker the approver.\n" +
-                "3. The author creates a rollback draft to the starting version with a reason; the approver publishes it: Rollback, RolledBackFromVersionId = the starting version.\n" +
-                "4. The effective rules equal the starting rules; the template page shows both publications.");
-            recorder.WriteResult("Pass");
+                // The history shows both publications.
+                var history = await Wf45PageAsync(approver, details);
+                Assert.Contains("Rollback", history);
+                Assert.Contains("Manual", history);
+
+                recorder.WriteScenarioDbChecks(new { template, start, copy, rollback, first, second, selfPublish = selfStatus, rulesUnchanged = true });
+                recorder.WriteScenarioSteps(
+                    "1. e2e-policy-author (policy-author only) creates a draft of Contracts.Leave from its page: the rules are the effective version's; its own PublishFromUi is refused (403).\n" +
+                    "2. e2e-checker-mgmt opens the draft and publishes it from the rendered form (with the revision): Manual, maker the author, checker the approver.\n" +
+                    "3. The author creates a rollback draft to the starting version with a reason; the approver publishes it: Rollback, RolledBackFromVersionId = the starting version.\n" +
+                    "4. The effective rules equal the starting rules; the template page shows both publications.");
+                recorder.WriteResult("Pass");
+            }
+            finally
+            {
+                // PLAN-49: the tour now runs on a template the engine governs, where an open draft postpones every later change set
+                // of that template (the applier skips it at each start). No draft was open when the tour began, so one that is open
+                // now is the tour's own, left by a failure between its creation and its publication: its author discards it. The
+                // failure that brought us here is the one to report.
+                var left = Draft();
+                if (left is not null)
+                {
+                    try
+                    {
+                        await Wf45PostRenderedAsync(author, $"/ui/hr-core/PolicyTemplates/EditRules?versionId={left}", "DiscardDraft");
+                    }
+                    catch (Exception cleanUp) when (cleanUp is not OperationCanceledException)
+                    {
+                        Console.Error.WriteLine($"PLAN-47 server tour: the draft {left} of {Pol47Domain} could not be discarded ({cleanUp.GetType().Name}); discard it from the template's page.");
+                    }
+                }
+            }
         }
     }
 }

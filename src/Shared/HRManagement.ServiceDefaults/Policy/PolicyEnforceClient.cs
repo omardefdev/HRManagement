@@ -54,7 +54,22 @@ public sealed class PolicyEnforceClient(
         if (localMode == PolicyEnforcementMode.Off)
             return OffResponse(request);
 
+        // PLAN-49: what the call costs the action that makes it. Shadow asks HR.Core on every asset, card and leave action and
+        // changes no outcome, so this duration is the whole price of Shadow; one histogram sample and one line per call
+        // (fixed names and a number: the domain and the action come from the service's own code, never from a request).
+        var started = System.Diagnostics.Stopwatch.GetTimestamp();
         var (reply, failure) = await CallAsync(request, ct);
+        var elapsedMs = System.Diagnostics.Stopwatch.GetElapsedTime(started).TotalMilliseconds;
+        var outcome = reply is null ? failure ?? "invalid-response" : "ok";
+        metrics.CallDuration(request.Domain, localMode.ToString(), outcome, elapsedMs);
+        logger.LogInformation(
+            "policy_client_call domain={Domain} action={Action} mode={Mode} outcome={Outcome} elapsed_ms={ElapsedMs}",
+            request.Domain,
+            request.Action,
+            localMode,
+            outcome,
+            (long)Math.Round(elapsedMs));
+
         if (reply is null)
             return OnFailure(request, localMode, failure ?? "invalid-response");
 

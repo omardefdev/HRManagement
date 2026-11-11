@@ -4,7 +4,6 @@ using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Workflow.CrossService;
 using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Localization;
-using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.Privacy;
 using HRManagement.ServiceDefaults.CodeGeneration;
 using HRManagement.ServiceDefaults.Seeding;
@@ -43,7 +42,6 @@ builder.Services.AddDbContext<ComplianceDbContext>((sp, options) =>
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>()));
 
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<ComplianceDbContext>());
-builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 builder.Services.AddHrCodeGeneration(builder.Configuration);
 // PLAN-46: the cross-service approval contract (start, withdraw, status) with HR.Core.
 builder.Services.AddWorkflowApprovalClient(builder.Configuration);

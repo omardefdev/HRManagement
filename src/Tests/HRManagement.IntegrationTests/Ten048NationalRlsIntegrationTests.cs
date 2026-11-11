@@ -224,7 +224,7 @@ public sealed class Ten048NationalRlsIntegrationTests(PostgreSqlFixture fixture)
 
         // PLAN-47's validator, for an agency session: the national schema's fields, the national definitions and bindings are seen.
         var issues = await Pol047Pg.AsTenantAsync(provider, TenantB, db =>
-            new PolicyRuleValidationService(db, AllowAllPolicyDomainCapabilities.Instance).ValidateRuleAsync(
+            PolicyRuleValidationService.ForCatalog(db).ValidateRuleAsync(
                 PolicyDomains.AssetsCustody,
                 PolicyTemplateScope.TenantOverride,
                 new PolicyRuleInput("R-B-AGENCY", "agency", 10, Pol047Pg.ValidWhen,
@@ -235,7 +235,7 @@ public sealed class Ten048NationalRlsIntegrationTests(PostgreSqlFixture fixture)
 
         // A field outside the national schema is still refused (the schema is read, not ignored).
         var unknown = await Pol047Pg.AsTenantAsync(provider, TenantB, db =>
-            new PolicyRuleValidationService(db, AllowAllPolicyDomainCapabilities.Instance).ValidateRuleAsync(
+            PolicyRuleValidationService.ForCatalog(db).ValidateRuleAsync(
                 PolicyDomains.AssetsCustody,
                 PolicyTemplateScope.TenantOverride,
                 new PolicyRuleInput("R-B-UNKNOWN", "x", 10, """{"all":[{"field":"notInSchema","operator":"Equals","value":"x"}]}""", Pol047Pg.ValidThen)));

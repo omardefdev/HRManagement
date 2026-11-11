@@ -210,11 +210,10 @@
       "secretEnv": "SVC_HR_MOVEMENTS_CLIENT_SECRET",
       "urls": { "Integration__HrCoreBaseUrl": "http://hr-core-web:8080" },
       "scopes": ["hr-core.lookup"],
-      "registrations": ["AddHrPolicyEnforceClient", "AddHrCoreActiveRegimeClient"],
+      "registrations": ["AddHrCoreActiveRegimeClient"],
       "calls": [
         { "client": "AddHrCoreActiveRegimeClient", "endpoint": "hr-core.service-regime.active-regimes", "scope": "hr-core.lookup" }
       ],
-      "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected: URL only, no hr-core.workflow (D-INT-4); removal is PLAN-49" },
       "legalPacks": ["syr003-service-regimes-v1"]
     },
     {
@@ -227,12 +226,11 @@
       "secretEnv": "SVC_PAYROLL_CLIENT_SECRET",
       "urls": { "Integration__HrCoreBaseUrl": "http://hr-core-web:8080" },
       "scopes": ["hr-core.lookup"],
-      "registrations": ["AddHrPolicyEnforceClient", "AddHrCoreLookupClient", "AddHrCoreServiceRegimeClient"],
+      "registrations": ["AddHrCoreLookupClient", "AddHrCoreServiceRegimeClient"],
       "calls": [
         { "client": "AddHrCoreLookupClient", "endpoint": "hr-core.lookup.by-ids", "scope": "hr-core.lookup" },
         { "client": "AddHrCoreServiceRegimeClient", "endpoint": "hr-core.service-regime.payroll-blockers", "scope": "hr-core.lookup" }
       ],
-      "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected: URL only, no hr-core.workflow (D-INT-4); removal is PLAN-49" },
       "legalPacks": []
     },
     {
@@ -272,12 +270,11 @@
         "HrGateway__InternalBaseUrl": "http://hr-gateway:8080"
       },
       "scopes": ["hr-core.workflow", "file-storage.references"],
-      "registrations": ["AddHrPolicyEnforceClient", "AddHrCodeGeneration", "AddHrFileReferenceClient"],
+      "registrations": ["AddHrCodeGeneration", "AddHrFileReferenceClient"],
       "calls": [
         { "client": "AddHrCodeGeneration", "endpoint": "hr-core.codes.generate", "scope": "hr-core.workflow" },
         { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" }
       ],
-      "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected: no scope is granted for it (D-INT-4); removal is PLAN-49" },
       "legalPacks": []
     },
     {
@@ -317,12 +314,11 @@
         "Services__AuthDirectory__BaseUrl": "http://auth-directory-web:8080"
       },
       "scopes": ["hr-core.workflow", "directory.sync"],
-      "registrations": ["AddDirectorySyncClient", "AddHrPolicyEnforceClient", "AddHrCodeGeneration"],
+      "registrations": ["AddDirectorySyncClient", "AddHrCodeGeneration"],
       "calls": [
         { "client": "AddDirectorySyncClient", "endpoint": "auth-directory.sync-employee", "scope": "directory.sync" },
         { "client": "AddHrCodeGeneration", "endpoint": "hr-core.codes.generate", "scope": "hr-core.workflow" }
       ],
-      "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected (D-INT-4); hr-core.workflow is granted for code generation, not for it; removal is PLAN-49" },
       "legalPacks": []
     },
     {
@@ -340,7 +336,7 @@
         "HrGateway__InternalBaseUrl": "http://hr-gateway:8080"
       },
       "scopes": ["hr-core.lookup", "hr-core.workflow", "dsar.subject.read", "dsar.subject.erase", "file-storage.references"],
-      "registrations": ["AddHrDsarDeletion", "AddComplianceDsarCollector", "AddHrFileReferenceClient", "AddHrPolicyEnforceClient", "AddHrCodeGeneration", "AddHrCoreLookupClient", "AddWorkflowApprovalClient"],
+      "registrations": ["AddHrDsarDeletion", "AddComplianceDsarCollector", "AddHrFileReferenceClient", "AddHrCodeGeneration", "AddHrCoreLookupClient", "AddWorkflowApprovalClient"],
       "calls": [
         { "client": "AddComplianceDsarCollector", "endpoint": "hr-core.dsar.subject", "scope": "dsar.subject.read" },
         { "client": "AddComplianceDsarCollector", "endpoint": "payroll.dsar.subject", "scope": "dsar.subject.read" },
@@ -353,7 +349,6 @@
         { "client": "AddWorkflowApprovalClient", "endpoint": "hr-core.workflow-instances.external-status", "scope": "hr-core.workflow" },
         { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" }
       ],
-      "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected (D-INT-4); hr-core.workflow is granted for code generation, not for it; removal is PLAN-49" },
       "legalPacks": []
     },
     {
@@ -380,11 +375,10 @@
       "serviceIdentity": true,
       "clientId": "svc-hr-health",
       "secretEnv": "SVC_HR_HEALTH_CLIENT_SECRET",
-      "urls": { "Integration__HrCoreBaseUrl": "http://hr-core-web:8080" },
+      "urls": {},
       "scopes": [],
-      "registrations": ["AddHrPolicyEnforceClient"],
+      "registrations": [],
       "calls": [],
-      "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected: URL only, no scope (D-INT-4); removal is PLAN-49" },
       "legalPacks": []
     },
     {
@@ -396,15 +390,13 @@
       "clientId": "svc-hr-training",
       "secretEnv": "SVC_HR_TRAINING_CLIENT_SECRET",
       "urls": {
-        "Integration__HrCoreBaseUrl": "http://hr-core-web:8080",
         "HrGateway__InternalBaseUrl": "http://hr-gateway:8080"
       },
       "scopes": ["file-storage.references"],
-      "registrations": ["AddHrPolicyEnforceClient", "AddHrFileReferenceClient"],
+      "registrations": ["AddHrFileReferenceClient"],
       "calls": [
         { "client": "AddHrFileReferenceClient", "endpoint": "file-storage.references", "scope": "file-storage.references" }
       ],
-      "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected: URL only, no hr-core.workflow (D-INT-4); removal is PLAN-49" },
       "legalPacks": []
     },
     {
@@ -415,11 +407,10 @@
       "serviceIdentity": true,
       "clientId": "svc-dev-analytics",
       "secretEnv": "SVC_DEV_ANALYTICS_CLIENT_SECRET",
-      "urls": { "Integration__HrCoreBaseUrl": "http://hr-core-web:8080" },
+      "urls": {},
       "scopes": [],
-      "registrations": ["AddHrPolicyEnforceClient"],
+      "registrations": [],
       "calls": [],
-      "unusedRegistrations": { "AddHrPolicyEnforceClient": "registered, never injected: URL only, no scope (D-INT-4); removal is PLAN-49" },
       "legalPacks": []
     },
     {

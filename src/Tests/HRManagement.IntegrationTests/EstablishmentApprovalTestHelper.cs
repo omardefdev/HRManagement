@@ -25,7 +25,7 @@ internal static class EstablishmentApprovalTestHelper
         await WorkflowPackSeeder.SeedAsync(db);
 
         var (submitted, submitError) = await lifecycle.SubmitForApprovalAsync(
-            requestId, legalSourceId, decisionReference, actorUserId, actorUserName);
+            requestId, legalSourceId, decisionReference, actorUserId, actorUserName, actorIsBranchScoped: false);
         if (!submitted)
             return (false, submitError);
 

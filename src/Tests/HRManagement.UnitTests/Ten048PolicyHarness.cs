@@ -71,7 +71,7 @@ internal sealed class Ten048PolicyHarness : IAsyncDisposable
         return new HRCoreDbContext(options, context);
     }
 
-    public static PolicyRuleValidationService Validation(HRCoreDbContext db) => new(db, AllowAllPolicyDomainCapabilities.Instance);
+    public static PolicyRuleValidationService Validation(HRCoreDbContext db) => PolicyRuleValidationService.ForCatalog(db);
 
     public PolicyDraftService Drafts(HRCoreDbContext db) => new(db, Validation(db), Configuration);
 

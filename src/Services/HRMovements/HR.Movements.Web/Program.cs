@@ -3,7 +3,6 @@ using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.ServiceDefaults.Integration;
 using HRManagement.ServiceDefaults.Localization;
-using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.Seeding;
 using HR.Movements.Infrastructure.Data;
 using MassTransit;
@@ -35,7 +34,6 @@ builder.Services.AddDbContext<MovementsDbContext>((sp, options) =>
                sp.GetRequiredService<TenantIdStampInterceptor>(),
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>()));
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<MovementsDbContext>());
-builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 builder.Services.AddHrCoreActiveRegimeClient(builder.Configuration);
 
 builder.Services.Configure<HR.Movements.Infrastructure.Sagas.TransferSagaOptions>(

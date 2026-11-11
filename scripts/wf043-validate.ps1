@@ -71,9 +71,13 @@ foreach ($file in $sources) {
 $orchestrator = Read-Repo "src/Services/HRCore/HR.Core.Infrastructure/Services/Policy/PolicyOrchestrator.cs"
 if ($orchestrator -notmatch 'ExternalApprovalTypes\.IsRegistered\(request\.SubjectType\)') { $problems.Add("PolicyOrchestrator can start a registered type") }
 
-# 5. The allow-list is empty.
+# 5. The allow-list is empty. PLAN-49: it is read from the domain catalog (the triggers marked InternalEndpoint) and holds no
+#    triple of its own; the catalog marks no trigger for the internal endpoint.
 $allowlist = Read-Repo "src/Services/HRCore/HR.Core.Infrastructure/Services/Policy/PolicyWorkflowTriggerAllowlist.cs"
-if ($allowlist -notmatch 'WorkflowCode\)> Allowed =\s*\[\];') { $problems.Add("PolicyWorkflowTriggerAllowlist is not empty") }
+$catalog = Read-Repo "src/Shared/HRManagement.SharedKernel/Policy/PolicyDomainCatalog.cs"
+if ($allowlist -notmatch 'StartedBy == PolicyWorkflowStartPath\.InternalEndpoint') { $problems.Add("PolicyWorkflowTriggerAllowlist does not read the catalog's InternalEndpoint triggers") }
+if ($allowlist -match '\(\s*"[^"]+"\s*,\s*"[^"]+"\s*,\s*"[^"]+"\s*\)' -or $allowlist -match 'PolicyDomains\.') { $problems.Add("PolicyWorkflowTriggerAllowlist holds a triple of its own") }
+if ($catalog -match 'PolicyWorkflowStartPath\.InternalEndpoint') { $problems.Add("PolicyWorkflowTriggerAllowlist is not empty: the catalog marks a trigger for the internal endpoint") }
 
 if ($problems.Count -gt 0) {
     foreach ($problem in $problems) { Write-Host "FAIL: $problem" }

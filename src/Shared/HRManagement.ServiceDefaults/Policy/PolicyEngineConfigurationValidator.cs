@@ -18,6 +18,7 @@ public sealed class PolicyEngineValidationOptions
 /// PLAN-42: refuses to start on a <c>PolicyEngine</c> section that would not do what it says: a mode that is not Off, Shadow
 /// or Enforce; a key that is not in <see cref="PolicyDomains.All"/>; an unknown failure mode; <c>AllowWithAlert</c> in
 /// Production (D-POL-2); and, on a remote client outside Development, a domain that is not Off with no HR.Core address.
+/// PLAN-49: and a domain <see cref="PolicyDomainCatalog"/> puts out of scope whose key is not Off, in any service.
 /// Names the key, never a value.
 /// </summary>
 public sealed class PolicyEngineConfigurationValidator(
@@ -26,6 +27,10 @@ public sealed class PolicyEngineConfigurationValidator(
     IOptions<PolicyEngineValidationOptions> options) : IHrStartupCheck
 {
     public string Name => "policy-engine-configuration";
+
+    /// <summary>Children of the section that hold settings of the engine, not the mode of a domain.</summary>
+    public static readonly IReadOnlySet<string> SettingsSections =
+        new HashSet<string>(["Roles", "Seeds", "Publish"], StringComparer.OrdinalIgnoreCase);
 
     public Task RunAsync(CancellationToken cancellationToken)
     {
@@ -53,6 +58,11 @@ public sealed class PolicyEngineConfigurationValidator(
                 continue;
             }
 
+            // PLAN-49: the engine's own settings (PLAN-47's PolicyEngine:Roles, :Seeds and :Publish) are not modes. They used to be
+            // read as unknown domains, so setting any of them stopped the service.
+            if (SettingsSections.Contains(child.Key))
+                continue;
+
             var isDefault = string.Equals(child.Key, PolicyModeResolver.DefaultModeKey, StringComparison.OrdinalIgnoreCase);
             if (!isDefault && !IsDomain(child.Key))
                 failures.Add($"{child.Path} is not a policy domain");
@@ -61,7 +71,13 @@ public sealed class PolicyEngineConfigurationValidator(
                 continue;
             if (!PolicyModeResolver.TryParseMode(child.Value, out var mode))
                 failures.Add($"{child.Path} is not one of Off, Shadow, Enforce");
-            else if (mode != PolicyEnforcementMode.Off)
+            else if (mode == PolicyEnforcementMode.Off)
+                continue;
+            // PLAN-49 (G-POL-02): a domain the catalog puts out of scope has no call site, so a mode other than Off would be a
+            // promise nobody keeps (the resolver answers Off for it anyway). The service does not start.
+            else if (!isDefault && PolicyDomainCatalog.FindByConfigurationKey(child.Key) is { IsGoverned: false })
+                failures.Add($"{child.Path} must be Off: the domain is out of the policy engine's scope (PLAN-49)");
+            else
                 anyActive = true;
         }
 

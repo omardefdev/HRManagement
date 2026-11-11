@@ -1,12 +1,14 @@
 using HRManagement.ServiceDefaults.Messaging;
 using HR.Contracts.Application.Abstractions;
 using HR.Contracts.Application.Features.HireCases;
+using HR.Contracts.Application.Features.LeaveRequests;
 using HR.Contracts.Application.Features.SeparationRecords;
 using HR.Contracts.Domain.Entities;
 using HR.Contracts.Domain.Enums;
 using HR.Contracts.Domain.Services;
 using HR.Contracts.Application.Services;
 using HRManagement.ServiceDefaults.CodeGeneration;
+using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Enums;
 using HRManagement.SharedKernel.Entities;
@@ -261,17 +263,49 @@ public class ProcessProbationEvaluationCompletedHandler(
     }
 }
 
+/// <summary>
+/// A leave request that arrives from the self-service portal (ILeaveRequested).
+/// <para>
+/// PLAN-49 (G-POL-04, D-POL-14): it passes the local validation and the policy engine exactly as a request HR records does
+/// (action Create); it used to skip both. The portal sends calendar days, so the working days are computed here, as on the HR
+/// page, and that is the number stored and sent to the engine: the two channels state the same fact.
+/// </para>
+/// <para>
+/// A refusal never drops the request and never fails the message (a consumer that throws is retried and then parked, and the
+/// employee would see nothing): the request is created Rejected, with the reason at the head of its notes and its service
+/// transaction cancelled, as a rejection by HR leaves it. The local validation refuses in every mode; the policy refuses only in
+/// Enforce (in Shadow its decision is recorded by HR.Core and the request is created as before).
+/// </para>
+/// <para>
+/// An outage is not a refusal. When, in Enforce, the engine cannot be reached, the client answers "not allowed, degraded": the
+/// request is not written off as Rejected for good on that; the handler throws, the bus retries the message and parks it if the
+/// outage lasts, and a replay decides it when the engine is back. (In Shadow an outage never refuses.)
+/// </para>
+/// </summary>
 public class ProcessLeaveRequestedHandler(
     IContractsRepository repository,
-    ICodeGenerationClient codeClient) : IRequestHandler<ProcessLeaveRequestedCommand>
+    ICodeGenerationClient codeClient,
+    IPolicyEnforceClient policyClient) : IRequestHandler<ProcessLeaveRequestedCommand>
 {
+    /// <summary>The head of the notes of a request created Rejected; the reason follows it.</summary>
+    public const string RefusedNotesPrefix = "مرفوض آلياً: ";
+
+    public const string RefusedTransactionReason = "رفض طلب إجازة وارد من الخدمة الذاتية";
+
     public async Task Handle(ProcessLeaveRequestedCommand request, CancellationToken cancellationToken)
     {
+        // A redelivered event (PLAN-40's receipt comes first; this is the last line): no second request, and no second question
+        // to the engine, so no second ledger row.
         if (await repository.LeaveRequests.AnyAsync(x => x.Id == request.RequestId, cancellationToken))
         {
             return;
         }
 
+        // The reference number first: it is a call to HR.Core that can fail, and a message retried after the engine was asked
+        // would ask it again (a second ledger row for one request). Only the saves below come after the question. The price,
+        // in Enforce only: each attempt that ends in an engine outage has spent a number, and the bus makes 1 + RetryCount
+        // attempts of a delivery (the numbers are not gapless, here as in the other inbound handlers). In Shadow an unanswered
+        // question never stops the request, so no number is lost. Before Enforce: a stable request key on the number call.
         var transaction = new ServiceTransaction
         {
             EmployeeId = request.EmployeeId,
@@ -280,6 +314,8 @@ public class ProcessLeaveRequestedHandler(
         };
         await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
 
+        // Working days, whatever number the event carries (the portal counts calendar days).
+        var durationDays = LeaveAndAdvanceRules.ComputeLeaveDurationDays(request.StartDate, request.EndDate);
         var entity = new LeaveRequest
         {
             Id = request.RequestId,
@@ -288,10 +324,42 @@ public class ProcessLeaveRequestedHandler(
             LeaveType = request.LeaveType,
             StartDate = request.StartDate,
             EndDate = request.EndDate,
-            DurationDays = request.DurationDays,
+            DurationDays = durationDays,
             Notes = request.Notes,
             Status = ApprovalStatus.Pending
         };
+
+        var peerLeaves = await repository.LeaveRequests.AsNoTracking()
+            .Where(x => x.EmployeeId == request.EmployeeId)
+            .ToListAsync(cancellationToken);
+        var refusal = LeaveAndAdvanceRules.ValidateLeaveRequest(
+            request.EmployeeId, request.StartDate, request.EndDate, durationDays, peerLeaves, null);
+        if (refusal is null)
+        {
+            // The tenant is the entity's: empty until the save stamps it, so the engine takes the tenant of the call, which
+            // the consumer filter set from the message (TenantIdFlow) and the service client forwards.
+            var policyResult = await policyClient.EnforceAsync(
+                PolicyDomainFactsBuilders.ForLeaveRequest(
+                    entity.Id, entity.TenantId, durationDays, request.LeaveType.ToString(), LeavePolicyActions.Create),
+                cancellationToken);
+            // An outage (Enforce, fail closed) is not the policy's refusal: nothing is written, and the bus retries (an
+            // exception its retry policy does not ignore), then parks the message in _error for a replay.
+            if (!policyResult.Allowed && policyResult.Degraded)
+                throw new PolicyEngineUnavailableException(HRManagement.SharedKernel.Policy.PolicyDomains.ContractsLeave, LeavePolicyActions.Create);
+            if (!policyResult.Allowed)
+                refusal = policyResult.Decision.DenyReason ?? LeavePolicyActions.DeniedMessage;
+        }
+
+        if (refusal is not null)
+        {
+            entity.Status = ApprovalStatus.Rejected;
+            entity.Notes = string.IsNullOrWhiteSpace(request.Notes)
+                ? RefusedNotesPrefix + refusal
+                : RefusedNotesPrefix + refusal + "\n" + request.Notes.Trim();
+            // No approver decided: the transaction is closed the way RejectLeaveRequestHandler closes one that never reached
+            // an approval step.
+            ServiceTransactionWorkflowHelper.AdvanceToCancelled(transaction, null, RefusedTransactionReason);
+        }
 
         await repository.AddAsync(entity, cancellationToken);
         await repository.AddAsync(transaction, cancellationToken);

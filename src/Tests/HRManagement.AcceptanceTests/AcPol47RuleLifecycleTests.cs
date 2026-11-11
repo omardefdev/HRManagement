@@ -15,7 +15,8 @@ namespace HRManagement.AcceptanceTests;
 /// draft copied from the effective version and published with four eyes (a), strict validation (b), a version that takes effect
 /// later and evaluation as of a date (c), a rollback to v2 (d), published versions unchanged across two restarts of hr-core-web
 /// and the trigger refusing SQL (e), the seed change sets recorded once (f), IPolicyPublished through the outbox (g).
-/// Assets.Custody is Off on this stack, so the versions published here change no other class's decisions; d restores v2's rules.
+/// Assets.Custody runs in Shadow on this stack (PLAN-49), where a rule changes no outcome, so the versions published here change no
+/// other class's outcomes; d restores v2's rules.
 /// </summary>
 [RequiredAcceptance]
 [Collection(AcMsg40Collection.Name)]

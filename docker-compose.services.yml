@@ -63,7 +63,6 @@ services:
       HrAuth__BehindGateway: "true"
       # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
       # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
-      Integration__HrCoreBaseUrl: http://hr-core-web:8080
       ServiceIdentity__ClientId: svc-hr-health
       ServiceIdentity__ClientSecret: ${SVC_HR_HEALTH_CLIENT_SECRET:-dev-svc-secret-local-only}
       ServiceIdentity__Scope: ""
@@ -139,7 +138,6 @@ services:
       HrAuth__BehindGateway: "true"
       # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
       # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
-      Integration__HrCoreBaseUrl: http://hr-core-web:8080
       HrGateway__InternalBaseUrl: http://hr-gateway:8080
       ServiceIdentity__ClientId: svc-hr-training
       ServiceIdentity__ClientSecret: ${SVC_HR_TRAINING_CLIENT_SECRET:-dev-svc-secret-local-only}
@@ -378,7 +376,6 @@ services:
       HrAuth__BehindGateway: "true"
       # PLAN-37: service wiring from deploy/wiring/service-wiring.json, written once for every chain
       # (ProductionWiringMatrixTests); the production file adds only the mandatory secret.
-      Integration__HrCoreBaseUrl: http://hr-core-web:8080
       ServiceIdentity__ClientId: svc-dev-analytics
       ServiceIdentity__ClientSecret: ${SVC_DEV_ANALYTICS_CLIENT_SECRET:-dev-svc-secret-local-only}
       ServiceIdentity__Scope: ""

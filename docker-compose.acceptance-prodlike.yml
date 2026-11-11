@@ -15,10 +15,16 @@
 #
 # ASPNETCORE_ENVIRONMENT stays "Acceptance" so the acceptance personas, the Acceptance seed profile (no Demo seed), the
 # local Keycloak, FileDrop OTP delivery and the caller-proof secret keep working. Because appsettings.Production.json is
-# therefore NOT loaded, the Production VALUES that drive recruitment are mirrored here explicitly
-# (src/Services/HRCore/HR.Core.Web/appsettings.Production.json, HR.Contracts' Production file):
+# therefore NOT loaded, the Production VALUES that drive recruitment and the policy engine are mirrored here explicitly
+# (the Production files of HR.Core, HR.Contracts, Admin.Logistics and IDCard):
 #   - NationalScope:IsLabScale=false and HardEnforceCeilings=true;
-#   - PolicyEngine:Core.Recruitment=Shadow (PLAN-25 decision 10; no other PolicyEngine key, so every other domain is Off);
+#   - PolicyEngine (PLAN-49, D-POL-1 and D-POL-13): the five governed domains in Shadow, on HR.Core and on the service that
+#     owns each (Assets.Custody on admin-logistics-web, IDCard.Lifecycle on idcard-web, Contracts.Leave on hr-contracts-web;
+#     Core.Recruitment and Core.Establishment run inside HR.Core). Shadow records the engine's decision in the ledger and
+#     changes no outcome. No domain is in Enforce here, and Pol049PolicyModeConsistencyTests keeps the owner's value equal
+#     to HR.Core's over the merged chain. Assets.Custody is set on hr-core-web on purpose: docker-compose.acceptance.yml
+#     (the lab file, part of this chain) sets it to Enforce for AC-10 and AC-11, and this file must win. The fifteen other
+#     domains are out of the engine's scope: Off whatever is set, and a key for one of them stops the service at start-up.
 #   - Recruitment:Approvals:AlwaysStartWorkflow=true, FailIfDefinitionMissing=true (PLAN-25 decision 10);
 #   - Workflow:AdminBypass=false (PLAN-25 decision 4; also the default everywhere);
 #   - Workflow:StepRole:ExemptEntityTypes (PLAN-43: the recorded exemptions; every other type is enforced);
@@ -33,6 +39,10 @@ services:
       NationalScope__IsLabScale: "false"
       NationalScope__HardEnforceCeilings: "true"
       PolicyEngine__Core.Recruitment: "Shadow"
+      PolicyEngine__Core.Establishment: "Shadow"
+      PolicyEngine__Assets.Custody: "Shadow"
+      PolicyEngine__IDCard.Lifecycle: "Shadow"
+      PolicyEngine__Contracts.Leave: "Shadow"
       Recruitment__Approvals__AlwaysStartWorkflow: "true"
       Recruitment__Approvals__FailIfDefinitionMissing: "true"
       Workflow__AdminBypass: "false"
@@ -44,6 +54,8 @@ services:
       # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
       DataProtection__RequirePersistentKeyRing: "true"
       Contracts__AllowDefaultContractTypeFallback: "false"
+      # PLAN-49: as HR.Contracts' Production file. Every leave action asks HR.Core, which records its decision.
+      PolicyEngine__Contracts.Leave: "Shadow"
 
   hr-gateway:
     environment:
@@ -73,6 +85,8 @@ services:
       IdCard__Approval__AutoSubmitOnHire: "false"
       WorkflowApproval__Sweep__IntervalMinutes: "1"
       WorkflowApproval__Sweep__StaleAfterMinutes: "2"
+      # PLAN-49: as IDCard's Production file. Processing a card asks HR.Core, which records its decision.
+      PolicyEngine__IDCard.Lifecycle: "Shadow"
 
   records-archive-web:
     environment:
@@ -83,6 +97,9 @@ services:
     environment:
       # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
       DataProtection__RequirePersistentKeyRing: "true"
+      # PLAN-49: as Admin.Logistics' Production file. Classify, create and assign ask HR.Core, which records its decision; the
+      # outcome is still the local one (the static thresholds of the client's shim).
+      PolicyEngine__Assets.Custody: "Shadow"
 
   it-infra-web:
     environment:

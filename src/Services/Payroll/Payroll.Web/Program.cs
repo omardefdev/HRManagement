@@ -7,7 +7,6 @@ using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.Documents.QuestPdf;
 using HRManagement.ServiceDefaults.Localization;
-using HRManagement.ServiceDefaults.Policy;
 using HRManagement.ServiceDefaults.NationalScope;
 using HRManagement.ServiceDefaults.LegalControl;
 using HRManagement.ServiceDefaults.ModuleCatalog;
@@ -113,7 +112,6 @@ builder.Services.AddDbContext<PayrollDbContext>((sp, options) =>
                sp.GetRequiredService<TenantIdStampInterceptor>(),
                sp.GetRequiredService<NpgsqlTenantSessionInterceptor>()));
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<PayrollDbContext>());
-builder.Services.AddHrPolicyEnforceClient(builder.Configuration);
 
 builder.Services.AddPayrollInfrastructure(builder.Configuration);
 builder.Services.AddServiceMassTransit(

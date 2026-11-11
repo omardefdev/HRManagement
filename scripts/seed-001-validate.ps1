@@ -49,7 +49,7 @@ Assert-FileExists "$RepoRoot\src\Services\HRCore\HR.Core.Infrastructure\Data\Wor
 Assert-FileExists "$RepoRoot\src\Services\HRCore\HR.Core.Infrastructure\Data\MdmReferenceSeeder.cs" "MdmReferenceSeeder"
 Assert-FileContains "$RepoRoot\src\Services\HRCore\HR.Core.Infrastructure\Data\WorkflowPackSeeder.cs" "HIRE-WIZARD" "Hire workflow"
 Assert-FileContains "$RepoRoot\src\Services\HRCore\HR.Core.Infrastructure\Data\WorkflowPackSeeder.cs" "IT-TICKET" "IT ticket workflow"
-Assert-FileContains "$RepoRoot\src\Services\HRCore\HR.Core.Infrastructure\Data\PolicyEngineSeeder.cs" "ID-CARD-ISSUANCE" "Workflow binding"
+Assert-FileContains "$RepoRoot\src\Services\HRCore\HR.Core.Infrastructure\Data\PolicyEngineSeeder.cs" "ASSET-ASSIGN-APPROVAL" "Workflow binding (a governed code, PLAN-49)"
 
 Write-Host "`n--- MDM pack ---"
 Assert-FileExists "$RepoRoot\seed-packs\national-mdm-sy-v1\catalog.json" "MDM JSON pack"

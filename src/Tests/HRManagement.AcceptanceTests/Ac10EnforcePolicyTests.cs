@@ -72,7 +72,9 @@ public class Ac10EnforcePolicyTests
         {
             Domain = domain,
             TenantId = AcceptanceSeedIds.AgencyAId,
-            SubjectType = "Asset",
+            // PLAN-49: the pair the call site sends (AssetPolicyFactsBuilder.ForAssign). The catalog gives Assign to
+            // AssetAssignment only, and the internal endpoint now refuses any other pair (it took "Asset" + Assign before).
+            SubjectType = "AssetAssignment",
             Action = "Assign",
             Facts = facts,
             CorrelationId = correlationId

@@ -14,7 +14,13 @@ public enum PolicySeedOperationKind
     /// <summary>Removes the rule with its key from the new version; no effect when it is absent.</summary>
     RetireRule,
     /// <summary>Adds a field to the domain's facts schema (the schema is not versioned).</summary>
-    EnsureFactsField
+    EnsureFactsField,
+    /// <summary>
+    /// PLAN-49 (D-POL-1): retires the national template of a domain the catalog puts out of scope: one final published version
+    /// with no rules and the operation's reason, and the template marked retired. No effect on a governed domain, and none where
+    /// the template does not exist (a new database seeds none).
+    /// </summary>
+    RetireDomain
 }
 
 /// <summary>One operation of a seed change set, on the national template of <see cref="Domain"/>.</summary>
@@ -58,9 +64,22 @@ public static class PolicySeedChangeSets
 {
     public const string BaselineId = "POL-2026-10-30-BASELINE";
     public const string RetireRecruitmentHireId = "POL-2026-10-30-RETIRE-R-REC-HIRE";
+    public const string ScopeRetireId = "POL-049-SCOPE-RETIRE";
+    public const string AssetsActionId = "POL-049-ASSETS-ACTION";
+    public const string IdCardOrphanId = "POL-049-IDCARD-ORPHAN";
+    public const string LeaveId = "POL-049-LEAVE";
 
     private static PolicySeedOperation Add(string domain, string key, string name, int priority, string when, string then) =>
         new(PolicySeedOperationKind.AddRule, domain, key, name, priority, when, then);
+
+    private static PolicySeedOperation Replace(string domain, PolicySeedRule rule) =>
+        new(PolicySeedOperationKind.ReplaceRule, domain, rule.Key, rule.Name, rule.Priority, rule.When, rule.Then);
+
+    private static PolicySeedOperation Retire(string domain, string key, string reasonAr) =>
+        new(PolicySeedOperationKind.RetireRule, domain, RuleKey: key, ReasonAr: reasonAr);
+
+    private static PolicySeedOperation RetireDomain(string domain, string reasonAr) =>
+        new(PolicySeedOperationKind.RetireDomain, domain, ReasonAr: reasonAr);
 
     private static PolicySeedOperation Field(string domain, string name, string type, string displayAr) =>
         new(PolicySeedOperationKind.EnsureFactsField, domain, FieldName: name, FieldType: type, FieldDisplayAr: displayAr);
@@ -148,5 +167,83 @@ public static class PolicySeedChangeSets
             ReasonAr: "التعيين محكوم باعتماد خطاب العرض، ومسار RECRUITMENT-HIRE مسحوب (PLAN-25)")
     ]);
 
-    public static readonly IReadOnlyList<PolicySeedChangeSet> All = [Baseline, RetireRecruitmentHire];
+    /// <summary>
+    /// PLAN-49 (G-POL-02, D-POL-1): the fifteen domains with no call site leave the engine. Wherever the national template exists
+    /// it gets one final version with no rules and is marked retired; the earlier versions, and the ledger rows that name them,
+    /// stay as they were. A new database seeds none of these templates, so the set passes over it. The reasons are this set's
+    /// own text: an applied set never changes, whatever the catalog says later.
+    /// </summary>
+    public static readonly PolicySeedChangeSet ScopeRetire = new(ScopeRetireId,
+    [
+        RetireDomain(PolicyDomains.AssetsProcurement, "خارج نطاق المحرك (D-POL-1): لا نقطة استدعاء؛ استلام التوريد تحكمه قواعد Admin.Logistics المحلية"),
+        RetireDomain(PolicyDomains.ContractsAdvance, "خارج نطاق المحرك (D-POL-1): لا نقطة استدعاء؛ قاعدة R-ADV-HIGH بأثر لا يستهلكه أحد (RequireDualApproval) وبقيمة نائبة"),
+        RetireDomain(PolicyDomains.ContractsHire, "خارج نطاق المحرك (D-POL-1): لا نقطة استدعاء؛ قاعدة R-HIRE-START تطلق مساراً مسحوباً (HIRE-WIZARD)"),
+        RetireDomain(PolicyDomains.ContractsSeparation, "خارج نطاق المحرك (D-POL-1): لا نقطة استدعاء؛ قاعدة R-SEP-START تطلق مساراً مسحوباً (SEPARATION-WIZARD)"),
+        RetireDomain(PolicyDomains.ContractsContract, "خارج نطاق المحرك (D-POL-1): لا نقطة استدعاء؛ قاعدة R-CON-RENEW بأثر لا يستهلكه أحد (RequireApproval)"),
+        RetireDomain(PolicyDomains.MovementsTransfer, "خارج نطاق المحرك (D-POL-1): لا نقطة استدعاء؛ قاعدة R-TRF تطلق مساراً مسحوباً (TRANSFER-APPROVAL)"),
+        RetireDomain(PolicyDomains.MovementsWorkforce, "خارج نطاق المحرك (D-POL-1): لا نقطة استدعاء ولا قواعد"),
+        RetireDomain(PolicyDomains.CoreEmployment, "خارج نطاق المحرك (D-POL-1): لا نقطة استدعاء ولا قواعد"),
+        RetireDomain(PolicyDomains.HealthInsurance, "خارج نطاق المحرك (D-POL-1): لا نقطة استدعاء؛ قاعدة R-INS-MASK بأثر لا يستهلكه أحد (RequirePrivacyMask)"),
+        RetireDomain(PolicyDomains.ComplianceDisciplinary, "خارج نطاق المحرك (D-POL-1): لا نقطة استدعاء؛ اعتماد الإجراء التأديبي يبدأ بالعقد العابر للخدمات (PLAN-46) لا بقاعدة R-DISC"),
+        RetireDomain(PolicyDomains.PayrollPeriod, "خارج نطاق المحرك (D-POL-1): لا نقطة استدعاء؛ قاعدة R-PAY-CLOSE بأثر لا يستهلكه أحد (RequireDualApproval)"),
+        RetireDomain(PolicyDomains.ITTickets, "خارج نطاق المحرك (D-POL-1): لا نقطة استدعاء؛ قاعدة R-TKT تطلق مساراً مسحوباً (IT-TICKET)"),
+        RetireDomain(PolicyDomains.ArchiveRetention, "خارج نطاق المحرك (D-POL-1): لا نقطة استدعاء؛ الاحتفاظ والحجز القانوني تحكمهما قواعد Records.Archive المحلية"),
+        RetireDomain(PolicyDomains.TrainingLearning, "خارج نطاق المحرك (D-POL-1): لا نقطة استدعاء؛ قاعدة R-TRN بأثر لا يستهلكه أحد (BlockUntilChecklist)"),
+        RetireDomain(PolicyDomains.AnalyticsEtl, "خارج نطاق المحرك (D-POL-1): لا نقطة استدعاء؛ قاعدة R-ETL بأثر لا يستهلكه أحد (RequireApproval)")
+    ]);
+
+    /// <summary>
+    /// PLAN-49 (G-POL-02): the three custody rules that had no condition on the action, as they are from now on. The handover
+    /// (Assign, of type AssetAssignment) is the only call site that reads RequireEvidence and TriggerWorkflow, so the decision of
+    /// a handover does not change; Classify and Create (type Asset) stop carrying effects nobody reads there. A new database is
+    /// seeded with these same rules (<see cref="PolicyEngineSeeder"/>), so this set finds nothing to replace on it.
+    /// </summary>
+    public static readonly IReadOnlyList<PolicySeedRule> CustodyAssignRules =
+    [
+        new("R-PRIV-EVIDENCE", "أصل مميز → دليل", 10,
+            """{"all":[{"field":"isPrivileged","operator":"Equals","value":"true"},{"field":"action","operator":"Equals","value":"Assign"}]}""",
+            """[{"effect":"RequireEvidence"}]"""),
+        new("R-PRIV-WF", "مميز → workflow", 15,
+            """{"all":[{"field":"isPrivileged","operator":"Equals","value":"true"},{"field":"action","operator":"Equals","value":"Assign"}]}""",
+            """[{"effect":"TriggerWorkflow","params":{"workflowCode":"ASSET-ASSIGN-APPROVAL"}}]"""),
+        new("R-HIGH-APPROVAL", "قيمة عالية → موافقة", 20,
+            """{"all":[{"field":"value","operator":"GreaterThan","value":"10000"},{"field":"action","operator":"Equals","value":"Assign"}]}""",
+            """[{"effect":"TriggerWorkflow","params":{"workflowCode":"ASSET-ASSIGN-APPROVAL"}}]""")
+    ];
+
+    public static readonly PolicySeedChangeSet AssetsAction = new(AssetsActionId,
+        CustodyAssignRules.Select(rule => Replace(PolicyDomains.AssetsCustody, rule)).ToList());
+
+    /// <summary>
+    /// PLAN-49 (G-POL-11): R-ID-PROCESS fired ID-CARD-ISSUANCE on every processed card, and nothing consumed the instance: the
+    /// card's approval starts through the cross-service contract (PLAN-46). The rule goes; the definition and its binding are
+    /// PLAN-46's and stay.
+    /// </summary>
+    public static readonly PolicySeedChangeSet IdCardOrphan = new(IdCardOrphanId,
+    [
+        Retire(PolicyDomains.IDCardLifecycle, "R-ID-PROCESS",
+            "اعتماد البطاقة يبدأ بالعقد العابر للخدمات (PLAN-46)؛ القاعدة كانت تطلق مسار ID-CARD-ISSUANCE عند كل معالجة ولا يستهلكه أحد (G-POL-11)")
+    ]);
+
+    /// <summary>
+    /// PLAN-49 (D-POL-5): no placeholder legal value and no effect without a consumer in the leave policy. R-LEAVE-MAX (30 days
+    /// for every type) and R-LEAVE-LONG (RequireApproval) go; the local limits stay until the legal owner decides. R-LEAVE-SELF
+    /// is bound to the approval, the only action that sends isSelfApproval.
+    /// </summary>
+    public static readonly PolicySeedRule LeaveSelfApprovalRule = new("R-LEAVE-SELF", "منع الموافقة الذاتية", 5,
+        """{"all":[{"field":"action","operator":"Equals","value":"Approve"},{"field":"isSelfApproval","operator":"Equals","value":"true"}]}""",
+        """[{"effect":"Deny","params":{"reason":"لا يمكن الموافقة على إجازتك"}}]""");
+
+    public static readonly PolicySeedChangeSet Leave = new(LeaveId,
+    [
+        Retire(PolicyDomains.ContractsLeave, "R-LEAVE-MAX", "قيمة نائبة بلا مصدر قانوني: 30 يوماً لكل الأنواع (D-POL-5)؛ الحدود المحلية تبقى حتى قرار المالك القانوني"),
+        Retire(PolicyDomains.ContractsLeave, "R-LEAVE-LONG", "أثر RequireApproval لا يستهلكه أحد (D-POL-5)"),
+        Replace(PolicyDomains.ContractsLeave, LeaveSelfApprovalRule)
+    ]);
+
+    public static readonly IReadOnlyList<PolicySeedChangeSet> All =
+        [Baseline, RetireRecruitmentHire, ScopeRetire, AssetsAction, IdCardOrphan, Leave];
 }
+
+/// <summary>PLAN-49: a seeded rule written once, for the seed of a new database and for the change set that brings an existing one to it.</summary>
+public sealed record PolicySeedRule(string Key, string Name, int Priority, string When, string Then);

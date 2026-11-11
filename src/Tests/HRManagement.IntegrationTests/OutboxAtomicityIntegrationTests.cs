@@ -374,6 +374,8 @@ public class OutboxAtomicityIntegrationTests
             new RecordingContractsPublisher(sp.GetRequiredService<CountingContractsRepository>()));
         services.AddMediatR(cfg =>
             cfg.RegisterServicesFromAssemblyContaining<ApproveLeaveRequestHandler>());
+        // PLAN-49: the approval asks the policy engine; the fake allows, and adds no save and no publish to the order below.
+        HRManagement.TestSupport.Policy.FakePolicyEnforceClientExtensions.ReplacePolicyEnforceClientWithFake(services);
 
         await using var root = services.BuildServiceProvider();
         await using var scope = root.CreateAsyncScope();

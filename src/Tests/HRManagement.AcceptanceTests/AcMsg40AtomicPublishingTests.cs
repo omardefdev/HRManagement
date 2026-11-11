@@ -303,8 +303,10 @@ public class AcMsg40AtomicPublishingTests
     // ------------------------------------------------------------------------------------------------ 40c
 
     // PLAN-47: a publishable draft has a rule the validator accepts, so it names a real domain and a field of its facts schema.
-    // Training.Learning's "action" never takes this value, so the published override changes no decision.
-    private const string PolicyDomain = "Training.Learning";
+    // PLAN-49: a domain the engine governs (Training.Learning, which these drafts used, is out of its scope and publishes nothing).
+    // No asset has this category, and the engine reads the agency's seeded custody override, which is older than these templates:
+    // the published versions change no decision.
+    private const string PolicyDomain = "Assets.Custody";
 
     private static async Task<(Guid Template, Guid Version)> InjectDraftPolicyAsync(string name, Guid? createdBy)
     {
@@ -313,12 +315,12 @@ public class AcMsg40AtomicPublishingTests
         var maker = createdBy is null ? "NULL" : $"'{createdBy:D}'";
         await SqlTextAsync("hr_core_db", $$"""
             INSERT INTO "PolicyTemplates" ("Id","Domain","Name","Scope","SubjectType","TenantId","CreatedAt","UpdatedAt")
-            VALUES ('{{template:D}}','{{PolicyDomain}}','{{name}}','TenantOverride','TrainingCourse','{{TenantA:D}}',now(),now());
+            VALUES ('{{template:D}}','{{PolicyDomain}}','{{name}}','TenantOverride','Asset','{{TenantA:D}}',now(),now());
             INSERT INTO "PolicyTemplateVersions" ("Id","PolicyTemplateId","VersionNumber","Status","TenantId","CreatedAt","UpdatedAt","CreatedBy")
             VALUES ('{{version:D}}','{{template:D}}',1,'Draft','{{TenantA:D}}',now(),now(),{{maker}});
             INSERT INTO "PolicyRules" ("Id","PolicyTemplateVersionId","RuleKey","Name","Priority","WhenJson","ThenJson","TenantId","CreatedAt","UpdatedAt")
             VALUES (gen_random_uuid(),'{{version:D}}','R-MSG40-NEVER','MSG40',10,
-                    '{"all":[{"field":"action","operator":"Equals","value":"MSG40-NEVER"}]}','[{"effect":"RequireEvidence"}]',
+                    '{"all":[{"field":"category","operator":"Equals","value":"MSG40-NEVER"}]}','[{"effect":"RequireEvidence"}]',
                     '{{TenantA:D}}',now(),now());
             SELECT 1;
             """);
@@ -371,7 +373,7 @@ public class AcMsg40AtomicPublishingTests
 
         r.WriteScenarioDbChecks(new { apiVersion, apiSequenceBefore, apiSequenceAfter, apiPending, uiVersion, uiSequenceBefore, uiSequenceAfter, uiPending, refusedVersion, refusedStatus = (int)refused.StatusCode, sequenceBefore, sequenceAfter });
         r.WriteScenarioSteps(
-            "1. SQL: draft policy versions (Training.Learning overrides of agency A, one rule that never matches) with a recorded maker.\n" +
+            "1. SQL: draft policy versions (Assets.Custody overrides of agency A, one rule that never matches) with a recorded maker.\n" +
             "2. POST policies/templates/{id}/publish (API) and PolicyTemplates/PublishFromUi (UI, which published nothing before PLAN-40).\n" +
             "3. hr_core_db: the OutboxMessage sequence moved for each publication, and no row is left for its deterministic MessageId within 60 s (PLAN-42: no consumer until PLAN-47).\n" +
             "4. Negative: a version with no maker on record is refused by four-eyes (400): the sequence does not move. The publisher is a-management-approver (PLAN-47: publishing is the approver's).");

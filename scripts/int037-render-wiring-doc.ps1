@@ -47,8 +47,9 @@ $lines.Add('deployment (both production compose chains and k8s), prod-like parit
 $lines.Add('`scripts/int037-wiring-check.ps1` repeats the deployment check on the rendered `docker compose config` and')
 $lines.Add('`kubectl kustomize` output. Known follow-ups: PLAN-42 (`dsar.subject.erase`, new `api/internal/*` policies, a')
 $lines.Add('secret per service, an authenticated legal-hold gate), PLAN-46 (approval start from IDCard and Compliance),')
-$lines.Add('PLAN-49 (removing unused policy-enforce registrations), PLAN-50 (the internal delegation endpoint), PLAN-39')
-$lines.Add('(the production realm generated from this matrix).')
+$lines.Add('PLAN-50 (the internal delegation endpoint), PLAN-39 (the production realm generated from this matrix).')
+$lines.Add('PLAN-49 removed the policy-enforce registration from the eight services that never called it: only the owner of a')
+$lines.Add('governed policy domain registers it (`PolicyDomainCatalog`), and `Pol049PolicyDomainCatalogTests` holds that.')
 $lines.Add('')
 $lines.Add('## Services')
 $lines.Add('')
@@ -86,16 +87,21 @@ foreach ($name in (Get-Names $matrix.registrations)) {
     $lines.Add(('| `{0}` | `{1}` | {2} | {3} |' -f $name, $r.definedIn, (Join-Code @($r.urlKeys)), (Join-Code $users)))
 }
 $lines.Add('')
-$lines.Add('Registered but never injected (they keep the URL, get no scope for it; removal is PLAN-49):')
-$lines.Add('')
+# PLAN-49: none is left; the section is written only when the matrix lists one again.
+$unused = New-Object System.Collections.Generic.List[string]
 foreach ($s in $matrix.services) {
     if ($s.PSObject.Properties['unusedRegistrations'] -and $s.unusedRegistrations) {
         foreach ($name in (Get-Names $s.unusedRegistrations)) {
-            $lines.Add(('- `{0}`: `{1}` - {2}' -f $s.composeService, $name, $s.unusedRegistrations.$name))
+            $unused.Add(('- `{0}`: `{1}` - {2}' -f $s.composeService, $name, $s.unusedRegistrations.$name))
         }
     }
 }
-$lines.Add('')
+if ($unused.Count -gt 0) {
+    $lines.Add('Registered but never injected (they keep the URL and get no scope for it):')
+    $lines.Add('')
+    foreach ($line in $unused) { $lines.Add($line) }
+    $lines.Add('')
+}
 $lines.Add('## Scopes')
 $lines.Add('')
 $lines.Add('| Scope | Audiences | Granted to | Description |')

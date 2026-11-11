@@ -168,6 +168,74 @@ public sealed class WorkflowDefinitionsHaveHandlersTests
         }
     }
 
+    /// <summary>
+    /// PLAN-49 (plan section 2, rule 3): the rules of the effective policy versions that fire a workflow whose entity type has
+    /// neither a handler in HR.Core nor an existing cross-service consumer (PLAN-46). Such a rule starts an instance whose
+    /// outcome nobody applies.
+    /// </summary>
+    private static async Task<List<string>> OrphanTriggersAsync(HRCoreDbContext db)
+    {
+        var definitions = (await db.WorkflowDefinitions.AsNoTracking().Select(d => new { d.Code, d.DomainEntityType }).ToListAsync())
+            .GroupBy(d => d.Code, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Select(d => d.DomainEntityType).Distinct().ToList(), StringComparer.Ordinal);
+        var templates = await db.PolicyTemplates.AsNoTracking().Include(t => t.Versions).ThenInclude(v => v.Rules).ToListAsync();
+
+        var offenders = new List<string>();
+        foreach (var template in templates)
+        {
+            var effective = HR.Core.Infrastructure.Services.Policy.PolicyDraftService.EffectiveVersion(template, DateTime.UtcNow);
+            foreach (var rule in effective?.Rules ?? [])
+            {
+                var issues = new List<HRManagement.SharedKernel.Policy.PolicyRuleIssue>();
+                var effects = HRManagement.SharedKernel.Policy.PolicyRuleJson.ParseThenStrict(rule.ThenJson, issues) ?? [];
+                foreach (var effect in effects.Where(e => e.Effect == HRManagement.SharedKernel.Policy.PolicyEffect.TriggerWorkflow))
+                {
+                    var code = effect.Params!["workflowCode"];
+                    var types = definitions.TryGetValue(code, out var found) ? found : [];
+                    var applied = types.Count > 0 && types.All(type =>
+                        WorkflowInstanceActionService.HandledEntityTypes.Contains(type)
+                        && !(OutcomeConsumers.TryGetValue(type, out var consumer) && consumer.PendingPlan is not null));
+                    if (!applied)
+                        offenders.Add($"{template.Domain} {rule.RuleKey} -> {code} ({(types.Count == 0 ? "no definition" : string.Join("/", types))})");
+                }
+            }
+        }
+
+        return offenders;
+    }
+
+    [Fact]
+    public async Task No_rule_of_an_effective_policy_version_fires_a_workflow_nobody_applies()
+    {
+        // A new database: the seed of the five governed domains, with the change sets applied.
+        await using var db = await SeededAsync();
+        await PolicyEngineSeeder.SeedAsync(db);
+
+        var offenders = await OrphanTriggersAsync(db);
+
+        Assert.True(offenders.Count == 0, "Effective policy rules that fire a workflow with no outcome handler or consumer: " + string.Join(", ", offenders));
+        // And the check has something to look at: the governed rules do fire workflows.
+        Assert.True(await db.PolicyRules.CountAsync(r => r.ThenJson.Contains("TriggerWorkflow")) >= 9);
+    }
+
+    [Fact]
+    public async Task The_rule_check_finds_the_triggers_of_before_PLAN_49_and_none_after_its_change_sets()
+    {
+        // A database of before the plan: R-HIRE-START, R-TRF and R-TKT fire codes whose types nobody handles, and R-SEP-START a
+        // type whose consumer a later plan writes. The change sets leave none of them in an effective version.
+        await using var db = await SeededAsync();
+        await HRManagement.UnitTests.Pol049LegacyPolicyData.SeedAsync(db);
+
+        var before = await OrphanTriggersAsync(db);
+        foreach (var key in new[] { "R-HIRE-START", "R-TRF", "R-TKT", "R-SEP-START" })
+            Assert.Contains(before, o => o.Contains($" {key} ", StringComparison.Ordinal));
+
+        await PolicyEngineSeeder.SeedAsync(db);
+        db.ChangeTracker.Clear();
+
+        Assert.Empty(await OrphanTriggersAsync(db));
+    }
+
     /// <summary>The consumer by its name, among the exported types of <c>{ServiceName}.Infrastructure</c>.</summary>
     private static Type? FindConsumer(OutcomeConsumer entry)
     {

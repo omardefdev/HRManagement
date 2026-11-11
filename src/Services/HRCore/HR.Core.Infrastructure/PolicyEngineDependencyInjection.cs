@@ -17,8 +17,8 @@ public static class PolicyEngineDependencyInjection
         services.AddHrPolicyEngineConfiguration();
         services.AddSingleton<IPolicyPublishedSnapshotCache, PolicyPublishedSnapshotCache>();
         services.AddScoped<IPolicyVersionPublisher, PolicyVersionPublisher>();
-        // PLAN-47: the allow-all default; PLAN-49 replaces it with the domain catalog.
-        services.TryAddSingleton<HR.Core.Domain.Services.Policy.IPolicyDomainCapabilities>(HR.Core.Domain.Services.Policy.AllowAllPolicyDomainCapabilities.Instance);
+        // PLAN-49 (G-POL-02): what a domain may do comes from the domain catalog; PLAN-47's allow-all default is gone.
+        services.TryAddSingleton<HR.Core.Domain.Services.Policy.IPolicyDomainCapabilities>(CatalogPolicyDomainCapabilities.Instance);
         services.AddScoped<IPolicyRuleValidationService, PolicyRuleValidationService>();
         services.AddScoped<PolicyDraftService>();
         services.AddScoped<PolicyPublishService>();
