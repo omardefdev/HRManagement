@@ -1,0 +1,11 @@
+# PLAN-52 (§6, P-11): controllers of admin-logistics without a scope stance. One row per controller: Controller | reason. A row is latent
+# (no restricted user reaches it, OrgScopeReach) and signed IAM-H; PLAN-52 rows are the ones this plan declares in its later phases.
+# The list only shrinks (OrgScopeCoverageTests): a controller that declares its stance leaves it, and a new controller needs a stance.
+AssetAssignments | PLAN-52: declares its stance in this plan
+Assets | PLAN-52: declares its stance in this plan
+Home | PLAN-52: declares its stance in this plan
+InventoryItems | PLAN-52: declares its stance in this plan
+MaintenanceRecords | PLAN-52: declares its stance in this plan
+ReceiptRecords | PLAN-52: declares its stance in this plan
+SupplyOrders | PLAN-52: declares its stance in this plan
+Vendors | PLAN-52: declares its stance in this plan

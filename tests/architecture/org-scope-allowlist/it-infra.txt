@@ -1,0 +1,11 @@
+# PLAN-52 (§6, P-11): controllers of it-infra without a scope stance. One row per controller: Controller | reason. A row is latent
+# (no restricted user reaches it, OrgScopeReach) and signed IAM-H; PLAN-52 rows are the ones this plan declares in its later phases.
+# The list only shrinks (OrgScopeCoverageTests): a controller that declares its stance leaves it, and a new controller needs a stance.
+BackupJobs | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+EnvironmentConfigurations | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+Home | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+SecurityIncidents | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+ServerDevices | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+SupportTickets | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+SystemPermissionRecords | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+UserDevices | IAM-H: latent, no restricted role reaches it (D-IAM-3)

@@ -1,0 +1,25 @@
+# PLAN-52 (§6, P-11): controllers of hr-contracts without a scope stance. One row per controller: Controller | reason. A row is latent
+# (no restricted user reaches it, OrgScopeReach) and signed IAM-H; PLAN-52 rows are the ones this plan declares in its later phases.
+# The list only shrinks (OrgScopeCoverageTests): a controller that declares its stance leaves it, and a new controller needs a stance.
+AdministrativeDecisions | PLAN-52: declares its stance in this plan
+AdvanceRequests | PLAN-52: declares its stance in this plan
+CommencementRecords | PLAN-52: declares its stance in this plan
+ContractRenewals | PLAN-52: declares its stance in this plan
+Contracts | PLAN-52: declares its stance in this plan
+ContractSignatures | PLAN-52: declares its stance in this plan
+ContractTypeRegimeMaps | PLAN-52: declares its stance in this plan
+ContractTypes | PLAN-52: declares its stance in this plan
+Dashboard | PLAN-52: declares its stance in this plan
+Export | PLAN-52: declares its stance in this plan
+ExportJobs | PLAN-52: declares its stance in this plan
+HireWizard | PLAN-52: declares its stance in this plan
+Home | PLAN-52: declares its stance in this plan
+LeaveBalances | PLAN-52: declares its stance in this plan
+LeavePolicies | PLAN-52: declares its stance in this plan
+LeaveRequests | PLAN-52: declares its stance in this plan
+ProbationRecords | PLAN-52: declares its stance in this plan
+ProcessInterventions | PLAN-52: declares its stance in this plan
+SeparationRecords | PLAN-52: declares its stance in this plan
+SeparationWizard | PLAN-52: declares its stance in this plan
+ServiceExtensions | PLAN-52: declares its stance in this plan
+ServiceTransactions | PLAN-52: declares its stance in this plan

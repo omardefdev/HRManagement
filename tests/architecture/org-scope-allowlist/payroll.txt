@@ -1,0 +1,28 @@
+# PLAN-52 (§6, P-11): controllers of payroll without a scope stance. One row per controller: Controller | reason. A row is latent
+# (no restricted user reaches it, OrgScopeReach) and signed IAM-H; PLAN-52 rows are the ones this plan declares in its later phases.
+# The list only shrinks (OrgScopeCoverageTests): a controller that declares its stance leaves it, and a new controller needs a stance.
+AllowanceRecords | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+Arrears | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+CompensationTypes | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+Dashboard | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+DeductionRecords | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+DeductionTypes | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+DsarInternal | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+EmployeePayProfiles | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+EndOfService | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+Ess | PLAN-52: a restricted user reaches it; declares its stance in this plan
+ExportJobs | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+FraudAlerts | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+Home | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+PayGradeLookupInternal | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+PayGrades | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+PaymentBatches | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+PaymentHoldsApi | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+PaymentHolds | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+PayrollAdjustments | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+PayrollApi | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+PayrollAuditRecords | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+PayrollConfigurations | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+PayrollReports | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+PayrollRuns | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+SalaryScales | IAM-H: latent, no restricted role reaches it (D-IAM-3)

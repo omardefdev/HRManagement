@@ -33,3 +33,13 @@ Started (UTC): 2026-11-12T20:25:49.8810839Z
 - `OrgScopeRequirement`, its handler and `AddOrgScopeAuthorization()` deleted, with the two registrations (HR.Core, HR.Movements) and the five handler tests; `iam002-validate.ps1` now checks the registry, the attributes, the filter, and that the handler and the requirement are gone (a check replaced, not removed).
 - Tests: `Iam052ScopeFilterTests` 16/16 (denied, central only, out of scope, no key, a model's properties, a list, parent and child, an action-level type, a unit, an employee, two units, the kept answer, a declared non-key and a not-applicable action, an unrestricted user with no query, two planted defects, the order, `WhereInOrgScope`, the reflection); `Iam002OrgScopeTests` 8/8 (scope tests and the script). Solution build 0/0.
 - Finished (UTC): 2026-11-12T21:22:43.5513210Z
+
+## P2 — BOLA v2
+
+- `OrgScopeCoverageTests` (architecture project): per service of `WebAssemblyCatalog` (fifteen web assemblies and `shared`): every controller declares a stance or is a row; the list only shrinks (stale rows, ceilings, signatures); an IAM-H row is never a controller `OrgScopeReach` finds actual; every conventional id of an `[OrgScoped]` action (GET and POST, parameters, bound-model properties, lists) has a key or `[NotOrgScopeKey]`; a service with `[OrgScoped]` controllers builds its registry from its own `Configure`, called for real.
+- Lists `tests/architecture/org-scope-allowlist/<service>.txt` (one file per service, as PLAN-51's — deviation from the plan's single file): seeded with 235 rows; HR.Core 81, HR.Contracts 22, Admin.Logistics 8, HR.Movements 5, Payroll `Ess`, `FilesApi`, gateway `Account`/`Home`, shared `Culture` as `PLAN-52` rows; 114 latent rows as `IAM-H: latent, no restricted role reaches it (D-IAM-3)`. `CeilingList.Owners` gains IAM-H and PLAN-52.
+- `{Service}OrgScopeKeys` created empty in HR.Core, HR.Contracts, Admin.Logistics and HR.Movements Infrastructure (filled in P3/P4).
+- `GuardSelfTests`: a controller with no stance, an id / a list of ids / a model id without a key, a stance naming an entity with no key, an unsigned row, a stale row.
+- `Iam052OrgScopeKeysTranslateTests`: every key of the four registries on SQLite (always) and PostgreSQL (`Category=Testcontainers`, CI's filter picks it up). Empty registries now; they fill in P3/P4.
+- Results: architecture 203/203; the translation class 4 passed, 4 skipped (Testcontainers off).
+- Finished (UTC): 2026-11-12T21:23:01.1015310Z

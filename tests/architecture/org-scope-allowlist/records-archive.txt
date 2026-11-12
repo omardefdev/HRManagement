@@ -1,0 +1,10 @@
+# PLAN-52 (§6, P-11): controllers of records-archive without a scope stance. One row per controller: Controller | reason. A row is latent
+# (no restricted user reaches it, OrgScopeReach) and signed IAM-H; PLAN-52 rows are the ones this plan declares in its later phases.
+# The list only shrinks (OrgScopeCoverageTests): a controller that declares its stance leaves it, and a new controller needs a stance.
+ArchiveIndexEntries | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+ArchiveItems | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+DigitalFileRecords | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+DocumentClassifications | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+Home | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+LoanRecords | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+PhysicalFileRecords | IAM-H: latent, no restricted role reaches it (D-IAM-3)

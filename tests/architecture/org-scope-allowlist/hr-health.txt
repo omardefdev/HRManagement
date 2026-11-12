@@ -1,0 +1,14 @@
+# PLAN-52 (§6, P-11): controllers of hr-health without a scope stance. One row per controller: Controller | reason. A row is latent
+# (no restricted user reaches it, OrgScopeReach) and signed IAM-H; PLAN-52 rows are the ones this plan declares in its later phases.
+# The list only shrinks (OrgScopeCoverageTests): a controller that declares its stance leaves it, and a new controller needs a stance.
+Dashboard | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+HealthRetirementRecords | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+HealthStatusEntries | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+Home | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+InsuranceCards | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+InsuranceContracts | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+MedicalCommitteeReports | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+MedicalRecommendations | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+MedicalRecords | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+PeriodicMedicalChecks | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+WorkplaceSafety | IAM-H: latent, no restricted role reaches it (D-IAM-3)
