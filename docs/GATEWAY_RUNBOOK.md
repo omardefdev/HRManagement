@@ -55,6 +55,14 @@ Operational checklist for `HRManagement.Gateway` as the single system entry poin
 - **Whose rows:** `GatewayAuditQueryService` filters by the caller's `tenant_id` (`GatewayAuditScope`); `platform-admin` sees every agency
   and the rows with no agency (requests without a token); a caller without a valid `tenant_id` sees nothing. The filter is in the query
   service, never in a view (proved on SQLite and PostgreSQL: `Iam051GatewayAuditScopeTests`, `Iam051GatewayAuditPostgreSqlTests`).
+  `/ops/metrics-summary` carries the same policy; its recent error paths are for `platform-admin` only.
+- **Rows written before PLAN-51 have no agency:** the queue's copy written to the database dropped `TenantId` (and `ScopeOrgUnitId`,
+  `Reason`, `ResourceType`, `ResourceId`) until PLAN-51 fixed `GatewayAuditQueue.CloneEntry`. Those rows stay visible to `platform-admin`
+  only; they are not backfilled (on the demo server: 10095 rows on 2026-11-12).
+- **What is audited:** the requests the gateway forwards (`/ui/...`, `/api/...`) and its own refusals of them; its own pages
+  (`/Home/...`, `/ops/...`) write no audit row.
+- **A refused page:** the gateway's own pages refuse the way its cookie scheme does, with a 302 to `/Account/AccessDenied`, a page the
+  gateway does not have (404). The refusal holds; the page a refused user lands on is a known defect (PLAN-51 report §10).
 
 ## Incident Triage
 

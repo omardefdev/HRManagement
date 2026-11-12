@@ -305,3 +305,11 @@ with `Deployment__Mode=demo`; no container sets an `Authorization__*` or `Gatewa
 | Phase | Status | Finished (UTC) |
 |-------|--------|----------------|
 | P8 | done | 2026-11-12T08:18:30Z |
+
+## P9 (2026-11-12)
+
+- Docs: `OPS_VPS_SINGLE_HOST.md` (PLAN-51 section: what the demo users see, the backup, the changes and the rollback note),
+  `GATEWAY_RUNBOOK.md` (metrics summary, rows without an agency, what is audited, the refused page), the plan's Status and
+  «ملاحظات التنفيذ والانحرافات»; the others were committed in 5fcc6c6b. `reports/plan51-final-report.md` written.
+- The full Testcontainers step ran at 03:10Z..03:19Z (216 passed, 1 skipped, 0 failed) on the code of 9d130248; nothing it builds or tests
+  changed after it. ProtonVPN is on, so `ci-local` runs with `-SkipTestcontainers` (memory: Testcontainers fail under the VPN).
