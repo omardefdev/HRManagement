@@ -213,6 +213,10 @@ public static class JobActivitySource
 
     public static readonly Counter<long> Failures =
         Meter.CreateCounter<long>("job_failures_total");
+
+    /// <summary>PLAN-52 (D-52-4): a transferred restricted user's scope cleared locally while the Keycloak sync is off (PLAN-62 turns it on).</summary>
+    public static readonly Counter<long> DirectoryScopeSyncSkipped =
+        Meter.CreateCounter<long>("directory_scope_sync_skipped_total");
 }
 
 /// <summary>OBS-001: export-job meter name for registration.</summary>

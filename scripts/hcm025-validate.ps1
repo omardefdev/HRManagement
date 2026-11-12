@@ -8,7 +8,7 @@
 #   - WorkflowStageGuard has the step-role check and the action service runs the evaluator on approve and reject;
 #   - R-REC-HIRE is deactivated and RECRUITMENT-HIRE retired; the POST-policy allow-list exists;
 #   - e2e-journeys.yml runs the prod-like journey with a zero-skip step (structural check: no YAML parser on this machine);
-#   - the Hcm025 | WorkflowStageGuard | Architecture unit tests pass (the known BolaArchitectureTests baseline is reported).
+#   - the Hcm025 | WorkflowStageGuard | Architecture unit tests pass (PLAN-52 removed BOLA v1 and its known-failure tolerance).
 # Writes artifacts/hcm025/validate-report.json (git-ignored).
 
 param(
@@ -129,11 +129,9 @@ if (-not $SkipTests) {
     else {
         [xml]$doc = Get-Content -Raw -Encoding UTF8 -Path $trx
         $failed = @($doc.TestRun.Results.UnitTestResult | Where-Object { $_.outcome -eq "Failed" } | ForEach-Object { $_.testName })
-        $known = @($failed | Where-Object { $_ -like "*BolaArchitectureTests.Employee_scoped_controller_actions_apply_org_scope_guard*" })
-        $unexpected = @($failed | Where-Object { $_ -notin $known })
+        $unexpected = $failed
         $passed = @($doc.TestRun.Results.UnitTestResult | Where-Object { $_.outcome -eq "Passed" }).Count
-        $tests = "passed=$passed failed=$($failed.Count) (known baseline: $($known.Count))"
-        if ($known.Count -gt 0) { $notes += "known baseline failure: BolaArchitectureTests (HR.Contracts Index actions, pre-PLAN-25)" }
+        $tests = "passed=$passed failed=$($failed.Count)"
         foreach ($name in $unexpected) { $failures += "unit test failed: $name" }
     }
 }

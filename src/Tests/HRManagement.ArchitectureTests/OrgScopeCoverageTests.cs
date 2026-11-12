@@ -168,7 +168,7 @@ public sealed class OrgScopeCoverageTests
     {
         foreach (var entry in WebAssemblyCatalog.Entries)
             foreach (var (key, reason) in CeilingList.Load(ListPath(entry.Service)).Rows)
-                Assert.True(reason.StartsWith(LatentOwner + ":", StringComparison.Ordinal) || reason.StartsWith("PLAN-52:", StringComparison.Ordinal),
+                Assert.True(reason.StartsWith(LatentOwner + ":", StringComparison.Ordinal),
                     $"{ListPath(entry.Service)}: {key} | {reason}");
     }
 

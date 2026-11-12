@@ -23,6 +23,9 @@ public interface IKeycloakUserProvisioningService
 
     /// <summary>Synchronises display name and email on the Keycloak user.</summary>
     Task<KeycloakProvisionResult> TrySyncUserInfoAsync(string keycloakUserId, string displayName, string email, CancellationToken ct = default);
+
+    /// <summary>PLAN-52 (D-52-4): removes the <c>scope_org_unit_id</c> attribute of a transferred restricted user; his other attributes stay.</summary>
+    Task<KeycloakProvisionResult> TryClearScopeAttributeAsync(string keycloakUserId, CancellationToken ct = default);
 }
 
 public sealed record KeycloakProvisionResult(bool Attempted, bool Success, string? Detail)
