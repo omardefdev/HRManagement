@@ -12,6 +12,7 @@ using System.Net.Http.Headers;
 
 namespace HRManagement.Gateway.Controllers;
 
+[OrgScopeNotApplicable("the gateway's own pages: no org records (its audit is filtered by agency, PLAN-51)")]
 public class HomeController(
     IGatewayModuleCatalog moduleCatalog,
     IGatewayJourneyCatalog journeyCatalog,

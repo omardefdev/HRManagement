@@ -10,7 +10,6 @@ DeductionTypes | IAM-H: latent, no restricted role reaches it (D-IAM-3)
 DsarInternal | IAM-H: latent, no restricted role reaches it (D-IAM-3)
 EmployeePayProfiles | IAM-H: latent, no restricted role reaches it (D-IAM-3)
 EndOfService | IAM-H: latent, no restricted role reaches it (D-IAM-3)
-Ess | PLAN-52: a restricted user reaches it; declares its stance in this plan
 ExportJobs | IAM-H: latent, no restricted role reaches it (D-IAM-3)
 FraudAlerts | IAM-H: latent, no restricted role reaches it (D-IAM-3)
 Home | IAM-H: latent, no restricted role reaches it (D-IAM-3)

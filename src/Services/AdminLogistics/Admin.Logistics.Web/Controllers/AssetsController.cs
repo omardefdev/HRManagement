@@ -23,6 +23,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Admin.Logistics.Web.Controllers;
 
+[OrgScoped(typeof(Admin.Logistics.Domain.Entities.Asset), OutOfScope = OrgScopeAnswer.Forbid)]
 public class AssetsController(
     AdminLogisticsDbContext db,
     IFileReferenceClient fileRefs,

@@ -18,6 +18,7 @@ namespace HR.Contracts.Web.Controllers;
 [Authorize(Policy = HrManagementPolicies.HrContractsHireView)]
 // PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
 [ModulePolicyOverride(HrManagementPolicies.HrContractsHireView)]
+[OrgScoped(typeof(HR.Contracts.Domain.Entities.ServiceTransaction))]
 public class HireWizardController : Controller
 {
     private readonly IContractsRepository _repo;
@@ -43,6 +44,8 @@ public class HireWizardController : Controller
         return Guid.TryParse(v, out var g) ? g : null;
     }
 
+    // PLAN-52 (P-4): QA-034's answer is kept here: 403 for an employee outside the scope.
+    [OrgScoped(OutOfScope = OrgScopeAnswer.Forbid)]
     public async Task<IActionResult> Index(ServiceTransactionState? state, Guid? employeeId)
     {
         // QA-034 (IAM-002): branch scope. A restricted user gets 403 for an employee outside the scope and lists only
@@ -107,6 +110,7 @@ public class HireWizardController : Controller
     public IActionResult Step1() => RedirectToAction(nameof(Index));
 
     [HttpGet]
+    [OrgScoped(OutOfScope = OrgScopeAnswer.Forbid)]
     public async Task<IActionResult> Continue(Guid employeeId)
     {
         if (await this.ForbidIfEmployeeOutOfScopeAsync(
@@ -124,6 +128,7 @@ public class HireWizardController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    [OrgScoped(OutOfScope = OrgScopeAnswer.Forbid)]
     public Task<IActionResult> Step1(Guid employeeId) => Continue(employeeId);
 
     public async Task<IActionResult> Step2(Guid transactionId)

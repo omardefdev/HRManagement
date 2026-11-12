@@ -11,6 +11,7 @@ namespace Payroll.Web.Controllers;
 [Route("[controller]")]
 // PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
 [ModulePolicyOverride(HrManagementPolicies.ModuleEss)]
+[OrgScopeNotApplicable("self-service by ownership: the signed-in employee's own pay records")]
 public class EssController(PayrollDbContext db) : Controller
 {
     /// <summary>ESS-001 / PAY-004: employee arrears balance (entitled / paid / arrears).</summary>

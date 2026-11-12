@@ -48,7 +48,9 @@ public sealed class ContractsExportJobService(
         ClaimsPrincipal user,
         CancellationToken ct = default)
     {
-        var snapshot = ExportJobAuth.Capture(user, tenantContext);
+        // PLAN-52 (P-7): the job runs without the user, so it records his scope (unrestricted, his root, or denied) and applies it.
+        var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(user, db.OrgUnitSnapshots, ct: ct);
+        var snapshot = ExportJobAuth.WithScope(ExportJobAuth.Capture(user, tenantContext), scope, user);
         if (snapshot.UserId == Guid.Empty)
             return (false, null, "تعذّر تحديد هوية المستخدم.");
 
@@ -187,6 +189,8 @@ public sealed class ContractsExportJobService(
         ExportJob job, Stream output, CancellationToken ct)
     {
         await using var writer = new StreamWriter(output, new UTF8Encoding(encoderShouldEmitUTF8Identifier: true), 64 * 1024, leaveOpen: true);
+        // PLAN-52 (P-7): the requester's recorded scope; a restricted requester's job without one exports nothing.
+        var scope = await ExportJobAuth.RecordedScopeAsync(ExportJobAuth.Deserialize(job.AuthSnapshotJson), db.OrgUnitSnapshots, ct);
         var chunk = Math.Max(50, options.Value.ChunkSize);
 
         if (job.ExportType is ExportJobTemplates.ContractsLeaveCsv or "LeaveRequestsCsv")
@@ -198,6 +202,7 @@ public sealed class ContractsExportJobService(
             {
                 if (await IsCancelledAsync(job.Id, ct)) break;
                 var batch = await db.LeaveRequests.AsNoTracking()
+                    .WhereInOrgScope(OrgScope.ContractsOrgScopeKeys.Registry, scope, db)
                     .OrderByDescending(l => l.CreatedAt)
                     .Skip(skip).Take(chunk).ToListAsync(ct);
                 if (batch.Count == 0) break;
@@ -223,6 +228,7 @@ public sealed class ContractsExportJobService(
             {
                 if (await IsCancelledAsync(job.Id, ct)) break;
                 var batch = await db.AdvanceRequests.AsNoTracking()
+                    .WhereInOrgScope(OrgScope.ContractsOrgScopeKeys.Registry, scope, db)
                     .OrderByDescending(a => a.CreatedAt)
                     .Skip(skip).Take(chunk).ToListAsync(ct);
                 if (batch.Count == 0) break;

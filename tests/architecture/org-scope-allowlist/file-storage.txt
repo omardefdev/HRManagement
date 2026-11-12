@@ -2,5 +2,4 @@
 # (no restricted user reaches it, OrgScopeReach) and signed IAM-H; PLAN-52 rows are the ones this plan declares in its later phases.
 # The list only shrinks (OrgScopeCoverageTests): a controller that declares its stance leaves it, and a new controller needs a stance.
 DsarInternal | IAM-H: latent, no restricted role reaches it (D-IAM-3)
-FilesApi | PLAN-52: a restricted user reaches it; declares its stance in this plan
 FilesServiceUpload | IAM-H: latent, no restricted role reaches it (D-IAM-3)

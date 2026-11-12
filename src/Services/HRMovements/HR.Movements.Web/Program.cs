@@ -16,7 +16,11 @@ builder.AddHrOpenTelemetry();
 builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrMovements, HrManagementPolicies.HrMovementsWrite);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrMovements, HrManagementPolicies.HrMovementsWrite)
+    // PLAN-52 (P-9): the approval screens a delegation opens to a restricted user stay inside his scope (both units of a transfer or a loan).
+    .AddOrgScopeFilter<HR.Movements.Infrastructure.Data.MovementsDbContext>(
+        HR.Movements.Infrastructure.OrgScope.MovementsOrgScopeKeys.Service, HR.Movements.Infrastructure.OrgScope.MovementsOrgScopeKeys.Configure);
+builder.Services.AddSnapshotOrgScopeProvider<HR.Movements.Infrastructure.Data.MovementsDbContext>();
 builder.Services.AddHrOpenApi("HR.Movements API");
 
 builder.Services.AddHttpContextAccessor();

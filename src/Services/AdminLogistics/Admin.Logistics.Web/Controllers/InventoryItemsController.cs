@@ -14,6 +14,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Admin.Logistics.Web.Controllers;
 
+[OrgScopeNotApplicable("reference data: the inventory items; their writes are central (D-52-3)")]
 public class InventoryItemsController(AdminLogisticsDbContext db, ICodeGenerationClient codeClient) : Controller
 {
     public async Task<IActionResult> Index(
@@ -83,8 +84,10 @@ public class InventoryItemsController(AdminLogisticsDbContext db, ICodeGeneratio
         return View(e);
     }
 
+    [OrgScopeCentralOnly("D-52-3: the catalogue is written centrally")]
     public IActionResult Create() => View(new InventoryItemFormViewModel { Quantity = 0 });
 
+    [OrgScopeCentralOnly("D-52-3: the catalogue is written centrally")]
     [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -136,6 +139,7 @@ public class InventoryItemsController(AdminLogisticsDbContext db, ICodeGeneratio
         return RedirectToAction(nameof(Index));
     }
 
+    [OrgScopeCentralOnly("D-52-3: the catalogue is written centrally")]
     public async Task<IActionResult> Edit(Guid id)
     {
         var e = await db.InventoryItems.FindAsync(id);
@@ -152,6 +156,7 @@ public class InventoryItemsController(AdminLogisticsDbContext db, ICodeGeneratio
         });
     }
 
+    [OrgScopeCentralOnly("D-52-3: the catalogue is written centrally")]
     [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -207,6 +212,7 @@ public class InventoryItemsController(AdminLogisticsDbContext db, ICodeGeneratio
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [OrgScopeCentralOnly("D-52-3: the catalogue is written centrally")]
     [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]

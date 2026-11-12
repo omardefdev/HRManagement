@@ -25,6 +25,7 @@ namespace HR.Contracts.Web.Controllers;
 
 // PLAN-51 (§4, P-6): reads name the module policy (the management approver reads HR.Contracts); every write names HrContracts.Write or HrContracts.Approve.
 [Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
+[OrgScoped(typeof(HR.Contracts.Domain.Entities.AdministrativeDecision))]
 public class AdministrativeDecisionsController : Controller
 
 {
@@ -61,6 +62,12 @@ public class AdministrativeDecisionsController : Controller
     {
 
         var items = await _mediator.Send(new GetAdministrativeDecisionsQuery());
+        // PLAN-52 (P-7): a restricted user lists the decisions of his scope's employees only (a decision without one is central).
+        if ((await HttpContext.GetOrgScopeAsync()).MustFilter)
+        {
+            var inScope = (await (await _db.AdministrativeDecisions.AsNoTracking().InOrgScopeAsync(HttpContext, _db)).Select(d => d.Id).ToListAsync()).ToHashSet();
+            items = items.Where(x => inScope.Contains(x.Id)).ToList();
+        }
         if (!string.IsNullOrWhiteSpace(q))
         {
             var term = q.Trim();

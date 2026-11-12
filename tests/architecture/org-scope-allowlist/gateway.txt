@@ -1,8 +1,6 @@
 # PLAN-52 (§6, P-11): controllers of gateway without a scope stance. One row per controller: Controller | reason. A row is latent
 # (no restricted user reaches it, OrgScopeReach) and signed IAM-H; PLAN-52 rows are the ones this plan declares in its later phases.
 # The list only shrinks (OrgScopeCoverageTests): a controller that declares its stance leaves it, and a new controller needs a stance.
-Account | PLAN-52: a restricted user reaches it; declares its stance in this plan
 AuditSecurity | IAM-H: latent, no restricted role reaches it (D-IAM-3)
 EvidenceArtifacts | IAM-H: latent, no restricted role reaches it (D-IAM-3)
-Home | PLAN-52: a restricted user reaches it; declares its stance in this plan
 PlatformTenant | IAM-H: latent, no restricted role reaches it (D-IAM-3)

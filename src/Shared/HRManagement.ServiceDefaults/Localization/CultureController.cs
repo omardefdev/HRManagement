@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
@@ -11,6 +12,7 @@ namespace HRManagement.ServiceDefaults.Localization;
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
+[OrgScopeNotApplicable("the UI culture: no org records")]
 public class CultureController : ControllerBase
 {
     // PLAN-51 (§6): a preference cookie, no data. Any signed-in user, named; in a service the module filter still applies its module policy first.

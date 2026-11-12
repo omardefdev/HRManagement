@@ -23,7 +23,19 @@ public sealed class ExportAuthSnapshot
     public Guid TenantId { get; set; }
     public Guid? ScopeOrgUnitId { get; set; }
     public string? ScopeIdsHash { get; set; }
+
+    /// <summary>PLAN-52 (P-7): the requester's scope when the job was queued (<see cref="ExportScopeKinds"/>); a job runs without the user, so it
+    /// applies this. A restricted requester's job with none recorded exports nothing.</summary>
+    public string? ScopeKind { get; set; }
     public IReadOnlyList<string> Roles { get; set; } = Array.Empty<string>();
+}
+
+/// <summary>PLAN-52 (P-7): the values of <see cref="ExportAuthSnapshot.ScopeKind"/>.</summary>
+public static class ExportScopeKinds
+{
+    public const string Unrestricted = "unrestricted";
+    public const string Restricted = "restricted";
+    public const string Denied = "denied";
 }
 
 public sealed class ExportJobOptions

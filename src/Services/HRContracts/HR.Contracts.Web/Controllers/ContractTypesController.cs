@@ -11,6 +11,7 @@ namespace HR.Contracts.Web.Controllers;
 
 // PLAN-51 (§4, P-6): reads name the module policy (the management approver reads HR.Contracts); every write names HrContracts.Write or HrContracts.Approve.
 [Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
+[OrgScopeNotApplicable("reference data: the contract types")]
 public class ContractTypesController : Controller
 {
     private readonly ContractsDbContext _db;

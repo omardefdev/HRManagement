@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using HR.Contracts.Web.Models;
@@ -6,6 +7,7 @@ namespace HR.Contracts.Web.Controllers;
 
 // PLAN-51 (review L7): the module's read policy, named, as on every HR.Contracts controller.
 [Microsoft.AspNetCore.Authorization.Authorize(Policy = HRManagement.ServiceDefaults.HrManagementPolicies.ModuleHrContracts)]
+[OrgScopeNotApplicable("a page with no org records")]
 public class HomeController : Controller
 {
     public IActionResult Index()

@@ -32,10 +32,10 @@ public sealed class OrgScopeCoverageTests
     public static readonly IReadOnlyDictionary<string, int> Ceilings = new Dictionary<string, int>(StringComparer.Ordinal)
     {
         ["hr-core"] = 0,
-        ["hr-contracts"] = 22,
-        ["admin-logistics"] = 8,
-        ["payroll"] = 25,
-        ["hr-movements"] = 13,
+        ["hr-contracts"] = 0,
+        ["admin-logistics"] = 0,
+        ["payroll"] = 24,
+        ["hr-movements"] = 8,
         ["hr-training"] = 13,
         ["hr-health"] = 11,
         ["compliance"] = 11,
@@ -44,9 +44,9 @@ public sealed class OrgScopeCoverageTests
         ["records-archive"] = 7,
         ["dev-analytics"] = 12,
         ["auth-directory"] = 8,
-        ["file-storage"] = 3,
-        ["gateway"] = 5,
-        ["shared"] = 1,
+        ["file-storage"] = 2,
+        ["gateway"] = 3,
+        ["shared"] = 0,
     };
 
     /// <summary>The registries, as each service's Program.cs builds them.</summary>
