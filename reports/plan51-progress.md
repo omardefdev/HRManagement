@@ -246,3 +246,4 @@ ci-local and the pre-push check on the final HEAD, the release branch, the PR an
 - `origin/main` is still PLAN-50's merge (0db7292e); no source changed after 9d130248, so P8 will build HEAD.
 - BLOCKED again at P8. Options: (a) let this machine reach port 22 (router or provider setting, a phone hotspot, or another network);
   (b) P9 now, P8 later; (c) P8 from another machine.
+- Retried on the owner's request at 05:41:53Z: `ssh hrm-vps` timed out again, TCP 22 False, same Wi-Fi gateway as before; still BLOCKED at P8.
