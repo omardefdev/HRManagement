@@ -13,6 +13,7 @@ Prompt: docs/acceptance-plans/execution/PLAN-51-AGENT-PROMPT.md. Plan: docs/acce
 | P2 | done | 2026-11-12T00:06:52Z |
 | P3 | done | 2026-11-12T00:18:21Z |
 | P4 | done | 2026-11-12T00:46:32Z |
+| P5 | done | 2026-11-12T01:07:30Z |
 
 ## Session facts
 
@@ -36,7 +37,7 @@ Prompt: docs/acceptance-plans/execution/PLAN-51-AGENT-PROMPT.md. Plan: docs/acce
 
 ## Next step
 
-P5: HrCore.Write without its service branch (invert FineGrainedPolicyTests.HrCoreWrite_ServiceWorkflowScope_Succeeds), the three endpoints of hr-core.workflow, wiring matrix serverPolicy check, Platform.AgencyOnboarding + apply-file deleted (service, gateway table), Evidence:IngestClients, per-client integration tests.
+P6: acceptance pieces (AcIam51ExplicitPolicyTests a..f, two personas a-ess-supervisory and a-ess-approver with employees in agency A, realm generator, catalog tests, DATA-AUTH 67, ci-scope prodLike main required, ac-ownership AC-IAM-51, scripts/iam051-validate.ps1 with -SelfTest), then the prod-like stack run and P-11 list, then the independent review.
 
 ## P0 summary (Finished (UTC): 2026-11-11T23:45:16Z)
 
@@ -141,3 +142,20 @@ Decisions:
 9. **Writes that named only a read policy** (found by a catalog pass): HR.Contracts and HR.Movements `ProcessInterventions.Cancel/Resume`,
    Dev.Analytics `Reconcile` and `InjectDrift` now name their write policy; the rest are reads (exports, lookups, evaluate, verify,
    cancel own export, self-service, culture).
+
+## P5 summary (Finished (UTC): 2026-11-12T01:07:30Z)
+
+- `HrCore.Write` = `RolesPolicy(admin, hr-core)`: no service branch. `hr-core.workflow` is accepted on `Workflow.ExternalStart`
+  (start, cancel, external status), `Service.CodeGenerate` (generate, preview) and `Service.PolicyEnforce`, besides the reads §5 rule 1
+  keeps (`Module.HrCore`, `HrCore.ReadOnly`, `Workflow.DefinitionRead` unchanged). `FineGrainedPolicyTests` inverted.
+- Onboarding: `Platform.AgencyOnboarding` (platform-admin) on the controller, its override and PLAN-50's gateway table; `apply-file` and
+  its row deleted; `AgencyManifestLoader` stays. `iam050-validate` rows, `GatewayApproverReachTests` (onboarding left the approvals) and
+  `GatewayPathAuthorizationMiddlewareTests` updated.
+- Evidence: `Service.EvidenceIngest` = `ConfiguredServiceClientsRequirement(evidence.ingest, Evidence:IngestClients)`, empty by default
+  (gateway `appsettings.json` documents the empty list). No caller exists (0.5).
+- Wiring matrix: no entry used `HrCore.Write`/`BranchOperation`; unchanged; `ProductionWiringMatrixTests` green.
+- Tests: `Iam051OnboardingEvidenceTests` (5); `Iam051DirectServiceWriteTests` grew to 34: every HR.Core call of inventory 0.5 (table A)
+  as its own client and full scope set passes its policy (the code kind and policy domain each client owns in the body); a service with
+  `hr-core.workflow` reaches no HR.Core write beyond the three endpoints, the other scopes' internal routes and the POST reads; it cannot
+  create an employee (count unchanged).
+- Results: unit 6267/6267; architecture 128/128; iam050 (+ self-test 8/8), wf043, hcm025, int037 PASS.

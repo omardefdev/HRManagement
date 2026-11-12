@@ -69,11 +69,10 @@ public static class HrManagementAuthorizationExtensions
                     && (ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreLookup)
                         || ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreWorkflow)))));
 
-            options.AddPolicy(HrManagementPolicies.HrCoreWrite, p => p.RequireAssertion(c =>
-                c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.HrCore)
-                || (ServiceCallerPrincipal.IsServiceAccount(c.User)
-                    && ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreWorkflow))));
+            // PLAN-51 (§5, D-51-4): no service branch. hr-core.workflow is accepted on three endpoints only (Workflow.ExternalStart,
+            // Service.CodeGenerate, Service.PolicyEnforce); a service account writes nothing in HR.Core's records. Roles from configuration
+            // (D-51-2), by default hr-admin and hr-core.
+            options.RolesPolicy(HrManagementPolicies.HrCoreWrite, HrManagementRoles.Admin, HrManagementRoles.HrCore);
 
             // PLAN-47 (D-POL-3): the policy lifecycle; the role lists are read from configuration by PolicyEngineRoleHandler.
             options.AddPolicy(HrManagementPolicies.PolicyAuthor, p => p.AddRequirements(new PolicyEngineRoleRequirement(PolicyEngineRoleKind.Author)));
@@ -199,6 +198,9 @@ public static class HrManagementAuthorizationExtensions
             // PLAN-51 (decision 4): the roles-only writes, named with the same roles.
             options.RolesPolicy(HrManagementPolicies.ComplianceDsar, HrManagementRoles.Compliance, HrManagementRoles.PlatformAdmin);
             options.RolesPolicy(HrManagementPolicies.PlatformOperator, HrManagementRoles.PlatformAdmin);
+
+            // PLAN-51 (§5, G-IAM-09): agency onboarding is the platform administrator's alone.
+            options.RolesPolicy(HrManagementPolicies.PlatformAgencyOnboarding, HrManagementRoles.PlatformAdmin);
 
             // The base payroll role grants module access only. Operational roles are deliberately
             // separate so a processor cannot approve or post the same run.

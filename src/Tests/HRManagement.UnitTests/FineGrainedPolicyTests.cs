@@ -131,12 +131,13 @@ public class FineGrainedPolicyTests
     }
 
     [Fact]
-    public async Task HrCoreWrite_ServiceWorkflowScope_Succeeds()
+    public async Task HrCoreWrite_ServiceWorkflowScope_Fails()
     {
+        // PLAN-51 (§5, D-51-4): HrCore.Write lost its service branch; hr-core.workflow reaches three endpoints only.
         var auth = BuildAuthService();
         var user = CreateServiceUser(ServiceClientIds.AdminLogistics, ServiceScopes.HrCoreWorkflow);
         var result = await auth.AuthorizeAsync(user, HrManagementPolicies.HrCoreWrite);
-        Assert.True(result.Succeeded);
+        Assert.False(result.Succeeded);
     }
 
     [Fact]

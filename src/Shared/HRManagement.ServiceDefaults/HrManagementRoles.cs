@@ -141,6 +141,15 @@ public static class HrManagementPolicies
     /// <summary>PLAN-51 (decision 4): the platform operator's own gateway actions (tenant entry, platform audit), formerly <c>Roles = platform-admin</c>.</summary>
     public const string PlatformOperator = "Platform.Operator";
 
+    /// <summary>PLAN-51 (§5, G-IAM-09): agency onboarding through the API: platform-admin only, in the service and at the gateway.</summary>
+    public const string PlatformAgencyOnboarding = "Platform.AgencyOnboarding";
+
+    /// <summary>
+    /// PLAN-51 (§5, D-51-5): publishing evidence artifacts (<c>Service.EvidenceIngest</c>) is open to the service clients listed in
+    /// <c>Evidence:IngestClients</c>, empty by default (nobody).
+    /// </summary>
+    public const string EvidenceIngestClientsKey = "Evidence:IngestClients";
+
     /// <summary>PLAN-43 (D-WF-4): write and publish workflow definitions: hr-admin or workflow-admin, never a service account.</summary>
     public const string WorkflowDefinitionAdmin = "Workflow.DefinitionAdmin";
 

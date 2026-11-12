@@ -188,7 +188,7 @@ public class GatewayPathAuthorizationMiddlewareTests
     }
 
     [Theory]
-    [InlineData("/api/hr-core/api/onboarding/agencies/apply", HrManagementPolicies.HrCoreApprove)]
+    [InlineData("/api/hr-core/api/onboarding/agencies/apply", HrManagementPolicies.PlatformAgencyOnboarding)]
     [InlineData("/api/hr-core/api/policies/enforce", HrManagementPolicies.HrCoreWrite)]
     [InlineData("/api/hr-core/api/internal/policies/enforce", HrManagementPolicies.HrCoreWrite)]
     [InlineData("/api/hr-core/api/workflow-instances/00000000-0000-0000-0000-000000000001/approve", HrManagementPolicies.GatewayApprovalReach)]
@@ -222,7 +222,8 @@ public class GatewayPathAuthorizationMiddlewareTests
     [InlineData("/ui/hr-core/Delegations/Create", HrManagementPolicies.ManageDelegations)]
     [InlineData("/ui/hr-core/Delegations/Revoke/00000000-0000-0000-0000-000000000001", HrManagementPolicies.ManageDelegations)]
     [InlineData("/ui/hr-core/Delegations/Delete/00000000-0000-0000-0000-000000000001", HrManagementPolicies.HrCoreWrite)]
-    [InlineData("/api/hr-core/api/onboarding/agencies/apply-file", HrManagementPolicies.HrCoreApprove)]
+    // PLAN-51 (§5): apply-file has no row any more (the action is gone; HR.Core answers 404).
+    [InlineData("/api/hr-core/api/onboarding/agencies/apply-file", HrManagementPolicies.HrCoreWrite)]
     [InlineData("/api/hr-core/api/onboarding/agencies/other", HrManagementPolicies.HrCoreWrite)]
     [InlineData("/ui/hr-core/Approvals/Approve/7", HrManagementPolicies.HrCoreWrite)]
     public void HrCore_special_write_paths_use_their_narrow_policy(string path, string expectedPolicy)

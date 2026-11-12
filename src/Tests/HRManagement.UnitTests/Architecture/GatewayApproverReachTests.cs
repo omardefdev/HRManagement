@@ -123,8 +123,9 @@ public sealed class GatewayApproverReachTests
         var names = endpoints.Select(e => $"{e.ControllerName}.{e.Action.Name}").ToHashSet();
         foreach (var expected in new[]
                  {
+                     // PLAN-51 (§5): onboarding left the approvals; it is the platform administrator's alone (Iam051OnboardingAndServiceAccountTests).
                      "EmploymentRecords.Approve", "EmployeeCorrections.Approve", "EmployeeCorrections.ApproveApi", "Competitions.Finalize",
-                     "Competitions.Cancel", "Approvals.Approve", "Approvals.Reject", "Onboarding.Apply", "Onboarding.ApplyFromFile",
+                     "Competitions.Cancel", "Approvals.Approve", "Approvals.Reject",
                      "Delegations.Create", "Delegations.Revoke", "PolicyTemplates.PublishFromUi", "Policies.Publish",
                      "TransferRequests.Approve", "TransferRequests.Reject", "SecondmentRequests.Approve", "LoanAssignmentRequests.Approve",
                      "PromotionRequests.Approve", "DelegationRequests.Approve", "TransferRequests.Index", "DelegationRequests.Details"
