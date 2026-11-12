@@ -117,7 +117,10 @@ builder.Services.AddControllersWithViews(options =>
         // PLAN-48: 422 for a missing or invalid code policy, 409 for a code already issued, 403 for a national row written by an agency.
         options.Filters.Add<HR.Core.Web.Filters.NationalScopeErrorFilter>();
     })
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrCore, HrManagementPolicies.HrCoreWrite);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrCore, HrManagementPolicies.HrCoreWrite)
+    // PLAN-52 (§1, P-4): every controller declares its scope stance; the one filter resolves the ids of a restricted user's request.
+    .AddOrgScopeFilter<HR.Core.Infrastructure.Data.HRCoreDbContext>(
+        HR.Core.Infrastructure.OrgScope.HrCoreOrgScopeKeys.Service, HR.Core.Infrastructure.OrgScope.HrCoreOrgScopeKeys.Configure);
 builder.Services.AddHrOpenApi("HR.Core API");
 
 builder.Services.AddHttpContextAccessor();
@@ -194,6 +197,7 @@ if (builder.Configuration.GetValue("Workflow:Reconciliation:Enabled", true))
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton<HR.Core.Infrastructure.IOrgUnitHierarchyCache, HR.Core.Infrastructure.OrgUnitHierarchyCache>();
 builder.Services.AddScoped<HR.Core.Infrastructure.OrgScopeService>();
+builder.Services.AddScoped<IOrgScopeProvider, HR.Core.Infrastructure.OrgScope.HrCoreOrgScopeProvider>();
 builder.Services.AddScoped<HR.Core.Web.Services.EstablishmentScopeService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.OrgUnitPathService>();
 builder.Services.AddScoped<HR.Core.Domain.Services.EstablishmentService>();

@@ -15,6 +15,7 @@ using HRManagement.SharedKernel.ViewModels;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScoped(typeof(FundedPosition), OutOfScope = OrgScopeAnswer.Forbid)]
 public class FundedPositionsController(
     HRCoreDbContext db,
     EstablishmentScopeService establishmentScope,

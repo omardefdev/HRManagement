@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Web.Controllers;
 
+[OrgScopeNotApplicable("reference data: the shift catalogue; its writes are central (D-52-3)")]
 public class ShiftsController(HRCoreDbContext db) : Controller
 {
     public async Task<IActionResult> Index(string? q, ShiftType? shiftType, bool? isActive)
@@ -29,8 +30,10 @@ public class ShiftsController(HRCoreDbContext db) : Controller
         return View(new ShiftsIndexViewModel { Items = items, Q = q, ShiftType = shiftType, IsActive = isActive });
     }
 
+    [OrgScopeCentralOnly("D-52-3: the shift catalogue is written centrally")]
     public IActionResult Create() => View(new ShiftCreateViewModel());
 
+    [OrgScopeCentralOnly("D-52-3: the shift catalogue is written centrally")]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -52,6 +55,7 @@ public class ShiftsController(HRCoreDbContext db) : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [OrgScopeCentralOnly("D-52-3: the shift catalogue is written centrally")]
     public async Task<IActionResult> Edit(Guid id)
     {
         var shift = await db.Shifts.FindAsync(id);
@@ -68,6 +72,7 @@ public class ShiftsController(HRCoreDbContext db) : Controller
         });
     }
 
+    [OrgScopeCentralOnly("D-52-3: the shift catalogue is written centrally")]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -89,6 +94,7 @@ public class ShiftsController(HRCoreDbContext db) : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [OrgScopeCentralOnly("D-52-3: the shift catalogue is written centrally")]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]

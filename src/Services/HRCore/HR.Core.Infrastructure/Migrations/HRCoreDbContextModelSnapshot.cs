@@ -1397,6 +1397,9 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<string>("ExternalParty")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("OrgUnitId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("ReferenceNumber")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1424,6 +1427,8 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrgUnitId");
 
                     b.HasIndex("RelatedEmployeeId");
 
@@ -2355,6 +2360,9 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<string>("Location")
                         .HasColumnType("text");
 
+                    b.Property<Guid?>("OrgUnitId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(32)
@@ -2380,6 +2388,8 @@ namespace HR.Core.Infrastructure.Migrations
                         .HasColumnType("date");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("OrgUnitId");
 
                     b.ToTable("FieldInspectionVisits");
                 });
@@ -7645,10 +7655,17 @@ namespace HR.Core.Infrastructure.Migrations
 
             modelBuilder.Entity("HR.Core.Domain.Entities.DiwanCorrespondence", b =>
                 {
+                    b.HasOne("HR.Core.Domain.Entities.OrgUnit", "OrgUnit")
+                        .WithMany()
+                        .HasForeignKey("OrgUnitId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("HR.Core.Domain.Entities.Employee", "RelatedEmployee")
                         .WithMany()
                         .HasForeignKey("RelatedEmployeeId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("OrgUnit");
 
                     b.Navigation("RelatedEmployee");
                 });
@@ -7841,6 +7858,16 @@ namespace HR.Core.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Competition");
+                });
+
+            modelBuilder.Entity("HR.Core.Domain.Entities.FieldInspectionVisit", b =>
+                {
+                    b.HasOne("HR.Core.Domain.Entities.OrgUnit", "OrgUnit")
+                        .WithMany()
+                        .HasForeignKey("OrgUnitId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("OrgUnit");
                 });
 
             modelBuilder.Entity("HR.Core.Domain.Entities.FinanceBudgetLine", b =>

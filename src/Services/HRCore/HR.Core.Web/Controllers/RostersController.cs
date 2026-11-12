@@ -11,23 +11,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Web.Controllers;
 
+[OrgScoped(typeof(ShiftRoster))]
 public class RostersController(HRCoreDbContext db) : Controller
 {
     private const decimal IndicativeHourlyWage = 100m;
 
     private async Task PopulateLookups()
     {
+        // PLAN-52: a branch user's pick-lists hold his scope's units and employees only; shifts are the agency's catalogue.
         ViewBag.OrgUnits = new SelectList(
-            await db.OrgUnits.AsNoTracking().OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr");
+            await (await db.OrgUnits.AsNoTracking().InOrgScopeAsync(HttpContext, db)).OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr");
         ViewBag.Shifts = new SelectList(
             await db.Shifts.AsNoTracking().Where(s => s.IsActive).OrderBy(s => s.Code).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr");
         ViewBag.Employees = new SelectList(
-            await db.Employees.AsNoTracking().OrderBy(e => e.FullName).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "FullName");
+            await (await db.Employees.AsNoTracking().InOrgScopeAsync(HttpContext, db)).OrderBy(e => e.FullName).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "FullName");
     }
 
     public async Task<IActionResult> Index(Guid? orgUnitId, DateOnly? periodFrom, DateOnly? periodTo, string? q)
     {
-        var query = db.ShiftRosters.AsNoTracking().Include(r => r.OrgUnit).AsQueryable();
+        var query = await db.ShiftRosters.AsNoTracking().Include(r => r.OrgUnit).AsQueryable().InOrgScopeAsync(HttpContext, db);
         if (orgUnitId is Guid ou)
             query = query.Where(r => r.OrgUnitId == ou);
         if (periodFrom is DateOnly pf)
@@ -42,7 +44,7 @@ public class RostersController(HRCoreDbContext db) : Controller
 
         var items = await query.OrderByDescending(r => r.PeriodStart).Take(SearchFilterBase.MaxPageSize).ToListAsync();
         ViewBag.OrgUnits = new SelectList(
-            await db.OrgUnits.AsNoTracking().OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", orgUnitId);
+            await (await db.OrgUnits.AsNoTracking().InOrgScopeAsync(HttpContext, db)).OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", orgUnitId);
         return View(new RostersIndexViewModel { Items = items, OrgUnitId = orgUnitId, PeriodFrom = periodFrom, PeriodTo = periodTo, Q = q });
     }
 
@@ -69,7 +71,8 @@ public class RostersController(HRCoreDbContext db) : Controller
         var model = new ShiftRoster
         {
             Title = vm.Title,
-            OrgUnitId = vm.OrgUnitId,
+            // PLAN-52: a restricted user's roster without a unit takes his scope root; the filter refused a foreign one.
+            OrgUnitId = vm.OrgUnitId ?? await HttpContext.GetRestrictedRootAsync(),
             PeriodStart = vm.PeriodStart,
             PeriodEnd = vm.PeriodEnd,
             Notes = vm.Notes
@@ -134,9 +137,13 @@ public class RostersController(HRCoreDbContext db) : Controller
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // PLAN-52: id is an assignment; the filter checked it (through its roster) and the roster.
+    [OrgScopeId(typeof(ShiftAssignment))]
     public async Task<IActionResult> RemoveAssignment(Guid id, Guid rosterId)
     {
         var assignment = await db.ShiftAssignments.FindAsync(id);
+        if (assignment != null && assignment.ShiftRosterId != rosterId)
+            return NotFound();
         if (assignment != null)
         {
             db.ShiftAssignments.Remove(assignment);

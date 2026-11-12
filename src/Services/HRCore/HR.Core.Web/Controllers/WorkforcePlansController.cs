@@ -13,6 +13,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScoped(typeof(HR.Core.Domain.Entities.WorkforcePlan), OutOfScope = OrgScopeAnswer.Forbid)]
 public class WorkforcePlansController(
     HR.Core.Infrastructure.Data.HRCoreDbContext db,
     IWorkforcePlanService workforcePlanService,
@@ -148,7 +149,9 @@ public class WorkforcePlansController(
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> RemoveLine(Guid planId, Guid lineId)
+    public async Task<IActionResult> RemoveLine(
+        [OrgScopeId(typeof(HR.Core.Domain.Entities.WorkforcePlan))] Guid planId,
+        [OrgScopeId(typeof(HR.Core.Domain.Entities.WorkforcePlanLine))] Guid lineId)
     {
         if (await establishmentScope.ValidateCentralWriteAsync(User) is { } err)
         {
@@ -186,7 +189,8 @@ public class WorkforcePlansController(
         return RedirectToAction(nameof(Details), new { id = vm.PlanId });
     }
 
-    public async Task<IActionResult> GapReport(Guid? orgUnitId, int? fiscalYear, Guid? planId, DateTime? asOf)
+    public async Task<IActionResult> GapReport(
+        Guid? orgUnitId, int? fiscalYear, [OrgScopeId(typeof(HR.Core.Domain.Entities.WorkforcePlan))] Guid? planId, DateTime? asOf)
     {
         var scope = await orgScope.GetAllowedOrgUnitIdsAsync(User);
         if (scope.IsDenied) return Forbid();

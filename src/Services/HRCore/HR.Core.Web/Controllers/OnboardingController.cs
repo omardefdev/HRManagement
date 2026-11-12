@@ -15,6 +15,7 @@ namespace HR.Core.Web.Controllers;
 [Authorize(Policy = HrManagementPolicies.PlatformAgencyOnboarding)]
 // PLAN-51 (§4, P-6): replaces the module filter's name list; the platform administrator holds no HR.Core module role.
 [ModulePolicyOverride(HrManagementPolicies.PlatformAgencyOnboarding)]
+[OrgScopeCentralOnly]
 public class OnboardingController(AgencyProvisioningService provisioning) : ControllerBase
 {
     [HttpPost("apply")]

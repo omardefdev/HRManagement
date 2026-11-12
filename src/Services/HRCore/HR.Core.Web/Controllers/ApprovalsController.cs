@@ -15,6 +15,7 @@ using HRManagement.SharedKernel.ViewModels;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScoped(typeof(ApprovalRequest))]
 public class ApprovalsController : Controller
 {
     public const string NotRequesterMessage = "لا يلغي الطلب إلا صاحبه";
@@ -40,10 +41,12 @@ public class ApprovalsController : Controller
         filter ??= new SearchFilterBase();
         filter.NormalizePaging();
 
-        var query = _context.ApprovalRequests
+        // PLAN-52: a restricted user lists the requests of his scope only (a request for an approved CV is its employee's).
+        var query = await _context.ApprovalRequests
             .Include(r => r.Steps)
             .AsNoTracking()
-            .AsQueryable();
+            .AsQueryable()
+            .InOrgScopeAsync(HttpContext, _context);
 
         if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ApprovalStatus>(status, out var s))
             query = query.Where(r => r.Status == s);
@@ -80,7 +83,7 @@ public class ApprovalsController : Controller
 
     public async Task<IActionResult> Pending()
     {
-        var requests = await _context.ApprovalRequests
+        var requests = await (await _context.ApprovalRequests.AsQueryable().InOrgScopeAsync(HttpContext, _context))
             .Include(r => r.Steps)
             .Where(r => r.Status == ApprovalStatus.Pending)
             .OrderBy(r => r.RequestedAt)

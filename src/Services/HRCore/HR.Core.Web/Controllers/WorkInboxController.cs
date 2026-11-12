@@ -10,6 +10,7 @@ namespace HR.Core.Web.Controllers;
 [Authorize(Policy = HrManagementPolicies.HrCoreWorkInbox)]
 // PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
 [ModulePolicyOverride(HrManagementPolicies.HrCoreWorkInbox)]
+[OrgScopeNotApplicable("the user's own inbox: each item is filtered by its unit, the delegate's and the principal's (PLAN-50)")]
 public class WorkInboxController(WorkflowInboxQueryService queryService) : Controller
 {
     public async Task<IActionResult> Index(string? entityType, string? source, CancellationToken ct)

@@ -19,6 +19,7 @@ namespace HR.Core.Web.Controllers;
 [Authorize(Policy = HrManagementPolicies.HrCoreLookup)]
 // PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
 [ModulePolicyOverride(HrManagementPolicies.HrCoreLookup)]
+[OrgScoped(typeof(Employee), OutOfScope = OrgScopeAnswer.Forbid)]
 public class LookupApiController(
     HRCoreDbContext context,
     HR.Core.Infrastructure.OrgScopeService orgScope,
@@ -34,7 +35,9 @@ public class LookupApiController(
 
     public sealed record LookupPageDto(IReadOnlyList<LookupItemDto> Items, bool HasMore);
 
-    public sealed record LookupByIdsRequest(IReadOnlyList<Guid> Ids);
+    // PLAN-52: a by-ids lookup answers the ids in scope only (list semantics), so its ids are not keys the filter refuses.
+    public sealed record LookupByIdsRequest(
+        [property: NotOrgScopeKey("a by-ids lookup returns the ids inside the scope only, filtered in the action")] IReadOnlyList<Guid> Ids);
 
     [HttpGet("employees")]
     public async Task<ActionResult<LookupPageDto>> SearchEmployees(
@@ -146,7 +149,8 @@ public class LookupApiController(
         foreach (var id in distinctIds)
         {
             var cacheKey = EmployeeCacheKey(tenantKey, id);
-            if (memoryCache.TryGetValue(cacheKey, out LookupItemDto? cached) && cached is not null)
+            // PLAN-52 (P0 finding): the cache holds no unit, so a restricted caller never reads it: every id goes through the scoped query.
+            if (!scope.MustFilter && memoryCache.TryGetValue(cacheKey, out LookupItemDto? cached) && cached is not null)
                 items.Add(cached);
             else
                 missingIds.Add(id);
@@ -229,6 +233,8 @@ public class LookupApiController(
         return Ok(new LookupPageDto(items, hasMore));
     }
 
+    // PLAN-52: id is a unit, in scope or refused (403, the lookup's kept answer).
+    [OrgScopeId(typeof(OrgScopeUnit))]
     [HttpGet("org-units/{id:guid}")]
     public async Task<ActionResult<LookupItemDto>> GetOrgUnit(Guid id, CancellationToken ct)
     {
@@ -461,6 +467,7 @@ public class LookupApiController(
         return Ok(new LookupPageDto(items, hasMore));
     }
 
+    [OrgScopeNotApplicable("reference data: the job catalogue")]
     [HttpGet("job-catalog/{id:guid}")]
     public async Task<ActionResult<JobCatalogLookupDetailDto>> GetJobCatalogEntry(Guid id, CancellationToken ct)
     {

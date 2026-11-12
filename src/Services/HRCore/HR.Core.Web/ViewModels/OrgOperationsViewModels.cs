@@ -71,11 +71,17 @@ public class FieldInspectionVisitCreateViewModel
     [Display(Name = "تاريخ الزيارة")]
     public DateOnly VisitDate { get; set; }
 
+    // PLAN-52: the inspector may belong to any unit; the visit's own unit is OrgUnitId.
+    [HRManagement.ServiceDefaults.NotOrgScopeKey("the inspector: an employee of any unit; the visit's unit is OrgUnitId")]
     [Display(Name = "قائد التفتيش")]
     public Guid? LeadInspectorId { get; set; }
 
     [Display(Name = "الملخص")]
     public string? Summary { get; set; }
+
+    /// <summary>PLAN-52 (D-52-2): a restricted creator's visit takes his scope root; a central user chooses (empty = central).</summary>
+    [Display(Name = "الوحدة التنظيمية")]
+    public Guid? OrgUnitId { get; set; }
 }
 
 public class DiwanCorrespondenceCreateViewModel
@@ -99,4 +105,8 @@ public class DiwanCorrespondenceCreateViewModel
 
     [Display(Name = "موظف مرتبط")]
     public Guid? RelatedEmployeeId { get; set; }
+
+    /// <summary>PLAN-52 (D-52-2): the related employee's unit, else a restricted creator's scope root, else this choice (empty = central).</summary>
+    [Display(Name = "الوحدة التنظيمية")]
+    public Guid? OrgUnitId { get; set; }
 }

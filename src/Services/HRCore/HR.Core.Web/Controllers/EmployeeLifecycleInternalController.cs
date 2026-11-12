@@ -10,6 +10,7 @@ namespace HR.Core.Web.Controllers;
 [ApiController]
 [Route("api/internal/employees")]
 [Authorize(Policy = ServicePolicies.HrCoreLifecycleS2S)]
+[OrgScopeNotApplicable("service-to-service: the employee lifecycle flags other services read")]
 public class EmployeeLifecycleInternalController(HRCoreDbContext db) : ControllerBase
 {
     [HttpGet("{employeeId:guid}/lifecycle-flags")]

@@ -14,6 +14,7 @@ namespace HR.Core.Web.Controllers;
 /// <summary>DATA-002-D: legal hold, anonymize, merge (no hard delete / no auto-purge).</summary>
 [Authorize(Policy = HrManagementPolicies.HrCoreDelete)]
 [Route("EmployeeLifecycle")]
+[OrgScopeCentralOnly]
 public class EmployeeLifecycleController(
     HRCoreDbContext db,
     EmployeeIntegrationService integration) : Controller

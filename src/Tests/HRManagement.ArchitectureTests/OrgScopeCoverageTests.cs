@@ -31,7 +31,7 @@ public sealed class OrgScopeCoverageTests
     /// <summary>The most rows each list may hold. Lower a ceiling when its list shrinks; never raise one.</summary>
     public static readonly IReadOnlyDictionary<string, int> Ceilings = new Dictionary<string, int>(StringComparer.Ordinal)
     {
-        ["hr-core"] = 81,
+        ["hr-core"] = 0,
         ["hr-contracts"] = 22,
         ["admin-logistics"] = 8,
         ["payroll"] = 25,

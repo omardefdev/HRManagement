@@ -4,6 +4,8 @@ namespace HR.Core.Web.ViewModels;
 
 public class EmployeeProfileEditViewModel
 {
+    // PLAN-52: the profile's own id (the action's other id is the employee's).
+    [HRManagement.ServiceDefaults.OrgScopeId(typeof(HR.Core.Domain.Entities.EmployeeProfile))]
     public Guid? Id { get; set; }
     public Guid EmployeeId { get; set; }
     public string? EmployeeName { get; set; }

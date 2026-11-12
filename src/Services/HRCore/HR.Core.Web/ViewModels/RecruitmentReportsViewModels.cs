@@ -13,9 +13,13 @@ public sealed class RecruitmentReportFilterForm
 {
     public string? From { get; set; }
     public string? To { get; set; }
+    // PLAN-52: report filters, not keys (the 200 with an empty report is kept).
+    [HRManagement.ServiceDefaults.NotOrgScopeKey("a report filter: the metrics intersect it with the scope, and outside it the report is empty (AC-HCM-32b)")]
     public Guid? OrgUnitId { get; set; }
+    [HRManagement.ServiceDefaults.NotOrgScopeKey("a report filter: the metrics intersect it with the scope, and outside it the report is empty (AC-HCM-32b)")]
     public Guid? RequisitionId { get; set; }
     public RecruitmentIntakeChannel? Channel { get; set; }
+    [HRManagement.ServiceDefaults.NotOrgScopeKey("a report filter: the metrics intersect it with the scope, and outside it the report is empty (AC-HCM-32b)")]
     public Guid? CompetitionId { get; set; }
     public int Page { get; set; } = 1;
 

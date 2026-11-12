@@ -9,13 +9,16 @@ namespace HR.Core.Web.Controllers;
 
 [Authorize]
 [Route("export-jobs")]
+[OrgScopeNotApplicable("self-service by ownership: the requester's own export job, which records his scope")]
 public class ExportJobsController(IHRCoreExportJobService exportJobs) : Controller
 {
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> Status(Guid id, CancellationToken ct)
     {
         var job = await exportJobs.GetAsync(id, ct);
-        if (job is null) return NotFound();
+        // PLAN-52 (P0 finding): another user's job does not exist for this one, as for its download.
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        if (job is null || !Guid.TryParse(userId, out var requester) || job.RequestedByUserId != requester) return NotFound();
 
         return Ok(new ExportJobStatusDto
         {

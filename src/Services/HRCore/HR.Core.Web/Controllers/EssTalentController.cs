@@ -17,6 +17,7 @@ namespace HR.Core.Web.Controllers;
 [Route("[controller]")]
 // PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
 [ModulePolicyOverride(HrManagementPolicies.ModuleEss)]
+[OrgScopeNotApplicable("self-service by ownership: the signed-in employee's own internal applications")]
 public class EssTalentController(
     HRCoreDbContext db,
     RecruitmentApplicationIntakeService intake,

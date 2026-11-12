@@ -21,6 +21,7 @@ namespace HR.Core.Web.Controllers;
 /// national id. Reports are read-only; the list screens they link to keep their own authorization (PLAN-25 deferred).
 /// </summary>
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScoped(typeof(HR.Core.Domain.Entities.RecruitmentRequisition))]
 public class RecruitmentReportsController(
     RecruitmentMetricsService metrics,
     OrgScopeService orgScope,

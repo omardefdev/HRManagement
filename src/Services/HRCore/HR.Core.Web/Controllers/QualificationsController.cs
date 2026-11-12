@@ -27,6 +27,7 @@ namespace HR.Core.Web.Controllers;
 
 
 
+[OrgScoped(typeof(Qualification), OutOfScope = OrgScopeAnswer.Forbid)]
 public class QualificationsController : Controller
 
 {

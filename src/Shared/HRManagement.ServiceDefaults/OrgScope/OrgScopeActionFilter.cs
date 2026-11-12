@@ -46,6 +46,31 @@ public static class OrgScopeHttpContextExtensions
     }
 
     public static Task<OrgAccessScope> GetOrgScopeAsync(this ControllerBase controller) => controller.HttpContext.GetOrgScopeAsync();
+
+    /// <summary>
+    /// D-52-2: the unit a restricted user's new record takes when he names none (his scope's root); null for an unrestricted user, whose
+    /// record then is central unless he chose a unit.
+    /// </summary>
+    public static async Task<Guid?> GetRestrictedRootAsync(this HttpContext http)
+    {
+        var scope = await http.GetOrgScopeAsync();
+        return scope.MustFilter && !scope.IsDenied ? HrOrgScopeVisibility.GetScopeRootOrgUnitId(http.User) : null;
+    }
+
+    /// <summary>
+    /// A list, export or pick-list of the request's caller, filtered with the service's registry (<c>WhereInOrgScope</c>); unchanged for an
+    /// unrestricted caller, and for a request without the scope services (a controller built by hand in a test).
+    /// </summary>
+    public static async Task<IQueryable<T>> InOrgScopeAsync<T>(this IQueryable<T> query, HttpContext http, DbContext db)
+        where T : class
+    {
+        var scope = await http.GetOrgScopeAsync();
+        if (!scope.MustFilter)
+            return query;
+        var registry = http.RequestServices?.GetService<OrgScopeKeyRegistry>()
+                       ?? throw new InvalidOperationException("A restricted request needs the service's OrgScopeKeyRegistry (AddOrgScopeFilter).");
+        return query.WhereInOrgScope(registry, scope, db);
+    }
 }
 
 /// <summary>An action's effective stance: its own, else its class's (an action-level <see cref="OrgScopedAttribute"/> without a type keeps the
@@ -245,8 +270,9 @@ public sealed class OrgScopeActionFilter<TContext>(TContext db, OrgScopeKeyRegis
 public static class OrgScopeFilterRegistration
 {
     /// <summary>
-    /// Registers the service's registry (filled by its <c>{Service}OrgScopeKeys.Configure</c>), the filter for every MVC action and, unless
-    /// the service registered its own, the scope provider over <typeparamref name="TContext"/>'s org unit snapshots.
+    /// Registers the service's registry (filled by its <c>{Service}OrgScopeKeys.Configure</c>) and the filter for every MVC action. The
+    /// service registers its <see cref="IOrgScopeProvider"/> itself: HR.Core over its org units, the others with
+    /// <see cref="AddSnapshotOrgScopeProvider{TContext}"/>.
     /// </summary>
     public static IMvcBuilder AddOrgScopeFilter<TContext>(this IMvcBuilder mvc, string service, Action<OrgScopeKeyRegistry> configure)
         where TContext : DbContext
@@ -255,16 +281,12 @@ public static class OrgScopeFilterRegistration
         configure(registry);
         mvc.Services.AddSingleton(registry);
         mvc.Services.AddScoped<OrgScopeActionFilter<TContext>>();
-        mvc.Services.TryAddScopedOrgScopeProvider<TContext>();
         mvc.Services.Configure<MvcOptions>(o => o.Filters.AddService<OrgScopeActionFilter<TContext>>(OrgScopeActionFilter<TContext>.FilterOrder));
         return mvc;
     }
 
-    private static void TryAddScopedOrgScopeProvider<TContext>(this IServiceCollection services)
-        where TContext : DbContext
-    {
-        if (services.Any(d => d.ServiceType == typeof(IOrgScopeProvider)))
-            return;
+    /// <summary>The scope from <typeparamref name="TContext"/>'s <see cref="OrgUnitSnapshot"/>s.</summary>
+    public static IServiceCollection AddSnapshotOrgScopeProvider<TContext>(this IServiceCollection services)
+        where TContext : DbContext =>
         services.AddScoped<IOrgScopeProvider, SnapshotOrgScopeProvider<TContext>>();
-    }
 }

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScoped(typeof(ServiceRegimeException))]
 public class ServiceRegimeExceptionsController(
     ServiceRegimeExceptionService exceptionService,
     IServiceRegimeProvider regimeProvider,
@@ -17,7 +18,7 @@ public class ServiceRegimeExceptionsController(
 {
     public async Task<IActionResult> Index(ServiceRegimeExceptionType? filter)
     {
-        var items = await exceptionService.ListOpenAsync(filter);
+        var items = await exceptionService.ListOpenAsync(filter, scope: await HttpContext.GetOrgScopeAsync());
         var legalLabels = new Dictionary<string, string>();
         foreach (var legalSourceId in items.Select(i => i.LegalSourceId).Where(id => !string.IsNullOrWhiteSpace(id)).Distinct())
         {

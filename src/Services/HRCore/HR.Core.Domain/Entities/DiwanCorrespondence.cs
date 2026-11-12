@@ -32,5 +32,12 @@ public class DiwanCorrespondence : AuditableEntity
     [Display(Name = "معاملة الخدمة المرتبطة")]
     public Guid? ServiceTransactionId { get; set; }
 
+    /// <summary>PLAN-52 (D-52-2): the record's org unit: its related employee's, else the restricted creator's scope root, else the central
+    /// user's choice; empty = central (D-52-1).</summary>
+    [Display(Name = "الوحدة التنظيمية")]
+    public Guid? OrgUnitId { get; set; }
+
     public virtual Employee? RelatedEmployee { get; set; }
+
+    public virtual OrgUnit? OrgUnit { get; set; }
 }

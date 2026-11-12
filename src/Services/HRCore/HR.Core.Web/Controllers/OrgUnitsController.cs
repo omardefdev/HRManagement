@@ -16,6 +16,7 @@ using HRManagement.SharedKernel.ViewModels;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScoped(typeof(OrgUnit), OutOfScope = OrgScopeAnswer.Forbid)]
 public class OrgUnitsController : Controller
 {
     public const int MaxTreeNodes = 500;
@@ -245,6 +246,14 @@ public class OrgUnitsController : Controller
         if (vm.ParentId.HasValue && !postScope.CanAccess(vm.ParentId))
         {
             ModelState.AddModelError(nameof(vm.ParentId), "الوحدة الأب خارج نطاق صلاحيتك");
+            await PopulateSelectListsAsync(vm);
+            return View(vm);
+        }
+
+        // PLAN-52 (P0 finding): no parent moves the unit to the root, out of a restricted user's scope, as Create already refuses.
+        if (!vm.ParentId.HasValue && postScope.MustFilter)
+        {
+            ModelState.AddModelError(nameof(vm.ParentId), "يجب اختيار وحدة أب ضمن نطاقك");
             await PopulateSelectListsAsync(vm);
             return View(vm);
         }

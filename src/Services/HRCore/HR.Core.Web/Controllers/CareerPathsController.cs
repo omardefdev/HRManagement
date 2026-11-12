@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Web.Controllers;
 
+[OrgScopeNotApplicable("reference data: career paths (inventory C: who writes them is RBAC, IAM-H)")]
 public class CareerPathsController(HRCoreDbContext db) : Controller
 {
     public async Task<IActionResult> Index(string? q)

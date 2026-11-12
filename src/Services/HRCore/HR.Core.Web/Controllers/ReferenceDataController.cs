@@ -13,6 +13,7 @@ namespace HR.Core.Web.Controllers;
 [Route("api/reference-data")]
 [ApiController]
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScopeNotApplicable("reference data: the reference catalogue (inventory C: who writes it is RBAC, IAM-H)")]
 public class ReferenceDataController : ControllerBase
 {
     private readonly HRCoreDbContext _db;

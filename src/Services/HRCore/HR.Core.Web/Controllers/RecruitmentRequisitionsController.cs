@@ -45,7 +45,7 @@ public class RecruitmentRequisitionsController(
         [FromQuery] int? budgetYear,
         [FromQuery] Guid orgUnitId,
         [FromQuery] string? q,
-        [FromQuery] Guid? includeId,
+        [FromQuery, OrgScopeId(typeof(FundedPosition))] Guid? includeId,
         CancellationToken ct)
     {
         if (orgUnitId == Guid.Empty)

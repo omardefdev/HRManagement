@@ -14,6 +14,7 @@ namespace HR.Core.Web.Controllers;
 [Route("api/employees")]
 [ApiController]
 [Authorize(Policy = HrManagementPolicies.HrCoreLookup)]
+[OrgScoped(typeof(HR.Core.Domain.Entities.Employee), OutOfScope = OrgScopeAnswer.Forbid)]
 public class EmployeesApiController(
     HRCoreDbContext context,
     HR.Core.Infrastructure.OrgScopeService orgScope,

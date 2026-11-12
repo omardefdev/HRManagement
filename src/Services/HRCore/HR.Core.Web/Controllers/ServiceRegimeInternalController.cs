@@ -8,6 +8,7 @@ namespace HR.Core.Web.Controllers;
 [ApiController]
 [Route("api/internal/service-regime")]
 [Authorize(Policy = ServicePolicies.HrCoreInternalS2S)]
+[OrgScopeNotApplicable("service-to-service: the active service regime for the services")]
 public sealed class ServiceRegimeInternalController(
     ServiceRegimePayrollBlockService blockService,
     ServiceRegimeActiveRegimeService activeRegimeService) : ControllerBase

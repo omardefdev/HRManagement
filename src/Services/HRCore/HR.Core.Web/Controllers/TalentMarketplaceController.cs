@@ -13,13 +13,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Web.Controllers;
 
+// PLAN-52 (PLAN-25 follow-up): the internal vacancy's unit; an application through its vacancy.
+[RecruitmentOrgScope(RecruitmentScopeKind.InternalVacancy)]
 public class TalentMarketplaceController(
     HRCoreDbContext db,
     CandidatePublicStatusService publicStatus) : Controller
 {
     private async Task PopulateOrgUnits(Guid? selected = null) =>
         ViewBag.OrgUnits = new SelectList(
-            await db.OrgUnits.AsNoTracking().OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", selected);
+            await (await db.OrgUnits.AsNoTracking().InOrgScopeAsync(HttpContext, db)).OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", selected);
 
     public async Task<IActionResult> Index(Guid? orgUnitId, bool? isOpen, DateOnly? closingFrom, DateOnly? closingTo)
     {
@@ -28,6 +30,7 @@ public class TalentMarketplaceController(
             .Include(v => v.Requisition)
             .Include(v => v.Applications)
             .AsQueryable();
+        query = await query.InOrgScopeAsync(HttpContext, db);
         if (orgUnitId is Guid ou)
             query = query.Where(v => v.OrgUnitId == ou);
         if (isOpen is bool open)
@@ -140,10 +143,13 @@ public class TalentMarketplaceController(
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    [RecruitmentScopeId(RecruitmentScopeKind.InternalApplication)]
     public async Task<IActionResult> ChangeApplicationStatus(Guid id, Guid vacancyId, InternalApplicationStatus status)
     {
         var application = await db.InternalApplications.FindAsync(id);
         if (application is null) return NotFound();
+        // PLAN-52: the filter checked both ids; the application must also belong to the vacancy.
+        if (application.InternalVacancyId != vacancyId) return NotFound();
 
         // HCM-030 (A4): a requisition-linked application is screened on its recruitment application only.
         if (application.RequisitionId.HasValue)
