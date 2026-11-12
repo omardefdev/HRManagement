@@ -152,6 +152,12 @@ public static class HrManagementPolicies
     /// <summary>PLAN-51 (§2, P-4): any signed-in user, for files that carry no data (HR.Core's static files, those of the self-service segment).</summary>
     public const string GatewayAuthenticated = "Gateway.Authenticated";
 
+    /// <summary>
+    /// PLAN-51 (§3, D-IAM-7): the gateway's audit pages (operations, audit, audit search). Roles from <c>Gateway:Audit:Roles</c>, by default
+    /// platform-admin (every agency), auditor and compliance (their own agency, filtered in <c>GatewayAuditQueryService</c>); not hr-admin.
+    /// </summary>
+    public const string GatewayAudit = "Gateway.Audit";
+
     public const string HrContractsApprove = "HrContracts.Approve";
     public const string PayrollProcess = "Payroll.Process";
     public const string PayrollApprove = "Payroll.Approve";

@@ -198,7 +198,9 @@ public class HomeController(
         }));
     }
 
+    // PLAN-51 (§3, D-IAM-7): the operations page reads the audit trace: its owners only.
     [HttpGet]
+    [Authorize(Policy = HrManagementPolicies.GatewayAudit)]
     public async Task<IActionResult> Operations(string? correlationId, CancellationToken cancellationToken)
     {
         var moduleAccess = await ResolveModuleAccessAsync(moduleCatalog.Modules);
@@ -218,7 +220,7 @@ public class HomeController(
                 TimeRange = "7d",
                 Page = 1,
                 PageSize = 25
-            }, cancellationToken);
+            }, GatewayAuditScope.For(User), cancellationToken);
             ViewData["AuditTrace"] = audit.Items;
         }
         return View(ordered);
@@ -237,6 +239,7 @@ public class HomeController(
     }
 
     [HttpGet]
+    [Authorize(Policy = HrManagementPolicies.GatewayAudit)]
     public async Task<IActionResult> Audit(
         int? statusCode,
         string? correlationId,
@@ -255,12 +258,13 @@ public class HomeController(
             Page = page,
             PageSize = pageSize
         };
-        var result = await auditQueryService.SearchAsync(request, cancellationToken);
+        var result = await auditQueryService.SearchAsync(request, GatewayAuditScope.For(User), cancellationToken);
         ViewData["Request"] = request;
         return View(result);
     }
 
     [HttpGet("/ops/audit-search")]
+    [Authorize(Policy = HrManagementPolicies.GatewayAudit)]
     public async Task<IActionResult> AuditSearch(
         int? statusCode,
         string? correlationId,
@@ -279,7 +283,7 @@ public class HomeController(
             Page = page,
             PageSize = pageSize
         };
-        var result = await auditQueryService.SearchAsync(request, cancellationToken);
+        var result = await auditQueryService.SearchAsync(request, GatewayAuditScope.For(User), cancellationToken);
         return Json(result);
     }
 

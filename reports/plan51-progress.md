@@ -11,6 +11,7 @@ Prompt: docs/acceptance-plans/execution/PLAN-51-AGENT-PROMPT.md. Plan: docs/acce
 | P0 | done | 2026-11-11T23:45:16Z |
 | P1 | done | 2026-11-11T23:55:59Z |
 | P2 | done | 2026-11-12T00:06:52Z |
+| P3 | done | 2026-11-12T00:18:21Z |
 
 ## Session facts
 
@@ -34,7 +35,7 @@ Prompt: docs/acceptance-plans/execution/PLAN-51-AGENT-PROMPT.md. Plan: docs/acce
 
 ## Next step
 
-P3: the gateway audit (Gateway.Audit from Gateway:Audit:Roles on Operations, Audit, AuditSearch; tenant filter in GatewayAuditQueryService; menu link; SQLite tests and Iam051GatewayAuditPostgreSqlTests).
+P4: the module filter (no name list, overrides, default write policy), AddHrModuleAuthorizeFilter(module, write) in the Program.cs files, {Module}.Write/Approve via RolesPolicy with D-IAM-4, HR.Core 42 + HrCore.Decision, HR.Contracts, sensitive actions, every write except Payroll, roles-only to named policies, HrCore.BranchOperation, HR.Movements view models, lists emptied, Iam051DirectServiceWriteTests.
 
 ## P0 summary (Finished (UTC): 2026-11-11T23:45:16Z)
 
@@ -85,3 +86,16 @@ Decisions:
 - 0.6 decided no page change: no employee or marker page calls the lookup API.
 
 Decision 5. **`/ui/ess` with no controller** (and `/ui/ess/`) answers 404 too: the user guide names `/ui/ess/EssPortal`, which passes.
+
+## P3 summary (Finished (UTC): 2026-11-12T00:18:21Z)
+
+- `Gateway.Audit` (`ConfiguredRolesRequirement` read from `Gateway:Audit:Roles`, default platform-admin, auditor, compliance) on
+  `Home/Operations`, `Home/Audit` and `/ops/audit-search`; the menu links and the home page's operations button show only to its holders.
+- `GatewayAuditScope` (platform-admin: all rows, including rows with no agency; anyone else: the rows of his valid `tenant_id`; no valid
+  tenant: nothing), applied inside `GatewayAuditQueryService.SearchAsync`.
+- `ConfiguredRolesAuthorization` (one helper for D-51-2, D-IAM-4 and D-IAM-7): configured roles or defaults, never a service account,
+  `hr-admin` dropped for a policy in `Authorization:AdminExcludedPolicies` unless `ProductionConfigurationGuardOptions.IsDemoMode` (the
+  guard's own demo checks now use the same method).
+- Tests: `Iam051GatewayAuditScopeTests` 12 (in-memory and SQLite with a test-only DateTimeOffset converter; the scope from the caller;
+  the policy and its configuration; the three pages carry it); `Iam051GatewayAuditPostgreSqlTests` 2/2 on Testcontainers (three agencies,
+  rows with no agency, migrated schema); `GatewayAuditQueryServiceTests` pass the platform scope.

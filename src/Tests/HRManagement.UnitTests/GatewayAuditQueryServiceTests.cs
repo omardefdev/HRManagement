@@ -29,7 +29,7 @@ public class GatewayAuditQueryServiceTests
         await db.SaveChangesAsync();
 
         var svc = new GatewayAuditQueryService(db);
-        var result = await svc.SearchAsync(new GatewayAuditSearchRequest(), CancellationToken.None);
+        var result = await svc.SearchAsync(new GatewayAuditSearchRequest(), GatewayAuditScope.Platform, CancellationToken.None);
 
         Assert.Null(result.Error);
         Assert.Equal(100, result.Items.Count);
@@ -43,7 +43,7 @@ public class GatewayAuditQueryServiceTests
     {
         await using var db = CreateDb();
         var svc = new GatewayAuditQueryService(db);
-        var result = await svc.SearchAsync(new GatewayAuditSearchRequest { TimeRange = "all" }, CancellationToken.None);
+        var result = await svc.SearchAsync(new GatewayAuditSearchRequest { TimeRange = "all" }, GatewayAuditScope.Platform, CancellationToken.None);
 
         Assert.NotNull(result.Error);
         Assert.Empty(result.Items);
@@ -61,7 +61,7 @@ public class GatewayAuditQueryServiceTests
         await db.SaveChangesAsync();
 
         var svc = new GatewayAuditQueryService(db);
-        var first = await svc.SearchAsync(new GatewayAuditSearchRequest { PageSize = 10 }, CancellationToken.None);
+        var first = await svc.SearchAsync(new GatewayAuditSearchRequest { PageSize = 10 }, GatewayAuditScope.Platform, CancellationToken.None);
         Assert.Equal(10, first.Items.Count);
         Assert.NotNull(first.NextCursor);
 
@@ -69,7 +69,7 @@ public class GatewayAuditQueryServiceTests
         {
             PageSize = 10,
             Cursor = first.NextCursor
-        }, CancellationToken.None);
+        }, GatewayAuditScope.Platform, CancellationToken.None);
 
         Assert.Equal(10, second.Items.Count);
         var firstIds = first.Items.Select(x => x.Id).ToHashSet();
@@ -85,7 +85,7 @@ public class GatewayAuditQueryServiceTests
         await db.SaveChangesAsync();
 
         var svc = new GatewayAuditQueryService(db);
-        var result = await svc.SearchAsync(new GatewayAuditSearchRequest { PageSize = 9999 }, CancellationToken.None);
+        var result = await svc.SearchAsync(new GatewayAuditSearchRequest { PageSize = 9999 }, GatewayAuditScope.Platform, CancellationToken.None);
 
         Assert.Equal(SearchFilterBase.GatewayAuditMaxPageSize, result.PageSize);
         Assert.Equal(SearchFilterBase.GatewayAuditMaxPageSize, result.Items.Count);
@@ -102,7 +102,7 @@ public class GatewayAuditQueryServiceTests
         await db.SaveChangesAsync();
 
         var svc = new GatewayAuditQueryService(db);
-        var result = await svc.SearchAsync(new GatewayAuditSearchRequest { StatusCode = 403 }, CancellationToken.None);
+        var result = await svc.SearchAsync(new GatewayAuditSearchRequest { StatusCode = 403 }, GatewayAuditScope.Platform, CancellationToken.None);
 
         Assert.Equal(2, result.TotalCount);
         Assert.All(result.Items, x => Assert.Equal(403, x.StatusCode));
@@ -119,7 +119,7 @@ public class GatewayAuditQueryServiceTests
         await db.SaveChangesAsync();
 
         var svc = new GatewayAuditQueryService(db);
-        var result = await svc.SearchAsync(new GatewayAuditSearchRequest { CorrelationId = "target" }, CancellationToken.None);
+        var result = await svc.SearchAsync(new GatewayAuditSearchRequest { CorrelationId = "target" }, GatewayAuditScope.Platform, CancellationToken.None);
 
         Assert.Equal(2, result.TotalCount);
         Assert.All(result.Items, x => Assert.Contains("target", x.CorrelationId, StringComparison.OrdinalIgnoreCase));

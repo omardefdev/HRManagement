@@ -171,6 +171,10 @@ public static class HrManagementAuthorizationExtensions
             // PLAN-51 (§2, P-4): files that carry no data.
             options.AddPolicy(HrManagementPolicies.GatewayAuthenticated, p => p.RequireAuthenticatedUser());
 
+            // PLAN-51 (§3, D-IAM-7): the gateway's audit log is for its owners; the rows are filtered by agency in the query service.
+            options.RolesPolicyAt(HrManagementPolicies.GatewayAudit, "Gateway:Audit:Roles",
+                HrManagementRoles.PlatformAdmin, HrManagementRoles.Auditor, HrManagementRoles.Compliance);
+
             // HR.Contracts fine-grained: approve leave/advance/separation
             options.AddPolicy(HrManagementPolicies.HrContractsApprove, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
@@ -253,6 +257,7 @@ public static class HrManagementAuthorizationExtensions
         services.AddSingleton<IAuthorizationHandler, PolicyEngineRoleHandler>();
         services.AddSingleton<IAuthorizationHandler, GatewayApprovalReachHandler>();
         services.AddSingleton<IAuthorizationHandler, InteractiveStaffOrServiceScopeHandler>();
+        services.AddSingleton<IAuthorizationHandler, ConfiguredRolesHandler>();
         services.AddSingleton<IAuthorizationHandler, Delegation.RoleOrDelegationHandler>();
         services.AddServiceToServiceAuthorizationPolicies();
         services.AddHrMvcSecurityDefaults();

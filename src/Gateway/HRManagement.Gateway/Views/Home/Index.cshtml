@@ -1,6 +1,9 @@
 @model HRManagement.Gateway.Models.GatewayDashboardViewModel
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
 @{
     ViewData["Title"] = "لوحة البوابة";
+    // PLAN-51 (§3): the operations page is for the owners of the gateway's audit.
+    var canReadAudit = (await AuthorizationService.AuthorizeAsync(User, HRManagement.ServiceDefaults.HrManagementPolicies.GatewayAudit)).Succeeded;
 }
 <div class="gateway-page-header d-flex justify-content-between align-items-center">
     <div>
@@ -9,7 +12,10 @@
     </div>
     <div>
         <a class="btn btn-sm gateway-btn-secondary" href="/health">صحة البوابة</a>
-        <a class="btn btn-sm gateway-btn-primary" asp-action="Operations">تفاصيل العمليات</a>
+        @if (canReadAudit)
+        {
+            <a class="btn btn-sm gateway-btn-primary" asp-action="Operations">تفاصيل العمليات</a>
+        }
     </div>
 </div>
 
