@@ -225,3 +225,13 @@ When `ssh -o BatchMode=yes hrm-vps "whoami"` prints `hrm` again: P8 from its ste
 backup and its verification, the read-only before-picture of P-13, one detached build of HEAD, `scripts/vps/deploy.ps1 -Tag <sha12>`,
 `AcIam51VpsChecks` and the PLAN-36..50 server suites), then P9 (OPS_VPS_SINGLE_HOST, the plan's status and notes, the final report,
 ci-local and the pre-push check on the final HEAD, the release branch, the PR and its merge).
+
+## Stopped (2026-11-12T03:23:13Z)
+
+- BLOCKED: P8 needs SSH to hrm-vps; outbound TCP 22 times out from this machine (rechecked at 2026-11-12T03:23:13Z, to the server and to github.com).
+  The demo server was not touched by PLAN-51 and still answers (gateway and sign-in pages 302 at 2026-11-12T03:23:13Z).
+- Keep-awake stopped at 2026-11-12T03:23:13Z (nothing runs while waiting); start it again before P8.
+- Question to the owner, with options:
+  (a) restore outbound SSH from this machine (disconnect the VPN, or allow port 22) and resume: P8 then P9 as planned;
+  (b) authorize P9 now (release branch, PR, merge) with P8 as a follow-up deploy once SSH works;
+  (c) run P8 from another machine that reaches the server, then resume P9 here.
