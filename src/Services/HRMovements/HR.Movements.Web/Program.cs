@@ -68,7 +68,6 @@ builder.Services.AddServiceMassTransit(
     consumerAssembly: typeof(HR.Movements.Infrastructure.Consumers.TransferExecutedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();
-builder.Services.AddOrgScopeAuthorization();
 builder.Services.AddHrServiceHealthChecks<MovementsDbContext>(builder.Configuration);
 // PLAN-37 (§6): the SYR-003 legal pack: readiness fails without it, one start-up fingerprint line.
 builder.Services.AddServiceRegimePackCheck(builder.Configuration, builder.Environment);

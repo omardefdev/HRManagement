@@ -290,7 +290,6 @@ builder.Services.AddServiceMassTransit(
 builder.Services.AddHrCoreExternalIntegrations(builder.Configuration);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();
-builder.Services.AddOrgScopeAuthorization();
 // PLAN-25 (G-04), PLAN-43: Workflow:AdminBypass (false unless set) and Workflow:StepRole:ExemptEntityTypes; registered before the
 // policy engine so its TryAdd default does not apply.
 builder.Services.AddSingleton(builder.Configuration.GetSection(HRManagement.ServiceDefaults.Workflow.WorkflowStepRoleOptions.SectionName)

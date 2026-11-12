@@ -24,3 +24,12 @@ Started (UTC): 2026-11-12T20:25:49.8810839Z
 - Demo branch for `e2e-branch-manager`: HR `11111111-1111-1111-1111-111111111102` (most records); FIN holds the negatives' records.
 - Finished (UTC): 2026-11-12T21:22:10.3076411Z
 - Next: commit P0; then P1 (mechanism, written and tested: `Iam052ScopeFilterTests` 16/16, solution build 0/0).
+
+## P1 — the mechanism
+
+- `ServiceDefaults/OrgScope/`: `OrgScopeAttributes.cs` (`IOrgScopeStance`; `[OrgScoped(T)]` with `OutOfScope` = NotFound or Forbid; `[OrgScopeCentralOnly]`; `[OrgScopeNotApplicable(reason)]`; `[OrgScopeId(T)]`; `[NotOrgScopeKey(reason)]`), `OrgScopeKeyRegistry.cs` (keys per entity: one or several unit expressions that must all be in scope, `Through` for a unit reached through another record; id names per service or per controller; `OrgScopeUnit` = the id is a unit), `OrgScopeActionFilter.cs` (the filter, order -3000; `IOrgScopeProvider` and the snapshot provider; the per-request scope cache `GetOrgScopeAsync`; `OrgScopeIds` reads the slots for the filter and the coverage test alike; `AddOrgScopeFilter<TContext>`).
+- `WhereInOrgScope<T>(registry, scope, db)` beside the old overloads (deviation: it takes the context the keys read).
+- A null unit is coalesced to `Guid.Empty`, which is never in a scope; the allowed list goes through a holder so EF parameterizes it (one plan per query shape).
+- `OrgScopeRequirement`, its handler and `AddOrgScopeAuthorization()` deleted, with the two registrations (HR.Core, HR.Movements) and the five handler tests; `iam002-validate.ps1` now checks the registry, the attributes, the filter, and that the handler and the requirement are gone (a check replaced, not removed).
+- Tests: `Iam052ScopeFilterTests` 16/16 (denied, central only, out of scope, no key, a model's properties, a list, parent and child, an action-level type, a unit, an employee, two units, the kept answer, a declared non-key and a not-applicable action, an unrestricted user with no query, two planted defects, the order, `WhereInOrgScope`, the reflection); `Iam002OrgScopeTests` 8/8 (scope tests and the script). Solution build 0/0.
+- Finished (UTC): 2026-11-12T21:22:43.5513210Z
