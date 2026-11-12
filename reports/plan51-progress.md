@@ -235,3 +235,14 @@ ci-local and the pre-push check on the final HEAD, the release branch, the PR an
   (a) restore outbound SSH from this machine (disconnect the VPN, or allow port 22) and resume: P8 then P9 as planned;
   (b) authorize P9 now (release branch, PR, merge) with P8 as a follow-up deploy once SSH works;
   (c) run P8 from another machine that reaches the server, then resume P9 here.
+
+## Resumed 2026-11-12T05:17:18Z (owner: "SSH fixed, resume"), stopped again 2026-11-12T05:25:57Z
+
+- `ssh hrm-vps whoami` timed out at 05:17Z and at 9 retries 05:20Z..05:25Z (Git's and Windows' OpenSSH alike). From this machine now:
+  TCP 22 to the server False, 443 True; the control port 23456 False, so no VPN answers every port any more and the probes are true;
+  github.com:22 times out while ssh.github.com:443 connects. No Windows Firewall outbound block (default outbound not configured, no
+  blocking rule on 22); the route leaves through the Wi-Fi gateway and the provider. So port 22 is filtered upstream of this machine
+  (router or provider), not on the server and not by the VPN.
+- `origin/main` is still PLAN-50's merge (0db7292e); no source changed after 9d130248, so P8 will build HEAD.
+- BLOCKED again at P8. Options: (a) let this machine reach port 22 (router or provider setting, a phone hotspot, or another network);
+  (b) P9 now, P8 later; (c) P8 from another machine.
