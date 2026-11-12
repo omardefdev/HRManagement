@@ -105,7 +105,7 @@ public class ELearningCoursesController(TrainingDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id = courseId });
     }
 
-    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
+    [Authorize(Policy = HrManagementPolicies.HrTrainingApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> TogglePublish(Guid id)

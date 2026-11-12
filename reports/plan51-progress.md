@@ -14,6 +14,7 @@ Prompt: docs/acceptance-plans/execution/PLAN-51-AGENT-PROMPT.md. Plan: docs/acce
 | P3 | done | 2026-11-12T00:18:21Z |
 | P4 | done | 2026-11-12T00:46:32Z |
 | P5 | done | 2026-11-12T01:07:30Z |
+| P6 | done | 2026-11-12T03:10:24Z |
 
 ## Session facts
 
@@ -37,7 +38,7 @@ Prompt: docs/acceptance-plans/execution/PLAN-51-AGENT-PROMPT.md. Plan: docs/acce
 
 ## Next step
 
-P6: acceptance pieces (AcIam51ExplicitPolicyTests a..f, two personas a-ess-supervisory and a-ess-approver with employees in agency A, realm generator, catalog tests, DATA-AUTH 67, ci-scope prodLike main required, ac-ownership AC-IAM-51, scripts/iam051-validate.ps1 with -SelfTest), then the prod-like stack run and P-11 list, then the independent review.
+P7: check origin/main (merge only if it moved). Then P8 needs SSH to hrm-vps (blocked since P0: outbound TCP 22 times out); if it still does, BLOCKED with the question. P9 docs are written (uncommitted): GATEWAY_RUNBOOK, SERVICE_TRUST_INVENTORY, ESS_001, HIRE_RBAC_MATRIX, SEED_001, CI_AND_TESTING, the study status lines; still to write: OPS_VPS_SINGLE_HOST (P8), the plan status and notes, the final report.
 
 ## P0 summary (Finished (UTC): 2026-11-11T23:45:16Z)
 
@@ -159,3 +160,51 @@ Decisions:
   `hr-core.workflow` reaches no HR.Core write beyond the three endpoints, the other scopes' internal routes and the POST reads; it cannot
   create an employee (count unchanged).
 - Results: unit 6267/6267; architecture 128/128; iam050 (+ self-test 8/8), wf043, hcm025, int037 PASS.
+
+## P6 (in progress)
+
+- Acceptance pieces written (uncommitted until the P6 commit): `AcIam51ExplicitPolicyTests` (51a..f + a catalog fact), personas
+  `a-ess-supervisory` (HQ 46) and `a-ess-approver` (HQ 47), `AcceptancePersonaCatalog` AGENCY-A 44 -> 46, `acceptance-verify.ps1`
+  DATA-AUTH 65 -> 67 and DATA-DIRECTORY 56 -> 58, `ci-scope.json` (prodLike main, required), `ac-ownership.json` (AC-IAM-51, PLAN-51),
+  `scripts/iam051-validate.ps1` (PASS; -SelfTest 9/9). Catalog facts 28 passed + 1 skipped; scope/ownership unit guards 151/151.
+- Run 1 started 2026-11-12T01:19:34Z: acceptance-reset + `acceptance-job.ps1 -Profile ProdLike -Classes <P-11 prod-like list + s2s42 + pol49
+  overlay classes>` (log `artifacts/plan51/acceptance-run1.log`). C: 22.5 GB free; no test port in the excluded ranges.
+- Independent review launched at the same time (read-only agent; findings to `artifacts/plan51/review.md`).
+
+### Run 1 failures (all in AC-IAM-51) and their causes
+
+- **51a, 405 instead of 404** on `POST /ui/ess/Shifts/Create`: the gateway answered 404 and recorded `Denied:EssNotExposed`, then
+  `UseStatusCodePagesWithReExecute("/Home/ErrorStatus/{0}")` re-executed the empty 404 with POST against a GET-only page (405). Fix: the
+  ess 404 carries a body (text/plain), so the status pages leave it alone; unit test checks the content type.
+- **51c, no agency on the audit rows**: `GatewayAuditQueue.CloneEntry` (the copy written to the database, since the initial commit)
+  dropped `TenantId`, `ScopeOrgUnitId`, `Reason`, `ResourceType`, `ResourceId`; every persisted row had no agency, so the new tenant filter
+  would have shown an agency nothing. Fix: the clone copies them (the hash chain already covered them); `AuditDurabilityTests` proves it.
+- **51e, 400 "the requester cannot be determined"**: the test's start lacked `X-Acting-User` (Admin.Logistics sends it). Fix in the test.
+
+### Independent review (one fresh read-only agent, `artifacts/plan51/review.md`): no high, 2 medium, 7 low
+
+| # | Finding | Action |
+|---|---------|--------|
+| M1 | Any policy counted as a write's "explicit" policy, so a write under a class read policy (`Module.HrContracts`, `HrCore.ReadOnly`) would pass the guard and let a reader write in the service | New rule in `WriteActionsHaveExplicitPolicyTests`: a write whose policies are all read policies must be a declared POST read (22, each with its reason, pinned); `GuardSelfTests` plants one. File.Storage upload/delete name a new `FileStorage.Write` (the module's roles, unchanged) |
+| M2 | `/ops/metrics-summary` had no policy and, with the Operations page, showed every agency's recent error paths | `Gateway.Audit` on it; the recent error paths for `platform-admin` only (`MetricsFor`) |
+| L1 | `/ui/ess` fell back to `Module.Ess` if configuration dropped the `ess` entry | the ess segment is always decided (no entry = no controller); unit test |
+| L2 | Actions without a verb attribute are never "writes" in the guard | the filter applies the write policy by the request's method, so a POST to such an action meets it at run time (`Iam051ModuleFilterAndPoliciesTests`); Payroll's `PayrollReports.Payslip` (a GET that marks a payslip sent) recorded for PLAN-53 |
+| L3 | The entity-binding guard saw direct entity parameters only | it now sees arrays, collections and a bound model's entity properties (one level); `GuardSelfTests` plants both |
+| L4 | `Iam050MovementApprovalPolicyTests` relaxed | recorded as deviation (decision 6) |
+| L5 | Sensitive names outside the plan's exact list (`ApprovedCVs.FinalizeApproval`, `ELearningCourses.TogglePublish`, `SelectionCommittees.UpsertDecision`, `*.RestartApproval`) stayed on the write policy | `TogglePublish` -> `HrTraining.Approve` (same roles). `FinalizeApproval` is one of the 42 the plan gives `HrCore.Write` explicitly (§4), so it keeps it; `UpsertDecision` and `RestartApproval` are HR workflow steps, not approvals: left for PLAN-65's review |
+| L6 | Payroll's run page showed hr-admin the Post/Reverse buttons where D-IAM-4 refuses them | the page asks the two policies |
+| L7 | HR.Contracts `HomeController` named no read policy | `Module.HrContracts`, named |
+
+### Acceptance runs (local, P-11)
+
+| Run | What | Time (UTC) | Result |
+|-----|------|-----------|--------|
+| 1 | reset + build + prod-like journey, main (AC-IAM-51, AC-IAM-50, AC-HCM-25, AC-WF-43, AC-TEN-48, AC-POL-49), isolated (AC-INT-37, AC-MSG-40, AC-WF-45, AC-WF-46, AC-POL-47), pol49 and s2s42 overlays | 01:18:55 - 01:57:19 (38 min; stack 261 s on its restart) | everything green except AC-IAM-51a, c, e (causes above) |
+| 2 | rebuild (review fixes) + AC-IAM-51, AC-INT-37 | 02:06 - 02:28:50 | AC-IAM-51 a, d, e, f and the catalog fact pass; 51b, 51c, and AC-INT-37c ended in "connection forcibly closed" at 02:25-02:26 while Docker's backend log shows a burst of another project's container starts (memory: other-project churn); AC-INT-37b/e blocked on data other classes create (the journey's appointment, AC-IAM-50a's law50 employee) |
+| 3 | -NoBuild, fresh stack: journey, AC-IAM-50, AC-IAM-51, AC-INT-37 | 02:30 - 02:39:17 | journey 1/1, AC-IAM-50 5/5, AC-INT-37 8/8, AC-IAM-51 6/7: 51c refused users get the gateway's own refusal, 302 to `/Account/AccessDenied` (cookie scheme), not 403; the test accepts 403 or that redirect, nothing else |
+| 4 | -NoBuild, fresh stack: AC-IAM-51 alone | 02:39 - 02:44:43 | **AC-IAM-51a..f + catalog fact 7/7, `acceptance-job: PASS`**; evidence copied to `artifacts/plan51/evidence-run4/` |
+| - | seeded counts by psql on run 4's stack (32 of acceptance-verify.ps1) | 02:46 | 31 equal (DATA-AUTH 67, DATA-DIRECTORY 58); DATA-ASSET 451 vs 450 = the asset AC-IAM-51e inserts as setup (counted after the run) |
+| 5 | -NoBuild, stage prodLike:leastpriv (AC-OPS-38, AC-TEN-48 least privilege) | 02:47 - 02:50:06 (stack 65 s, tests 204 s) | 9/9, `acceptance-job: PASS` |
+| 6 | -NoBuild, lab: Ac05, Ac07, AcEst24, AcHcm21, AcHcm22, AcHcm28, AcHcm31, AcWf23, the lab journey, AcHcm26, AcHcm27 | 02:51 - 03:08:20 | main 27/27, journey 1/1, AcHcm26 5/5, AcHcm27 4/4, `acceptance-job: PASS` |
+
+The stack was brought down with `acceptance-reset.ps1` (volumes deleted) at the end of P6; the committed `acceptance-evidence/` was never touched (the job writes under `artifacts/acceptance/`).

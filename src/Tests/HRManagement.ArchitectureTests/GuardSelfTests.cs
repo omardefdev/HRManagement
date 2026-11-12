@@ -64,6 +64,25 @@ public sealed class GuardSelfTests
         Assert.Equal(2, list.Malformed.Count);
     }
 
+    [Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
+    public sealed class ReaderClassWriteController : ControllerBase
+    {
+        [HttpPost]
+        public IActionResult Create() => Ok();
+
+        [HttpPost]
+        [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
+        public IActionResult Edit() => Ok();
+    }
+
+    [Fact]
+    public void A_write_under_a_read_policy_alone_is_caught()
+    {
+        // Review M1: the class's read policy counts as "explicit", yet the management approver could write through it.
+        Assert.Equal(["hr-contracts:ReaderClassWrite.Create"],
+            WriteActionsHaveExplicitPolicyTests.ReadOnlyWrites(Read("hr-contracts", typeof(ReaderClassWriteController))).ToList());
+    }
+
     // --- sensitive actions ---
 
     public sealed class PlantedSensitiveController : ControllerBase
@@ -217,6 +236,11 @@ public sealed class GuardSelfTests
 
     public sealed record SampleViewModel(string Name);
 
+    public sealed class SampleWrapper
+    {
+        public SampleEntity? Item { get; set; }
+    }
+
     public sealed class PlantedBindingController : ControllerBase
     {
         [HttpPost]
@@ -224,9 +248,16 @@ public sealed class GuardSelfTests
 
         [HttpPost]
         public IActionResult Edit(SampleViewModel model) => Ok(model);
+
+        [HttpPost]
+        public IActionResult Bulk(List<SampleEntity> items) => Ok(items);
+
+        [HttpPost]
+        public IActionResult Wrapped(SampleWrapper wrapper) => Ok(wrapper);
     }
 
     [Fact]
     public void An_action_that_binds_an_entity_is_an_offender_and_a_view_model_is_not() =>
-        Assert.Equal(["PlantedBinding.Create"], MassAssignmentArchitectureTests.Offenders(Read("hr-core", typeof(PlantedBindingController))).ToList());
+        Assert.Equal(["PlantedBinding.Bulk", "PlantedBinding.Create", "PlantedBinding.Wrapped"],
+            MassAssignmentArchitectureTests.Offenders(Read("hr-core", typeof(PlantedBindingController))).Order(StringComparer.Ordinal).ToList());
 }

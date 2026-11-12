@@ -97,8 +97,8 @@ public static class AcceptancePersonaCatalog
     {
         // PLAN-48: platform-central (hr-core in the national tenant).
         [TenantDefaults.DefaultCode] = 5,
-        // PLAN-46: a-idcard-2.
-        ["AGENCY-A"] = 44,
+        // PLAN-46: a-idcard-2. PLAN-51: a-ess-supervisory, a-ess-approver.
+        ["AGENCY-A"] = 46,
         ["AGENCY-B"] = 8,
         ["AGENCY-C"] = 4
     };

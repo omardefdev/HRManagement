@@ -98,6 +98,21 @@ public sealed class GatewayEssRoutingTests
     }
 
     [Fact]
+    public void A_configuration_without_a_usable_ess_entry_exposes_nothing_under_ui_ess()
+    {
+        // Review L1: the ess segment never falls back to its module policy (the old catch-all), whatever the configuration says.
+        var options = new GatewayEssOptions();
+        options.AllowedControllers["hr-core"] = ["EssPortal"];
+        Assert.Equal(GatewayEssDecision.NotExposed, GatewayEssRouting.Decide("GET", "/ui/ess/EssPortal", options));
+        Assert.Equal(GatewayEssDecision.NotExposed, GatewayEssRouting.Decide("POST", "/ui/ess/Shifts/Create", options));
+        Assert.Equal(GatewayEssDecision.Ess, GatewayEssRouting.Decide("GET", "/ui/hr-core/EssPortal", options));
+
+        options.AllowedControllers["ess"] = [];
+        Assert.Equal(GatewayEssDecision.NotExposed, GatewayEssRouting.Decide("GET", "/ui/ess/EssPortal", options));
+        Assert.Equal(GatewayEssDecision.StaticFile, GatewayEssRouting.Decide("GET", "/ui/ess/css/site.css", options));
+    }
+
+    [Fact]
     public void The_gateway_holds_no_substring_match_of_Ess()
     {
         var source = global::System.IO.File.ReadAllText(HRManagement.TestSupport.RepoPaths.Resolve(
@@ -122,7 +137,7 @@ public sealed class GatewayEssRoutingTests
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "TestAuth"));
     }
 
-    private static async Task<(int Status, bool Forwarded, object? AuditDecision)> InvokeAsync(string method, string path, ClaimsPrincipal user)
+    private static async Task<(int Status, bool Forwarded, object? AuditDecision, string? ContentType)> InvokeAsync(string method, string path, ClaimsPrincipal user)
     {
         var services = new ServiceCollection();
         services.AddAuthentication("Test").AddScheme<AuthenticationSchemeOptions, NoResultHandler>("Test", _ => { });
@@ -143,7 +158,7 @@ public sealed class GatewayEssRoutingTests
         await middleware.InvokeAsync(ctx, provider.GetRequiredService<IAuthorizationService>(),
             essOptions: Options.Create(new GatewayEssOptions()));
         ctx.Items.TryGetValue(GatewayEssOptions.AuditDecisionItemKey, out var decision);
-        return (ctx.Response.StatusCode, forwarded, decision);
+        return (ctx.Response.StatusCode, forwarded, decision, ctx.Response.ContentType);
     }
 
     [Fact]
@@ -153,6 +168,8 @@ public sealed class GatewayEssRoutingTests
 
         var ess = await InvokeAsync("POST", "/ui/ess/Shifts/Create", user);
         Assert.Equal(404, ess.Status);
+        // The 404 carries its own body, so the gateway's status pages (GET only) never turn a POST into 405 (AC-IAM-51a).
+        Assert.Equal("text/plain; charset=utf-8", ess.ContentType);
         Assert.False(ess.Forwarded);
         Assert.Equal(GatewayEssOptions.NotExposedDecision, ess.AuditDecision);
 

@@ -34,9 +34,38 @@ public sealed class MassAssignmentArchitectureTests
     };
 
     public static IEnumerable<string> Offenders(IEnumerable<ActionInfo> actions) =>
-        actions.Where(a => a.Method.GetParameters().Any(p => typeof(BaseEntity).IsAssignableFrom(p.ParameterType)))
+        actions.Where(a => a.Method.GetParameters().Any(p => BindsEntity(p.ParameterType, depth: 1)))
             .Select(a => a.Key)
             .Distinct(StringComparer.Ordinal);
+
+    /// <summary>
+    /// PLAN-51 (review L3): an entity, an array or a collection of entities, or a bound model with a public settable property of one of
+    /// those (one level down, as the model binder fills it).
+    /// </summary>
+    public static bool BindsEntity(Type type, int depth)
+    {
+        if (IsEntityOrEntities(type))
+            return true;
+        if (depth <= 0 || !type.IsClass || type == typeof(string) || type.Namespace?.StartsWith("System", StringComparison.Ordinal) == true
+            || type.Namespace?.StartsWith("Microsoft", StringComparison.Ordinal) == true)
+            return false;
+        // A [BindNever] property (a display list on a filter model) is never bound, as the model binder itself decides.
+        return type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance)
+            .Where(p => p.CanWrite && p.SetMethod?.IsPublic == true
+                        && !p.IsDefined(typeof(Microsoft.AspNetCore.Mvc.ModelBinding.BindNeverAttribute), inherit: true))
+            .Any(p => IsEntityOrEntities(p.PropertyType));
+    }
+
+    private static bool IsEntityOrEntities(Type type)
+    {
+        if (typeof(BaseEntity).IsAssignableFrom(type))
+            return true;
+        if (type.IsArray)
+            return typeof(BaseEntity).IsAssignableFrom(type.GetElementType()!);
+        return type.IsGenericType
+               && type.GetGenericArguments().Any(t => typeof(BaseEntity).IsAssignableFrom(t))
+               && typeof(System.Collections.IEnumerable).IsAssignableFrom(type);
+    }
 
     public static TheoryData<string> Services() => new(WebAssemblyCatalog.Entries.Select(e => e.Service));
 

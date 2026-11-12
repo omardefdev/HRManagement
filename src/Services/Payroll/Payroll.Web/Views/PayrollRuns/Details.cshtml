@@ -2,6 +2,8 @@
 
 @using Payroll.Domain.Enums
 @using HRManagement.ServiceDefaults
+@using Microsoft.AspNetCore.Authorization
+@inject IAuthorizationService AuthorizationService
 
 @{ ViewData["Title"] = "تفاصيل تشغيل الرواتب"; }
 @{ var employeeNames = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string> ?? new Dictionary<Guid, string>(); }
@@ -9,10 +11,9 @@
     var isAdmin = User.IsInRole(HrManagementRoles.Admin);
     var canProcess = isAdmin || User.IsInRole(HrManagementRoles.PayrollProcessor);
     var canApprove = isAdmin || User.IsInRole(HrManagementRoles.PayrollApprover);
-    var canPost = isAdmin || User.IsInRole(HrManagementRoles.PayrollPoster);
-    var canReverse = isAdmin
-        || User.IsInRole(HrManagementRoles.PayrollPoster)
-        || User.IsInRole(HrManagementRoles.PayrollReverser);
+    // PLAN-51 (D-IAM-4, review L6): the posting policies decide, so hr-admin sees no button its excluded policy would refuse.
+    var canPost = (await AuthorizationService.AuthorizeAsync(User, HrManagementPolicies.PayrollPost)).Succeeded;
+    var canReverse = (await AuthorizationService.AuthorizeAsync(User, HrManagementPolicies.PayrollReverse)).Succeeded;
 }
 
 <div class="card mb-3">

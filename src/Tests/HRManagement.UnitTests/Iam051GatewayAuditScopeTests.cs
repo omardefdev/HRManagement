@@ -170,6 +170,7 @@ public sealed class Iam051GatewayAuditScopeTests
     [InlineData(nameof(HomeController.Operations))]
     [InlineData(nameof(HomeController.Audit))]
     [InlineData(nameof(HomeController.AuditSearch))]
+    [InlineData(nameof(HomeController.MetricsSummary))]
     public void The_three_audit_pages_carry_the_audit_policy(string action)
     {
         var method = typeof(HomeController).GetMethods().Single(m => m.Name == action);

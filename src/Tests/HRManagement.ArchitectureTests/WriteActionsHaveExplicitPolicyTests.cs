@@ -43,6 +43,68 @@ public sealed class WriteActionsHaveExplicitPolicyTests
     public static IEnumerable<string> Offenders(IEnumerable<ActionInfo> actions) =>
         actions.Where(a => a.IsWrite && !a.HasExplicitPolicy).Select(a => a.Key).Distinct(StringComparer.Ordinal);
 
+    /// <summary>
+    /// PLAN-51 (review M1): the policies that admit a module's readers. A write whose policies (action and class) are all of these lets a
+    /// reader write in the service, so it must be one of <see cref="DeclaredReads"/>: a read served on POST.
+    /// </summary>
+    public static readonly IReadOnlySet<string> ReadPolicies = new HashSet<string>(StringComparer.Ordinal)
+    {
+        "Module.HrCore", "Module.HrContracts", "Module.Payroll", "Module.HrMovements", "Module.HrTraining", "Module.HrHealth", "Module.IdCard",
+        "Module.RecordsArchive", "Module.AdminLogistics", "Module.ItInfra", "Module.DevAnalytics", "Module.Compliance", "Module.AuthDirectory",
+        "Module.FileStorage", "HrCore.ReadOnly", "HrCore.Lookup", "HrCore.WorkInbox", "Policy.Reader", "Workflow.DefinitionRead",
+        "HrContracts.HireView", "HrMovements.ApprovalAccess", "Gateway.Authenticated", "Gateway.Dashboard", "Gateway.Audit", "Evidence.Read",
+    };
+
+    /// <summary>The POST actions that read (an export, a lookup by ids, an evaluation, a check), or that the plan keeps as they are; each with its reason.</summary>
+    public static readonly IReadOnlyDictionary<string, string> DeclaredReads = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["hr-core:Reports.ExportEmployeesCsv"] = "an export of what the reader sees",
+        ["hr-core:Reports.ExportEmployeesExcel"] = "an export of what the reader sees",
+        ["hr-core:Reports.ExportEmployeesPdf"] = "an export of what the reader sees",
+        ["hr-core:Reports.ExportEvaluationsCsv"] = "an export of what the reader sees",
+        ["hr-core:Reports.ExportStatusHistoryCsv"] = "an export of what the reader sees",
+        ["hr-core:CodeGeneration.Preview"] = "a preview of the next code, nothing issued",
+        ["hr-core:LookupApi.GetEmployeesByIds"] = "the pickers' lookup by ids (HrCore.Lookup: staff and services)",
+        ["hr-core:LookupApi.GetOrgUnitsByIds"] = "the pickers' lookup by ids (HrCore.Lookup: staff and services)",
+        ["hr-core:Policies.Evaluate"] = "an evaluation of the policy engine, nothing recorded",
+        ["hr-core:PolicyTemplates.Simulate"] = "a simulation of a draft, nothing recorded",
+        ["hr-core:Signatures.Verify"] = "checks a signature (plan §4: HrCore.ReadOnly)",
+        ["hr-core:ExportJobs.Cancel"] = "cancels the caller's own export job (plan §4: HrCore.ReadOnly with the owner check)",
+        ["hr-contracts:ExportJobs.Cancel"] = "cancels the caller's own export job",
+        ["hr-contracts:HireWizard.Step1"] = "the plan keeps HireWizard as it is (§4: HrContracts.HireView, PLAN-29)",
+        ["hr-contracts:HireWizard.Step2Confirm"] = "the plan keeps HireWizard as it is (§4: HrContracts.HireView, PLAN-29)",
+        ["compliance:ExportJobs.Cancel"] = "cancels the caller's own export job",
+        ["dev-analytics:ExportJobs.Cancel"] = "cancels the caller's own export job",
+        ["hr-movements:DistributionPlans.GapAnalysis"] = "redirects to the GET analysis, nothing written",
+        ["hr-training:Certificates.Verify"] = "checks a certificate code, nothing written",
+        ["file-storage:FilesApi.BatchMetadata"] = "reads the metadata of a batch of files",
+        ["gateway:EvidenceArtifacts.ExportPack"] = "an export of evidence for its readers (EVD-003)",
+        ["shared:Culture.SetCulture"] = "the language cookie, no record",
+    };
+
+    public static IEnumerable<string> ReadOnlyWrites(IEnumerable<ActionInfo> actions) =>
+        actions.Where(a => a.IsWrite && !a.Anonymous && a.HasExplicitPolicy && a.AllPolicies.All(ReadPolicies.Contains))
+            .Select(a => $"{a.Service}:{a.Key}")
+            .Distinct(StringComparer.Ordinal);
+
+    [Fact]
+    public void Every_write_names_a_policy_that_is_not_only_a_read_policy_or_is_a_declared_read()
+    {
+        var undeclared = ReadOnlyWrites(ActionCatalog.Actions.Where(a => a.Service != "payroll"))
+            .Where(k => !DeclaredReads.ContainsKey(k)).Order(StringComparer.Ordinal).ToList();
+        Assert.True(undeclared.Count == 0,
+            "Writes whose only policies admit the module's readers (name the module's write or approval policy): " + string.Join(", ", undeclared));
+    }
+
+    [Fact]
+    public void Every_declared_read_still_exists_with_a_read_policy_only()
+    {
+        var current = ReadOnlyWrites(ActionCatalog.Actions).ToHashSet(StringComparer.Ordinal);
+        var stale = DeclaredReads.Keys.Where(k => !current.Contains(k)).ToList();
+        Assert.True(stale.Count == 0, "Declared reads that no longer exist or now name a write policy (remove them): " + string.Join(", ", stale));
+        Assert.True(DeclaredReads.Count <= 22, "The declared reads never grow: a new read on POST is reviewed with its reason");
+    }
+
     public static TheoryData<string> Services() => new(WebAssemblyCatalog.Entries.Select(e => e.Service));
 
     [Theory]

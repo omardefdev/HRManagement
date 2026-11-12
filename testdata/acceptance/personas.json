@@ -164,6 +164,38 @@
       "enabled": true
     },
     {
+      "id": "a-ess-supervisory",
+      "username": "acc-a-ess-supervisory",
+      "passwordEnv": "ACCEPTANCE_A_ESS_SUPERVISORY_PASSWORD",
+      "roles": [
+        "hr-employee",
+        "hr-core-supervisory"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 46,
+      "purpose": "PLAN-51: an employee who also reads HR.Core (self-service reaches nothing else through /ui/ess)",
+      "scenarios": [ "AC-IAM-51" ],
+      "enabled": true
+    },
+    {
+      "id": "a-ess-approver",
+      "username": "acc-a-ess-approver",
+      "passwordEnv": "ACCEPTANCE_A_ESS_APPROVER_PASSWORD",
+      "roles": [
+        "hr-employee",
+        "hr-management-approver"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 47,
+      "purpose": "PLAN-51: an employee who also approves (no approval through /ui/ess; his own path keeps working)",
+      "scenarios": [ "AC-IAM-51" ],
+      "enabled": true
+    },
+    {
       "id": "a-executive-reader",
       "username": "acc-a-executive-reader",
       "passwordEnv": "ACCEPTANCE_A_EXECUTIVE_READER_PASSWORD",

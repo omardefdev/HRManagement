@@ -210,7 +210,7 @@ public class HomeController(
             module => moduleAccess.GetValueOrDefault(module.Slug),
             cancellationToken);
         var ordered = statuses.Values.OrderBy(x => x.Module.Name).ToList();
-        ViewData["Metrics"] = metricsStore.Snapshot();
+        ViewData["Metrics"] = MetricsFor(User);
         ViewData["CorrelationIdFilter"] = correlationId;
         if (!string.IsNullOrWhiteSpace(correlationId))
         {
@@ -226,10 +226,12 @@ public class HomeController(
         return View(ordered);
     }
 
+    // PLAN-51 (review M2): the counters are for the owners of the gateway's audit, and the recent error paths (every agency's) for the platform.
     [HttpGet("/ops/metrics-summary")]
+    [Authorize(Policy = HrManagementPolicies.GatewayAudit)]
     public IActionResult MetricsSummary()
     {
-        var snapshot = metricsStore.Snapshot();
+        var snapshot = MetricsFor(User);
         return Json(new
         {
             statusCounters = snapshot.StatusCounters,
@@ -285,6 +287,16 @@ public class HomeController(
         };
         var result = await auditQueryService.SearchAsync(request, GatewayAuditScope.For(User), cancellationToken);
         return Json(result);
+    }
+
+    /// <summary>
+    /// PLAN-51 (review M2): the metrics keep no agency, so the recent error paths (which name entities of every agency) are the platform's;
+    /// an agency's auditor sees the counters and the latencies only.
+    /// </summary>
+    internal GatewayMetricsSnapshot MetricsFor(System.Security.Claims.ClaimsPrincipal user)
+    {
+        var snapshot = metricsStore.Snapshot();
+        return user.IsInRole(HrManagementRoles.PlatformAdmin) ? snapshot : snapshot with { RecentErrors = [] };
     }
 
     [AllowAnonymous]

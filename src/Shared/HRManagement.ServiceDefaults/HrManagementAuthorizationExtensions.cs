@@ -54,6 +54,13 @@ public static class HrManagementAuthorizationExtensions
                 || (ServiceCallerPrincipal.IsServiceAccount(c.User)
                     && ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.FileStorageReferences))));
 
+            // PLAN-51 (review M1): File.Storage's own writes (upload, delete) name a write policy: the module's roles, unchanged.
+            options.AddPolicy(HrManagementPolicies.FileStorageWrite, p => p.RequireAssertion(c =>
+                c.User.IsInRole(HrManagementRoles.Admin)
+                || c.User.IsInRole(HrManagementRoles.FileStorage)
+                || (ServiceCallerPrincipal.IsServiceAccount(c.User)
+                    && ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.FileStorageReferences))));
+
             // Gateway home: any signed-in user. Module paths still require module roles (middleware + downstream).
             options.AddPolicy(HrManagementPolicies.GatewayDashboard, p => p.RequireAuthenticatedUser());
 

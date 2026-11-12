@@ -82,6 +82,10 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
                 case GatewayEssDecision.NotExposed:
                     context.Items[GatewayEssOptions.AuditDecisionItemKey] = GatewayEssOptions.NotExposedDecision;
                     context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    // A body of its own: the gateway's status pages re-execute an empty error response with the request's method, and
+                    // their page answers GET only, so a POST would reach the client as 405 instead of this 404.
+                    context.Response.ContentType = "text/plain; charset=utf-8";
+                    await context.Response.WriteAsync("Not found.");
                     return;
                 default:
                     effectivePolicy = TryGetFineGrainedPolicy(moduleSegment, method, path, out var fineGrained)

@@ -68,7 +68,13 @@ public static class GatewayEssRouting
 
         var isEssSegment = string.Equals(segment, GatewayEssOptions.EssSegment, StringComparison.OrdinalIgnoreCase);
         if (!options.EffectiveAllowedControllers.TryGetValue(segment, out var controllers))
-            return GatewayEssDecision.NotEss;
+        {
+            // The ess segment is always decided here: a configuration without its entry exposes no controller, it never falls back
+            // to the segment's module policy (the old catch-all).
+            if (!isEssSegment)
+                return GatewayEssDecision.NotEss;
+            controllers = [];
+        }
 
         if (rest is not null && !rest.Contains("//", StringComparison.Ordinal))
         {

@@ -114,6 +114,7 @@ public static class HrManagementPolicies
     // today's (the module's roles), so a single-role module changes for nobody. The module filter applies {Module}.Write to a write that
     // names no policy of its own; every write names one anyway.
     public const string HrContractsWrite = "HrContracts.Write";
+    public const string FileStorageWrite = "FileStorage.Write";
     public const string PayrollWrite = "Payroll.Write";
     public const string HrMovementsApprove = "HrMovements.Approve";
     public const string HrTrainingWrite = "HrTraining.Write";
