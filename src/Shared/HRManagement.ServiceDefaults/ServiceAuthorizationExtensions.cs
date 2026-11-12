@@ -2,6 +2,7 @@ using System.Security.Claims;
 using HRManagement.SharedKernel.CodeGeneration;
 using HRManagement.SharedKernel.Policy;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace HRManagement.ServiceDefaults;
@@ -139,19 +140,45 @@ public static class ServiceAuthorizationExtensions
                 && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.HrCoreLookup)
                 && IsAllowedClient(ctx.User, ServiceClientIds.HrMovements)));
 
-            // EVD-003: CI/service accounts publish evidence; append-only (no update/delete policy).
-            options.AddPolicy(ServicePolicies.EvidenceIngest, p => p.RequireAssertion(ctx =>
-                ServiceCallerPrincipal.IsServiceAccount(ctx.User)
-                && ServiceCallerPrincipal.HasScope(ctx.User, ServiceScopes.EvidenceIngest)));
+            // EVD-003: CI/service accounts publish evidence; append-only (no update/delete policy). PLAN-51 (D-51-5): only the clients of
+            // Evidence:IngestClients, empty by default, so nobody publishes until a client is named.
+            options.AddPolicy(ServicePolicies.EvidenceIngest, p => p.AddRequirements(
+                new ConfiguredServiceClientsRequirement(ServiceScopes.EvidenceIngest, HrManagementPolicies.EvidenceIngestClientsKey)));
         });
 
+        services.AddSingleton<IAuthorizationHandler, ConfiguredServiceClientsHandler>();
         return services;
     }
 
-    private static bool IsAllowedClient(ClaimsPrincipal user, params string[] allowed)
+    internal static bool IsAllowedClient(ClaimsPrincipal user, params string[] allowed)
     {
         var clientId = ServiceCallerPrincipal.GetClientId(user);
         return !string.IsNullOrWhiteSpace(clientId)
             && allowed.Any(a => string.Equals(a, clientId, StringComparison.OrdinalIgnoreCase));
+    }
+}
+
+/// <summary>PLAN-51 (D-51-5): a service account with <see cref="Scope"/> whose client is listed under <see cref="ClientsKey"/>; none by default.</summary>
+public sealed class ConfiguredServiceClientsRequirement(string scope, string clientsKey) : IAuthorizationRequirement
+{
+    public string Scope { get; } = scope;
+
+    public string ClientsKey { get; } = clientsKey;
+}
+
+public sealed class ConfiguredServiceClientsHandler(IServiceProvider services) : AuthorizationHandler<ConfiguredServiceClientsRequirement>
+{
+    public static IReadOnlyList<string> Clients(IConfiguration? configuration, string key) =>
+        configuration?.GetSection(key).Get<string[]>()?.Where(c => !string.IsNullOrWhiteSpace(c)).Select(c => c.Trim()).ToList() ?? [];
+
+    protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, ConfiguredServiceClientsRequirement requirement)
+    {
+        var clients = Clients(services.GetService<IConfiguration>(), requirement.ClientsKey);
+        if (clients.Count > 0
+            && ServiceCallerPrincipal.IsServiceAccount(context.User)
+            && ServiceCallerPrincipal.HasScope(context.User, requirement.Scope)
+            && ServiceAuthorizationExtensions.IsAllowedClient(context.User, [.. clients]))
+            context.Succeed(requirement);
+        return Task.CompletedTask;
     }
 }

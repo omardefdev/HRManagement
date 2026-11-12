@@ -117,7 +117,7 @@ builder.Services.AddControllersWithViews(options =>
         // PLAN-48: 422 for a missing or invalid code policy, 409 for a code already issued, 403 for a national row written by an agency.
         options.Filters.Add<HR.Core.Web.Filters.NationalScopeErrorFilter>();
     })
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrCore);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrCore, HrManagementPolicies.HrCoreWrite);
 builder.Services.AddHrOpenApi("HR.Core API");
 
 builder.Services.AddHttpContextAccessor();

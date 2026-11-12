@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Admin.Logistics.Domain.Entities;
 using Admin.Logistics.Domain.Enums;
 using Admin.Logistics.Domain.Services;
@@ -123,6 +124,7 @@ public class SupplyOrdersController(AdminLogisticsDbContext db, IEmployeeLookup 
         OrderedAt = DateTimeLocalInput.TruncateToMinute(DateTime.UtcNow)
     });
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(SupplyOrderFormViewModel model)
@@ -166,6 +168,7 @@ public class SupplyOrdersController(AdminLogisticsDbContext db, IEmployeeLookup 
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, SupplyOrderFormViewModel model)
@@ -193,6 +196,7 @@ public class SupplyOrdersController(AdminLogisticsDbContext db, IEmployeeLookup 
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddLine(Guid id, string? sku, int qtyRequested, decimal? unitCost, bool isCapitalizable, Guid? inventoryItemId)
@@ -224,6 +228,7 @@ public class SupplyOrdersController(AdminLogisticsDbContext db, IEmployeeLookup 
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Approve(Guid id)
@@ -247,6 +252,7 @@ public class SupplyOrdersController(AdminLogisticsDbContext db, IEmployeeLookup 
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Fulfill(Guid id)
@@ -267,6 +273,7 @@ public class SupplyOrdersController(AdminLogisticsDbContext db, IEmployeeLookup 
         return RedirectToAction("CreateFromOrder", "ReceiptRecords", new { supplyOrderId = id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Close(Guid id)
@@ -287,6 +294,7 @@ public class SupplyOrdersController(AdminLogisticsDbContext db, IEmployeeLookup 
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(Guid id)
@@ -358,6 +366,7 @@ public class VendorsController(AdminLogisticsDbContext db) : Controller
 
     public IActionResult Create() => View(new VendorFormViewModel());
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(VendorFormViewModel model)
@@ -387,6 +396,7 @@ public class VendorsController(AdminLogisticsDbContext db) : Controller
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, VendorFormViewModel model)
@@ -403,6 +413,7 @@ public class VendorsController(AdminLogisticsDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
@@ -499,6 +510,7 @@ public class AssetAssignmentsController(AdminLogisticsDbContext db, IEmployeeLoo
         return RedirectToAction("Index", "Assets");
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     [ActionName(nameof(Create))]
@@ -514,6 +526,7 @@ public class AssetAssignmentsController(AdminLogisticsDbContext db, IEmployeeLoo
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     [ActionName(nameof(Edit))]
@@ -600,6 +613,7 @@ public class MaintenanceRecordsController(AdminLogisticsDbContext db) : Controll
         return View(model);
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(MaintenanceRecordFormViewModel model, Guid? assetId = null)
@@ -658,6 +672,7 @@ public class MaintenanceRecordsController(AdminLogisticsDbContext db) : Controll
         return View(model);
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, MaintenanceRecordFormViewModel model)
@@ -900,6 +915,7 @@ public class ReceiptRecordsController(AdminLogisticsDbContext db, IEmployeeLooku
         return View(model);
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateFromOrder(CreateReceiptFromOrderViewModel model)
@@ -963,6 +979,7 @@ public class ReceiptRecordsController(AdminLogisticsDbContext db, IEmployeeLooku
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     [ActionName(nameof(Create))]
@@ -990,6 +1007,7 @@ public class ReceiptRecordsController(AdminLogisticsDbContext db, IEmployeeLooku
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, ReceiptRecordFormViewModel model)

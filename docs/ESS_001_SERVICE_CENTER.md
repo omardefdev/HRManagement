@@ -53,6 +53,12 @@ EmployeeServiceCase
 - Employee can only see own cases (tenant + employee scope)
 - Case status reconciles with linked workflow instance
 - SLA breach triggers escalation notification
+- PLAN-51 (G-IAM-05): through `/ui/ess` (and any path with `/Ess` in it) an employee reaches only the named self-service controllers
+  (`Gateway:Ess:AllowedControllers`: `EssPortal`, `EssTalent` on `ess` and `hr-core`; `Ess` on `payroll`), even when he also holds an
+  HR.Core read or approval role; anything else under `/ui/ess` answers 404 at the gateway (`Denied:EssNotExposed`). The pages load
+  HR.Core's static files (`Gateway.Authenticated`) and call no lookup API: names are rendered on the server, and the directory
+  (`HrCore.Lookup`) is for staff and services, not for `hr-employee` alone. HR.Training's `EssLearning` keeps `Module.Ess` in the service;
+  exposing it at the gateway is wave 2 (IAM-H), one configuration line.
 
 ## Acceptance Criteria Mapping
 

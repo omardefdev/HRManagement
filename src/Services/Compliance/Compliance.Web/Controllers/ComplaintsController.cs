@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using HRManagement.ServiceDefaults;
 using HRManagement.MessageContracts.Events;
@@ -34,6 +35,7 @@ public class ComplaintsController(ComplianceDbContext db, IPublishEndpoint _publ
 
     public IActionResult Create() => View(new Complaint { FiledAt = DateTime.UtcNow });
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(Complaint model)
@@ -71,6 +73,7 @@ public class ComplaintsController(ComplianceDbContext db, IPublishEndpoint _publ
         return View(complaint);
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Assign(Guid id, string? assignedTo)
@@ -99,6 +102,7 @@ public class ComplaintsController(ComplianceDbContext db, IPublishEndpoint _publ
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AttachEvidence(Guid id, Guid evidenceFileId)
@@ -134,6 +138,7 @@ public class ComplaintsController(ComplianceDbContext db, IPublishEndpoint _publ
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> StartInvestigation(Guid id)
@@ -151,6 +156,7 @@ public class ComplaintsController(ComplianceDbContext db, IPublishEndpoint _publ
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Resolve(Guid id, string resolution)
@@ -181,6 +187,7 @@ public class ComplaintsController(ComplianceDbContext db, IPublishEndpoint _publ
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Close(Guid id)
@@ -200,6 +207,7 @@ public class ComplaintsController(ComplianceDbContext db, IPublishEndpoint _publ
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(Guid id, string? reason)
@@ -222,6 +230,7 @@ public class ComplaintsController(ComplianceDbContext db, IPublishEndpoint _publ
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Appeal(Guid id, string? note)
@@ -245,6 +254,7 @@ public class ComplaintsController(ComplianceDbContext db, IPublishEndpoint _publ
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddFollowUp(Guid id, string note)
@@ -266,6 +276,7 @@ public class ComplaintsController(ComplianceDbContext db, IPublishEndpoint _publ
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Refer(Guid id, string? referredTo, DateTime? referralDate, string? documents)
@@ -292,6 +303,7 @@ public class ComplaintsController(ComplianceDbContext db, IPublishEndpoint _publ
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddRecommendation(Guid id, string? recommendedAction, DateTime? dueDate, Guid? responsibleUnitId)

@@ -49,6 +49,7 @@ public static class GatewayAuditDisplay
         "client_error" => "خطأ في الطلب",
         "server_error" => "خطأ في الخادم",
         "sensitive_access" => "وصول حساس مسجل",
+        "denied:essnotexposed" => "مسار غير متاح للخدمة الذاتية",
         _ => string.IsNullOrWhiteSpace(value) ? "غير محدد" : value
     };
 }

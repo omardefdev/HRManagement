@@ -11,6 +11,7 @@ using HR.Movements.Domain.Enums;
 using HR.Movements.Domain.Services;
 using HR.Movements.Infrastructure.Data;
 using HR.Movements.Infrastructure.Services;
+using HR.Movements.Web.Models;
 using HRManagement.MessageContracts.Commands;
 using HRManagement.SharedKernel.Enums;
 using HRManagement.SharedKernel.Legal;
@@ -105,8 +106,9 @@ public class TransferRequestsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
-    public async Task<IActionResult> Create(TransferRequest model)
+    public async Task<IActionResult> Create(TransferRequestForm form)
     {
+        var model = form.ToEntity();
         if (!ModelState.IsValid) return View(model);
         if (await EnsureOrgIdsAssignableAsync(model.FromOrgUnitId, model.ToOrgUnitId) is { } denied) return denied;
         if (model.EffectiveDate == default)
@@ -175,7 +177,7 @@ public class TransferRequestsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
-    public async Task<IActionResult> Edit(Guid id, TransferRequest model)
+    public async Task<IActionResult> Edit(Guid id, TransferRequestForm model)
     {
         if (id != model.Id) return BadRequest();
         var t = await _db.TransferRequests.FindAsync(id);
@@ -185,7 +187,7 @@ public class TransferRequestsController : Controller
             TempData["Error"] = "لا يمكن تعديل طلب غير معلّق";
             return RedirectToAction(nameof(Details), new { id });
         }
-        if (!ModelState.IsValid) return View(model);
+        if (!ModelState.IsValid) return View(model.ToEntity(id));
         if (await EnsureOrgIdsAssignableAsync(model.FromOrgUnitId, model.ToOrgUnitId) is { } orgDenied) return orgDenied;
         t.EmployeeId = model.EmployeeId;
         t.FromOrgUnitId = model.FromOrgUnitId;
@@ -202,7 +204,7 @@ public class TransferRequestsController : Controller
         if (regimeError is not null)
         {
             TempData["Error"] = regimeError;
-            return View(model);
+            return View(model.ToEntity(id));
         }
         await _db.SaveChangesAsync();
         TempData["Success"] = "تم تحديث طلب النقل";

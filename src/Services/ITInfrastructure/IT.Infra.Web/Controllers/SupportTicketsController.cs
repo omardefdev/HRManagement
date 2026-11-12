@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using IT.Infrastructure.Domain.Entities;
 using IT.Infrastructure.Domain.Enums;
 using IT.Infrastructure.Domain.Services;
@@ -36,6 +38,7 @@ public class SupportTicketsController(ITInfraDbContext db, IDirectoryEntrySyncSe
 
     public IActionResult Create() => View(new ITSupportTicket());
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ITSupportTicket model)
@@ -56,6 +59,7 @@ public class SupportTicketsController(ITInfraDbContext db, IDirectoryEntrySyncSe
         return View(t);
     }
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, ITSupportTicket model)
@@ -72,6 +76,7 @@ public class SupportTicketsController(ITInfraDbContext db, IDirectoryEntrySyncSe
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Assign(Guid id, string? assignedTo)
@@ -88,6 +93,7 @@ public class SupportTicketsController(ITInfraDbContext db, IDirectoryEntrySyncSe
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Resolve(Guid id)
@@ -101,6 +107,7 @@ public class SupportTicketsController(ITInfraDbContext db, IDirectoryEntrySyncSe
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Close(Guid id)
@@ -113,6 +120,7 @@ public class SupportTicketsController(ITInfraDbContext db, IDirectoryEntrySyncSe
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Reopen(Guid id)
@@ -127,6 +135,7 @@ public class SupportTicketsController(ITInfraDbContext db, IDirectoryEntrySyncSe
     }
 
     /// <summary>FUN-005: retry directory provisioning for a Failed ticket.</summary>
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RetryProvision(Guid id, CancellationToken cancellationToken)

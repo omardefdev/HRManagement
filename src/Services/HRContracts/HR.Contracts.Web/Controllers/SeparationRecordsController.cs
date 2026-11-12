@@ -14,6 +14,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Contracts.Web.Controllers;
 
+// PLAN-51 (§4, P-6): reads name the module policy (the management approver reads HR.Contracts); every write names HrContracts.Write or HrContracts.Approve.
+[Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
 public class SeparationRecordsController : Controller
 {
     private readonly IMediator _mediator;
@@ -100,6 +102,7 @@ public class SeparationRecordsController : Controller
         return View(vm);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(SeparationRecordCreateViewModel vm)
@@ -142,6 +145,7 @@ public class SeparationRecordsController : Controller
         return View(vm);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, SeparationRecordEditViewModel vm)
@@ -157,6 +161,7 @@ public class SeparationRecordsController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Compliance.Domain.Entities;
 using Compliance.Domain.Enums;
 using Compliance.Domain.Services;
@@ -25,6 +26,7 @@ public class LegalCasesController(
 
     public IActionResult Create() => View(new LegalCase { Status = CaseStatus.Open });
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(LegalCase model)
@@ -60,6 +62,7 @@ public class LegalCasesController(
         return View(model);
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, LegalCase model)
@@ -78,6 +81,7 @@ public class LegalCasesController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Assign(Guid id, string? assignedTo)
@@ -93,6 +97,7 @@ public class LegalCasesController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateStatus(Guid id, CaseStatus status)
@@ -105,6 +110,7 @@ public class LegalCasesController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Close(Guid id)
@@ -165,6 +171,7 @@ public class DisciplinaryActionsController(
         return View(new DisciplinaryAction { IssuedAt = DateTime.UtcNow, AppealStatus = AppealStatus.None });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(DisciplinaryAction model)
@@ -245,6 +252,7 @@ public class DisciplinaryActionsController(
         return RedirectToAction(nameof(Details), new { id = action.Id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Submit(Guid id)
@@ -261,6 +269,7 @@ public class DisciplinaryActionsController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Withdraw(Guid id, string? reason)
@@ -324,6 +333,7 @@ public class DisciplinaryActionsController(
         return View(model);
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, DisciplinaryAction model)
@@ -347,6 +357,7 @@ public class DisciplinaryActionsController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Appeal(Guid id)
@@ -366,6 +377,7 @@ public class DisciplinaryActionsController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DecideAppeal(Guid id, string decision)
@@ -390,6 +402,7 @@ public class AuditFindingsController(ComplianceDbContext db) : Controller
 
     public IActionResult Create() => View(new AuditFinding { Status = FindingStatus.Open, Severity = FindingSeverity.Medium });
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(AuditFinding model)
@@ -417,6 +430,7 @@ public class AuditFindingsController(ComplianceDbContext db) : Controller
         return View(model);
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, AuditFinding model)
@@ -434,6 +448,7 @@ public class AuditFindingsController(ComplianceDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Mitigate(Guid id)
@@ -447,6 +462,7 @@ public class AuditFindingsController(ComplianceDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CloseItem(Guid id)
@@ -461,6 +477,7 @@ public class AuditFindingsController(ComplianceDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateReferral(Guid id)
@@ -490,6 +507,7 @@ public class LegalReferralsController(ComplianceDbContext db) : Controller
 
     public IActionResult Create() => View(new LegalReferral { ReferralDate = DateTime.UtcNow });
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(LegalReferral model)
@@ -516,6 +534,7 @@ public class LegalReferralsController(ComplianceDbContext db) : Controller
         return View(model);
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, LegalReferral model)
@@ -544,6 +563,7 @@ public class ComplianceRecommendationsController(ComplianceDbContext db) : Contr
         return View(new ComplianceRecommendation());
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ComplianceRecommendation model)
@@ -576,6 +596,7 @@ public class ComplianceRecommendationsController(ComplianceDbContext db) : Contr
         return View(model);
     }
 
+    [Authorize(Policy = HrManagementPolicies.ComplianceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, ComplianceRecommendation model)

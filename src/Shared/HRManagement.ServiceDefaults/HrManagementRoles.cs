@@ -103,6 +103,54 @@ public static class HrManagementPolicies
     public const string HrCoreWrite = "HrCore.Write";
     public const string HrCoreDelete = "HrCore.Delete";
 
+    /// <summary>
+    /// PLAN-51 (D-51-2, decision 3): HR.Core's sensitive decisions that are not approvals of another's request (publish a requisition or its
+    /// internal posting, publish competition results, revoke an offer, approve a workforce plan). Roles from configuration, by default
+    /// today's: hr-admin and hr-core. <see cref="HrCoreApprove"/> would widen them to the management approver and the platform.
+    /// </summary>
+    public const string HrCoreDecision = "HrCore.Decision";
+
+    // PLAN-51 (§4, D-51-2): the write and approval policy of each module, roles from Authorization:Policies:{name}:Roles; the defaults are
+    // today's (the module's roles), so a single-role module changes for nobody. The module filter applies {Module}.Write to a write that
+    // names no policy of its own; every write names one anyway.
+    public const string HrContractsWrite = "HrContracts.Write";
+    public const string FileStorageWrite = "FileStorage.Write";
+    public const string PayrollWrite = "Payroll.Write";
+    public const string HrMovementsApprove = "HrMovements.Approve";
+    public const string HrTrainingWrite = "HrTraining.Write";
+    public const string HrTrainingApprove = "HrTraining.Approve";
+    public const string HrHealthWrite = "HrHealth.Write";
+    public const string HrHealthApprove = "HrHealth.Approve";
+    public const string ComplianceWrite = "Compliance.Write";
+    public const string ComplianceApprove = "Compliance.Approve";
+    public const string IdCardWrite = "IdCard.Write";
+    public const string IdCardApprove = "IdCard.Approve";
+    public const string AdminLogisticsWrite = "AdminLogistics.Write";
+    public const string AdminLogisticsApprove = "AdminLogistics.Approve";
+    public const string ItInfraWrite = "ItInfra.Write";
+    public const string ItInfraApprove = "ItInfra.Approve";
+    public const string RecordsArchiveWrite = "RecordsArchive.Write";
+    public const string RecordsArchiveApprove = "RecordsArchive.Approve";
+    public const string DevAnalyticsWrite = "DevAnalytics.Write";
+    public const string DevAnalyticsApprove = "DevAnalytics.Approve";
+    public const string AuthDirectoryWrite = "AuthDirectory.Write";
+    public const string AuthDirectoryApprove = "AuthDirectory.Approve";
+
+    /// <summary>PLAN-51 (decision 4): the DSAR requests of Compliance, formerly <c>[Authorize(Roles = compliance,platform-admin)]</c>.</summary>
+    public const string ComplianceDsar = "Compliance.Dsar";
+
+    /// <summary>PLAN-51 (decision 4): the platform operator's own gateway actions (tenant entry, platform audit), formerly <c>Roles = platform-admin</c>.</summary>
+    public const string PlatformOperator = "Platform.Operator";
+
+    /// <summary>PLAN-51 (§5, G-IAM-09): agency onboarding through the API: platform-admin only, in the service and at the gateway.</summary>
+    public const string PlatformAgencyOnboarding = "Platform.AgencyOnboarding";
+
+    /// <summary>
+    /// PLAN-51 (§5, D-51-5): publishing evidence artifacts (<c>Service.EvidenceIngest</c>) is open to the service clients listed in
+    /// <c>Evidence:IngestClients</c>, empty by default (nobody).
+    /// </summary>
+    public const string EvidenceIngestClientsKey = "Evidence:IngestClients";
+
     /// <summary>PLAN-43 (D-WF-4): write and publish workflow definitions: hr-admin or workflow-admin, never a service account.</summary>
     public const string WorkflowDefinitionAdmin = "Workflow.DefinitionAdmin";
 
@@ -131,9 +179,6 @@ public static class HrManagementPolicies
     /// <summary>Cross-tenant quarantine reconciliation is restricted to platform operators.</summary>
     public const string TenantQuarantineReconcile = "TenantQuarantine.Reconcile";
 
-    /// <summary>Scoped operational actions available to central HR and branch managers.</summary>
-    public const string HrCoreBranchOperation = "HrCore.BranchOperation";
-
     /// <summary>HCM-028 (PLAN-25 slice): recruitment appeal review — central HR and the compliance reviewer.</summary>
     public const string HrCoreAppealReview = "HrCore.AppealReview";
 
@@ -143,8 +188,20 @@ public static class HrManagementPolicies
     /// <summary>HCM-031 (PLAN-31): the anonymous exam marking screens — the exam marker role only.</summary>
     public const string HrCoreExamMarking = "HrCore.ExamMarking";
 
-    /// <summary>Lookup APIs shared across modules — any authenticated user (no NationalId in responses).</summary>
+    /// <summary>
+    /// Lookup APIs shared across modules (no NationalId in responses). PLAN-51 (D-51-3): an interactive staff user (PLAN-50's definition,
+    /// <c>Authorization:NonStaffRoles</c>) or a service account with <c>hr-core.lookup</c>; never <c>hr-employee</c> or the exam marker alone.
+    /// </summary>
     public const string HrCoreLookup = "HrCore.Lookup";
+
+    /// <summary>PLAN-51 (§2, P-4): any signed-in user, for files that carry no data (HR.Core's static files, those of the self-service segment).</summary>
+    public const string GatewayAuthenticated = "Gateway.Authenticated";
+
+    /// <summary>
+    /// PLAN-51 (§3, D-IAM-7): the gateway's audit pages (operations, audit, audit search). Roles from <c>Gateway:Audit:Roles</c>, by default
+    /// platform-admin (every agency), auditor and compliance (their own agency, filtered in <c>GatewayAuditQueryService</c>); not hr-admin.
+    /// </summary>
+    public const string GatewayAudit = "Gateway.Audit";
 
     public const string HrContractsApprove = "HrContracts.Approve";
     public const string PayrollProcess = "Payroll.Process";

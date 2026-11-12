@@ -15,6 +15,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 UNIT_TESTS = ROOT / "src" / "Tests" / "HRManagement.UnitTests"
 INTEGRATION = ROOT / "src" / "Tests" / "HRManagement.IntegrationTests"
+# PLAN-51: the architecture project over the fifteen web assemblies (all its files count as architecture fitness).
+ARCHITECTURE = ROOT / "src" / "Tests" / "HRManagement.ArchitectureTests"
 QA_DIR = ROOT / "docs" / "qa"
 COVERAGE_FLOORS = ROOT / "coverage-floors.json"
 
@@ -77,7 +79,7 @@ def _count_test_methods(text: str) -> int:
 
 def _classify_file(path: Path, text: str) -> str:
     name = path.name
-    if any(p in name for p in ARCHITECTURE_FILE_PATTERNS):
+    if ARCHITECTURE in path.parents or any(p in name for p in ARCHITECTURE_FILE_PATTERNS):
         return "architectureFitness"
 
     has_product = any(m in text for m in PRODUCT_ASSEMBLY_MARKERS)
@@ -114,7 +116,7 @@ def scan_tests() -> dict:
     files: list[dict] = []
     counts = {"behavior": 0, "artifactGate": 0, "architectureFitness": 0, "mixed": 0}
 
-    for root in (UNIT_TESTS, INTEGRATION):
+    for root in (UNIT_TESTS, INTEGRATION, ARCHITECTURE):
         if not root.exists():
             continue
         for path in sorted(root.rglob("*Tests.cs")):

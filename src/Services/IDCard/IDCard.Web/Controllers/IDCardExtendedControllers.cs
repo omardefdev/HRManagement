@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using IDCard.Domain.Entities;
 using IDCard.Infrastructure.Data;
 using HRManagement.ServiceDefaults;
@@ -27,6 +28,7 @@ public class AccessPermissionsController(IDCardDbContext db) : Controller
         return View(new AccessPermission());
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(AccessPermission model)
@@ -46,6 +48,7 @@ public class AccessPermissionsController(IDCardDbContext db) : Controller
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, AccessPermission model)
@@ -64,6 +67,7 @@ public class AccessPermissionsController(IDCardDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
@@ -91,6 +95,7 @@ public class OfficialSealRecordsController(IDCardDbContext db, IFileReferenceCli
 
     public IActionResult Create() => View(new OfficialSealRecord());
 
+    [Authorize(Policy = HrManagementPolicies.IdCardApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(OfficialSealRecord model)
@@ -117,6 +122,7 @@ public class OfficialSealRecordsController(IDCardDbContext db, IFileReferenceCli
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, OfficialSealRecord model)
@@ -143,6 +149,7 @@ public class OfficialSealRecordsController(IDCardDbContext db, IFileReferenceCli
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
@@ -177,6 +184,7 @@ public class CardPermissionSetsController(IDCardDbContext db) : Controller
 
     public IActionResult Create() => View(new CardPermissionSet());
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CardPermissionSet model)
@@ -195,6 +203,7 @@ public class CardPermissionSetsController(IDCardDbContext db) : Controller
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, CardPermissionSet model)
@@ -210,6 +219,7 @@ public class CardPermissionSetsController(IDCardDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

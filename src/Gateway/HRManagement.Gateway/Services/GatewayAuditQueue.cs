@@ -411,6 +411,13 @@ public sealed class GatewayAuditQueue : BackgroundService, IGatewayAuditQueue
         Decision = e.Decision,
         ClientIp = e.ClientIp,
         UserAgent = e.UserAgent,
+        // PLAN-51 (§3): the agency and the AC-03 denial fields were dropped here, so no persisted row had a TenantId and the audit's tenant
+        // filter could show an agency nothing. The hash chain already covers them (AuditHashChain), computed on this clone.
+        TenantId = e.TenantId,
+        ScopeOrgUnitId = e.ScopeOrgUnitId,
+        Reason = e.Reason,
+        ResourceType = e.ResourceType,
+        ResourceId = e.ResourceId,
         SequenceNumber = e.SequenceNumber,
         ChainKey = e.ChainKey,
         PrevHash = e.PrevHash,

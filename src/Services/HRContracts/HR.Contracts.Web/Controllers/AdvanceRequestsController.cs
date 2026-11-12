@@ -14,6 +14,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Contracts.Web.Controllers;
 
+// PLAN-51 (§4, P-6): reads name the module policy (the management approver reads HR.Contracts); every write names HrContracts.Write or HrContracts.Approve.
+[Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
 public class AdvanceRequestsController : Controller
 {
     private readonly IMediator _mediator;
@@ -75,6 +77,7 @@ public class AdvanceRequestsController : Controller
 
     public IActionResult Create() => View(new AdvanceRequestViewModel());
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(AdvanceRequestViewModel vm)
@@ -110,6 +113,7 @@ public class AdvanceRequestsController : Controller
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, AdvanceRequestViewModel vm)
@@ -131,6 +135,7 @@ public class AdvanceRequestsController : Controller
         }
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
@@ -160,6 +165,7 @@ public class AdvanceRequestsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Reject(Guid id)
@@ -189,6 +195,7 @@ public class AdvanceRequestsController : Controller
         return Ok(new { success = true, message = "تم اعتماد طلب السلفة" });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsApprove)]
     [HttpPost]
     public async Task<IActionResult> RejectAjax([FromBody] AjaxIdRequest req)
     {

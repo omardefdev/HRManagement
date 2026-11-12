@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using HR.Contracts.Application.Features.CommencementRecords;
 using HR.Contracts.Application.Features.Lookup;
 using HR.Contracts.Application.Models;
@@ -12,6 +13,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Contracts.Web.Controllers;
 
+// PLAN-51 (§4, P-6): reads name the module policy (the management approver reads HR.Contracts); every write names HrContracts.Write or HrContracts.Approve.
+[Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
 public class CommencementRecordsController : Controller
 {
     private readonly IMediator _mediator;
@@ -92,6 +95,7 @@ public class CommencementRecordsController : Controller
         return View(vm);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CommencementRecordViewModel vm)
@@ -121,6 +125,7 @@ public class CommencementRecordsController : Controller
         return View(vm);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, CommencementRecordViewModel vm)
@@ -134,6 +139,7 @@ public class CommencementRecordsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

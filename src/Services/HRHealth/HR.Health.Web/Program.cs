@@ -16,7 +16,7 @@ builder.AddHrOpenTelemetry();
 builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrHealth);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrHealth, HrManagementPolicies.HrHealthWrite);
 builder.Services.AddHrOpenApi("HR.Health API");
 
 builder.Services.AddHttpContextAccessor();

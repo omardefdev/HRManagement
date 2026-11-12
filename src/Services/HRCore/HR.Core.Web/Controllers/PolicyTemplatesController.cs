@@ -20,6 +20,8 @@ namespace HR.Core.Web.Controllers;
 /// publisher must not be among the draft's editors.
 /// </summary>
 [Authorize(Policy = HrManagementPolicies.PolicyReader)]
+// PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
+[ModulePolicyOverride(HrManagementPolicies.PolicyReader)]
 public class PolicyTemplatesController(
     HRCoreDbContext db,
     IPolicyOrchestrator orchestrator,

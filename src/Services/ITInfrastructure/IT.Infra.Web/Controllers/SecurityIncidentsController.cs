@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using IT.Infrastructure.Domain.Entities;
 using IT.Infrastructure.Domain.Enums;
 using IT.Infra.Infrastructure.Data;
@@ -26,6 +28,7 @@ public class SecurityIncidentsController(ITInfraDbContext db) : Controller
         Status = TicketStatus.Open
     });
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(SecurityIncident model)
@@ -44,6 +47,7 @@ public class SecurityIncidentsController(ITInfraDbContext db) : Controller
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, SecurityIncident model)
@@ -61,6 +65,7 @@ public class SecurityIncidentsController(ITInfraDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Handle(Guid id, Guid? handledBy)
@@ -74,6 +79,7 @@ public class SecurityIncidentsController(ITInfraDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

@@ -170,7 +170,7 @@ public sealed class ProductionConfigurationGuard(
             }
         }
 
-        if (string.Equals(configuration[ProductionConfigurationGuardOptions.DeploymentModeKey], "demo", StringComparison.OrdinalIgnoreCase))
+        if (ProductionConfigurationGuardOptions.IsDemoMode(configuration))
         {
             SeedProfile? profile;
             try
@@ -322,7 +322,7 @@ public sealed class ProductionConfigurationGuard(
                 fail(ProductionConfigurationGuardOptions.DbPostureKey, "قيمة غير معروفة", "has an unsupported value");
             }
             else if (string.Equals(dbPosture, "demo", StringComparison.OrdinalIgnoreCase)
-                     && !string.Equals(configuration[ProductionConfigurationGuardOptions.DeploymentModeKey], "demo", StringComparison.OrdinalIgnoreCase))
+                     && !ProductionConfigurationGuardOptions.IsDemoMode(configuration))
             {
                 fail(ProductionConfigurationGuardOptions.DbPostureKey, "demo خارج وضع العرض", "is demo outside demo mode (Deployment:Mode=demo)");
             }

@@ -38,7 +38,9 @@ Incremental patches (workflows, bindings, MDM entries, policy rules) upsert miss
 POST /api/onboarding/agencies/apply?dryRun=true
 ```
 
-Requires `HrCoreWrite` + `HrCoreApprove` (four-eyes).
+PLAN-51 (G-IAM-09): `Platform.AgencyOnboarding`, **platform-admin only**, in HR.Core and at the gateway (no hr-core of any agency). The
+manifest travels in the request body; the API reads no file from disk: `apply-file` was removed. `AgencyManifestLoader` reads files for
+the scripts and the seeds only (`scripts/onb001-apply-manifest.ps1`).
 
 Pipeline:
 

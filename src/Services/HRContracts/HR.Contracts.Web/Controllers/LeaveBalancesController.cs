@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using HR.Contracts.Application.Abstractions;
 using HR.Contracts.Domain.Entities;
 using HR.Contracts.Domain.Enums;
@@ -11,6 +12,8 @@ using HRManagement.ServiceDefaults.Integration;
 
 namespace HR.Contracts.Web.Controllers;
 
+// PLAN-51 (§4, P-6): reads name the module policy (the management approver reads HR.Contracts); every write names HrContracts.Write or HrContracts.Approve.
+[Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
 public class LeaveBalancesController : Controller
 {
     private readonly IContractsRepository _repo;
@@ -86,6 +89,7 @@ public class LeaveBalancesController : Controller
         return View(new LeaveBalanceCreateViewModel { Year = DateTime.UtcNow.Year });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(LeaveBalanceCreateViewModel vm)
@@ -124,6 +128,7 @@ public class LeaveBalancesController : Controller
         return View();
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> InitializeYear(int year, List<Guid> employeeIds)

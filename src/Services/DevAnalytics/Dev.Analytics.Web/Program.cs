@@ -15,7 +15,7 @@ builder.AddHrOpenTelemetry();
 builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleDevAnalytics);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleDevAnalytics, HrManagementPolicies.DevAnalyticsWrite);
 builder.Services.AddHrOpenApi("Dev.Analytics API");
 
 builder.Services.AddHttpContextAccessor();

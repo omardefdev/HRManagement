@@ -16,7 +16,7 @@ builder.AddHrOpenTelemetry();
 builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleItInfra);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleItInfra, HrManagementPolicies.ItInfraWrite);
 builder.Services.AddHrOpenApi("IT.Infra API");
 
 builder.Services.AddHttpContextAccessor();

@@ -53,6 +53,7 @@ public class ProcessInterventionsController(
         return item is null ? NotFound() : Ok(item);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost("{id:guid}/resume")]
     public async Task<IActionResult> Resume(Guid id, CancellationToken ct)
     {
@@ -88,6 +89,7 @@ public class ProcessInterventionsController(
         return Ok(new { resumed = true });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost("{id:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelRequest? body, CancellationToken ct)
     {

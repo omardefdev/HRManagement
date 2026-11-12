@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
@@ -54,6 +56,7 @@ public class RostersController(HRCoreDbContext db) : Controller
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ShiftRosterCreateViewModel vm)
@@ -101,6 +104,7 @@ public class RostersController(HRCoreDbContext db) : Controller
         return View(roster);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddAssignment(Guid rosterId, Guid shiftId, Guid employeeId, DateOnly workDate, decimal overtimeHours)
@@ -127,6 +131,7 @@ public class RostersController(HRCoreDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id = rosterId });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RemoveAssignment(Guid id, Guid rosterId)
@@ -141,6 +146,7 @@ public class RostersController(HRCoreDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id = rosterId });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

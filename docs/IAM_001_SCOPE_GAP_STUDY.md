@@ -185,7 +185,7 @@
   - **AC-IAM-Aa:** `a-management-approver` يعتمد عبر البوابة نقلاً أنشأه `a-movements` (200، الحالة `Approved`). سلبي: لا يستطيع الإنشاء ولا التنفيذ (403)، و`a-movements` لا يعتمد (403).
   - **AC-IAM-Ab:** معتمد يفوّض زميلاً لمدة. المفوَّض يعتمد خطوة `hr-management-approver` داخل المدة، ويُرفض بعدها، ويظهر التفويض في سجل الخطوة.
 
-- **الحالة:** جزئي — الأثر في المحرك والحركات ([PLAN-50](acceptance-plans/PLAN-50-iam-approver-reach-delegation.md)). `hr-management-approver` وحده يقرأ ويعتمد الأنواع الخمسة من الحركات عبر البوابة (سمة `ModulePolicyOverride`، `HrMovements.ApprovalAccess` و`HrMovements.Write`) ولا ينشئ ولا ينفّذ، و`hr-movements` لا يعتمد؛ ويصل إلى إجراءات `HrCore.Approve` وصفحة التفويض عبر جدول `GatewayHrCoreActionPolicies` (يحرسه `GatewayApproverReachTests`)؛ وللتفويض أثر فعلي في المحرك والحركات بـ«بالنيابة عن» (AC-IAM-50a..e). بقي: استبدال قائمة الأسماء في مرشح الوحدة وسياسات الكتابة لبقية متحكمات الحركات ← PLAN-51؛ تفويض أدوار أخرى ← الموجة 2.
+- **الحالة:** جزئي — الأثر في المحرك والحركات ([PLAN-50](acceptance-plans/PLAN-50-iam-approver-reach-delegation.md)). `hr-management-approver` وحده يقرأ ويعتمد الأنواع الخمسة من الحركات عبر البوابة (سمة `ModulePolicyOverride`، `HrMovements.ApprovalAccess` و`HrMovements.Write`) ولا ينشئ ولا ينفّذ، و`hr-movements` لا يعتمد؛ ويصل إلى إجراءات `HrCore.Approve` وصفحة التفويض عبر جدول `GatewayHrCoreActionPolicies` (يحرسه `GatewayApproverReachTests`)؛ وللتفويض أثر فعلي في المحرك والحركات بـ«بالنيابة عن» (AC-IAM-50a..e). ما تُرك لـ PLAN-51 (قائمة الأسماء في مرشح الوحدة وسياسات الكتابة لبقية متحكمات الحركات ونماذج العرض في HR.Movements) أُنجز فيها؛ بقي: تفويض أدوار أخرى ← الموجة 2.
 
 #### G-IAM-02 — الراتب الأساسي وسلّم الرواتب يُعدَّلان بدور الوحدة `payroll` وحده وبلا معتمد
 - **الدليل:**
@@ -309,6 +309,7 @@
   - `Service.HrCoreLookup` لحسابات الخدمة فقط.
   - `HrCore.Lookup` لأدوار الموظفين لا لـ ESS والمصحح.
 - **الخطة:** [PLAN-51](acceptance-plans/PLAN-51-iam-explicit-policy-every-action.md)
+- **الحالة:** ✅ عولجت في [PLAN-51](acceptance-plans/PLAN-51-iam-explicit-policy-every-action.md) — البوابة تطابق الخدمة الذاتية بالمقطع الأول تماماً (`GatewayEssRouting`، `Gateway:Ess:AllowedControllers`)، وما سوى المتحكمات المسماة والملفات الثابتة تحت `/ui/ess` ← 404 مع قرار `Denied:EssNotExposed` في التدقيق؛ و`Service.HrCoreLookup` حُذفت منذ PLAN-42 ولا نقطة `api/internal` تقبل مستخدماً تفاعلياً (`InternalRoutesAreServiceOnlyTests` على التجميعات الخمس عشرة)؛ و`HrCore.Lookup` لموظفي الجهة (تعريف PLAN-50) وحسابات الخدمة بـ `hr-core.lookup`؛ وملفات HR.Core الثابتة بـ `Gateway.Authenticated` (AC-IAM-51a، 51b).
 - **التحقق المطلوب:**
   - **AC-IAM-Ea:** `employee-a` ← `/ui/ess/api/internal/employees/{زميل}/lifecycle-flags` ← 403. و`/ui/ess/Employees` ← 403. و`/ui/ess/EssPortal` ← 200. و`svc-hr-contracts` بنطاق lookup ← 200.
 
@@ -320,6 +321,7 @@
 - **الأثر:** موظف في جهة B يرى أسماء مستخدمي جهة A وما فتحوه، مثل `/ui/hr-core/Employees/Details/{id}`، ومحاولات 401/403. هذا تسريب عبر الجهات، وكشف لنشاط التحقيق والتدقيق.
 - **الإصلاح المقترح:** سياسة `Gateway.Audit` لـ `platform-admin` و`auditor` و`compliance` بجهتهم، مع مرشح جهة إلزامي.
 - **الخطة:** [PLAN-51](acceptance-plans/PLAN-51-iam-explicit-policy-every-action.md)
+- **الحالة:** ✅ عولجت في [PLAN-51](acceptance-plans/PLAN-51-iam-explicit-policy-every-action.md) — `Gateway.Audit` (من `Gateway:Audit:Roles`: `platform-admin` و`auditor` و`compliance`، بلا `hr-admin`) على `Operations` و`Audit` و`/ops/audit-search`، ورابط القائمة لمن يملكها؛ ومرشح الجهة في `GatewayAuditQueryService` (`platform-admin` لكل الجهات والصفوف بلا جهة، وبلا `tenant_id` صالح لا صفوف)، مثبت على SQLite وPostgreSQL (AC-IAM-51c).
 - **التحقق المطلوب:**
   - **AC-IAM-Ec:** `employee-a` ← `/Home/Audit` ← 403. و`b-auditor` يرى صفوف جهة B فقط.
 
@@ -368,6 +370,7 @@
   - ثلاث سياسات لكل وحدة (Read/Write/Approve) واختبار سقف عام لكل تجميعة Web يبدأ بالقوائم الحالية ولا يكبر.
   - سمة صريحة للاستثناء من فلتر الوحدة بدل الأسماء.
 - **الخطة:** [PLAN-51](acceptance-plans/PLAN-51-iam-explicit-policy-every-action.md)؛ جزء الرواتب: [PLAN-53](acceptance-plans/PLAN-53-iam-payroll-salary-change.md)
+- **الحالة:** ✅ عولجت في [PLAN-51](acceptance-plans/PLAN-51-iam-explicit-policy-every-action.md) عدا الرواتب (PLAN-53) — لا قائمة أسماء في فلتر الوحدة (`[ModulePolicyOverride]` بسياسة المتحكم نفسها)، وسياسة كتابة افتراضية للوحدة على كل كتابة بلا سياسة؛ وكل إجراء كتابة في كل الخدمات يسمّي سياسته (`{Module}.Write`، و`{Module}.Approve` للإجراءات الحساسة، من الإعداد بأدوار اليوم)، ومشروع `HRManagement.ArchitectureTests` يمسح التجميعات الخمس عشرة بقوائم سقف لا تكبر: لم يبقَ إلا قائمة Payroll (16) وربط الكيانات خارج HR.Movements (IAM-F)؛ وHR.Movements يربط نماذج عرض لا كيانات (AC-IAM-51d).
 - **التحقق المطلوب:**
   - **AC-IAM-Ed:** اختبار معماري لكل التجميعات: كل POST/PUT/DELETE بسياسة صريحة أو في قائمة السقف. سلبي: مستخدم بدور قراءة يرسل POST مباشرة إلى الخدمة بإثبات بوابة صحيح ← 403.
 
@@ -394,6 +397,7 @@
   - نطاقات S2S ضيقة (`hr-core.workflow.start`، `hr-core.codes.generate`).
   - `Onboarding` لـ `platform-admin` فقط، وحذف `apply-file` من HTTP.
 - **الخطة:** [PLAN-51](acceptance-plans/PLAN-51-iam-explicit-policy-every-action.md)
+- **الحالة:** ✅ عولجت في [PLAN-51](acceptance-plans/PLAN-51-iam-explicit-policy-every-action.md) — `HrCore.Write` بلا فرع حساب الخدمة، و`hr-core.workflow` مقبول على ثلاث نقاط فقط (`Workflow.ExternalStart`، `Service.CodeGenerate`، `Service.PolicyEnforce`) وقراءات القاعدة 1؛ و`HrCore.BranchOperation` حُذفت؛ والجهات لـ `platform-admin` وحده (`Platform.AgencyOnboarding`) و`apply-file` حُذف؛ و`Service.EvidenceIngest` بقائمة `Evidence:IngestClients` الفارغة افتراضياً؛ و`hr-admin` مستبعد من `HrHealth.Clinical` و`Payroll.Post` و`Payroll.Reverse` في Production وStaging والملف الشبيه بالإنتاج (لا في وضع العرض) (AC-IAM-51e، 51f). تفكيك `hr-admin` و«كسر الزجاج» ← الموجة 2 (IAM-G).
 - **التحقق المطلوب:**
   - **AC-IAM-Ee:** `svc-admin-logistics` ← POST `/Employees/Create` ← 403، وبدء المسار ← 200.
   - `central-a` ← `onboarding/agencies/apply` ← 403، و`platform-admin` ← 200 مع تدقيق.

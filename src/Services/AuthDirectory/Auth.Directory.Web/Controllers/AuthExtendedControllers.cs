@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using Auth.Directory.Domain.Entities;
 using Auth.Directory.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -13,6 +15,7 @@ public class RolesController(AuthDirectoryDbContext db) : Controller
 
     public IActionResult Create() => View(new Role());
 
+    [Authorize(Policy = HrManagementPolicies.AuthDirectoryWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(Role model)
@@ -31,6 +34,7 @@ public class RolesController(AuthDirectoryDbContext db) : Controller
         return View(role);
     }
 
+    [Authorize(Policy = HrManagementPolicies.AuthDirectoryApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, Role model)
@@ -46,6 +50,7 @@ public class RolesController(AuthDirectoryDbContext db) : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Policy = HrManagementPolicies.AuthDirectoryApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
@@ -67,6 +72,7 @@ public class DirectoryEntriesController(AuthDirectoryDbContext db) : Controller
 
     public IActionResult Create() => View(new DirectoryEntry { LastSyncedAt = DateTime.UtcNow, Status = "active" });
 
+    [Authorize(Policy = HrManagementPolicies.AuthDirectoryWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(DirectoryEntry model)
@@ -92,6 +98,7 @@ public class PermissionPoliciesController(AuthDirectoryDbContext db) : Controlle
 
     public IActionResult Create() => View(new PermissionPolicy());
 
+    [Authorize(Policy = HrManagementPolicies.AuthDirectoryWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(PermissionPolicy model)

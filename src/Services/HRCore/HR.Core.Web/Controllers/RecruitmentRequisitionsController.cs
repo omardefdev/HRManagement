@@ -391,7 +391,7 @@ public class RecruitmentRequisitionsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    [Authorize(Policy = HrManagementPolicies.HrCoreDecision)]
     public async Task<IActionResult> Publish(Guid id, DateOnly? applicationClosingDate)
     {
         var requisition = await db.RecruitmentRequisitions.FindAsync(id);
@@ -411,7 +411,7 @@ public class RecruitmentRequisitionsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    [Authorize(Policy = HrManagementPolicies.HrCoreDecision)]
     public async Task<IActionResult> PublishInternal(Guid id, DateOnly? applicationClosingDate)
     {
         var requisition = await db.RecruitmentRequisitions.FindAsync(id);

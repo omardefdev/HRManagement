@@ -33,8 +33,8 @@ public static class GatewayHrCoreActionPolicies
     public static readonly IReadOnlyList<ApiRow> ApiRows =
     [
         new("api/employee-corrections/{guid}/approve", HrManagementPolicies.HrCoreApprove, "PLAN-50"),
-        new("api/onboarding/agencies/apply", HrManagementPolicies.HrCoreApprove, "HCM onboarding"),
-        new("api/onboarding/agencies/apply-file", HrManagementPolicies.HrCoreApprove, "HCM onboarding"),
+        // PLAN-51 (§5): the platform administrator's alone; apply-file is gone.
+        new("api/onboarding/agencies/apply", HrManagementPolicies.PlatformAgencyOnboarding, "PLAN-51"),
         new("api/policies/templates/{guid}/publish", HrManagementPolicies.PolicyApprover, "PLAN-47"),
     ];
 

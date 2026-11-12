@@ -38,8 +38,8 @@ function Test-GatewayTable([string]$text) {
         'new("Delegations", "Revoke", HrManagementPolicies.ManageDelegations',
         'new("PolicyTemplates", "PublishFromUi", HrManagementPolicies.PolicyApprover',
         'new("api/employee-corrections/{guid}/approve", HrManagementPolicies.HrCoreApprove',
-        'new("api/onboarding/agencies/apply", HrManagementPolicies.HrCoreApprove',
-        'new("api/onboarding/agencies/apply-file", HrManagementPolicies.HrCoreApprove',
+        # PLAN-51 (section 5): onboarding is the platform administrator's alone; apply-file is gone.
+        'new("api/onboarding/agencies/apply", HrManagementPolicies.PlatformAgencyOnboarding',
         'new("api/policies/templates/{guid}/publish", HrManagementPolicies.PolicyApprover'
     )
     foreach ($row in $rows) { if (-not $text.Contains($row)) { $problems += "gateway table: missing row $row" } }

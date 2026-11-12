@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Infrastructure.Data;
@@ -29,6 +31,7 @@ public class ShiftsController(HRCoreDbContext db) : Controller
 
     public IActionResult Create() => View(new ShiftCreateViewModel());
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ShiftCreateViewModel vm)
@@ -65,6 +68,7 @@ public class ShiftsController(HRCoreDbContext db) : Controller
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, ShiftEditViewModel vm)
@@ -85,6 +89,7 @@ public class ShiftsController(HRCoreDbContext db) : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

@@ -91,6 +91,7 @@
     <Project Path="src/Tests/HRManagement.TestSupport/HRManagement.TestSupport.csproj" />
     <Project Path="src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj" />
     <Project Path="src/Tests/HRManagement.IntegrationTests/HRManagement.IntegrationTests.csproj" />
+    <Project Path="src/Tests/HRManagement.ArchitectureTests/HRManagement.ArchitectureTests.csproj" />
     <Project Path="src/Tests/HRManagement.E2E/HRManagement.E2E.csproj" />
     <Project Path="src/Tests/HRManagement.AcceptanceTests/HRManagement.AcceptanceTests.csproj" />
   </Folder>

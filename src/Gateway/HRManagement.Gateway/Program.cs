@@ -143,6 +143,8 @@ builder.Services.AddDbContext<GatewayAuditDbContext>((sp, options) =>
 });
 builder.Services.Configure<EvidenceRepositoryOptions>(
     builder.Configuration.GetSection(EvidenceRepositoryOptions.SectionName));
+// PLAN-51 (§1, D-51-1): the self-service controllers per segment; /ui/ess exposes nothing else.
+builder.Services.Configure<GatewayEssOptions>(builder.Configuration.GetSection(GatewayEssOptions.SectionName));
 builder.Services.AddEvidenceRepository<GatewayAuditDbContext>();
 builder.Services.Configure<AuditDurabilityOptions>(
     builder.Configuration.GetSection(AuditDurabilityOptions.SectionName));

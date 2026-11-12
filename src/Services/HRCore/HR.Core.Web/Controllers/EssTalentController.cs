@@ -15,6 +15,8 @@ namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.ModuleEss)]
 [Route("[controller]")]
+// PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
+[ModulePolicyOverride(HrManagementPolicies.ModuleEss)]
 public class EssTalentController(
     HRCoreDbContext db,
     RecruitmentApplicationIntakeService intake,

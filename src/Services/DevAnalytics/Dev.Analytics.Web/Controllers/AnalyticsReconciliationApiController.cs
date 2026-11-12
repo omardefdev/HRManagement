@@ -13,6 +13,7 @@ public sealed class AnalyticsReconciliationApiController(
     ReadModelReconciliationService reconciliation,
     IReadModelReconciliationStatusStore statusStore) : ControllerBase
 {
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsWrite)]
     [HttpPost("{id:guid}/reconcile")]
     public async Task<ActionResult<ReadModelReconciliationReport>> Reconcile(
         Guid id,

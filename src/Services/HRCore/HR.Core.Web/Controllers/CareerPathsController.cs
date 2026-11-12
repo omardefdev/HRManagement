@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using HR.Core.Domain.Entities;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Web.ViewModels;
@@ -24,6 +26,7 @@ public class CareerPathsController(HRCoreDbContext db) : Controller
 
     public IActionResult Create() => View(new CareerPathCreateViewModel());
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CareerPathCreateViewModel vm)
@@ -46,6 +49,7 @@ public class CareerPathsController(HRCoreDbContext db) : Controller
         return View(path);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddStep(Guid careerPathId, int order, string positionTitle, int minYears, string? requirements)
@@ -71,6 +75,7 @@ public class CareerPathsController(HRCoreDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id = careerPathId });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RemoveStep(Guid id, Guid careerPathId)
@@ -85,6 +90,7 @@ public class CareerPathsController(HRCoreDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id = careerPathId });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

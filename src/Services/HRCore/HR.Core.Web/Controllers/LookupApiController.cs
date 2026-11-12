@@ -17,6 +17,8 @@ namespace HR.Core.Web.Controllers;
 [Route("api/lookup")]
 [ApiController]
 [Authorize(Policy = HrManagementPolicies.HrCoreLookup)]
+// PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
+[ModulePolicyOverride(HrManagementPolicies.HrCoreLookup)]
 public class LookupApiController(
     HRCoreDbContext context,
     HR.Core.Infrastructure.OrgScopeService orgScope,

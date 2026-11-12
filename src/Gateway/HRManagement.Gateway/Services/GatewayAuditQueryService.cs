@@ -5,17 +5,59 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HRManagement.Gateway.Services;
 
+/// <summary>
+/// PLAN-51 (§3, P-5): whose rows a caller of the gateway's audit sees. <c>platform-admin</c> sees every agency and the rows with no agency;
+/// anyone else sees the rows of the agency in his own <c>tenant_id</c>, and nothing without a valid one. The filter lives in the query
+/// service, never in a view.
+/// </summary>
+public sealed record GatewayAuditScope(bool AllTenants, Guid? TenantId)
+{
+    public static readonly GatewayAuditScope None = new(false, null);
+
+    public static readonly GatewayAuditScope Platform = new(true, null);
+
+    public static GatewayAuditScope Tenant(Guid tenantId) => tenantId == Guid.Empty ? None : new(false, tenantId);
+
+    public static GatewayAuditScope For(System.Security.Claims.ClaimsPrincipal user)
+    {
+        if (user.Identity?.IsAuthenticated != true)
+            return None;
+        if (user.IsInRole(HRManagement.ServiceDefaults.HrManagementRoles.PlatformAdmin))
+            return Platform;
+        return Guid.TryParse(user.FindFirst(HRManagement.ServiceDefaults.TenantContext.TenantClaimType)?.Value, out var tenantId)
+            ? Tenant(tenantId)
+            : None;
+    }
+
+    public bool SeesNothing => !AllTenants && TenantId is null;
+}
+
 public interface IGatewayAuditQueryService
 {
-    Task<GatewayAuditSearchResponse> SearchAsync(GatewayAuditSearchRequest request, CancellationToken cancellationToken);
+    /// <summary>The rows <paramref name="scope"/> may see (PLAN-51): a caller with no scope gets none.</summary>
+    Task<GatewayAuditSearchResponse> SearchAsync(GatewayAuditSearchRequest request, GatewayAuditScope scope, CancellationToken cancellationToken);
 }
 
 public sealed class GatewayAuditQueryService(GatewayAuditDbContext db) : IGatewayAuditQueryService
 {
-    public async Task<GatewayAuditSearchResponse> SearchAsync(GatewayAuditSearchRequest request, CancellationToken cancellationToken)
+    public async Task<GatewayAuditSearchResponse> SearchAsync(GatewayAuditSearchRequest request, GatewayAuditScope scope, CancellationToken cancellationToken)
     {
         var pageSize = SearchFilterBase.ClampPageSize(request.PageSize, SearchFilterBase.GatewayAuditMaxPageSize);
         var page = SearchFilterBase.ClampPage(request.Page);
+
+        if (scope.SeesNothing)
+        {
+            return new GatewayAuditSearchResponse
+            {
+                Items = Array.Empty<GatewayAuditRowViewModel>(),
+                TotalCount = 0,
+                Page = page,
+                PageSize = pageSize,
+                Count401 = 0,
+                Count403 = 0,
+                Count502 = 0
+            };
+        }
 
         if (!TryResolveTimeRange(request.TimeRange, out var since, out var rangeError))
         {
@@ -33,6 +75,13 @@ public sealed class GatewayAuditQueryService(GatewayAuditDbContext db) : IGatewa
         }
 
         var query = db.AuditEntries.AsNoTracking().Where(x => x.OccurredAtUtc >= since);
+        // PLAN-51 (P-5): one agency's rows; the rows with no agency only for the platform.
+        if (!scope.AllTenants)
+        {
+            var tenantId = scope.TenantId!.Value;
+            query = query.Where(x => x.TenantId == tenantId);
+        }
+
         if (request.StatusCode is int code)
             query = query.Where(x => x.StatusCode == code);
         if (!string.IsNullOrWhiteSpace(request.CorrelationId))

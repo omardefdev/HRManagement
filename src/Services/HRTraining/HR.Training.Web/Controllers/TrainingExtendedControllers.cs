@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using HR.Training.Domain.Entities;
 using HR.Training.Domain.Enums;
 using HR.Training.Domain.Services;
@@ -21,6 +22,7 @@ public class TrainingPlansController(TrainingDbContext db) : Controller
 
     public IActionResult Create() => View(new TrainingPlan { Year = DateTime.UtcNow.Year });
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(TrainingPlan model)
@@ -47,6 +49,7 @@ public class TrainingPlansController(TrainingDbContext db) : Controller
         return View(p);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, TrainingPlan model)
@@ -64,6 +67,7 @@ public class TrainingPlansController(TrainingDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Approve(Guid id)
@@ -86,6 +90,7 @@ public class QualificationCodesController(TrainingDbContext db) : Controller
 
     public IActionResult Create() => View(new QualificationCode());
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(QualificationCode model)
@@ -111,6 +116,7 @@ public class QualificationCodesController(TrainingDbContext db) : Controller
         return View(q);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, QualificationCode model)
@@ -128,6 +134,7 @@ public class QualificationCodesController(TrainingDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
@@ -175,6 +182,7 @@ public class TrainingProvidersController(TrainingDbContext db) : Controller
 
     public IActionResult Create() => View(new TrainingProvider());
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(TrainingProvider model)
@@ -200,6 +208,7 @@ public class TrainingProvidersController(TrainingDbContext db) : Controller
         return View(p);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, TrainingProvider model)
@@ -216,6 +225,7 @@ public class TrainingProvidersController(TrainingDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
@@ -241,6 +251,7 @@ public class TrainingNominationsController(TrainingDbContext db) : Controller
         return View(new TrainingNomination { NominatedAt = DateTime.UtcNow, Status = ApprovalStatus.Pending });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(TrainingNomination model)
@@ -269,6 +280,7 @@ public class TrainingNominationsController(TrainingDbContext db) : Controller
         return View(n);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Approve(Guid id)
@@ -322,6 +334,7 @@ public class TrainingNominationsController(TrainingDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Reject(Guid id)
@@ -347,6 +360,7 @@ public class MissionFilesController(TrainingDbContext db, IPublishEndpoint publi
         Status = MissionStatus.Proposed
     });
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(MissionFile model)
@@ -374,6 +388,7 @@ public class MissionFilesController(TrainingDbContext db, IPublishEndpoint publi
         return View(m);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, MissionFile model)
@@ -395,6 +410,7 @@ public class MissionFilesController(TrainingDbContext db, IPublishEndpoint publi
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Approve(Guid id)
@@ -419,6 +435,7 @@ public class MissionFilesController(TrainingDbContext db, IPublishEndpoint publi
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkOngoing(Guid id)
@@ -432,6 +449,7 @@ public class MissionFilesController(TrainingDbContext db, IPublishEndpoint publi
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Complete(Guid id)

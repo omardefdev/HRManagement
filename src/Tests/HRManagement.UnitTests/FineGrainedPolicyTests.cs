@@ -131,30 +131,24 @@ public class FineGrainedPolicyTests
     }
 
     [Fact]
-    public async Task HrCoreWrite_ServiceWorkflowScope_Succeeds()
+    public async Task HrCoreWrite_ServiceWorkflowScope_Fails()
     {
+        // PLAN-51 (§5, D-51-4): HrCore.Write lost its service branch; hr-core.workflow reaches three endpoints only.
         var auth = BuildAuthService();
         var user = CreateServiceUser(ServiceClientIds.AdminLogistics, ServiceScopes.HrCoreWorkflow);
         var result = await auth.AuthorizeAsync(user, HrManagementPolicies.HrCoreWrite);
-        Assert.True(result.Succeeded);
-    }
-
-    [Fact]
-    public async Task HrCoreBranchOperation_ManagementApproverRole_Succeeds()
-    {
-        var auth = BuildAuthService();
-        var user = CreateUser(HrManagementRoles.HrManagementApprover);
-        var result = await auth.AuthorizeAsync(user, HrManagementPolicies.HrCoreBranchOperation);
-        Assert.True(result.Succeeded);
-    }
-
-    [Fact]
-    public async Task HrCoreBranchOperation_ServiceWorkflowScope_Fails()
-    {
-        var auth = BuildAuthService();
-        var user = CreateServiceUser(ServiceClientIds.AdminLogistics, ServiceScopes.HrCoreWorkflow);
-        var result = await auth.AuthorizeAsync(user, HrManagementPolicies.HrCoreBranchOperation);
         Assert.False(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task HrCoreBranchOperation_is_gone_and_its_operations_moved_to_the_step_policy()
+    {
+        // PLAN-51: PLAN-50 moved the last users of HrCore.BranchOperation to Workflow.StepAction; the policy is deleted.
+        var auth = BuildAuthService();
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            auth.AuthorizeAsync(CreateUser(HrManagementRoles.HrManagementApprover), "HrCore.BranchOperation"));
+        Assert.True((await auth.AuthorizeAsync(CreateUser(HrManagementRoles.HrManagementApprover), HrManagementPolicies.WorkflowStepAction)).Succeeded);
+        Assert.False((await auth.AuthorizeAsync(CreateServiceUser(ServiceClientIds.AdminLogistics, ServiceScopes.HrCoreWorkflow), HrManagementPolicies.WorkflowStepAction)).Succeeded);
     }
 
     [Fact]

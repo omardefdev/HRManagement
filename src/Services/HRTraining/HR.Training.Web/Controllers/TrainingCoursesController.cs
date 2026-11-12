@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using HR.Training.Domain.Entities;
 using HR.Training.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -21,6 +23,7 @@ public class TrainingCoursesController(TrainingDbContext db) : Controller
         return View(new TrainingCourse { DurationDays = 1 });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(TrainingCourse model)
@@ -56,6 +59,7 @@ public class TrainingCoursesController(TrainingDbContext db) : Controller
         return View(c);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, TrainingCourse model)
@@ -79,6 +83,7 @@ public class TrainingCoursesController(TrainingDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

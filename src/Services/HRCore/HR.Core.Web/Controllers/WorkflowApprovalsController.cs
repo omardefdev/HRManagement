@@ -20,6 +20,8 @@ namespace HR.Core.Web.Controllers;
 /// rules and <c>ExternalApprovalGate</c>. Any other type answers 404. The gateway applies the same two policies.
 /// </summary>
 [Authorize(Policy = HrManagementPolicies.HrCoreWorkInbox)]
+// PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
+[ModulePolicyOverride(HrManagementPolicies.HrCoreWorkInbox)]
 public sealed class WorkflowApprovalsController(
     HRCoreDbContext db,
     IWorkflowInstanceActionService actions,

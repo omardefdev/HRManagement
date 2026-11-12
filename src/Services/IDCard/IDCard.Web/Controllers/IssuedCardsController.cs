@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -63,6 +64,7 @@ public class IssuedCardsController : Controller
         return View(new IssuedCardFormModel());
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(IssuedCardFormModel model)
@@ -139,6 +141,7 @@ public class IssuedCardsController : Controller
         return View(IssuedCardFormModel.From(card));
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, IssuedCardFormModel model)
@@ -187,6 +190,7 @@ public class IssuedCardsController : Controller
         ViewBag.Designs = new SelectList(designs, "Id", "Name", selected);
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkPrinted(Guid id)
@@ -211,6 +215,7 @@ public class IssuedCardsController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkDelivered(Guid id, Guid? deliveredTo, string? signatureOrReceipt, Guid? receiptFileId)
@@ -258,6 +263,7 @@ public class IssuedCardsController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Revoke(Guid id)
@@ -272,6 +278,7 @@ public class IssuedCardsController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UrgentRevoke(Guid id)
@@ -287,6 +294,7 @@ public class IssuedCardsController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkLost(Guid id)
@@ -304,6 +312,7 @@ public class IssuedCardsController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkExpired(Guid id)
@@ -321,6 +330,7 @@ public class IssuedCardsController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Renew(Guid id)

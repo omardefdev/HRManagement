@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using IT.Infrastructure.Domain.Entities;
 using IT.Infrastructure.Domain.Enums;
 using IT.Infra.Infrastructure.Data;
@@ -22,6 +24,7 @@ public class UserDevicesController(ITInfraDbContext db, ICodeGenerationClient co
 
     public IActionResult Create() => View(new UserDevice { Status = DeviceStatus.InUse });
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(UserDevice model)
@@ -50,6 +53,7 @@ public class UserDevicesController(ITInfraDbContext db, ICodeGenerationClient co
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, UserDevice model)

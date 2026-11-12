@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using Dev.Analytics.Domain.Entities;
 using Dev.Analytics.Infrastructure.Data;
 using HRManagement.SharedKernel.ViewModels;
@@ -33,6 +35,7 @@ public class DashboardsController(AnalyticsDbContext db) : Controller
 
     public IActionResult Create() => View(new Dashboard());
 
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(Dashboard model)
@@ -51,6 +54,7 @@ public class DashboardsController(AnalyticsDbContext db) : Controller
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, Dashboard model)
