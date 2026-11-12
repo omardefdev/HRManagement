@@ -15,6 +15,7 @@ Prompt: docs/acceptance-plans/execution/PLAN-51-AGENT-PROMPT.md. Plan: docs/acce
 | P4 | done | 2026-11-12T00:46:32Z |
 | P5 | done | 2026-11-12T01:07:30Z |
 | P6 | done | 2026-11-12T03:10:24Z |
+| P7 | done (no merge: origin/main still 0db7292e) | 2026-11-12T03:10:48Z |
 
 ## Session facts
 
@@ -208,3 +209,19 @@ Decisions:
 | 6 | -NoBuild, lab: Ac05, Ac07, AcEst24, AcHcm21, AcHcm22, AcHcm28, AcHcm31, AcWf23, the lab journey, AcHcm26, AcHcm27 | 02:51 - 03:08:20 | main 27/27, journey 1/1, AcHcm26 5/5, AcHcm27 4/4, `acceptance-job: PASS` |
 
 The stack was brought down with `acceptance-reset.ps1` (volumes deleted) at the end of P6; the committed `acceptance-evidence/` was never touched (the job writes under `artifacts/acceptance/`).
+
+## P8 BLOCKED (2026-11-12T03:20:19Z)
+
+- Before P8: the full Testcontainers step on the host with CI's filter (Release): **216 passed, 1 skipped
+  (`Ops038BootstrapIdempotencyTests`, as in PLAN-49/50), 0 failed** (9 min with the Release build, 4 min 22 s of tests). P9's docs written
+  so far are committed with this checkpoint.
+- **SSH to hrm-vps still times out** (`connect to host ... port 22: Connection timed out`), as at every check since P0 (decision 1); TCP 22 to
+  github.com times out too, while the server answers ping and 443. P8 (backup, server build, deploy, server checks) cannot run from here.
+- Stood still from here: waiting for the owner (cause: outbound SSH blocked on this machine's network).
+
+## Next step
+
+When `ssh -o BatchMode=yes hrm-vps "whoami"` prints `hrm` again: P8 from its step 1 (P-14's condition on the running tag, then the
+backup and its verification, the read-only before-picture of P-13, one detached build of HEAD, `scripts/vps/deploy.ps1 -Tag <sha12>`,
+`AcIam51VpsChecks` and the PLAN-36..50 server suites), then P9 (OPS_VPS_SINGLE_HOST, the plan's status and notes, the final report,
+ci-local and the pre-push check on the final HEAD, the release branch, the PR and its merge).

@@ -135,6 +135,25 @@ Do **not** inject MinIO keys into unrelated services.
 
 Any other service→service HTTP call is denied by default (no client / no scope).
 
+### Where `hr-core.workflow` is accepted (PLAN-51, D-51-4)
+
+| Endpoint (HR.Core, direct) | Policy | Owners |
+|----------------------------|--------|--------|
+| `POST api/workflow-instances`, `POST …/{id}/cancel`, `GET …/{id}/external-status` | `Workflow.ExternalStart` (also its `[ModulePolicyOverride]`) | the owning service of the type (checked per request) |
+| `POST api/internal/codes/generate`, `…/preview` | `Service.CodeGenerate` | the owner of the code kind (`CodeKindOwners`) |
+| `POST api/internal/policies/enforce` | `Service.PolicyEnforce` | the owner of the policy domain (`PolicyDomainOwners`) |
+
+`HrCore.Write` has no service branch any more (hr-admin, hr-core): a service account writes nothing in HR.Core's records. The reads of
+§5 rule 1 keep their service branch (`Module.HrCore`, `HrCore.ReadOnly`, `Workflow.DefinitionRead`). `HrCore.BranchOperation` is gone.
+`Iam051DirectServiceWriteTests` calls every HR.Core endpoint of the wiring inventory as its client and full scope set, and proves that a
+service with `hr-core.workflow` reaches no other HR.Core write. `scripts/iam051-validate.ps1` refuses a policy that starts accepting the scope.
+
+### Evidence ingest (PLAN-51, D-51-5)
+
+`Service.EvidenceIngest` (`POST api/platform/evidence/artifacts` on the gateway) admits a service account with `evidence.ingest` whose
+client is listed in `Evidence:IngestClients`, **empty by default (nobody)**. No client of the repository publishes evidence today; a CI
+publisher is added there by configuration.
+
 ## Rotation
 
 Rotating `ServiceIdentity__ClientSecret` for one service invalidates only that client's tokens.

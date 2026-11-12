@@ -21,8 +21,23 @@ Operational checklist for `HRManagement.Gateway` as the single system entry poin
 
 - Gateway health: `http://localhost:5000/health`
 - Upstream summary API: `http://localhost:5000/Home/UpstreamHealth`
-- Operations page: `http://localhost:5000/Home/Operations`
+- Operations page: `http://localhost:5000/Home/Operations` (PLAN-51: `Gateway.Audit`, see Audit below)
 - Metrics summary (protected): `http://localhost:5000/ops/metrics-summary`
+
+## Self-service (`/ui/ess`, PLAN-51)
+
+- The route `ui-ess` sends `/ui/ess/{**catch-all}` to HR.Core. The gateway matches self-service by the **first segment** after
+  `/ui/{segment}/` or `/api/{segment}/`, exactly (case-insensitive, as MVC routes), never by a substring (`GatewayEssRouting`).
+- `Gateway:Ess:AllowedControllers` (D-51-1): `ess` and `hr-core` = `EssPortal`, `EssTalent`; `payroll` = `Ess`. A named controller gets
+  `Module.Ess`. Adding HR.Training's `EssLearning` (wave 2, IAM-H) is one line: `"hr-training": ["EssLearning"]`.
+- On the `ess` segment the decision is final: a static file (`Gateway:Ess:StaticPrefixes`, GET or HEAD, no `..`) gets
+  `Gateway.Authenticated`; **anything else answers 404 before forwarding**, recorded in the audit as `Denied:EssNotExposed`. Nothing under
+  `/ui/ess` reaches the approval table of PLAN-50 or `Gateway.ApprovalReach`.
+- On `hr-core` and `payroll` a path that names no self-service controller follows the usual rules (`/ui/hr-core/Shifts/Create/Ess` gets
+  `HrCore.Write`).
+- HR.Core's static files (`/ui/hr-core/{css,js,lib,fonts,images,_content}/`, the scoped bundle) get `Gateway.Authenticated`, so the
+  self-service and marking pages keep their styles; the directory (`/api/lookup`) is `HrCore.Lookup`: interactive staff (PLAN-50's
+  definition, `Authorization:NonStaffRoles`) or a service with `hr-core.lookup`.
 
 ## Audit
 
@@ -35,6 +50,11 @@ Operational checklist for `HRManagement.Gateway` as the single system entry poin
   - PostgreSQL table: `gateway_audit_entries`
 - Connection string key: `ConnectionStrings:GatewayAuditDb`
 - Sensitive query values such as `token`, `client_secret`, `password` are redacted before persistence.
+- **Who reads it (PLAN-51, D-IAM-7):** `Home/Operations`, `Home/Audit` and `/ops/audit-search` carry `Gateway.Audit`, roles from
+  `Gateway:Audit:Roles` (default `platform-admin`, `auditor`, `compliance`; not `hr-admin`). The menu links show only to its holders.
+- **Whose rows:** `GatewayAuditQueryService` filters by the caller's `tenant_id` (`GatewayAuditScope`); `platform-admin` sees every agency
+  and the rows with no agency (requests without a token); a caller without a valid `tenant_id` sees nothing. The filter is in the query
+  service, never in a view (proved on SQLite and PostgreSQL: `Iam051GatewayAuditScopeTests`, `Iam051GatewayAuditPostgreSqlTests`).
 
 ## Incident Triage
 
