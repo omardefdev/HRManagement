@@ -32,6 +32,7 @@ public class ExportJobsController(IComplianceExportJobService exportJobs) : Cont
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ModuleCompliance)]
     [HttpPost("{id:guid}/cancel")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)

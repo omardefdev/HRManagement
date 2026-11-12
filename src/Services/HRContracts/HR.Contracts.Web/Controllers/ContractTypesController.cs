@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using HR.Contracts.Domain.Entities;
@@ -7,6 +9,8 @@ using HRManagement.SharedKernel.ViewModels;
 
 namespace HR.Contracts.Web.Controllers;
 
+// PLAN-51 (§4, P-6): reads name the module policy (the management approver reads HR.Contracts); every write names HrContracts.Write or HrContracts.Approve.
+[Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
 public class ContractTypesController : Controller
 {
     private readonly ContractsDbContext _db;
@@ -29,6 +33,7 @@ public class ContractTypesController : Controller
 
     public IActionResult Create() => View(new ContractTypeCreateViewModel());
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ContractTypeCreateViewModel vm)
@@ -68,6 +73,7 @@ public class ContractTypesController : Controller
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, ContractTypeEditViewModel vm)
@@ -93,6 +99,7 @@ public class ContractTypesController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

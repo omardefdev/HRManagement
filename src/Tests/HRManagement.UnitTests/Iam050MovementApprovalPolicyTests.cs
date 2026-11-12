@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Abstractions;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -229,8 +230,21 @@ public class Iam050MovementApprovalPolicyTests
         var found = 0;
         foreach (var type in assemblies.SelectMany(a => a.GetTypes()).Where(t => typeof(ControllerBase).IsAssignableFrom(t) && !t.IsAbstract))
         {
-            Assert.True(type.GetCustomAttribute<ModulePolicyOverrideAttribute>() is null,
-                $"{type.Name} carries the override on the controller, which would reach its write actions");
+            // PLAN-51 (P-6) puts the override on the controllers the module filter's name list used to exempt, naming the class policy
+            // they already carry. The movement controllers still never carry one; elsewhere a class override reaches no write by itself:
+            // each write under it names its own policy (ModuleOverridesAreDeclaredTests checks every assembly).
+            var classOverride = type.GetCustomAttribute<ModulePolicyOverrideAttribute>();
+            if (classOverride is not null)
+            {
+                Assert.True(type.Assembly.GetName().Name != "HR.Movements.Web",
+                    $"{type.Name} carries the override on the controller, which would reach its write actions");
+                foreach (var (_, write) in Actions(type).Where(a => a.Method.GetCustomAttributes().OfType<IActionHttpMethodProvider>()
+                             .SelectMany(p => p.HttpMethods).Any(m => m is "POST" or "PUT" or "PATCH" or "DELETE")))
+                    Assert.True(type.GetCustomAttributes<AuthorizeAttribute>().Concat(write.GetCustomAttributes<AuthorizeAttribute>())
+                            .Any(a => !string.IsNullOrWhiteSpace(a.Policy)),
+                        $"{type.Name}.{write.Name} is a write under the controller's override and names no policy of its own");
+            }
+
             foreach (var (_, method) in Actions(type).Where(a => a.Method.GetCustomAttribute<ModulePolicyOverrideAttribute>() is not null))
             {
                 Assert.True(allowed.Contains(method.Name), $"{type.Name}.{method.Name} carries the override but is not a list, details, approve or reject action");

@@ -12,7 +12,8 @@ namespace HRManagement.Gateway.Controllers;
 /// <summary>OBS-003 platform audit: ingest, legal hold, chain verify (platform-admin).</summary>
 [ApiController]
 [Route("api/platform/audit")]
-[Authorize(Roles = HrManagementRoles.PlatformAdmin)]
+// PLAN-51 (decision 4): platform-admin, named.
+[Authorize(Policy = HrManagementPolicies.PlatformOperator)]
 public sealed class AuditSecurityController(
     ISecurityAuditPublisher publisher,
     IAuditChainVerifier chainVerifier,

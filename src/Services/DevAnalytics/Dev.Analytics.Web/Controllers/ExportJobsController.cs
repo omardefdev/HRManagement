@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults;
 using System.Security.Claims;
 using Dev.Analytics.Infrastructure.ExportJobs;
 using HRManagement.SharedKernel.Exports;
@@ -10,6 +11,7 @@ namespace Dev.Analytics.Web.Controllers;
 [Route("export-jobs")]
 public class ExportJobsController(IAnalyticsExportJobService exportJobs) : Controller
 {
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsWrite)]
     [HttpPost("workforce")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> EnqueueWorkforce([FromForm] Guid? orgUnitId, CancellationToken ct)
@@ -56,6 +58,7 @@ public class ExportJobsController(IAnalyticsExportJobService exportJobs) : Contr
         return File(stream, contentType ?? "application/octet-stream", fileName ?? "export.bin");
     }
 
+    [Authorize(Policy = HrManagementPolicies.ModuleDevAnalytics)]
     [HttpPost("{id:guid}/cancel")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)

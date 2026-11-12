@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using HR.Health.Domain.Entities;
 using HR.Health.Domain.Enums;
 using HR.Health.Domain.Services;
@@ -34,6 +35,7 @@ public class MedicalCommitteeReportsController : Controller
         return View(new MedicalCommitteeReport { CommitteeDate = DateOnly.FromDateTime(DateTime.UtcNow) });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(MedicalCommitteeReport model, bool emergencyOverride = false)
@@ -116,6 +118,7 @@ public class MedicalCommitteeReportsController : Controller
         return View(report);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, MedicalCommitteeReport model)
@@ -147,6 +150,7 @@ public class InsuranceContractsController(HealthDbContext db) : Controller
 
     public IActionResult Create() => View(new InsuranceContract { StartDate = DateOnly.FromDateTime(DateTime.UtcNow) });
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(InsuranceContract model)
@@ -172,6 +176,7 @@ public class InsuranceContractsController(HealthDbContext db) : Controller
         return View(contract);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, InsuranceContract model)
@@ -191,6 +196,7 @@ public class InsuranceContractsController(HealthDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
@@ -211,6 +217,7 @@ public class HealthRetirementRecordsController(HealthDbContext db) : Controller
 
     public IActionResult Create() => View(new HealthRetirementRecord { EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow) });
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(HealthRetirementRecord model)
@@ -236,6 +243,7 @@ public class HealthRetirementRecordsController(HealthDbContext db) : Controller
         return View(record);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, HealthRetirementRecord model)
@@ -263,6 +271,7 @@ public class HealthStatusEntriesController(HealthDbContext db) : Controller
 
     public IActionResult Create() => View(new HealthStatusEntry { EntryDate = DateTime.UtcNow });
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(HealthStatusEntry model)
@@ -288,6 +297,7 @@ public class HealthStatusEntriesController(HealthDbContext db) : Controller
         return View(entry);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, HealthStatusEntry model)

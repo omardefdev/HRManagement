@@ -20,7 +20,7 @@ builder.AddHrLocalization();
 
 builder.Services.AddHrQuestPdfDocuments();
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleAdminLogistics);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleAdminLogistics, HrManagementPolicies.AdminLogisticsWrite);
 builder.Services.AddHrOpenApi("Admin.Logistics API");
 
 builder.Services.AddHttpContextAccessor();

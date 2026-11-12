@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using HR.Health.Domain.Entities;
 using HR.Health.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -13,6 +15,7 @@ public class PeriodicMedicalChecksController(HealthDbContext db) : Controller
 
     public IActionResult Create() => View(new PeriodicMedicalCheck { CheckDate = DateOnly.FromDateTime(DateTime.UtcNow) });
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(PeriodicMedicalCheck model)
@@ -38,6 +41,7 @@ public class PeriodicMedicalChecksController(HealthDbContext db) : Controller
         return View(check);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, PeriodicMedicalCheck model)
@@ -58,6 +62,7 @@ public class PeriodicMedicalChecksController(HealthDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

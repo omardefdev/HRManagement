@@ -13,6 +13,8 @@ namespace HR.Core.Web.Controllers;
 /// exam candidate ids. Reachable through the gateway rule <c>/ui/hr-core/ExamMarking</c> and the module-filter entry.
 /// </summary>
 [Authorize(Policy = HrManagementPolicies.HrCoreExamMarking)]
+// PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
+[ModulePolicyOverride(HrManagementPolicies.HrCoreExamMarking)]
 public sealed class ExamMarkingController(ExamMarkingService marking, IAuthorizationService authorization) : Controller
 {
     public const string HrReadAccessWarning = ExamSeatingService.HrReadAccessWarning;

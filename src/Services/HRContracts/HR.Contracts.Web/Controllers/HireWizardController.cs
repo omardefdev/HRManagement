@@ -16,6 +16,8 @@ using HRManagement.ServiceDefaults.Integration;
 namespace HR.Contracts.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrContractsHireView)]
+// PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
+[ModulePolicyOverride(HrManagementPolicies.HrContractsHireView)]
 public class HireWizardController : Controller
 {
     private readonly IContractsRepository _repo;

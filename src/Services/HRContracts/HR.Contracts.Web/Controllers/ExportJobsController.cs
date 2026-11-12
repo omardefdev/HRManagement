@@ -7,7 +7,8 @@ using HR.Contracts.Infrastructure.ExportJobs;
 
 namespace HR.Contracts.Web.Controllers;
 
-[Authorize]
+// PLAN-51 (§4, P-6): the module policy, named.
+[Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
 [Route("export-jobs")]
 public class ExportJobsController(IContractsExportJobService exportJobs) : Controller
 {
@@ -32,6 +33,7 @@ public class ExportJobsController(IContractsExportJobService exportJobs) : Contr
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
     [HttpPost("{id:guid}/cancel")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)

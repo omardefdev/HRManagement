@@ -102,6 +102,31 @@ public class AuditDurabilityTests : IDisposable
     }
 
     [Fact]
+    public async Task A_persisted_row_keeps_its_agency_and_its_denial_fields()
+    {
+        // PLAN-51 (§3): the clone written to the database dropped TenantId and the AC-03 fields, so no row had an agency.
+        var dbName = Guid.NewGuid().ToString("N");
+        await using var root = CreateDbProvider(dbName);
+        var queue = CreateQueue(root);
+        var tenant = Guid.NewGuid();
+        var scope = Guid.NewGuid();
+        var entry = Sample("/ui/ess/Shifts/Create", 404);
+        entry.TenantId = tenant;
+        entry.ScopeOrgUnitId = scope;
+        entry.Reason = "org-scope-denied";
+        entry.ResourceType = "Employee";
+        entry.ResourceId = "e-1";
+
+        await queue.PersistWithRetryAsync([entry], CancellationToken.None);
+
+        using var read = root.CreateScope();
+        var row = await read.ServiceProvider.GetRequiredService<GatewayAuditDbContext>().AuditEntries.SingleAsync();
+        Assert.Equal(tenant, row.TenantId);
+        Assert.Equal(scope, row.ScopeOrgUnitId);
+        Assert.Equal(("org-scope-denied", "Employee", "e-1"), (row.Reason, row.ResourceType, row.ResourceId));
+    }
+
+    [Fact]
     public async Task DbFailure_RetriesThenWritesDlq()
     {
         var services = new ServiceCollection();

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using HR.Core.Domain.Entities;
@@ -61,6 +62,7 @@ public class EmployeeProfilesController : Controller
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Save(EmployeeProfileEditViewModel vm)

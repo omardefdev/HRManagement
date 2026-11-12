@@ -106,7 +106,10 @@ public class Sec001PortScanTests
         Assert.DoesNotMatch(
             @"\[HttpPost\(""security-events""\)\]\s*\r?\n\s*\[AllowAnonymous\]",
             src);
-        Assert.Contains("[Authorize(Roles = HrManagementRoles.PlatformAdmin)]", src);
+        // PLAN-51 (decision 4): the same role (platform-admin), named as a policy.
+        Assert.Contains("[Authorize(Policy = HrManagementPolicies.PlatformOperator)]", src);
+        Assert.Contains("options.RolesPolicy(HrManagementPolicies.PlatformOperator, HrManagementRoles.PlatformAdmin);",
+            Read("src/Shared/HRManagement.ServiceDefaults/HrManagementAuthorizationExtensions.cs"));
     }
 
     [Fact]

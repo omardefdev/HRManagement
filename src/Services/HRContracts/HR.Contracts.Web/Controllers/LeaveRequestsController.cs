@@ -15,6 +15,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Contracts.Web.Controllers;
 
+// PLAN-51 (§4, P-6): reads name the module policy (the management approver reads HR.Contracts); every write names HrContracts.Write or HrContracts.Approve.
+[Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
 public class LeaveRequestsController : Controller
 {
     private readonly IMediator _mediator;
@@ -79,6 +81,7 @@ public class LeaveRequestsController : Controller
 
     public IActionResult Create() => View(new LeaveRequestViewModel());
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(LeaveRequestViewModel vm)
@@ -118,6 +121,7 @@ public class LeaveRequestsController : Controller
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, LeaveRequestViewModel vm)
@@ -159,6 +163,7 @@ public class LeaveRequestsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
@@ -192,6 +197,7 @@ public class LeaveRequestsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Reject(Guid id)
@@ -223,6 +229,7 @@ public class LeaveRequestsController : Controller
         return Ok(new { success = true, message = "تم اعتماد طلب الإجازة" });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsApprove)]
     [HttpPost]
     public async Task<IActionResult> RejectAjax([FromBody] AjaxIdRequest req)
     {

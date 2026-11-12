@@ -438,7 +438,7 @@ public sealed class Wf043ExternalStartTests
         Assert.True(auth.AuthorizeAsync(service, HrManagementPolicies.WorkflowExternalStart).Result.Succeeded);
         Assert.True(auth.AuthorizeAsync(user, HrManagementPolicies.WorkflowStepAction).Result.Succeeded);
         Assert.False(auth.AuthorizeAsync(service, HrManagementPolicies.WorkflowStepAction).Result.Succeeded);
-        Assert.False(auth.AuthorizeAsync(service, HrManagementPolicies.HrCoreBranchOperation).Result.Succeeded);
+        Assert.False(auth.AuthorizeAsync(service, HrManagementPolicies.HrCoreDecision).Result.Succeeded);
     }
 
     [Fact]

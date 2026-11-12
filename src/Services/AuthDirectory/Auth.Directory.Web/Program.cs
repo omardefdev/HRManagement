@@ -17,7 +17,7 @@ builder.AddHrOpenTelemetry();
 builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleAuthDirectory);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleAuthDirectory, HrManagementPolicies.AuthDirectoryWrite);
 builder.Services.AddHrOpenApi("Auth.Directory API");
 
 builder.Services.AddHttpContextAccessor();

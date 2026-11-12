@@ -12,6 +12,11 @@ public sealed class ProductionConfigurationGuardOptions
     /// <summary>Deployment mode; <c>demo</c> is the single-host demo profile (D-36-1).</summary>
     public const string DeploymentModeKey = "Deployment:Mode";
 
+    /// <summary>The single-host demo profile (<c>Deployment:Mode=demo</c>): the configuration guard's checks and PLAN-51's D-IAM-4 rule (no
+    /// <c>hr-admin</c> exclusion on the demo) read this one test.</summary>
+    public static bool IsDemoMode(Microsoft.Extensions.Configuration.IConfiguration configuration) =>
+        string.Equals(configuration[DeploymentModeKey], "demo", StringComparison.OrdinalIgnoreCase);
+
     /// <summary>PLAN-38 (D-38-2): broker posture of the deployment, <c>least-privilege</c> or <c>admin</c>.</summary>
     public const string MqPostureKey = "Deployment:MqPosture";
 

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +25,7 @@ public class DocumentClassificationsController(ArchiveDbContext db) : Controller
 
     public IActionResult Create() => View(new DocumentClassification());
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(DocumentClassification model)
@@ -42,6 +44,7 @@ public class DocumentClassificationsController(ArchiveDbContext db) : Controller
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, DocumentClassification model)
@@ -78,6 +81,7 @@ public class LoanRecordsController(ArchiveDbContext db) : Controller
         return View(new LoanRecord { LoanDate = DateTime.UtcNow, DueDate = DateTime.UtcNow.AddDays(14), Status = LoanStatus.OnLoan });
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(LoanRecord model)
@@ -101,6 +105,7 @@ public class LoanRecordsController(ArchiveDbContext db) : Controller
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, LoanRecord model)
@@ -124,6 +129,7 @@ public class LoanRecordsController(ArchiveDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> OverdueLoanCheck()
@@ -157,6 +163,7 @@ public class PhysicalFileRecordsController(ArchiveDbContext db) : Controller
         return View(new PhysicalFileRecord());
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(PhysicalFileRecord model)
@@ -180,6 +187,7 @@ public class PhysicalFileRecordsController(ArchiveDbContext db) : Controller
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, PhysicalFileRecord model)
@@ -220,6 +228,7 @@ public class DigitalFileRecordsController(ArchiveDbContext db, IFileReferenceCli
         return View(new DigitalFileRecord());
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(DigitalFileRecord model)
@@ -260,6 +269,7 @@ public class DigitalFileRecordsController(ArchiveDbContext db, IFileReferenceCli
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, DigitalFileRecord model)
@@ -290,6 +300,7 @@ public class DigitalFileRecordsController(ArchiveDbContext db, IFileReferenceCli
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
@@ -328,6 +339,7 @@ public class ArchiveIndexEntriesController(ArchiveDbContext db) : Controller
         return View(new ArchiveIndexEntry());
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ArchiveIndexEntry model)
@@ -351,6 +363,7 @@ public class ArchiveIndexEntriesController(ArchiveDbContext db) : Controller
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, ArchiveIndexEntry model)

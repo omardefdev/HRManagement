@@ -91,6 +91,8 @@ public sealed class FilesApiController(
         string? LastError,
         string Status);
 
+    // PLAN-51 (review M1): the write names its own policy (the module's roles, unchanged).
+    [Authorize(Policy = HrManagementPolicies.FileStorageWrite)]
     [HttpPost]
     [RequestSizeLimit(26_214_400)]
     public async Task<ActionResult<FileUploadResponseDto>> Upload(
@@ -288,6 +290,7 @@ public sealed class FilesApiController(
         return Ok(new ReferenceCountDto(count));
     }
 
+    [Authorize(Policy = HrManagementPolicies.FileStorageWrite)]
     [HttpDelete("{fileId:guid}")]
     public async Task<IActionResult> Delete(Guid fileId, CancellationToken cancellationToken)
     {

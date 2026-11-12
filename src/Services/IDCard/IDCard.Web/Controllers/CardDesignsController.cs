@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using IDCard.Domain.Entities;
@@ -26,6 +28,7 @@ public class CardDesignsController : Controller
 
     public IActionResult Create() => View(new CardDesign { ValidityDays = 365 });
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CardDesign model)
@@ -44,6 +47,7 @@ public class CardDesignsController : Controller
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, CardDesign model)
@@ -60,6 +64,7 @@ public class CardDesignsController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

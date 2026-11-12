@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- PLAN-51 (§6, P-8): one architecture project over the fifteen web assemblies (fourteen services and the gateway). It loads
+       them all by reflection, so a test here never skips an assembly it cannot see. No coverage collector: these tests read
+       metadata and the repository, so they add nothing to the coverage gate. -->
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\HRManagement.TestSupport\HRManagement.TestSupport.csproj" />
+    <ProjectReference Include="..\..\Shared\HRManagement.ServiceDefaults\HRManagement.ServiceDefaults.csproj" />
+    <ProjectReference Include="..\..\Gateway\HRManagement.Gateway\HRManagement.Gateway.csproj" />
+    <ProjectReference Include="..\..\Services\AdminLogistics\Admin.Logistics.Web\Admin.Logistics.Web.csproj" />
+    <ProjectReference Include="..\..\Services\AuthDirectory\Auth.Directory.Web\Auth.Directory.Web.csproj" />
+    <ProjectReference Include="..\..\Services\Compliance\Compliance.Web\Compliance.Web.csproj" />
+    <ProjectReference Include="..\..\Services\DevAnalytics\Dev.Analytics.Web\Dev.Analytics.Web.csproj" />
+    <ProjectReference Include="..\..\Services\FileStorage\File.Storage.Web\File.Storage.Web.csproj" />
+    <ProjectReference Include="..\..\Services\HRContracts\HR.Contracts.Web\HR.Contracts.Web.csproj" />
+    <ProjectReference Include="..\..\Services\HRCore\HR.Core.Web\HR.Core.Web.csproj" />
+    <ProjectReference Include="..\..\Services\HRHealth\HR.Health.Web\HR.Health.Web.csproj" />
+    <ProjectReference Include="..\..\Services\HRMovements\HR.Movements.Web\HR.Movements.Web.csproj" />
+    <ProjectReference Include="..\..\Services\HRTraining\HR.Training.Web\HR.Training.Web.csproj" />
+    <ProjectReference Include="..\..\Services\IDCard\IDCard.Web\IDCard.Web.csproj" />
+    <ProjectReference Include="..\..\Services\ITInfrastructure\IT.Infra.Web\IT.Infra.Web.csproj" />
+    <ProjectReference Include="..\..\Services\Payroll\Payroll.Web\Payroll.Web.csproj" />
+    <ProjectReference Include="..\..\Services\RecordsArchive\Records.Archive.Web\Records.Archive.Web.csproj" />
+  </ItemGroup>
+
+</Project>

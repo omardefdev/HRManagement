@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -16,6 +18,8 @@ namespace HR.Contracts.Web.Controllers;
 /// <c>HR.Core.Web.Controllers.SignaturesController</c> with
 /// <c>ISignatureService</c> and <c>SignatureRecord</c>.
 /// </summary>
+// PLAN-51 (§4, P-6): reads name the module policy (the management approver reads HR.Contracts); every write names HrContracts.Write or HrContracts.Approve.
+[Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
 public class ContractSignaturesController : Controller
 {
     private readonly ContractsDbContext _db;
@@ -41,6 +45,7 @@ public class ContractSignaturesController : Controller
     /// invoke <c>ISignatureService.SignAsync</c> with the canonical payload hash
     /// of the contract and persist the result in the SignatureRecords table.
     /// </remarks>
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ContractSignatureCreateViewModel vm)
@@ -70,6 +75,7 @@ public class ContractSignaturesController : Controller
         return RedirectToAction("Details", "Contracts", new { id = vm.ContractId });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

@@ -32,6 +32,7 @@ public class ProcessInterventionsController(MovementsDbContext db, IPublishEndpo
         return Ok(items);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     [HttpPost("{id:guid}/resume")]
     public async Task<IActionResult> Resume(Guid id, CancellationToken ct)
     {
@@ -67,6 +68,7 @@ public class ProcessInterventionsController(MovementsDbContext db, IPublishEndpo
         return Ok(new { resumed = true });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     [HttpPost("{id:guid}/cancel")]
     public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelInterventionRequest? body, CancellationToken ct)
     {

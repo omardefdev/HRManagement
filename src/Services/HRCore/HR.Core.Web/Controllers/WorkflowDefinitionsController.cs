@@ -21,6 +21,8 @@ namespace HR.Core.Web.Controllers;
 [Route("api/workflow-definitions")]
 [ApiController]
 [Authorize(Policy = HrManagementPolicies.WorkflowDefinitionRead)]
+// PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
+[ModulePolicyOverride(HrManagementPolicies.WorkflowDefinitionRead)]
 public class WorkflowDefinitionsController(
     HRCoreDbContext context,
     WorkflowDefinitionLifecycleService lifecycle,

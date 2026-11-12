@@ -1,5 +1,11 @@
 @using HRManagement.ServiceDefaults.NoFork
 @inject IAgencyBrandingAccessor AgencyBranding
+@inject Microsoft.AspNetCore.Authorization.IAuthorizationService AuthorizationService
+@{
+    // PLAN-51 (§3): the operations and audit links show only to the owners of the gateway's audit (Gateway.Audit).
+    var canReadAudit = User.Identity?.IsAuthenticated == true
+        && (await AuthorizationService.AuthorizeAsync(User, HRManagement.ServiceDefaults.HrManagementPolicies.GatewayAudit)).Succeeded;
+}
 <!DOCTYPE html>
 <html dir="rtl" lang="ar">
 <head>
@@ -28,12 +34,15 @@
                     <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Index" ? "active" : "")" asp-controller="Home" asp-action="Index">
                         <i class="fas fa-home ms-1" aria-hidden="true"></i> الرئيسية
                     </a>
+                    @if (canReadAudit)
+                    {
                     <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Operations" ? "active" : "")" asp-controller="Home" asp-action="Operations">
                         <i class="fas fa-cogs ms-1" aria-hidden="true"></i> العمليات
                     </a>
                     <a class="nav-link @(ViewContext.RouteData.Values["action"]?.ToString() == "Audit" ? "active" : "")" asp-controller="Home" asp-action="Audit">
                         <i class="fas fa-clipboard-list ms-1" aria-hidden="true"></i> سجل التدقيق
                     </a>
+                    }
                     <a class="nav-link @((ViewContext.RouteData.Values["action"]?.ToString() == "Journeys" || ViewContext.RouteData.Values["action"]?.ToString() == "JourneyDetails") ? "active" : "")" asp-controller="Home" asp-action="Journeys">
                         <i class="fas fa-route ms-1" aria-hidden="true"></i> المسارات التشغيلية
                     </a>

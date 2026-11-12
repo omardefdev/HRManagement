@@ -51,3 +51,23 @@ public sealed class GatewayApprovalReachHandler(IServiceProvider services) : Aut
         return Task.CompletedTask;
     }
 }
+
+/// <summary>PLAN-51 (D-51-3): an interactive staff user (<see cref="GatewayApprovalReachHandler.IsInteractiveStaff"/>, the one definition), or a
+/// service account holding <see cref="Scope"/>.</summary>
+public sealed class InteractiveStaffOrServiceScopeRequirement(string scope) : IAuthorizationRequirement
+{
+    public string Scope { get; } = scope;
+}
+
+public sealed class InteractiveStaffOrServiceScopeHandler(IServiceProvider services) : AuthorizationHandler<InteractiveStaffOrServiceScopeRequirement>
+{
+    protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, InteractiveStaffOrServiceScopeRequirement requirement)
+    {
+        if (ServiceCallerPrincipal.IsServiceAccount(context.User)
+                ? ServiceCallerPrincipal.HasScope(context.User, requirement.Scope)
+                : GatewayApprovalReachHandler.IsInteractiveStaff(
+                    context.User, GatewayApprovalReachHandler.NonStaffRoles(services.GetService<IConfiguration>())))
+            context.Succeed(requirement);
+        return Task.CompletedTask;
+    }
+}

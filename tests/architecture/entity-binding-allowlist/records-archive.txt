@@ -1,0 +1,14 @@
+# PLAN-51 (§6, P-8): the actions of records-archive that bind a persistence entity. A list that only shrinks
+# (MassAssignmentArchitectureTests); each row is signed by the plan that owns it. Key | reason.
+ArchiveIndexEntries.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+ArchiveIndexEntries.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+ArchiveItems.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+ArchiveItems.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+DigitalFileRecords.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+DigitalFileRecords.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+DocumentClassifications.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+DocumentClassifications.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+LoanRecords.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+LoanRecords.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+PhysicalFileRecords.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+PhysicalFileRecords.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies

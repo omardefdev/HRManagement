@@ -36,7 +36,8 @@ public sealed class GatewayAuditMiddleware(RequestDelegate next)
         var correlationId = context.Items[CorrelationIdMiddleware.ItemKey]?.ToString()
             ?? context.TraceIdentifier;
         var statusCode = context.Response.StatusCode;
-        var decision = statusCode switch
+        // PLAN-51 (§1): a decision the path authorization names itself (Denied:EssNotExposed) is recorded as such.
+        var decision = context.Items[GatewayEssOptions.AuditDecisionItemKey] as string ?? statusCode switch
         {
             401 => "challenge",
             403 => "forbidden",

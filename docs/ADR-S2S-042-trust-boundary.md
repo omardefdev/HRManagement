@@ -41,7 +41,7 @@ Accepted risk: instances do not share the nonce cache, so a proof can be replaye
 - The server derives mode, actor (`X-Acting-User`) and tenant (`X-Tenant-ID`). A `TenantId` in the body that differs is a 400.
 - A workflow starts only for a triple of `PolicyWorkflowTriggerAllowlist`: today (`Assets.Custody`, `AssetAssignment`, `ASSET-ASSIGN-APPROVAL`).
 - `CodeKindOwners` maps each official number kind to one client (D-S2S-3); every other kind is issued inside HR.Core only. The tenant comes from the request, never the body.
-- `S2s042InternalRoutesAreServiceOnlyTests` walks every web assembly: every `api/internal/*` action carries a `ServicePolicies` policy.
+- `S2s042InternalRoutesAreServiceOnlyTests` walks every web assembly: every `api/internal/*` action carries a `ServicePolicies` policy. PLAN-51 moved it to `HRManagement.ArchitectureTests` as `InternalRoutesAreServiceOnlyTests`.
 
 ### Legal hold
 

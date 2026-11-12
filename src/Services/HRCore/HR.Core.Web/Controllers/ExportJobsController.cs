@@ -32,6 +32,7 @@ public class ExportJobsController(IHRCoreExportJobService exportJobs) : Controll
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
     [HttpPost("{id:guid}/cancel")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)

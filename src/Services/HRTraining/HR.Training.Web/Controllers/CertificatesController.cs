@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults;
 using HR.Training.Domain.Services;
 using HR.Training.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
@@ -23,6 +24,7 @@ public class CertificatesController(TrainingDbContext db) : ControllerBase
         Guid? EmployeeId,
         string? Source);
 
+    [Authorize(Policy = HrManagementPolicies.ModuleHrTraining)]
     [HttpPost("verify")]
     public async Task<ActionResult<VerifyResponse>> Verify([FromBody] VerifyRequest request, CancellationToken ct)
     {

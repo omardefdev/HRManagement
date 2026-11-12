@@ -14,7 +14,7 @@ public sealed class AnalyticsTestHooksController(
     IWebHostEnvironment env) : ControllerBase
 {
     [HttpPost("inject-drift/{readModelId:guid}")]
-    [Authorize(Policy = HrManagementPolicies.ModuleDevAnalytics)]
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsWrite)]
     public async Task<IActionResult> InjectDrift(Guid readModelId, CancellationToken ct = default)
     {
         if (!env.IsDevelopment())

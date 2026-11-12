@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using IDCard.Domain.Entities;
 using IDCard.Domain.Enums;
 using IDCard.Domain.Services;
@@ -52,6 +54,7 @@ public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient pol
         Purpose = CardRequestPurpose.New
     });
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CardRequest model)
@@ -101,6 +104,7 @@ public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient pol
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, CardRequest model)
@@ -125,6 +129,7 @@ public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient pol
     }
 
     /// <summary>PLAN-46: the draft goes to the card office; the requester and the submitter cannot approve it.</summary>
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Submit(Guid id)
@@ -143,6 +148,7 @@ public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient pol
     }
 
     /// <summary>PLAN-46: the instance is withdrawn first; one that had ended keeps its outcome.</summary>
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Withdraw(Guid id, string? reason)
@@ -158,6 +164,7 @@ public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient pol
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(Guid id, string? reason)
@@ -187,6 +194,7 @@ public class CardRequestsController(IDCardDbContext db, IPolicyEnforceClient pol
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Policy = HrManagementPolicies.IdCardWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ProcessRequest(Guid id, Guid? cardDesignId)

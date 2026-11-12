@@ -13,6 +13,24 @@
 dotnet test src/Tests/HRManagement.UnitTests/HRManagement.UnitTests.csproj
 ```
 
+## الاختبارات المعمارية (PLAN-51)
+
+```powershell
+dotnet test src/Tests/HRManagement.ArchitectureTests/HRManagement.ArchitectureTests.csproj
+```
+
+- مشروع واحد يحمّل تجميعات Web الخمس عشرة (أربع عشرة خدمة والبوابة) ومتحكمات ServiceDefaults المشتركة (`WebAssemblyCatalog`)؛
+  تجميعة لا تُحمَّل تُفشل الاختبار ولا تُتخطى (`AllWebAssembliesLoadTests`). خطوة «Architecture tests» في `scripts/ci/steps.json` بعد
+  اختبارات الوحدة، في CI و`ci-local.ps1`، بلا جامع تغطية.
+- الاختبارات: `WriteActionsHaveExplicitPolicyTests` (كل كتابة تسمّي سياستها)، `SensitiveActionsHaveApprovalPolicyTests` (الأسماء الكاملة
+  وبادئات الخطة وقائمتها المسماة)، `InternalRoutesAreServiceOnlyTests` (منقول من `S2s042…`)، `ModuleOverridesAreDeclaredTests`
+  (`[ModulePolicyOverride]` لا يجيز كتابة وحده)، `MassAssignmentArchitectureTests` (منقول، يمسح الخمس عشرة)، و`GuardSelfTests`
+  (عيب مزروع لكل حارس).
+- قوائم السقف تحت `tests/architecture/`: صف لكل سطر `Key | reason`، والسبب يبدأ بالخطة المالكة (`PLAN-53:` أو `IAM-F:`)، والسقف
+  مثبّت في الاختبار ولا يرتفع؛ صف لم يعد مخالفاً يُفشل الاختبار حتى يُحذف. بعد PLAN-51: `write-policy-allowlist/payroll.txt` (16، PLAN-53)
+  و`entity-binding-allowlist/*.txt` خارج HR.Movements (113، IAM-F) فقط؛ PLAN-65 يراجعها.
+- أول تشغيل بعد البناء يستغرق نحو دقيقتين ونصف على جهاز المالك (بدء المضيف على التجميعات المبنية حديثاً)، ثم نحو ثانية ونصف.
+
 ## اختبارات التكامل (MassTransit InMemory + SQLite)
 
 ```powershell

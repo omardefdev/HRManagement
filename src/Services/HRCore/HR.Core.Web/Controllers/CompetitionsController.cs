@@ -410,7 +410,7 @@ public sealed class CompetitionsController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    [Authorize(Policy = HrManagementPolicies.HrCoreDecision)]
     public async Task<IActionResult> PublishResults(Guid id, Guid versionId, CancellationToken ct) =>
         Result(await results.PublishAsync(versionId, ParseUserId(User), ct), id, "نُشرت النتائج.");
 

@@ -1,0 +1,13 @@
+# PLAN-51 (§6, P-8): the actions of compliance that bind a persistence entity. A list that only shrinks
+# (MassAssignmentArchitectureTests); each row is signed by the plan that owns it. Key | reason.
+AuditFindings.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+AuditFindings.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+Complaints.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+ComplianceRecommendations.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+ComplianceRecommendations.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+DisciplinaryActions.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+DisciplinaryActions.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+LegalCases.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+LegalCases.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+LegalReferrals.Create | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies
+LegalReferrals.Edit | IAM-F: view models outside HR.Movements are wave 2 (G-IAM-10); the scan found it when PLAN-51 extended it to all fifteen assemblies

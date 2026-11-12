@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -46,6 +48,7 @@ public class ArchiveItemsController(ArchiveDbContext db) : Controller
         return View(new ArchiveItem());
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ArchiveItem model)
@@ -99,6 +102,7 @@ public class ArchiveItemsController(ArchiveDbContext db) : Controller
         return View(item);
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, ArchiveItem model)
@@ -123,6 +127,7 @@ public class ArchiveItemsController(ArchiveDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> StartLoan(Guid id, string borrower, DateTime loanDate, DateTime dueDate)
@@ -148,6 +153,7 @@ public class ArchiveItemsController(ArchiveDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ReturnLoan(Guid loanId, Guid archiveItemId)
@@ -160,6 +166,7 @@ public class ArchiveItemsController(ArchiveDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id = archiveItemId });
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> PlaceLegalHold(Guid id, string? reason)
@@ -183,6 +190,7 @@ public class ArchiveItemsController(ArchiveDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ReleaseLegalHold(Guid id)
@@ -206,6 +214,7 @@ public class ArchiveItemsController(ArchiveDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RequestDisposal(Guid id, string? method)
@@ -245,6 +254,7 @@ public class ArchiveItemsController(ArchiveDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ApproveDisposal(Guid id, DateTime? disposalDate, string? method, Guid? approvalEvidenceFileId)
@@ -293,6 +303,7 @@ public class ArchiveItemsController(ArchiveDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CancelDisposalRequest(Guid id, string? reason)
@@ -312,11 +323,13 @@ public class ArchiveItemsController(ArchiveDbContext db) : Controller
     }
 
     /// <summary>Legacy single-step disposal — redirects to request/approve flow.</summary>
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public Task<IActionResult> RecordDisposal(Guid id, DateTime disposalDate, string? method) =>
         RequestDisposal(id, method);
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> UpdateRetention(Guid id, int? retentionPeriodYears)
@@ -328,6 +341,7 @@ public class ArchiveItemsController(ArchiveDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.RecordsArchiveWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AttestCompleteness(Guid id)

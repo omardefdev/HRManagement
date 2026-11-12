@@ -18,7 +18,7 @@ builder.AddHrOpenTelemetry();
 builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleIdCard);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleIdCard, HrManagementPolicies.IdCardWrite);
 builder.Services.AddHrOpenApi("IDCard API");
 
 builder.Services.AddHttpContextAccessor();

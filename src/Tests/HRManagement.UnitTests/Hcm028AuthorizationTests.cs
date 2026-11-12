@@ -79,10 +79,13 @@ public class Hcm028AuthorizationTests
         var httpContext = new DefaultHttpContext { RequestServices = services, User = User(HrManagementRoles.Compliance) };
         var routeData = new RouteData();
         routeData.Values["controller"] = controller;
-        var actionContext = new ActionContext(httpContext, routeData, new ActionDescriptor { EndpointMetadata = [] });
+        // PLAN-51: no name list; the real controller's attributes (its override among them) decide.
+        var metadata = typeof(HR.Core.Web.Controllers.RecruitmentAppealsController).Assembly.GetType($"HR.Core.Web.Controllers.{controller}Controller")?
+            .GetCustomAttributes(true).ToList() ?? [];
+        var actionContext = new ActionContext(httpContext, routeData, new ActionDescriptor { EndpointMetadata = metadata });
         var context = new AuthorizationFilterContext(actionContext, []);
 
-        await new HrModuleAuthorizationFilter(HrManagementPolicies.ModuleHrCore).OnAuthorizationAsync(context);
+        await new HrModuleAuthorizationFilter(HrManagementPolicies.ModuleHrCore, HrManagementPolicies.HrCoreWrite).OnAuthorizationAsync(context);
 
         if (admitted)
             Assert.Null(context.Result);
@@ -123,8 +126,9 @@ public class Hcm028AuthorizationTests
     [InlineData("GET", "/ui/hr-core/RecruitmentAppeals/Details/7", HrManagementPolicies.HrCoreAppealReview)]
     [InlineData("POST", "/ui/hr-core/RecruitmentAppeals/Decide", HrManagementPolicies.HrCoreAppealReview)]
     [InlineData("GET", "/ui/hr-core/WorkInbox", HrManagementPolicies.HrCoreWorkInbox)]
-    [InlineData("GET", "/ui/hr-core/lib/bootstrap/css/bootstrap.rtl.min.css", HrManagementPolicies.HrCoreLookup)]
-    [InlineData("GET", "/ui/hr-core/HR.Core.Web.styles.css", HrManagementPolicies.HrCoreLookup)]
+    // PLAN-51 (P-4): static files carry no data; any signed-in user (the appeal reviewer and the employee keep their styles).
+    [InlineData("GET", "/ui/hr-core/lib/bootstrap/css/bootstrap.rtl.min.css", HrManagementPolicies.GatewayAuthenticated)]
+    [InlineData("GET", "/ui/hr-core/HR.Core.Web.styles.css", HrManagementPolicies.GatewayAuthenticated)]
     [InlineData("GET", "/ui/hr-core/RecruitmentApplications/Details/7", HrManagementPolicies.HrCoreReadOnly)]
     [InlineData("POST", "/ui/hr-core/RecruitmentApplications/FileAppeal", HrManagementPolicies.HrCoreWrite)]
     [InlineData("POST", "/ui/hr-core/WorkInbox", HrManagementPolicies.HrCoreWrite)]

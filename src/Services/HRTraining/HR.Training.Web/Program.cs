@@ -14,7 +14,7 @@ builder.AddHrOpenTelemetry();
 builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrTraining);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrTraining, HrManagementPolicies.HrTrainingWrite);
 builder.Services.AddHrOpenApi("HR.Training API");
 
 builder.Services.AddHttpContextAccessor();

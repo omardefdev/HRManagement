@@ -96,6 +96,17 @@
 | `/ui/hr-contracts/ContractTypeRegimeMaps` | ربط أنواع العقود بأنظمة الخدمة (التعديل ← `HrContracts.Approve` على البوابة) |
 | `/ui/hr-core/OfferLetters/Document/{id}` | خطاب العرض الرسمي PDF (صادر/مقبول) |
 
+## السقف العام: سياسة صريحة لكل إجراء كتابة (PLAN-51)
+
+- كل إجراء POST/PUT/PATCH/DELETE في كل خدمة يسمّي سياسته على الإجراء أو المتحكم، ومنها متحكمات التوظيف كلها (قاعدة PLAN-25: لا متحكم
+  توظيف في أي قائمة). الاختبار `WriteActionsHaveExplicitPolicyTests` في مشروع `HRManagement.ArchitectureTests` يمسح التجميعات الخمس عشرة،
+  وقوائم السقف `tests/architecture/write-policy-allowlist/*.txt` لا تكبر: لم يبقَ فيها إلا Payroll (يفرّغها PLAN-53).
+- فلتر الوحدة بلا قائمة أسماء: المتحكم الذي لا يمر بسياسة الوحدة يحمل `[ModulePolicyOverride]` بسياسته، وكل كتابة بلا سياسة تمر بسياسة
+  الكتابة للوحدة (`{Module}.Write`) كحماية دنيا.
+- قرارات HR.Core الحساسة غير الاعتمادية (نشر الطلب ونشره الداخلي، نشر نتائج المسابقة، سحب العرض، اعتماد خطة القوى العاملة) ← `HrCore.Decision`
+  (hr-admin و`hr-core` افتراضياً، من الإعداد)، لا `HrCore.Approve` الأوسع.
+- معالج التعيين `HireWizard` كما هو (`HrContracts.HireView` على الصنف عبر `[ModulePolicyOverride]`).
+
 ## وصول المعتمد الإداري والتفويض (PLAN-50)
 
 | الإجراء | `hr-management-approver` وحده | البوابة | الخدمة |

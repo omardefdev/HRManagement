@@ -171,7 +171,7 @@ public class WorkforcePlansController(
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    [Authorize(Policy = HrManagementPolicies.HrCoreDecision)]
     public async Task<IActionResult> Approve(WorkforcePlanApproveViewModel vm)
     {
         if (await establishmentScope.ValidateCentralWriteAsync(User) is { } err)

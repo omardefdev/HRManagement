@@ -8,6 +8,8 @@ namespace HR.Core.Web.Controllers;
 
 /// <summary>HCM-028 (F4): HrCoreWorkInbox — the HR.Core read roles plus the compliance reviewer (appeals only), and PLAN-45's external audience (their types only).</summary>
 [Authorize(Policy = HrManagementPolicies.HrCoreWorkInbox)]
+// PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
+[ModulePolicyOverride(HrManagementPolicies.HrCoreWorkInbox)]
 public class WorkInboxController(WorkflowInboxQueryService queryService) : Controller
 {
     public async Task<IActionResult> Index(string? entityType, string? source, CancellationToken ct)

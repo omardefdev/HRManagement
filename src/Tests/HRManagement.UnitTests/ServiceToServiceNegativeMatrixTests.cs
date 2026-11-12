@@ -118,12 +118,27 @@ public class ServiceToServiceNegativeMatrixTests
     }
 
     [Fact]
-    public async Task HrCoreLookup_InteractiveAuthenticatedUser_Succeeds()
+    public async Task HrCoreLookup_InteractiveStaffUser_Succeeds()
     {
+        // PLAN-51 (D-51-3): a staff role and a tenant, as PLAN-50's interactive staff.
         var auth = BuildAuthService();
         var user = InteractiveUser(HrManagementRoles.Payroll);
+        ((ClaimsIdentity)user.Identity!).AddClaim(new Claim(TenantContext.TenantClaimType, Guid.NewGuid().ToString()));
         var result = await auth.AuthorizeAsync(user, HrManagementPolicies.HrCoreLookup);
         Assert.True(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData(HrManagementRoles.HrEmployee)]
+    [InlineData(HrManagementRoles.HrExamMarker)]
+    public async Task HrCoreLookup_NonStaffInteractiveUser_Fails(string role)
+    {
+        // PLAN-51 (D-51-3): the self-service employee and the exam marker do not search the directory.
+        var auth = BuildAuthService();
+        var user = InteractiveUser(role, "offline_access", "uma_authorization", "default-roles-hrmanagement");
+        ((ClaimsIdentity)user.Identity!).AddClaim(new Claim(TenantContext.TenantClaimType, Guid.NewGuid().ToString()));
+        var result = await auth.AuthorizeAsync(user, HrManagementPolicies.HrCoreLookup);
+        Assert.False(result.Succeeded);
     }
 
     [Fact]

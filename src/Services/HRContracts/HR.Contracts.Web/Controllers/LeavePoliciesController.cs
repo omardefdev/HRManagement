@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using HR.Contracts.Application.Abstractions;
 using HR.Contracts.Domain.Entities;
 using HR.Contracts.Domain.Enums;
@@ -8,6 +10,8 @@ using HRManagement.SharedKernel.ViewModels;
 
 namespace HR.Contracts.Web.Controllers;
 
+// PLAN-51 (§4, P-6): reads name the module policy (the management approver reads HR.Contracts); every write names HrContracts.Write or HrContracts.Approve.
+[Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
 public class LeavePoliciesController : Controller
 {
     private readonly IContractsRepository _repo;
@@ -26,6 +30,7 @@ public class LeavePoliciesController : Controller
 
     public IActionResult Create() => View(new LeavePolicyCreateViewModel());
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(LeavePolicyCreateViewModel vm)
@@ -69,6 +74,7 @@ public class LeavePoliciesController : Controller
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, LeavePolicyEditViewModel vm)
@@ -89,6 +95,7 @@ public class LeavePoliciesController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

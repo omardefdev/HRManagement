@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.DependencyInjection;
@@ -6,11 +7,21 @@ using Microsoft.Extensions.DependencyInjection;
 namespace HRManagement.ServiceDefaults;
 
 /// <summary>
-/// Applies the module policy globally, except for ESS controllers that define their own <see cref="HrManagementPolicies.ModuleEss"/> policy,
-/// and LookupApi which uses <see cref="HrManagementPolicies.HrCoreLookup"/> (any authenticated user).
+/// Applies the module policy to every MVC action of a service, and its write policy to a write that names no policy of its own.
+/// <para>
+/// PLAN-51 (§4, P-6): no controller is exempt by its name any more. An action or controller that must not meet the module policy says so
+/// with <see cref="ModulePolicyOverrideAttribute"/> (naming the policy its actions already require), or carries a <c>Service.*</c> policy.
+/// A POST, PUT, PATCH or DELETE on an action with no explicit policy on the action or its class then also meets the module's write policy,
+/// after whichever policy applied (the override included). Every write names its policy anyway
+/// (<c>WriteActionsHaveExplicitPolicyTests</c>); this is the safety net, never the only guard.
+/// </para>
 /// </summary>
-public sealed class HrModuleAuthorizationFilter(string modulePolicy) : IAsyncAuthorizationFilter
+public sealed class HrModuleAuthorizationFilter(string modulePolicy, string? writePolicy = null) : IAsyncAuthorizationFilter
 {
+    public string ModulePolicy { get; } = modulePolicy;
+
+    public string? WritePolicy { get; } = writePolicy;
+
     public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
     {
         // Endpoints explicitly marked [AllowAnonymous] (e.g. public citizen portal) bypass the module policy.
@@ -24,57 +35,36 @@ public sealed class HrModuleAuthorizationFilter(string modulePolicy) : IAsyncAut
             .Any(m => m.Policy?.StartsWith("Service.", StringComparison.Ordinal) == true))
             return;
 
-        // PLAN-50 (§1): an action (or its controller) may name the policy that replaces the module's. Checked before the name list below,
-        // which stays as it is (PLAN-51 replaces it with this attribute).
-        var policy = ModulePolicyOverrideAttribute.For(context.ActionDescriptor)?.Policy;
-        if (policy is not null)
-        {
-            await AuthorizeAsync(context, policy);
-            return;
-        }
-
-        var controller = context.RouteData.Values["controller"]?.ToString() ?? "";
-        if (controller.StartsWith("Ess", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(controller, "EssPortal", StringComparison.OrdinalIgnoreCase)
-            // The hire wizard has explicit policies per stage: management approval at Step3
-            // and contracts approval at Step4. Do not override those with the broad module role.
-            || string.Equals(controller, "HireWizard", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(controller, "LookupApi", StringComparison.OrdinalIgnoreCase)
-            // IAM-004: S2S API controllers carry their own Service.* / HrCoreWrite policies.
-            || string.Equals(controller, "CodeGeneration", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(controller, "Policies", StringComparison.OrdinalIgnoreCase)
-            // PLAN-47: PolicyReader / PolicyAuthor / PolicyApprover admit policy-author and policy-approver, which hold no HR.Core module role.
-            || string.Equals(controller, "PolicyTemplates", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(controller, "Onboarding", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(controller, "TenantQuarantine", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(controller, "EmployeeLifecycleInternal", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(controller, "DirectoryInternalSync", StringComparison.OrdinalIgnoreCase)
-            // HCM-028 (PLAN-25 slice): HrCoreAppealReview / HrCoreWorkInbox admit the compliance reviewer.
-            || string.Equals(controller, "RecruitmentAppeals", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(controller, "WorkInbox", StringComparison.OrdinalIgnoreCase)
-            // PLAN-45: HrCoreWorkInbox / WorkflowStepAction admit admin-logistics, which holds no HR.Core module role.
-            || string.Equals(controller, "WorkflowApprovals", StringComparison.OrdinalIgnoreCase)
-            // HCM-031 (PLAN-31): the marking controller carries HrCoreExamMarking (the exam marker role only).
-            || string.Equals(controller, "ExamMarking", StringComparison.OrdinalIgnoreCase)
-            // PLAN-43: WorkflowDefinitionRead / WorkflowDefinitionAdmin admit workflow-admin, which holds no HR.Core module role.
-            || string.Equals(controller, "WorkflowDefinitions", StringComparison.OrdinalIgnoreCase))
+        // PLAN-50 (§1): an action (or its controller) may name the policy that replaces the module's.
+        var policy = ModulePolicyOverrideAttribute.For(context.ActionDescriptor)?.Policy ?? ModulePolicy;
+        if (!await AuthorizeAsync(context, policy))
             return;
 
-        await AuthorizeAsync(context, modulePolicy);
+        // PLAN-51 (§4, P-6): the default write policy, for a write that names no policy of its own.
+        if (WritePolicy is not null
+            && IsWrite(context.HttpContext.Request.Method)
+            && !context.ActionDescriptor.EndpointMetadata.OfType<IAuthorizeData>().Any(a => !string.IsNullOrWhiteSpace(a.Policy)))
+            await AuthorizeAsync(context, WritePolicy);
     }
 
-    private static async Task AuthorizeAsync(AuthorizationFilterContext context, string policy)
+    public static bool IsWrite(string method) =>
+        HttpMethods.IsPost(method) || HttpMethods.IsPut(method) || HttpMethods.IsPatch(method) || HttpMethods.IsDelete(method);
+
+    private static async Task<bool> AuthorizeAsync(AuthorizationFilterContext context, string policy)
     {
         if (context.HttpContext.User.Identity?.IsAuthenticated != true)
         {
-            context.Result = new Microsoft.AspNetCore.Mvc.ChallengeResult();
-            return;
+            context.Result = new ChallengeResult();
+            return false;
         }
 
         // The HttpContext is the resource, as for an [Authorize] attribute, so a requirement can read the endpoint's metadata.
         var auth = context.HttpContext.RequestServices.GetRequiredService<IAuthorizationService>();
         var result = await auth.AuthorizeAsync(context.HttpContext.User, context.HttpContext, policy);
-        if (!result.Succeeded)
-            context.Result = new ForbidResult();
+        if (result.Succeeded)
+            return true;
+
+        context.Result = new ForbidResult();
+        return false;
     }
 }

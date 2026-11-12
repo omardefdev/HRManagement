@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using HR.Core.Domain.Entities;
@@ -44,6 +45,7 @@ public class ContactsController : Controller
             ? RedirectToAction("Details", "Employees", new { id = employeeId, openModal = "contact" })
             : RedirectToAction(nameof(Index), new { employeeId, showCreate = true });
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ContactCreateViewModel vm)
@@ -100,6 +102,7 @@ public class ContactsController : Controller
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, ContactEditViewModel vm)
@@ -120,6 +123,7 @@ public class ContactsController : Controller
         return RedirectToAction(nameof(Index), new { employeeId = vm.EmployeeId });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

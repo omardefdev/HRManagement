@@ -79,7 +79,8 @@ if ($guard -notmatch 'public static string\? ValidateStepRole\(' -or $guard -not
     $failures += "WorkflowStageGuard lacks ValidateStepRole/ValidateReject"
 }
 $actions = Read-Text "src/Services/HRCore/HR.Core.Infrastructure/Services/Workflow/WorkflowInstanceActionService.cs"
-if (([regex]::Matches($actions, '_evaluator\.GetBlockReasonAsync')).Count -lt 2) { $failures += "WorkflowInstanceActionService does not run the evaluator on approve and reject" }
+# PLAN-50 renamed GetBlockReasonAsync to GetDecisionAsync (the evaluator still runs on approve and reject); PLAN-51 found this check failing on main.
+if (([regex]::Matches($actions, '_evaluator\.(GetBlockReasonAsync|GetDecisionAsync)')).Count -lt 2) { $failures += "WorkflowInstanceActionService does not run the evaluator on approve and reject" }
 if ($actions -match 'ValidateSelfApprovalAsync') { $failures += "ValidateSelfApprovalAsync still exists" }
 foreach ($controller in @("Competitions", "EstablishmentChanges", "OfferLetters", "RecruitmentRequisitions", "SelectionCommittees", "WorkflowInstances", "RecruitmentAppeals")) {
     $text = Read-Text "src/Services/HRCore/HR.Core.Web/Controllers/${controller}Controller.cs"
@@ -98,7 +99,10 @@ if ($pack -notmatch '"RECRUITMENT-HIRE"\s*\r?\n\s*\}' -or $pack -notmatch 'Retir
 if ((Read-Text "src/Services/HRCore/HR.Core.Infrastructure/Services/Policy/PolicyStaticFallback.cs") -match '"RECRUITMENT-HIRE"') {
     $failures += "PolicyStaticFallback still triggers RECRUITMENT-HIRE"
 }
-if (-not (Test-Path (Resolve-RepoPath "tests/architecture/hrcore-post-policy-allowlist.txt"))) { $failures += "missing tests/architecture/hrcore-post-policy-allowlist.txt" }
+# PLAN-51: the HR.Core list and its test gave way to the architecture project, where HR.Core holds no row and PLAN-25 keeps its rule.
+if (Test-Path (Resolve-RepoPath "tests/architecture/hrcore-post-policy-allowlist.txt")) { $failures += "tests/architecture/hrcore-post-policy-allowlist.txt is back (PLAN-51 deleted it)" }
+if (Test-Path (Resolve-RepoPath "tests/architecture/write-policy-allowlist/hr-core.txt")) { $failures += "HR.Core has a write-policy list again (PLAN-51 emptied it)" }
+if ((Read-Text "src/Tests/HRManagement.ArchitectureTests/WriteActionsHaveExplicitPolicyTests.cs") -notmatch "No_recruitment_controller_is_on_the_hr_core_list") { $failures += "PLAN-25 rule (no recruitment controller listed) is gone" }
 
 # 5. CI: the prod-like journey runs with a zero-skip step (structural YAML check).
 $ci = Read-Text ".github/workflows/e2e-journeys.yml"

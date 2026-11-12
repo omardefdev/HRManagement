@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+// PLAN-51 (review L3): the entity lists and entities these models carry are for display; [BindNever] keeps a client from binding them.
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using HR.Core.Web.Services;
 using HR.Core.Domain.Entities;
 using HRManagement.SharedKernel.ViewModels;
@@ -11,6 +13,7 @@ public class JobCatalogIndexViewModel : SearchFilterBase
 {
     public bool? IsActive { get; set; }
     public string? GradeCode { get; set; }
+    [BindNever]
     public IReadOnlyList<JobCatalogEntry> Items { get; set; } = [];
 }
 
@@ -66,6 +69,7 @@ public class FundedPositionsIndexViewModel : SearchFilterBase
     public FundedPositionStatus? Status { get; set; }
     public Guid? OrgUnitId { get; set; }
     public Guid? ScopeOrgUnitId { get; set; }
+    [BindNever]
     public IReadOnlyList<FundedPosition> Items { get; set; } = [];
 }
 
@@ -101,8 +105,11 @@ public class FundedPositionCreateViewModel
 
 public class FundedPositionDetailsViewModel
 {
+    [BindNever]
     public FundedPosition Position { get; set; } = null!;
+    [BindNever]
     public IReadOnlyList<RecruitmentRequisition> ActiveRequisitions { get; set; } = [];
+    [BindNever]
     public IReadOnlyList<EstablishmentChangeLog> ChangeLogs { get; set; } = [];
     public bool CanMutate { get; set; }
 
@@ -117,6 +124,7 @@ public class EstablishmentChangesIndexViewModel : SearchFilterBase
     public EstablishmentChangeStatus? Status { get; set; }
     public EstablishmentChangeType? ChangeType { get; set; }
     public int? BudgetYear { get; set; }
+    [BindNever]
     public IReadOnlyList<EstablishmentChangeRequest> Items { get; set; } = [];
 }
 
@@ -138,6 +146,7 @@ public class EstablishmentChangeDetailsViewModel
 {
     public EstablishmentChangeRequest Request { get; set; } = null!;
     public string? LegalSourceLabel { get; set; }
+    [BindNever]
     public IReadOnlyList<EstablishmentChangeLog> ChangeLogs { get; set; } = [];
     public EstablishmentPayloadSummaryViewModel PayloadSummary { get; set; } = new();
     public EstablishmentChangeSubmitViewModel Submit { get; set; } = new();
