@@ -33,6 +33,16 @@ public partial class AcOps36VpsBootTests
         return ((int)response.StatusCode, await response.Content.ReadAsStringAsync());
     }
 
+    /// <summary>The first answer of a gateway page, without following its redirect: "403" or "302 {location}".</summary>
+    private static async Task<string> Iam51RefusalAsync(HttpClient noRedirect, string path)
+    {
+        using var response = await noRedirect.GetAsync($"https://{AppDomain}{path}");
+        return $"{(int)response.StatusCode} {response.Headers.Location}".Trim();
+    }
+
+    private static bool Iam51IsRefusal(string answer) =>
+        answer == "403" || (answer.StartsWith("302 ", StringComparison.Ordinal) && answer.Contains("/Account/AccessDenied", StringComparison.Ordinal));
+
     /// <summary>A column of the gateway's audit row of a correlation id, once its queue has written it (within 30 s).</summary>
     private static async Task<string> Iam51AuditAsync(string correlation, string column)
     {
@@ -53,7 +63,7 @@ public partial class AcOps36VpsBootTests
         var recorder = StartIam51("ess", "Demo server: POST /ui/ess/Shifts/Create and GET /ui/ess/api/internal/.../lifecycle-flags answer 404 with Denied:EssNotExposed; /ui/ess/EssPortal reaches the self-service policy (403 for a user without hr-employee)");
         var password = DemoPassword();
         var (admin, _) = await SignInAsync("hradmin", password);
-        var (compliance, _) = await SignInAsync("e2e-compliance", password);
+        var (compliance, _) = await SignInAsync("e2e-compliance", password, "/ui/compliance/");
         using (admin)
         using (compliance)
         {
@@ -81,29 +91,41 @@ public partial class AcOps36VpsBootTests
     [SkippableFact]
     public async Task AC_IAM_51_vps_the_audit_is_for_its_owners_with_their_own_agencys_rows()
     {
-        var recorder = StartIam51("audit", "Demo server: e2e-hr-admin gets 403 on /Home/Audit; e2e-compliance gets 200 and only rows of its own agency");
+        var recorder = StartIam51("audit", "Demo server: e2e-hr-admin is refused on /Home/Audit (403, or 302 to the access-denied page); e2e-compliance gets 200 and only rows of its own agency, its own request among them");
         var password = DemoPassword();
         var complianceTenant = Sql("keycloak_db",
             "select a.value from user_attribute a join user_entity u on u.id = a.user_id join realm r on r.id = u.realm_id " +
             "where r.name = 'hrmanagement' and u.username = 'e2e-compliance' and a.name = 'tenant_id'").SingleOrDefault() ?? "";
         AcceptanceGate.RequireData(recorder, Guid.TryParse(complianceTenant, out _), "المستخدم بلا tenant_id", "e2e-compliance has no tenant_id on the live realm.");
 
-        var (hrAdmin, _) = await SignInAsync("e2e-hr-admin", password);
-        var (compliance, _) = await SignInAsync("e2e-compliance", password);
+        var (hrAdmin, hrAdminCookies) = await SignInAsync("e2e-hr-admin", password);
+        var (compliance, _) = await SignInAsync("e2e-compliance", password, "/ui/compliance/");
         using (hrAdmin)
         using (compliance)
         {
-            var (adminAudit, _) = await Iam51SendAsync(hrAdmin, HttpMethod.Get, "/Home/Audit");
-            var (adminSearch, _) = await Iam51SendAsync(hrAdmin, HttpMethod.Get, "/ops/audit-search");
+            // The gateway's own pages refuse the way its cookie scheme does (as AC-IAM-51c): 403, or 302 to its access-denied page, never
+            // the page itself. The signed-in client follows redirects, so the refusal is read on the first answer, with the same cookies.
+            using var hrAdminNoRedirect = NewClient(hrAdminCookies, followRedirects: false);
+            var adminAudit = await Iam51RefusalAsync(hrAdminNoRedirect, "/Home/Audit");
+            var adminSearch = await Iam51RefusalAsync(hrAdminNoRedirect, "/ops/audit-search");
+            // The rows written before this deploy carry no agency (the queue dropped it until PLAN-51), so the user's own request is the
+            // row that proves the filter shows something: wait until the queue has written it, with its agency. The gateway audits what it
+            // forwards, not its own pages, so the row comes from a page of the user's module.
+            var ownCorrelation = Guid.NewGuid().ToString("N");
+            var (ownPage, _) = await Iam51SendAsync(compliance, HttpMethod.Get, "/ui/compliance/", ownCorrelation);
+            var ownRowTenant = await Iam51AuditAsync(ownCorrelation, "\"TenantId\"");
             var (complianceAudit, _) = await Iam51SendAsync(compliance, HttpMethod.Get, "/Home/Audit");
             var (complianceSearch, body) = await Iam51SendAsync(compliance, HttpMethod.Get, "/ops/audit-search?timeRange=24h");
-            Assert.Equal(403, adminAudit);
-            Assert.Equal(403, adminSearch);
+            Assert.True(Iam51IsRefusal(adminAudit), $"e2e-hr-admin on /Home/Audit answered {adminAudit}");
+            Assert.True(Iam51IsRefusal(adminSearch), $"e2e-hr-admin on /ops/audit-search answered {adminSearch}");
             Assert.Equal(200, complianceAudit);
             Assert.Equal(200, complianceSearch);
+            Assert.Equal(200, ownPage);
+            Assert.Equal(complianceTenant, ownRowTenant);
 
             using var doc = JsonDocument.Parse(body);
             var ids = doc.RootElement.GetProperty("items").EnumerateArray().Select(i => i.GetProperty("id").GetInt64()).ToList();
+            Assert.NotEmpty(ids);
             var foreign = ids.Count == 0
                 ? "0"
                 : Sql("gateway_audit_db",
@@ -111,7 +133,7 @@ public partial class AcOps36VpsBootTests
             var otherRowsExist = Sql("gateway_audit_db",
                 $"select count(*) from gateway_audit_entries where \"OccurredAtUtc\" > now() - interval '24 hours' and \"TenantId\" is distinct from '{complianceTenant}'").Single();
             Assert.Equal("0", foreign);
-            recorder.WriteScenarioDbChecks(new { adminAudit, adminSearch, complianceAudit, complianceSearch, rowsSeen = ids.Count, rowsOfAnotherAgencyOrNone = foreign, rowsOutsideItsAgencyIn24h = otherRowsExist });
+            recorder.WriteScenarioDbChecks(new { adminAudit, adminSearch, complianceAudit, complianceSearch, ownRowTenant, rowsSeen = ids.Count, rowsOfAnotherAgencyOrNone = foreign, rowsOutsideItsAgencyIn24h = otherRowsExist });
         }
 
         recorder.WriteResult("Pass");

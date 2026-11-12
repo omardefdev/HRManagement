@@ -247,3 +247,61 @@ ci-local and the pre-push check on the final HEAD, the release branch, the PR an
 - BLOCKED again at P8. Options: (a) let this machine reach port 22 (router or provider setting, a phone hotspot, or another network);
   (b) P9 now, P8 later; (c) P8 from another machine.
 - Retried on the owner's request at 05:41:53Z: `ssh hrm-vps` timed out again, TCP 22 False, same Wi-Fi gateway as before; still BLOCKED at P8.
+
+## Resumed 2026-11-12T06:53:05Z (owner: "Retry SSH now"): SSH works (through ProtonVPN)
+
+- Keep-awake started again: PID 12268 at 06:53:32Z.
+
+## P8 — server changes and their undo (2026-11-12)
+
+Read-only first (06:53Z..06:55Z, `artifacts/plan51/vps/before.txt`): the running tag `a504f6e54921` is on `origin/main`
+(`git branch -r --contains`), previous `046316bde9e7`; 22 containers, 20 healthy (registry and seq have no health check); 38 GB free.
+P-13's picture: **10095 gateway audit rows, all without an agency** (the queue's clone dropped `TenantId` until PLAN-51, P3); last 7
+days `allowed` 7146, `forbidden` 40, `client_error` 39, `server_error` 4. Every web container runs `ASPNETCORE_ENVIRONMENT=Production`
+with `Deployment__Mode=demo`; no container sets an `Authorization__*` or `Gateway__Ess`/`Gateway__Audit` key (the gateway sets only
+`Gateway__EnabledModules__0..13` and `Gateway__HealthProbe__InternalBaseUrl`), so the images' appsettings decide.
+
+1. **The backup** (06:54:11Z..06:54:17Z): `/opt/hrm/backups/pre-plan51-20261112T065411Z` (700; `pg_dumpall.sql` 29.8 MB,
+   `env.backup`, `SHA256SUMS`: 600). Checked: 17 `CREATE DATABASE` statements (`gateway_audit_db`, `hr_core_db` among them), the
+   dump's completion line, `sha256sum -c` OK (`artifacts/plan51/vps/backup.txt`). Undo: none needed; delete the folder when unwanted.
+2. **The build** of `d0e446fe3280` (HEAD; no source changed after 9d130248): source archive 32.2 MB uploaded in 50 s, then
+   `build-on-host-d0e446fe3280.sh` started at 06:56:12Z under `setsid nohup`, writing `/opt/hrm/build-d0e446fe3280.done`. The
+   server resolved `archive.ubuntu.com` before it started. Undo: none needed (the previous tag's images stay).
+   Ended at 07:27:56Z (`.done` = 0): build 1817 s, push 27 s, **17 of 17 images** tagged `d0e446fe3280` in the loopback registry
+   (`artifacts/plan51/vps/build.txt`); the script removed the source, the build cache and the SDK image; 31 GB free after it.
+3. **The deploy** (07:28:21Z to 07:31:43Z with the self-test; first attempt): `scripts/vps/deploy.ps1 -Tag d0e446fe3280` (pull 3, up 117,
+   bootstrap 51, Keycloak reconcile 14 with 0 changes, healthy 14); `deployments.log` says healthy at 07:31:05Z, previous tag
+   `a504f6e54921`. The services were away at most about 3 min 16 s (from the start of `up` to healthy). Self-test (smoke with mandatory
+   wiring): 50 pass, 0 fail, 1 warning (the client-side port probe, as before). No migration; the realm unchanged (D-51-4).
+   **Undo:** `scripts/vps/deploy.ps1 -Rollback` (no SQL, no restore; the rollback note in `OPS_VPS_SINGLE_HOST.md`).
+4. **The PLAN-51 server checks** (`AC_IAM_51_vps_*`, 4/4 at 07:41Z on the fourth run, 1 min 15 s; `artifacts/plan51/vps/`). The first three
+   runs failed in the checks, not in the server, and each fix kept the check's meaning:
+   - run 1: `e2e-compliance` signed in through `/ui/hr-core/`, which it may not open (403): it now signs in at `/ui/compliance/`;
+   - run 2: the client followed the gateway's refusal (302 to `/Account/AccessDenied`) to a page the gateway does not have (404); the
+     check now reads the first answer with the same cookies and accepts 403 or that 302, as AC-IAM-51c does (defect recorded);
+   - run 3: the gateway audits what it forwards, not its own pages, so `/Home/Audit` wrote no row of its own; the user's own row now comes
+     from `/ui/compliance/` (200, its agency on the row), and the search must show at least one row (it showed 48).
+   Results: self-service POST `/ui/ess/Shifts/Create` 404 and GET `/ui/ess/api/internal/employees/{id}/lifecycle-flags` 404, both
+   audited `Denied:EssNotExposed`, no shift created; `/ui/ess/EssPortal` 403 for `e2e-compliance`; `e2e-hr-admin` refused on `/Home/Audit`
+   and `/ops/audit-search` (302 to the access-denied page); `e2e-compliance` 200 on both, 48 rows seen, 0 of another agency or none, while
+   826 rows of the last 24 h are outside its agency; `hradmin` 403 on onboarding apply (dry run), `apply-file` 404; Payroll and HR.Health
+   run `Deployment__Mode=demo` with no `Authorization__AdminExcludedPolicies` in the environment (the Production file lists them: off in
+   demo mode). **What they leave:** audit rows only (every POST is refused before any write).
+5. **The server suites** (07:41:09Z to 08:16:25Z, 35 min 16 s, nothing heavy beside them; `artifacts/plan51/vps/suites/`): **44 of 45
+   passed**: `AcOps36VpsBootTests` a to k without 36j (excepted as before), `AcInt37VpsServerTests`, the server checks of PLAN-38, 39, 40,
+   43, 44, 45, 46, 47, 48, 49, 50 and the four of this plan. By check: OPS-36 10/10 (351 s), IAM-50 4/4 (239 s), POL-49 3/3 (277 s),
+   OPS-39 2/2 (274 s), WF-46 3/4 (206 s), POL-47 2/2 (140 s), WF-45 3/3 (130 s), MSG-40 3/3 (105 s), IAM-51 4/4 (94 s), WF-44 3/3 (85 s),
+   WF-43 2/2 (65 s), OPS-38 1/1 (63 s), TEN-48 1/1 (32 s), INT-37 3/3 (realm 18 s, legal pack 6 s, smoke 22 s). The writes of item 5 of P8
+   are among them: `e2e-checker-mgmt` writes in HR.Core (PLAN-50's delegations, approvals) and `e2e-maker-contracts` files and cancels a
+   leave in HR.Contracts (PLAN-38, PLAN-49); custody starts, code generation, policy queries and lookups pass through their S2S calls.
+   The one failure, `AC_WF_46_vps_the_sweeps_run_and_the_metrics_exist` ("No cycle of the CardRequest sweep in the log of idcard-web"),
+   read the card service's log before its first sweep cycle after AC-OPS-39f recreated the services, as in PLAN-46..50.
+6. **Rerun alone** (08:16:38Z to 08:16:52Z): AC-WF-46 sweeps **passed** (12 s).
+7. **At the end** (08:17:45Z): tag `d0e446fe3280`, 20 containers healthy (the registry and seq have no health check), 31 GB free, the
+   self-test with mandatory wiring 50 pass, 0 fail, 1 warning (`artifacts/plan51/vps/smoke-final.log`). The committed evidence the suites
+   rewrote (`acceptance-evidence/`, 41 entries) is restored; a copy is in `artifacts/plan51/vps/suites/acceptance-evidence-from-run/`,
+   with the AC-MSG-40 replay report the suite wrote into `reports/`.
+
+| Phase | Status | Finished (UTC) |
+|-------|--------|----------------|
+| P8 | done | 2026-11-12T08:18:30Z |
