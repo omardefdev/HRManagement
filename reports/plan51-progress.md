@@ -10,6 +10,7 @@ Prompt: docs/acceptance-plans/execution/PLAN-51-AGENT-PROMPT.md. Plan: docs/acce
 |-------|--------|----------------|
 | P0 | done | 2026-11-11T23:45:16Z |
 | P1 | done | 2026-11-11T23:55:59Z |
+| P2 | done | 2026-11-12T00:06:52Z |
 
 ## Session facts
 
@@ -33,7 +34,7 @@ Prompt: docs/acceptance-plans/execution/PLAN-51-AGENT-PROMPT.md. Plan: docs/acce
 
 ## Next step
 
-P2: self-service at the gateway (GatewayEssOptions, exact segment match, 404 + Denied:EssNotExposed audit), HrCore.Lookup for staff and services, Gateway.Authenticated for HR.Core static files, GatewayEssRoutingTests, GatewayPathAuthorizationMiddlewareTests updated.
+P3: the gateway audit (Gateway.Audit from Gateway:Audit:Roles on Operations, Audit, AuditSearch; tenant filter in GatewayAuditQueryService; menu link; SQLite tests and Iam051GatewayAuditPostgreSqlTests).
 
 ## P0 summary (Finished (UTC): 2026-11-11T23:45:16Z)
 
@@ -67,3 +68,20 @@ Decisions:
    (hr-admin, hr-core), so nothing widens and the policy can be separated by configuration (D-51-2's pattern).
 4. **`Authorize(Roles=…)` alone is not a named policy**: the nine roles-only writes (Compliance DSAR, gateway platform audit and
    tenant entry) are seeded and get named policies with the same roles in P4.
+
+## P2 summary (Finished (UTC): 2026-11-12T00:06:52Z)
+
+- `GatewayEssOptions` (`Gateway:Ess`, defaults in code = D-51-1) and `GatewayEssRouting.Decide`: the first segment after
+  `/ui/{segment}/` or `/api/{segment}/`, exact (case-insensitive like MVC routes). On `ess` the decision is final: a named controller
+  gets `Module.Ess`, a static file (GET/HEAD, no traversal) `Gateway.Authenticated`, anything else 404 before forwarding with the audit
+  decision `Denied:EssNotExposed` (handed to `GatewayAuditMiddleware` through `HttpContext.Items`). `TryGetEssPolicy` (`Contains("/Ess")`)
+  removed.
+- `HrCore.Lookup` = `InteractiveStaffOrServiceScopeRequirement(hr-core.lookup)`, using PLAN-50's `IsInteractiveStaff` and
+  `Authorization:NonStaffRoles` (one definition). HR.Core's static files: `Gateway.Authenticated`.
+- The gateway's `IsMutating` now includes PATCH (HR.Core `EmployeesApi.Patch` met only `Module.HrCore` at the gateway).
+- Tests: `GatewayEssRoutingTests` 61 (the plan's table, look-alikes, PLAN-50's approval paths under `/ui/ess`, static files, the lookup
+  policy with Keycloak's roles, services, non-staff roles and configuration); updated `ServiceToServiceNegativeMatrixTests` (lookup needs
+  staff + tenant; employee and marker refused) and `Hcm028AuthorizationTests` (static files). Gateway/policy filter: 601/601.
+- 0.6 decided no page change: no employee or marker page calls the lookup API.
+
+Decision 5. **`/ui/ess` with no controller** (and `/ui/ess/`) answers 404 too: the user guide names `/ui/ess/EssPortal`, which passes.

@@ -38,7 +38,8 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
         HttpContext context,
         IAuthorizationService authorization,
         IModuleEntitlementGuard? entitlementGuard = null,
-        IOptions<ModuleCatalogOptions>? moduleCatalogOptions = null)
+        IOptions<ModuleCatalogOptions>? moduleCatalogOptions = null,
+        IOptions<GatewayEssOptions>? essOptions = null)
     {
         var path = context.Request.Path;
         var method = context.Request.Method;
@@ -68,11 +69,26 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
         }
         else
         {
-            effectivePolicy = TryGetEssPolicy(path, out var essPolicy)
-                ? essPolicy
-                : TryGetFineGrainedPolicy(moduleSegment, method, path, out var fineGrained)
-                    ? fineGrained
-                    : modulePolicy;
+            // PLAN-51 (§1, P-3): the self-service decision comes first, by exact segment. On the ess segment it is final: nothing under
+            // /ui/ess reaches PLAN-50's table, Gateway.ApprovalReach or any other rule, and what is not exposed answers 404 here.
+            switch (GatewayEssRouting.Decide(method, path.Value ?? "", essOptions?.Value ?? new GatewayEssOptions()))
+            {
+                case GatewayEssDecision.Ess:
+                    effectivePolicy = HrManagementPolicies.ModuleEss;
+                    break;
+                case GatewayEssDecision.StaticFile:
+                    effectivePolicy = HrManagementPolicies.GatewayAuthenticated;
+                    break;
+                case GatewayEssDecision.NotExposed:
+                    context.Items[GatewayEssOptions.AuditDecisionItemKey] = GatewayEssOptions.NotExposedDecision;
+                    context.Response.StatusCode = StatusCodes.Status404NotFound;
+                    return;
+                default:
+                    effectivePolicy = TryGetFineGrainedPolicy(moduleSegment, method, path, out var fineGrained)
+                        ? fineGrained
+                        : modulePolicy;
+                    break;
+            }
         }
 
         var opts = moduleCatalogOptions?.Value;
@@ -215,7 +231,8 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
             if (TryGetPolicyLifecyclePolicy(httpMethod, pathValue, out policy))
                 return true;
 
-            // Shared pickers and table hydration: any authenticated user (controller enforces HrCoreLookup).
+            // Shared pickers and table hydration: interactive staff and services with hr-core.lookup (PLAN-51, D-51-3); the controller
+            // enforces the same HrCoreLookup.
             if (pathValue.Contains("/api/lookup", StringComparison.OrdinalIgnoreCase))
             {
                 policy = HrManagementPolicies.HrCoreLookup;
@@ -247,10 +264,12 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
 
             if (string.Equals(httpMethod, HttpMethods.Get, StringComparison.OrdinalIgnoreCase))
             {
+                // PLAN-51 (§2, P-4): HR.Core's static files carry no data and back the self-service and marking pages, whose users are not
+                // staff: any signed-in user, not the staff-only lookup.
                 policy = pathValue.StartsWith("/ui/hr-core/WorkInbox", StringComparison.OrdinalIgnoreCase)
                     ? HrManagementPolicies.HrCoreWorkInbox
                     : IsHrCoreStaticAsset(pathValue)
-                        ? HrManagementPolicies.HrCoreLookup
+                        ? HrManagementPolicies.GatewayAuthenticated
                         : HrManagementPolicies.HrCoreReadOnly;
                 return true;
             }
@@ -325,27 +344,6 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
         return false;
     }
 
-    private static bool TryGetEssPolicy(PathString path, out string policy)
-    {
-        policy = "";
-        var p = path.Value ?? "";
-        if (!p.Contains("/Ess", StringComparison.OrdinalIgnoreCase))
-            return false;
-
-        if (p.StartsWith("/ui/payroll", StringComparison.OrdinalIgnoreCase)
-            || p.StartsWith("/api/payroll", StringComparison.OrdinalIgnoreCase)
-            || p.StartsWith("/ui/hr-core", StringComparison.OrdinalIgnoreCase)
-            || p.StartsWith("/api/hr-core", StringComparison.OrdinalIgnoreCase)
-            || p.StartsWith("/ui/ess", StringComparison.OrdinalIgnoreCase)
-            || p.StartsWith("/api/ess", StringComparison.OrdinalIgnoreCase))
-        {
-            policy = HrManagementPolicies.ModuleEss;
-            return true;
-        }
-
-        return false;
-    }
-
     private static bool IsUpstreamHealthPath(PathString path)
     {
         var p = path.Value ?? "";
@@ -360,9 +358,11 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
             || remoteIp.Equals(context.Connection.LocalIpAddress);
     }
 
+    // PLAN-51: PATCH writes too (HR.Core's EmployeesApi.Patch); it used to fall through to the module policy here.
     private static bool IsMutating(string httpMethod) =>
         string.Equals(httpMethod, HttpMethods.Post, StringComparison.OrdinalIgnoreCase)
         || string.Equals(httpMethod, HttpMethods.Put, StringComparison.OrdinalIgnoreCase)
+        || string.Equals(httpMethod, HttpMethods.Patch, StringComparison.OrdinalIgnoreCase)
         || string.Equals(httpMethod, HttpMethods.Delete, StringComparison.OrdinalIgnoreCase);
 
     private static readonly string[] HrCoreStaticPrefixes =

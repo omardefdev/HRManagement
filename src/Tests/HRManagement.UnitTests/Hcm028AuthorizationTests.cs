@@ -123,8 +123,9 @@ public class Hcm028AuthorizationTests
     [InlineData("GET", "/ui/hr-core/RecruitmentAppeals/Details/7", HrManagementPolicies.HrCoreAppealReview)]
     [InlineData("POST", "/ui/hr-core/RecruitmentAppeals/Decide", HrManagementPolicies.HrCoreAppealReview)]
     [InlineData("GET", "/ui/hr-core/WorkInbox", HrManagementPolicies.HrCoreWorkInbox)]
-    [InlineData("GET", "/ui/hr-core/lib/bootstrap/css/bootstrap.rtl.min.css", HrManagementPolicies.HrCoreLookup)]
-    [InlineData("GET", "/ui/hr-core/HR.Core.Web.styles.css", HrManagementPolicies.HrCoreLookup)]
+    // PLAN-51 (P-4): static files carry no data; any signed-in user (the appeal reviewer and the employee keep their styles).
+    [InlineData("GET", "/ui/hr-core/lib/bootstrap/css/bootstrap.rtl.min.css", HrManagementPolicies.GatewayAuthenticated)]
+    [InlineData("GET", "/ui/hr-core/HR.Core.Web.styles.css", HrManagementPolicies.GatewayAuthenticated)]
     [InlineData("GET", "/ui/hr-core/RecruitmentApplications/Details/7", HrManagementPolicies.HrCoreReadOnly)]
     [InlineData("POST", "/ui/hr-core/RecruitmentApplications/FileAppeal", HrManagementPolicies.HrCoreWrite)]
     [InlineData("POST", "/ui/hr-core/WorkInbox", HrManagementPolicies.HrCoreWrite)]

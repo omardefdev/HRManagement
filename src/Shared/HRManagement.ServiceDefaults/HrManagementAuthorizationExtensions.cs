@@ -164,11 +164,12 @@ public static class HrManagementAuthorizationExtensions
             options.AddPolicy(HrManagementPolicies.HrCoreExamMarking, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.HrExamMarker)));
 
-            // Shared lookup — interactive users OR service tokens with hr-core.lookup (IAM-004).
-            options.AddPolicy(HrManagementPolicies.HrCoreLookup, p => p.RequireAssertion(c =>
-                (c.User.Identity?.IsAuthenticated == true && !ServiceCallerPrincipal.IsServiceAccount(c.User))
-                || (ServiceCallerPrincipal.IsServiceAccount(c.User)
-                    && ServiceCallerPrincipal.HasScope(c.User, ServiceScopes.HrCoreLookup))));
+            // Shared lookup (IAM-004). PLAN-51 (D-51-3): interactive staff (PLAN-50's one definition) or service tokens with hr-core.lookup;
+            // the self-service employee and the exam marker do not search the agency's directory.
+            options.AddPolicy(HrManagementPolicies.HrCoreLookup, p => p.AddRequirements(new InteractiveStaffOrServiceScopeRequirement(ServiceScopes.HrCoreLookup)));
+
+            // PLAN-51 (§2, P-4): files that carry no data.
+            options.AddPolicy(HrManagementPolicies.GatewayAuthenticated, p => p.RequireAuthenticatedUser());
 
             // HR.Contracts fine-grained: approve leave/advance/separation
             options.AddPolicy(HrManagementPolicies.HrContractsApprove, p => p.RequireAssertion(c =>
@@ -251,6 +252,7 @@ public static class HrManagementAuthorizationExtensions
 
         services.AddSingleton<IAuthorizationHandler, PolicyEngineRoleHandler>();
         services.AddSingleton<IAuthorizationHandler, GatewayApprovalReachHandler>();
+        services.AddSingleton<IAuthorizationHandler, InteractiveStaffOrServiceScopeHandler>();
         services.AddSingleton<IAuthorizationHandler, Delegation.RoleOrDelegationHandler>();
         services.AddServiceToServiceAuthorizationPolicies();
         services.AddHrMvcSecurityDefaults();

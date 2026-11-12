@@ -143,8 +143,14 @@ public static class HrManagementPolicies
     /// <summary>HCM-031 (PLAN-31): the anonymous exam marking screens — the exam marker role only.</summary>
     public const string HrCoreExamMarking = "HrCore.ExamMarking";
 
-    /// <summary>Lookup APIs shared across modules — any authenticated user (no NationalId in responses).</summary>
+    /// <summary>
+    /// Lookup APIs shared across modules (no NationalId in responses). PLAN-51 (D-51-3): an interactive staff user (PLAN-50's definition,
+    /// <c>Authorization:NonStaffRoles</c>) or a service account with <c>hr-core.lookup</c>; never <c>hr-employee</c> or the exam marker alone.
+    /// </summary>
     public const string HrCoreLookup = "HrCore.Lookup";
+
+    /// <summary>PLAN-51 (§2, P-4): any signed-in user, for files that carry no data (HR.Core's static files, those of the self-service segment).</summary>
+    public const string GatewayAuthenticated = "Gateway.Authenticated";
 
     public const string HrContractsApprove = "HrContracts.Approve";
     public const string PayrollProcess = "Payroll.Process";
