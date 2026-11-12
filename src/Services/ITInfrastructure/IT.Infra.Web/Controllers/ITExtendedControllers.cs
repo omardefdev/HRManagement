@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using IT.Infrastructure.Domain.Entities;
 using IT.Infrastructure.Domain.Enums;
 using IT.Infra.Infrastructure.Data;
@@ -21,6 +23,7 @@ public class ServerDevicesController(ITInfraDbContext db) : Controller
 
     public IActionResult Create() => View(new ServerDevice { Status = ServerStatus.Active });
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ServerDevice model)
@@ -39,6 +42,7 @@ public class ServerDevicesController(ITInfraDbContext db) : Controller
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, ServerDevice model)
@@ -58,6 +62,7 @@ public class ServerDevicesController(ITInfraDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
@@ -85,6 +90,7 @@ public class SystemPermissionRecordsController(ITInfraDbContext db) : Controller
 
     public IActionResult Create() => View(new SystemPermissionRecord { GrantedAt = DateTime.UtcNow });
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(SystemPermissionRecord model)
@@ -103,6 +109,7 @@ public class SystemPermissionRecordsController(ITInfraDbContext db) : Controller
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, SystemPermissionRecord model)
@@ -121,6 +128,7 @@ public class SystemPermissionRecordsController(ITInfraDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Revoke(Guid id)
@@ -149,6 +157,7 @@ public class EnvironmentConfigurationsController(ITInfraDbContext db) : Controll
 
     public IActionResult Create() => View(new EnvironmentConfiguration { AppliedAt = DateTime.UtcNow });
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(EnvironmentConfiguration model)
@@ -167,6 +176,7 @@ public class EnvironmentConfigurationsController(ITInfraDbContext db) : Controll
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, EnvironmentConfiguration model)

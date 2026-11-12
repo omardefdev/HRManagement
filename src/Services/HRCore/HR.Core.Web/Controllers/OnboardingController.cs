@@ -8,6 +8,8 @@ namespace HR.Core.Web.Controllers;
 [ApiController]
 [Route("api/onboarding/agencies")]
 [Authorize(Policy = HrManagementPolicies.HrCoreApprove)]
+// PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
+[ModulePolicyOverride(HrManagementPolicies.HrCoreApprove)]
 public class OnboardingController(AgencyProvisioningService provisioning) : ControllerBase
 {
     [HttpPost("apply")]

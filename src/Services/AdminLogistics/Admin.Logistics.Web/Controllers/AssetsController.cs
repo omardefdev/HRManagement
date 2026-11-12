@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Admin.Logistics.Domain.Entities;
 using Admin.Logistics.Domain.Enums;
 using Admin.Logistics.Domain.Services;
@@ -206,6 +207,7 @@ public class AssetsController(
 
     public IActionResult CreateLegacy() => View(new AssetLegacyCreateFormViewModel());
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     // QA-034 (owner decision Q-3): MVC1004 — the view model has a property named like the parameter; renaming the
@@ -300,6 +302,7 @@ public class AssetsController(
         return View(model);
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     // QA-034 (owner decision Q-3): MVC1004 suppressed for the same reason as CreateLegacy.
@@ -371,6 +374,7 @@ public class AssetsController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Idempotent]
@@ -501,6 +505,7 @@ public class AssetsController(
     }
 
     /// <summary>PLAN-45: starts by hand the approval of a request that waits for it, with the same key as the job.</summary>
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RetryApprovalStart(Guid id, Guid requestId, AssetApprovalRequestKind kind)
@@ -532,6 +537,7 @@ public class AssetsController(
     /// PLAN-45: the requester, or a logistics officer in the asset's scope, withdraws a waiting request with a reason. HR.Core answers
     /// first, and an approval that had already finished is applied instead.
     /// </summary>
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> WithdrawApproval(Guid id, Guid requestId, AssetApprovalRequestKind kind, string? reason)
@@ -634,6 +640,7 @@ public class AssetsController(
         return string.IsNullOrEmpty(name) ? null : name.Length > 200 ? name[..200] : name;
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ReturnAssignment(
@@ -709,6 +716,7 @@ public class AssetsController(
         return File(bytes, "application/pdf", $"handover-{assignment.Asset.TagNumber}-{assignment.AssignedAt:yyyyMMdd}.pdf");
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Idempotent]
@@ -823,6 +831,7 @@ public class AssetsController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RecoverAsset(Guid id, string recoveryNotes)
@@ -860,6 +869,7 @@ public class AssetsController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CancelAsset(Guid id, string? reason)
@@ -889,6 +899,7 @@ public class AssetsController(
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateFromReceipt(Guid receiptId, Guid? supplyOrderLineId)

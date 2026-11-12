@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using HR.Core.Domain.Entities;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Web.ViewModels;
@@ -43,6 +45,7 @@ public class KeyPositionsController(HRCoreDbContext db) : Controller
         return View(new KeyPositionCreateViewModel());
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(KeyPositionCreateViewModel vm)
@@ -81,6 +84,7 @@ public class KeyPositionsController(HRCoreDbContext db) : Controller
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, KeyPositionEditViewModel vm)
@@ -103,6 +107,7 @@ public class KeyPositionsController(HRCoreDbContext db) : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

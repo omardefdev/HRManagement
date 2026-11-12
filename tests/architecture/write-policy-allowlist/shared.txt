@@ -1,3 +1,0 @@
-# PLAN-51 (§6, P-8): the writes of shared that name no policy, on the action or its class. A list that only shrinks
-# (WriteActionsHaveExplicitPolicyTests); each row is signed by the plan that owns it. Key | reason.
-Culture.SetCulture | PLAN-51: P4 gives it its explicit policy

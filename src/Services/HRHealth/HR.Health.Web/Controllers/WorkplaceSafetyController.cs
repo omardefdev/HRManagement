@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using HR.Health.Domain.Entities;
 using HR.Health.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -14,6 +16,7 @@ public class WorkplaceSafetyController(HealthDbContext db) : Controller
     public IActionResult Create() =>
         View(new WorkplaceAccident { AccidentDate = DateOnly.FromDateTime(DateTime.UtcNow) });
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(WorkplaceAccident model)
@@ -39,6 +42,7 @@ public class WorkplaceSafetyController(HealthDbContext db) : Controller
         return View(accident);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, WorkplaceAccident model)
@@ -63,6 +67,7 @@ public class WorkplaceSafetyController(HealthDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
@@ -78,6 +83,7 @@ public class WorkplaceSafetyController(HealthDbContext db) : Controller
     public async Task<IActionResult> Inspections() =>
         View(await db.SafetyInspections.AsNoTracking().OrderByDescending(x => x.InspectionDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateInspection(SafetyInspection model)
@@ -98,6 +104,7 @@ public class WorkplaceSafetyController(HealthDbContext db) : Controller
     public async Task<IActionResult> FirstAid() =>
         View(await db.FirstAidTrainingRecords.AsNoTracking().OrderByDescending(x => x.TrainingDate).Take(SearchFilterBase.MaxPageSize).ToListAsync());
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> CreateFirstAid(FirstAidTrainingRecord model)

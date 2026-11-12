@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using MassTransit;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -44,6 +45,7 @@ public class TrainingEnrollmentsController : Controller
         return View(new TrainingEnrollment { EnrolledAt = DateTime.UtcNow, Status = EnrollmentStatus.Enrolled });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(TrainingEnrollment model)
@@ -107,6 +109,7 @@ public class TrainingEnrollmentsController : Controller
         public string? EvaluationNotes { get; set; }
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Complete(CompleteVm vm)
@@ -193,6 +196,7 @@ public class TrainingEnrollmentsController : Controller
         return RedirectToAction(nameof(Details), new { id = e.Id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(Guid id, string? reason)

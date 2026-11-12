@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using Dev.Analytics.Application.Services;
 using Dev.Analytics.Domain.Entities;
 using Dev.Analytics.Domain.Enums;
@@ -24,6 +26,7 @@ public class KpisController(AnalyticsDbContext db) : Controller
 
     public IActionResult Create() => View(new KPI { MeasuredAt = DateTime.UtcNow });
 
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(KPI model)
@@ -42,6 +45,7 @@ public class KpisController(AnalyticsDbContext db) : Controller
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, KPI model)
@@ -76,6 +80,7 @@ public class EtlJobsController(AnalyticsDbContext db) : Controller
 
     public IActionResult Create() => View(new ETLJob { Status = JobStatus.Ok });
 
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ETLJob model)
@@ -94,6 +99,7 @@ public class EtlJobsController(AnalyticsDbContext db) : Controller
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, ETLJob model)
@@ -111,6 +117,7 @@ public class EtlJobsController(AnalyticsDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Run(Guid id)
@@ -161,6 +168,7 @@ public class ReadModelsController(AnalyticsDbContext db, ReadModelReconciliation
 
     public IActionResult Create() => View(new ReadModel { LastRefreshed = DateTime.UtcNow });
 
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ReadModel model)
@@ -179,6 +187,7 @@ public class ReadModelsController(AnalyticsDbContext db, ReadModelReconciliation
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, ReadModel model)
@@ -196,6 +205,7 @@ public class ReadModelsController(AnalyticsDbContext db, ReadModelReconciliation
     }
 
     /// <summary>FUN-006: deterministic rebuild from AnalyticsEvents ordered by OccurredAt+Id.</summary>
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Rebuild(Guid id, Guid? orgUnitId)
@@ -235,6 +245,7 @@ public class DataRefreshSchedulesController(AnalyticsDbContext db) : Controller
         return View(new DataRefreshSchedule());
     }
 
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(DataRefreshSchedule model)
@@ -260,6 +271,7 @@ public class DataRefreshSchedulesController(AnalyticsDbContext db) : Controller
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, DataRefreshSchedule model)
@@ -282,6 +294,7 @@ public class DataRefreshSchedulesController(AnalyticsDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Trigger(Guid id)

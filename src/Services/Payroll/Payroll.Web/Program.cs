@@ -94,7 +94,7 @@ builder.AddHrLocalization();
 
 builder.Services.AddHrQuestPdfDocuments();
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModulePayroll);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModulePayroll, HrManagementPolicies.PayrollWrite);
 builder.Services.AddHrOpenApi("Payroll API");
 
 builder.Services.AddHttpContextAccessor();

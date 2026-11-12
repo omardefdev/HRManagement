@@ -12,6 +12,7 @@ Prompt: docs/acceptance-plans/execution/PLAN-51-AGENT-PROMPT.md. Plan: docs/acce
 | P1 | done | 2026-11-11T23:55:59Z |
 | P2 | done | 2026-11-12T00:06:52Z |
 | P3 | done | 2026-11-12T00:18:21Z |
+| P4 | done | 2026-11-12T00:46:32Z |
 
 ## Session facts
 
@@ -35,7 +36,7 @@ Prompt: docs/acceptance-plans/execution/PLAN-51-AGENT-PROMPT.md. Plan: docs/acce
 
 ## Next step
 
-P4: the module filter (no name list, overrides, default write policy), AddHrModuleAuthorizeFilter(module, write) in the Program.cs files, {Module}.Write/Approve via RolesPolicy with D-IAM-4, HR.Core 42 + HrCore.Decision, HR.Contracts, sensitive actions, every write except Payroll, roles-only to named policies, HrCore.BranchOperation, HR.Movements view models, lists emptied, Iam051DirectServiceWriteTests.
+P5: HrCore.Write without its service branch (invert FineGrainedPolicyTests.HrCoreWrite_ServiceWorkflowScope_Succeeds), the three endpoints of hr-core.workflow, wiring matrix serverPolicy check, Platform.AgencyOnboarding + apply-file deleted (service, gateway table), Evidence:IngestClients, per-client integration tests.
 
 ## P0 summary (Finished (UTC): 2026-11-11T23:45:16Z)
 
@@ -99,3 +100,44 @@ Decision 5. **`/ui/ess` with no controller** (and `/ui/ess/`) answers 404 too: t
 - Tests: `Iam051GatewayAuditScopeTests` 12 (in-memory and SQLite with a test-only DateTimeOffset converter; the scope from the caller;
   the policy and its configuration; the three pages carry it); `Iam051GatewayAuditPostgreSqlTests` 2/2 on Testcontainers (three agencies,
   rows with no agency, migrated schema); `GatewayAuditQueryServiceTests` pass the platform scope.
+
+## P4 summary (Finished (UTC): 2026-11-12T00:46:32Z)
+
+- **The filter** (`HrModuleAuthorizationFilter(module, write)`): no name list; override or module policy; then the module's write policy on a
+  POST/PUT/PATCH/DELETE that names no policy of its own. `AddHrModuleAuthorizeFilter(module, write)` in the 13 `Program.cs` that use the
+  filter (File.Storage has none: decision 8).
+- **Overrides** on the 0.7 controllers (class policy they already carry) and on `WorkflowExternalInstances` (`Workflow.ExternalStart`).
+- **Policies**: `{Module}.Write`/`{Module}.Approve` for every module through `RolesPolicy` (today's roles by default; HR.Contracts' write
+  = admin, hr-contracts); `HrContracts.Approve`, `HrMovements.Write`, `HrHealth.Clinical`, `Payroll.Post`, `Payroll.Reverse` moved onto
+  `RolesPolicy` (D-IAM-4 applies); `HrCore.Decision` (decision 3); `Compliance.Dsar` and `Platform.Operator` (decision 4);
+  `HrCore.BranchOperation` deleted (no user; `wf043-validate` now refuses it).
+- **Writes**: 307 action attributes by a Roslyn tool (scratchpad `policytool`; every row placed exactly once), the five HR.Core decisions
+  on `HrCore.Decision`, roles-only writes named, `Culture.SetCulture` on `Gateway.Authenticated`, HR.Contracts' controllers name
+  `Module.HrContracts` for reads, interventions and analytics reconcile on their write policy. Sensitive: 36 on `{Module}.Approve` (+ the
+  five HR.Core decisions); HR.Core `Signatures.Verify`/`ExportJobs.Cancel` on `HrCore.ReadOnly`; other services' `ExportJobs.Cancel` on the
+  module policy.
+- **HR.Movements**: the twelve entity bindings replaced by view models (`Models/MovementForms.cs`: only the fields each form posts, the
+  entity's validation, `ToEntity()` for a failed form).
+- **D-IAM-4**: `Authorization:AdminExcludedPolicies` in HR.Health and Payroll Production and Staging (HR.Health's Staging file is new) and
+  the prod-like mirror; off when `Deployment:Mode=demo`.
+- **Lists**: write lists only `payroll.txt` (16, PLAN-53); sensitive list gone (0); entity lists without HR.Movements (113 IAM-F rows in 9
+  services); `CeilingList.Owners` = PLAN-53, IAM-F; ceilings lowered. HR.Core's old list and `HrCorePostActionsHaveExplicitPolicyTests`
+  deleted (`hcm025-validate` refuses their return and checks PLAN-25's rule in the new test).
+- **Tests**: `Iam051ModuleFilterAndPoliciesTests` (filter, D-51-2, D-IAM-4 from the real Production/Staging/Development files and the
+  prod-like compose, demo mode); `Iam051DirectServiceWriteTests` (in-process HR.Core: the 40 former writes 403 for
+  hr-employee+hr-core-supervisory and pass for hr-core, the 2 reads on ReadOnly; every `api/internal` route 403 for a user holding every
+  role). Adapted (P-9): Hcm028/Hcm031/Wf045 filter tests use the real controller attributes; Sec001 checks the named policy;
+  FineGrainedPolicyTests, Wf043/Wf045 policy lists, GatewayPath branch-manager test on `Workflow.StepAction`.
+- Results: unit 6262/6262; architecture 128/128; integration without Testcontainers 371 passed, 4 skipped; iam050, wf043, hcm025, pol047,
+  pol049, int037 validate PASS; full `dotnet format` on the changed files clean (37 s).
+
+Decisions:
+6. **`Iam050MovementApprovalPolicyTests.The_override_never_sits_on_a_write_action`** forbade a class-level override in five assemblies;
+   P-6 requires class-level overrides on the controllers of the name list. The movement controllers still may not carry one (unchanged);
+   elsewhere the test now requires every write under a class override to name its own policy. Deviation from P-9 ("unchanged"), recorded.
+7. **`hcm025-validate` failed on `origin/main`** (PLAN-50 renamed `GetBlockReasonAsync` to `GetDecisionAsync`): the check accepts both.
+8. **File.Storage** never had the module filter (its writes all name policies; S2S and user routes mix), so it gets no write default; its
+   list is empty and pinned at 0.
+9. **Writes that named only a read policy** (found by a catalog pass): HR.Contracts and HR.Movements `ProcessInterventions.Cancel/Resume`,
+   Dev.Analytics `Reconcile` and `InjectDrift` now name their write policy; the rest are reads (exports, lookups, evaluate, verify,
+   cancel own export, self-service, culture).

@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using HR.Training.Domain.Entities;
 using HR.Training.Infrastructure.Data;
 using Microsoft.AspNetCore.Mvc;
@@ -17,6 +19,7 @@ public class ELearningCoursesController(TrainingDbContext db) : Controller
 
     public IActionResult Create() => View(new ELearningCourse());
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(ELearningCourse model)
@@ -35,6 +38,7 @@ public class ELearningCoursesController(TrainingDbContext db) : Controller
         return View(course);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, ELearningCourse model)
@@ -65,6 +69,7 @@ public class ELearningCoursesController(TrainingDbContext db) : Controller
         return View(course);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddModule(Guid courseId, int order, string title)
@@ -82,6 +87,7 @@ public class ELearningCoursesController(TrainingDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id = courseId });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddLesson(Guid courseId, Guid moduleId, int order, string title, string? content, Guid? contentFileId, string? externalResourceUrl)
@@ -99,6 +105,7 @@ public class ELearningCoursesController(TrainingDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id = courseId });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> TogglePublish(Guid id)
@@ -111,6 +118,7 @@ public class ELearningCoursesController(TrainingDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrTrainingWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

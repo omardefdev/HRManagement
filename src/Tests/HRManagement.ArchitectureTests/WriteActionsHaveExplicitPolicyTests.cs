@@ -14,22 +14,23 @@ public sealed class WriteActionsHaveExplicitPolicyTests
     /// <summary>The most rows each list may hold. Lower a ceiling when its list shrinks; never raise one.</summary>
     public static readonly IReadOnlyDictionary<string, int> Ceilings = new Dictionary<string, int>(StringComparer.Ordinal)
     {
-        ["hr-core"] = 42,
-        ["hr-contracts"] = 41,
+        // PLAN-51 (P-6): every list is empty except Payroll's, which PLAN-53 empties with its sixteen policies.
+        ["hr-core"] = 0,
+        ["hr-contracts"] = 0,
         ["payroll"] = 16,
-        ["hr-movements"] = 8,
-        ["hr-training"] = 30,
-        ["hr-health"] = 24,
-        ["compliance"] = 36,
-        ["idcard"] = 27,
-        ["admin-logistics"] = 30,
-        ["it-infra"] = 25,
-        ["records-archive"] = 24,
-        ["dev-analytics"] = 17,
-        ["auth-directory"] = 7,
+        ["hr-movements"] = 0,
+        ["hr-training"] = 0,
+        ["hr-health"] = 0,
+        ["compliance"] = 0,
+        ["idcard"] = 0,
+        ["admin-logistics"] = 0,
+        ["it-infra"] = 0,
+        ["records-archive"] = 0,
+        ["dev-analytics"] = 0,
+        ["auth-directory"] = 0,
         ["file-storage"] = 0,
-        ["gateway"] = 5,
-        ["shared"] = 1,
+        ["gateway"] = 0,
+        ["shared"] = 0,
     };
 
     /// <summary>PLAN-25 (G-15): recruitment controllers may never be listed.</summary>

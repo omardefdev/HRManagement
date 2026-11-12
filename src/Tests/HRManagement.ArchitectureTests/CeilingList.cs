@@ -9,8 +9,9 @@ namespace HRManagement.ArchitectureTests;
 /// </summary>
 public sealed class CeilingList
 {
-    /// <summary>The plans that may own a row. PLAN-51 owns the rows seeded in its P1 until its P4 empties them, and then leaves this list.</summary>
-    public static readonly IReadOnlyList<string> Owners = ["PLAN-51", "PLAN-53", "IAM-F"];
+    /// <summary>The plans that may own a row: PLAN-53 (Payroll's writes) and wave 2 IAM-F (the entity bindings outside HR.Movements). PLAN-51
+    /// owned the rows its P1 seeded until its P4 emptied them.</summary>
+    public static readonly IReadOnlyList<string> Owners = ["PLAN-53", "IAM-F"];
 
     private CeilingList(string relativePath, IReadOnlyDictionary<string, string> rows, IReadOnlyList<string> malformed)
     {

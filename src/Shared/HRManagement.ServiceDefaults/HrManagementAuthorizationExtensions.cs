@@ -33,9 +33,8 @@ public static class HrManagementAuthorizationExtensions
                 c.User.IsInRole(HrManagementRoles.Admin)
                 || c.User.IsInRole(HrManagementRoles.HrHealth)
                 || c.User.IsInRole(HrManagementRoles.HrHealthClinical)));
-            options.AddPolicy(HrManagementPolicies.HrHealthClinical, p => p.RequireAssertion(c =>
-                c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.HrHealthClinical)));
+            // PLAN-51 (D-IAM-4): roles from configuration, so Authorization:AdminExcludedPolicies can drop hr-admin outside demo mode.
+            options.RolesPolicy(HrManagementPolicies.HrHealthClinical, HrManagementRoles.Admin, HrManagementRoles.HrHealthClinical);
             AddModulePolicy(options, HrManagementPolicies.ModuleHrMovements, HrManagementRoles.HrMovements);
             AddModulePolicy(options, HrManagementPolicies.ModuleHrTraining, HrManagementRoles.HrTraining);
             AddModulePolicy(options, HrManagementPolicies.ModulePayroll, HrManagementRoles.Payroll);
@@ -134,13 +133,7 @@ public static class HrManagementAuthorizationExtensions
             options.AddPolicy(HrManagementPolicies.TenantQuarantineReconcile, p => p.RequireRole(
                 HrManagementRoles.PlatformAdmin));
 
-            // PLAN-43 (G-WF-05): every user of this policy approves or rejects a step, which no service account does.
-            options.AddPolicy(HrManagementPolicies.HrCoreBranchOperation, p => p.RequireAssertion(c =>
-                !ServiceCallerPrincipal.IsServiceAccount(c.User)
-                && (c.User.IsInRole(HrManagementRoles.Admin)
-                    || c.User.IsInRole(HrManagementRoles.HrCore)
-                    || c.User.IsInRole(HrManagementRoles.BranchManager)
-                    || c.User.IsInRole(HrManagementRoles.HrManagementApprover))));
+            // PLAN-51: HrCore.BranchOperation is gone; PLAN-50 moved its last actions to Workflow.StepAction.
 
             // HCM-028 (PLAN-25 slice): the compliance reviewer reaches HR.Core only for recruitment appeals.
             options.AddPolicy(HrManagementPolicies.HrCoreAppealReview, p => p.RequireAssertion(c =>
@@ -175,10 +168,37 @@ public static class HrManagementAuthorizationExtensions
             options.RolesPolicyAt(HrManagementPolicies.GatewayAudit, "Gateway:Audit:Roles",
                 HrManagementRoles.PlatformAdmin, HrManagementRoles.Auditor, HrManagementRoles.Compliance);
 
-            // HR.Contracts fine-grained: approve leave/advance/separation
-            options.AddPolicy(HrManagementPolicies.HrContractsApprove, p => p.RequireAssertion(c =>
-                c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.HrContracts)));
+            // HR.Contracts fine-grained: approve leave/advance/separation. PLAN-51 (D-51-2): roles from configuration, today's by default.
+            options.RolesPolicy(HrManagementPolicies.HrContractsApprove, HrManagementRoles.Admin, HrManagementRoles.HrContracts);
+
+            // PLAN-51 (§4, D-51-2): the write and approval policy of each module. Defaults = today's roles of the module (HR.Contracts:
+            // its writer, not the management approver who reads it).
+            options.RolesPolicy(HrManagementPolicies.HrCoreDecision, HrManagementRoles.Admin, HrManagementRoles.HrCore);
+            options.RolesPolicy(HrManagementPolicies.HrContractsWrite, HrManagementRoles.Admin, HrManagementRoles.HrContracts);
+            options.RolesPolicy(HrManagementPolicies.PayrollWrite, HrManagementRoles.Admin, HrManagementRoles.Payroll);
+            options.RolesPolicy(HrManagementPolicies.HrMovementsApprove, HrManagementRoles.Admin, HrManagementRoles.HrMovements);
+            options.RolesPolicy(HrManagementPolicies.HrTrainingWrite, HrManagementRoles.Admin, HrManagementRoles.HrTraining);
+            options.RolesPolicy(HrManagementPolicies.HrTrainingApprove, HrManagementRoles.Admin, HrManagementRoles.HrTraining);
+            options.RolesPolicy(HrManagementPolicies.HrHealthWrite, HrManagementRoles.Admin, HrManagementRoles.HrHealth, HrManagementRoles.HrHealthClinical);
+            options.RolesPolicy(HrManagementPolicies.HrHealthApprove, HrManagementRoles.Admin, HrManagementRoles.HrHealth, HrManagementRoles.HrHealthClinical);
+            options.RolesPolicy(HrManagementPolicies.ComplianceWrite, HrManagementRoles.Admin, HrManagementRoles.Compliance);
+            options.RolesPolicy(HrManagementPolicies.ComplianceApprove, HrManagementRoles.Admin, HrManagementRoles.Compliance);
+            options.RolesPolicy(HrManagementPolicies.IdCardWrite, HrManagementRoles.Admin, HrManagementRoles.IdCard);
+            options.RolesPolicy(HrManagementPolicies.IdCardApprove, HrManagementRoles.Admin, HrManagementRoles.IdCard);
+            options.RolesPolicy(HrManagementPolicies.AdminLogisticsWrite, HrManagementRoles.Admin, HrManagementRoles.AdminLogistics);
+            options.RolesPolicy(HrManagementPolicies.AdminLogisticsApprove, HrManagementRoles.Admin, HrManagementRoles.AdminLogistics);
+            options.RolesPolicy(HrManagementPolicies.ItInfraWrite, HrManagementRoles.Admin, HrManagementRoles.ItInfra);
+            options.RolesPolicy(HrManagementPolicies.ItInfraApprove, HrManagementRoles.Admin, HrManagementRoles.ItInfra);
+            options.RolesPolicy(HrManagementPolicies.RecordsArchiveWrite, HrManagementRoles.Admin, HrManagementRoles.RecordsArchive);
+            options.RolesPolicy(HrManagementPolicies.RecordsArchiveApprove, HrManagementRoles.Admin, HrManagementRoles.RecordsArchive);
+            options.RolesPolicy(HrManagementPolicies.DevAnalyticsWrite, HrManagementRoles.Admin, HrManagementRoles.DevAnalytics, HrManagementRoles.PlatformAdmin);
+            options.RolesPolicy(HrManagementPolicies.DevAnalyticsApprove, HrManagementRoles.Admin, HrManagementRoles.DevAnalytics, HrManagementRoles.PlatformAdmin);
+            options.RolesPolicy(HrManagementPolicies.AuthDirectoryWrite, HrManagementRoles.Admin, HrManagementRoles.AuthDirectory);
+            options.RolesPolicy(HrManagementPolicies.AuthDirectoryApprove, HrManagementRoles.Admin, HrManagementRoles.AuthDirectory);
+
+            // PLAN-51 (decision 4): the roles-only writes, named with the same roles.
+            options.RolesPolicy(HrManagementPolicies.ComplianceDsar, HrManagementRoles.Compliance, HrManagementRoles.PlatformAdmin);
+            options.RolesPolicy(HrManagementPolicies.PlatformOperator, HrManagementRoles.PlatformAdmin);
 
             // The base payroll role grants module access only. Operational roles are deliberately
             // separate so a processor cannot approve or post the same run.
@@ -190,14 +210,10 @@ public static class HrManagementAuthorizationExtensions
                 c.User.IsInRole(HrManagementRoles.Admin)
                 || c.User.IsInRole(HrManagementRoles.PayrollApprover)));
 
-            options.AddPolicy(HrManagementPolicies.PayrollPost, p => p.RequireAssertion(c =>
-                c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.PayrollPoster)));
-
-            options.AddPolicy(HrManagementPolicies.PayrollReverse, p => p.RequireAssertion(c =>
-                c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.PayrollPoster)
-                || c.User.IsInRole(HrManagementRoles.PayrollReverser)));
+            // PLAN-51 (D-IAM-4): roles from configuration, so Authorization:AdminExcludedPolicies can drop hr-admin outside demo mode.
+            options.RolesPolicy(HrManagementPolicies.PayrollPost, HrManagementRoles.Admin, HrManagementRoles.PayrollPoster);
+            options.RolesPolicy(HrManagementPolicies.PayrollReverse,
+                HrManagementRoles.Admin, HrManagementRoles.PayrollPoster, HrManagementRoles.PayrollReverser);
 
             // PLAN-50 (§5, rule 3): or an active delegate of hr-management-approver for the action's entity type. With no lookup registered
             // (the gateway, HR.Contracts' HireWizard.Step3Approve) it is the two roles only.
@@ -211,9 +227,7 @@ public static class HrManagementAuthorizationExtensions
                 new Delegation.RoleOrDelegationRequirement(
                     [HrManagementRoles.Admin, HrManagementRoles.HrMovements, HrManagementRoles.HrManagementApprover],
                     HrManagementRoles.HrManagementApprover)));
-            options.AddPolicy(HrManagementPolicies.HrMovementsWrite, p => p.RequireAssertion(c =>
-                c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.HrMovements)));
+            options.RolesPolicy(HrManagementPolicies.HrMovementsWrite, HrManagementRoles.Admin, HrManagementRoles.HrMovements);
 
             // PLAN-50 (§4): the gateway's coarse layer for the named approval paths.
             options.AddPolicy(HrManagementPolicies.GatewayApprovalReach, p => p.AddRequirements(new GatewayApprovalReachRequirement()));
@@ -272,11 +286,14 @@ public static class HrManagementAuthorizationExtensions
                 c.User.IsInRole(HrManagementRoles.Admin) || c.User.IsInRole(moduleRole)));
     }
 
-    /// <summary>Requires the given module policy on all MVC actions (use after AddControllersWithViews).</summary>
-    public static IMvcBuilder AddHrModuleAuthorizeFilter(this IMvcBuilder mvc, string policyName)
+    /// <summary>
+    /// Requires the given module policy on all MVC actions (use after AddControllersWithViews), and PLAN-51 (§4): the module's write policy on
+    /// a POST, PUT, PATCH or DELETE whose action names no policy of its own.
+    /// </summary>
+    public static IMvcBuilder AddHrModuleAuthorizeFilter(this IMvcBuilder mvc, string policyName, string writePolicyName)
     {
         mvc.Services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(o =>
-            o.Filters.Add(new HrModuleAuthorizationFilter(policyName)));
+            o.Filters.Add(new HrModuleAuthorizationFilter(policyName, writePolicyName)));
         // PLAN-50 (§1): a ModulePolicyOverride that names an unknown policy stops the boot.
         mvc.Services.AddHostedService<ModulePolicyOverrideValidator>();
         return mvc;

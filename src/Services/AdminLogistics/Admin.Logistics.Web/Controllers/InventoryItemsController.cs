@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Admin.Logistics.Domain.Entities;
 using Admin.Logistics.Infrastructure.Data;
 using Admin.Logistics.Web.Helpers;
@@ -84,6 +85,7 @@ public class InventoryItemsController(AdminLogisticsDbContext db, ICodeGeneratio
 
     public IActionResult Create() => View(new InventoryItemFormViewModel { Quantity = 0 });
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(InventoryItemFormViewModel model)
@@ -150,6 +152,7 @@ public class InventoryItemsController(AdminLogisticsDbContext db, ICodeGeneratio
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, InventoryItemFormViewModel model)
@@ -204,6 +207,7 @@ public class InventoryItemsController(AdminLogisticsDbContext db, ICodeGeneratio
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

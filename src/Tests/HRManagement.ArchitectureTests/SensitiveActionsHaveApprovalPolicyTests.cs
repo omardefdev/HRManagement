@@ -11,7 +11,7 @@ public sealed class SensitiveActionsHaveApprovalPolicyTests
     public const string ListPath = "tests/architecture/sensitive-actions-allowlist.txt";
 
     /// <summary>The most rows the list may hold. Lower it when the list shrinks; never raise it.</summary>
-    public const int Ceiling = 39;
+    public const int Ceiling = 0;
 
     public static readonly IReadOnlySet<string> ExactNames = new HashSet<string>(
         ["Approve", "Reject", "Revoke", "UrgentRevoke", "Post", "Reverse", "Finalize", "Rebuild", "Run"], StringComparer.Ordinal);

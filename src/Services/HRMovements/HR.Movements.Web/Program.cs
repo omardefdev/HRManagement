@@ -16,7 +16,7 @@ builder.AddHrOpenTelemetry();
 builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrMovements);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrMovements, HrManagementPolicies.HrMovementsWrite);
 builder.Services.AddHrOpenApi("HR.Movements API");
 
 builder.Services.AddHttpContextAccessor();

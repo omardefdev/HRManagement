@@ -22,7 +22,7 @@ builder.Services.AddHrDsarDeletion(builder.Configuration);
 builder.Services.AddComplianceDsarCollector(builder.Configuration);
 
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleCompliance);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleCompliance, HrManagementPolicies.ComplianceWrite);
 builder.Services.AddHrOpenApi("Compliance API");
 
 builder.Services.AddHttpContextAccessor();

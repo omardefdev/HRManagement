@@ -269,7 +269,7 @@ public class GatewayPathAuthorizationMiddlewareTests
         var authorization = ctx.RequestServices.GetRequiredService<IAuthorizationService>();
 
         var operational = await authorization.AuthorizeAsync(
-            ctx.User, resource: null, HrManagementPolicies.HrCoreBranchOperation);
+            ctx.User, resource: null, HrManagementPolicies.WorkflowStepAction);
         var publish = await authorization.AuthorizeAsync(
             ctx.User, resource: null, HrManagementPolicies.HrCoreApprove);
 

@@ -278,7 +278,7 @@ public sealed class Wf045ExternalApprovalGateTests
     [InlineData(HrManagementPolicies.HrCoreReadOnly, false)]
     [InlineData(HrManagementPolicies.HrCoreWrite, false)]
     [InlineData(HrManagementPolicies.HrCoreApprove, false)]
-    [InlineData(HrManagementPolicies.HrCoreBranchOperation, false)]
+    [InlineData(HrManagementPolicies.HrCoreDecision, false)]
     public async Task The_logistics_role_reaches_two_policies_of_hr_core_and_no_other(string policy, bool allowed) =>
         Assert.Equal(allowed, (await Authorization().AuthorizeAsync(User(HrManagementRoles.AdminLogistics), policy)).Succeeded);
 

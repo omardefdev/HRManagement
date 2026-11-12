@@ -5,6 +5,7 @@ using HR.Movements.Domain.Services;
 using HR.Movements.Infrastructure.Data;
 using HR.Movements.Infrastructure.Messaging;
 using HR.Movements.Infrastructure.Services;
+using HR.Movements.Web.Models;
 using HRManagement.MessageContracts.Commands;
 using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
@@ -26,10 +27,12 @@ public class MovementNoticesController(MovementsDbContext db) : Controller
 
     public IActionResult Create() => View(new MovementNotice { IssueDate = DateOnly.FromDateTime(DateTime.UtcNow) });
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(MovementNotice model)
+    public async Task<IActionResult> Create(MovementNoticeForm form)
     {
+        var model = form.ToEntity();
         if (!ModelState.IsValid) return View(model);
         model.IssuedBy = ServerAssignedIdentity.ResolveActorEmployeeId(User);
         db.MovementNotices.Add(model);
@@ -52,14 +55,15 @@ public class MovementNoticesController(MovementsDbContext db) : Controller
         return View(n);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(Guid id, MovementNotice model)
+    public async Task<IActionResult> Edit(Guid id, MovementNoticeForm model)
     {
         if (id != model.Id) return BadRequest();
         var n = await db.MovementNotices.FindAsync(id);
         if (n == null) return NotFound();
-        if (!ModelState.IsValid) return View(model);
+        if (!ModelState.IsValid) return View(model.ToEntity(id));
         n.Title = model.Title;
         n.IssueDate = model.IssueDate;
         n.Period = model.Period;
@@ -69,6 +73,7 @@ public class MovementNoticesController(MovementsDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Generate(DateOnly from, DateOnly to)
@@ -137,10 +142,12 @@ public class DistributionPlansController(MovementsDbContext db) : Controller
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(DistributionPlan model)
+    public async Task<IActionResult> Create(DistributionPlanForm form)
     {
+        var model = form.ToEntity();
         if (!ModelState.IsValid)
         {
             ViewBag.TransferRequests = new SelectList(await db.TransferRequests.AsNoTracking().Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "EmployeeId");
@@ -178,9 +185,10 @@ public class DistributionPlansController(MovementsDbContext db) : Controller
         return View(p);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(Guid id, DistributionPlan model)
+    public async Task<IActionResult> Edit(Guid id, DistributionPlanForm model)
     {
         if (id != model.Id) return BadRequest();
         var p = await db.DistributionPlans.FindAsync(id);
@@ -195,7 +203,7 @@ public class DistributionPlansController(MovementsDbContext db) : Controller
         if (!ModelState.IsValid)
         {
             ViewBag.TransferRequests = new SelectList(await db.TransferRequests.AsNoTracking().Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "EmployeeId", model.TransferRequestId);
-            return View(model);
+            return View(model.ToEntity(id));
         }
         p.OrgUnitId = model.OrgUnitId;
         p.EffectiveDate = model.EffectiveDate;
@@ -219,11 +227,13 @@ public class DistributionPlansController(MovementsDbContext db) : Controller
         return View(result);
     }
 
+    [Authorize(Policy = HrManagementPolicies.ModuleHrMovements)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult GapAnalysis(Guid id, int actualHeadcount) =>
         RedirectToAction(nameof(GapAnalysis), new { id, actualHeadcount });
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Approve(Guid id)
@@ -275,8 +285,9 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
-    public async Task<IActionResult> Create(SecondmentRequest model)
+    public async Task<IActionResult> Create(SecondmentRequestForm form)
     {
+        var model = form.ToEntity();
         if (!ModelState.IsValid) return View(model);
         // PLAN-50: always the authenticated caller (as for transfers): a client-supplied value would skew the creator check of the approval.
         model.RequestedBy = ParseUserId(User);
@@ -327,7 +338,7 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
-    public async Task<IActionResult> Edit(Guid id, SecondmentRequest model)
+    public async Task<IActionResult> Edit(Guid id, SecondmentRequestForm model)
     {
         if (id != model.Id) return BadRequest();
         var s = await db.SecondmentRequests.FindAsync(id);
@@ -337,7 +348,7 @@ public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoin
             TempData["Error"] = "لا يمكن تعديل طلب غير معلّق";
             return RedirectToAction(nameof(Details), new { id });
         }
-        if (!ModelState.IsValid) return View(model);
+        if (!ModelState.IsValid) return View(model.ToEntity(id));
         s.EmployeeId = model.EmployeeId;
         s.HostOrg = model.HostOrg;
         s.StartDate = model.StartDate;
@@ -618,10 +629,12 @@ public class TransferFinancialImpactsController(MovementsDbContext db) : Control
         return View(new TransferFinancialImpact { CalculatedAt = DateTime.UtcNow });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(TransferFinancialImpact model)
+    public async Task<IActionResult> Create(TransferFinancialImpactForm form)
     {
+        var model = form.ToEntity();
         if (!ModelState.IsValid)
         {
             ViewBag.TransferRequests = new SelectList(await db.TransferRequests.AsNoTracking().Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "EmployeeId");
@@ -702,8 +715,9 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
-    public async Task<IActionResult> Create(LoanAssignmentRequest model)
+    public async Task<IActionResult> Create(LoanAssignmentRequestForm form)
     {
+        var model = form.ToEntity();
         if (!ModelState.IsValid) return View(model);
         if (await EnsureOrgIdsAssignableAsync(model.LendingOrgUnitId, model.BorrowingOrgUnitId) is { } denied) return denied;
         // PLAN-50: always the authenticated caller (as for transfers): a client-supplied value would skew the creator check of the approval.
@@ -1008,8 +1022,9 @@ public class PromotionRequestsController(
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
-    public async Task<IActionResult> Create(PromotionRequest model)
+    public async Task<IActionResult> Create(PromotionRequestForm form)
     {
+        var model = form.ToEntity();
         var regimes = await activeRegimeClient.GetActiveRegimesAsync([model.EmployeeId]);
         model.SourceLegalRegimeId = regimes.FirstOrDefault()?.LegalRegimeId;
 
@@ -1197,8 +1212,9 @@ public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoin
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrMovementsWrite)]
-    public async Task<IActionResult> Create(DelegationRequest model)
+    public async Task<IActionResult> Create(DelegationRequestForm form)
     {
+        var model = form.ToEntity();
         var regimeError = MovementRegimeValidationService.ValidatePreservingMovement("delegation", null);
         if (regimeError is not null)
             ModelState.AddModelError(string.Empty, regimeError);

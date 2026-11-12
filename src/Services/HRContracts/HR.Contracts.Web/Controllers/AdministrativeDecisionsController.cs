@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
 using HR.Contracts.Application.Features.AdministrativeDecisions;
@@ -22,6 +23,8 @@ namespace HR.Contracts.Web.Controllers;
 
 
 
+// PLAN-51 (§4, P-6): reads name the module policy (the management approver reads HR.Contracts); every write names HrContracts.Write or HrContracts.Approve.
+[Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
 public class AdministrativeDecisionsController : Controller
 
 {
@@ -83,6 +86,7 @@ public class AdministrativeDecisionsController : Controller
 
 
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
 
     [ValidateAntiForgeryToken]
@@ -152,6 +156,7 @@ public class AdministrativeDecisionsController : Controller
 
 
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
 
     [ValidateAntiForgeryToken]
@@ -210,6 +215,7 @@ public class AdministrativeDecisionsController : Controller
 
 
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost]
 
     [ValidateAntiForgeryToken]

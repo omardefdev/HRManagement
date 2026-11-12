@@ -11,7 +11,8 @@ namespace HRManagement.Gateway.Controllers;
 
 [ApiController]
 [Route("api/platform")]
-[Authorize(Roles = HrManagementRoles.PlatformAdmin)]
+// PLAN-51 (decision 4): platform-admin, named.
+[Authorize(Policy = HrManagementPolicies.PlatformOperator)]
 public sealed class PlatformTenantController(
     IPlatformTenantSessionStore sessionStore,
     ISecurityAuditPublisher securityAudit) : ControllerBase

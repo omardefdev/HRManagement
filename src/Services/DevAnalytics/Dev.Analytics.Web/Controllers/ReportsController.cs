@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using Dev.Analytics.Domain.Entities;
 using Dev.Analytics.Domain.Enums;
 using Dev.Analytics.Infrastructure.Data;
@@ -21,6 +23,7 @@ public class ReportsController(AnalyticsDbContext db) : Controller
 
     public IActionResult Create() => View(new Report { ReportType = ReportType.AdHoc });
 
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(Report model)
@@ -39,6 +42,7 @@ public class ReportsController(AnalyticsDbContext db) : Controller
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.DevAnalyticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, Report model)

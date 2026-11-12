@@ -34,7 +34,8 @@ namespace Compliance.Web.Controllers;
 
 [Route("api/dsar")]
 
-[Authorize(Roles = $"{HrManagementRoles.Compliance},{HrManagementRoles.PlatformAdmin}")]
+// PLAN-51 (decision 4): the same roles (compliance, platform-admin), named.
+[Authorize(Policy = HrManagementPolicies.ComplianceDsar)]
 
 public sealed class DsarRequestsController(
 

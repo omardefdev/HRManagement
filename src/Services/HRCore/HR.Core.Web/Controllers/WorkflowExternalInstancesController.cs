@@ -20,6 +20,9 @@ namespace HR.Core.Web.Controllers;
 [Route("api/workflow-instances")]
 [Authorize(Policy = HrManagementPolicies.WorkflowExternalStart)]
 [ValidateAntiForgeryToken]
+// PLAN-51 (inventory 0.5): the module filter applies the class policy here, so the owning services no longer lean on Module.HrCore's
+// hr-core.workflow branch.
+[ModulePolicyOverride(HrManagementPolicies.WorkflowExternalStart)]
 public sealed class WorkflowExternalInstancesController(ExternalApprovalService approvals) : ControllerBase
 {
     [HttpPost]

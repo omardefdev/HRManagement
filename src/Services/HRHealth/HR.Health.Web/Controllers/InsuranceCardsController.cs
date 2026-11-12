@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using HR.Health.Domain.Entities;
 using HR.Health.Domain.Enums;
 using HR.Health.Domain.Services;
@@ -30,6 +32,7 @@ public class InsuranceCardsController(HealthDbContext db, ILogger<InsuranceCards
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(InsuranceCard model)
@@ -62,6 +65,7 @@ public class InsuranceCardsController(HealthDbContext db, ILogger<InsuranceCards
         return View(card);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, InsuranceCard model)
@@ -89,6 +93,7 @@ public class InsuranceCardsController(HealthDbContext db, ILogger<InsuranceCards
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Activate(Guid id)
@@ -106,6 +111,7 @@ public class InsuranceCardsController(HealthDbContext db, ILogger<InsuranceCards
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Suspend(Guid id)
@@ -123,6 +129,7 @@ public class InsuranceCardsController(HealthDbContext db, ILogger<InsuranceCards
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Revoke(Guid id, string? reason)
@@ -141,6 +148,7 @@ public class InsuranceCardsController(HealthDbContext db, ILogger<InsuranceCards
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkExpired(Guid id)
@@ -159,6 +167,7 @@ public class InsuranceCardsController(HealthDbContext db, ILogger<InsuranceCards
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrHealthWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(Guid id, string? reason)

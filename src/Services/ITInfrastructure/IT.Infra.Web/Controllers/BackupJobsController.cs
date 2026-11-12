@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using IT.Infrastructure.Domain.Entities;
 using IT.Infrastructure.Domain.Enums;
 using IT.Infra.Infrastructure.Data;
@@ -22,6 +24,7 @@ public class BackupJobsController(ITInfraDbContext db, IConfiguration configurat
 
     public IActionResult Create() => View(new BackupJob { Status = BackupStatus.Ok });
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(BackupJob model)
@@ -40,6 +43,7 @@ public class BackupJobsController(ITInfraDbContext db, IConfiguration configurat
         return View(e);
     }
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, BackupJob model)
@@ -61,6 +65,7 @@ public class BackupJobsController(ITInfraDbContext db, IConfiguration configurat
     /// OPS-003: sync status from backup-catalog.jsonl written by Cron/scripts.
     /// Does not execute pg_dump inside the web process (least privilege / security).
     /// </summary>
+    [Authorize(Policy = HrManagementPolicies.ItInfraApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Run(Guid id)
@@ -130,6 +135,7 @@ public class BackupJobsController(ITInfraDbContext db, IConfiguration configurat
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.ItInfraApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

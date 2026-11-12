@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using HR.Contracts.Application.Abstractions;
 using HR.Contracts.Application.Features.Lookup;
@@ -16,6 +18,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Contracts.Web.Controllers;
 
+// PLAN-51 (§4, P-6): reads name the module policy (the management approver reads HR.Contracts); every write names HrContracts.Write or HrContracts.Approve.
+[Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
 public class SeparationWizardController : Controller
 {
     private readonly IContractsRepository _repo;
@@ -54,6 +58,7 @@ public class SeparationWizardController : Controller
         return View(vm);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Step1(SeparationRecordCreateViewModel vm)
     {
@@ -113,6 +118,7 @@ public class SeparationWizardController : Controller
         return View(record);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Step2CompleteStep(Guid id, HR.Contracts.Domain.Enums.SeparationStep step, string? note)
     {
@@ -132,6 +138,7 @@ public class SeparationWizardController : Controller
         return RedirectToAction(nameof(Step2), new { id });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Step2Confirm(Guid id)
     {
@@ -161,6 +168,7 @@ public class SeparationWizardController : Controller
         return View(record);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost, ValidateAntiForgeryToken]
     public async Task<IActionResult> Step3Execute(Guid id)
     {

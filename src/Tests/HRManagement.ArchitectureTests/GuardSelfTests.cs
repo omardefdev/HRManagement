@@ -135,7 +135,7 @@ public sealed class GuardSelfTests
     public sealed class ActionRouteInternalController : ControllerBase
     {
         [HttpPost("api/internal/sample/y")]
-        [Authorize(Policy = HrManagementPolicies.HrCoreBranchOperation)]
+        [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
         public IActionResult Post() => Ok();
     }
 

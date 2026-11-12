@@ -21,6 +21,8 @@ namespace HR.Core.Web.Controllers;
 /// compliance-only user reaches it (and sees only the appeals assigned to their employee).
 /// </summary>
 [Authorize(Policy = HrManagementPolicies.HrCoreAppealReview)]
+// PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
+[ModulePolicyOverride(HrManagementPolicies.HrCoreAppealReview)]
 public class RecruitmentAppealsController(
     HRCoreDbContext db,
     RecruitmentAppealService appealService,

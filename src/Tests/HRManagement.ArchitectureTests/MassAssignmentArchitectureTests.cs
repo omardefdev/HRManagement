@@ -20,7 +20,8 @@ public sealed class MassAssignmentArchitectureTests
     /// <summary>The most rows each list may hold. Lower a ceiling when its list shrinks; never raise one.</summary>
     public static readonly IReadOnlyDictionary<string, int> Ceilings = new Dictionary<string, int>(StringComparer.Ordinal)
     {
-        ["hr-movements"] = 12,
+        // PLAN-51 (P-8): HR.Movements binds view models; the rest is wave 2 (IAM-F, G-IAM-10).
+        ["hr-movements"] = 0,
         ["hr-health"] = 20,
         ["payroll"] = 16,
         ["hr-training"] = 14,

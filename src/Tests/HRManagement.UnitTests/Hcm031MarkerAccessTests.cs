@@ -70,9 +70,12 @@ public sealed class Hcm031MarkerAccessTests
         var httpContext = new DefaultHttpContext { RequestServices = services, User = User(null, null, HrManagementRoles.HrExamMarker) };
         var routeData = new RouteData();
         routeData.Values["controller"] = controller;
-        var context = new AuthorizationFilterContext(new ActionContext(httpContext, routeData, new ActionDescriptor { EndpointMetadata = [] }), []);
+        // PLAN-51: no name list; the real controller's attributes (its override among them) decide.
+        var metadata = typeof(HR.Core.Web.Controllers.ExamMarkingController).Assembly.GetType($"HR.Core.Web.Controllers.{controller}Controller")?
+            .GetCustomAttributes(true).ToList() ?? [];
+        var context = new AuthorizationFilterContext(new ActionContext(httpContext, routeData, new ActionDescriptor { EndpointMetadata = metadata }), []);
 
-        await new HrModuleAuthorizationFilter(HrManagementPolicies.ModuleHrCore).OnAuthorizationAsync(context);
+        await new HrModuleAuthorizationFilter(HrManagementPolicies.ModuleHrCore, HrManagementPolicies.HrCoreWrite).OnAuthorizationAsync(context);
 
         if (admitted)
             Assert.Null(context.Result);

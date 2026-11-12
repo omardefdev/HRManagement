@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using Auth.Directory.Domain.Entities;
 using Auth.Directory.Infrastructure.Data;
@@ -62,6 +64,7 @@ public class AuthUsersController : Controller
         return View(user);
     }
 
+    [Authorize(Policy = HrManagementPolicies.AuthDirectoryApprove)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, bool isActive, Guid[] selectedRoles, string? secondApproverId)
@@ -264,6 +267,7 @@ public class AuthUsersController : Controller
         }
     }
 
+    [Authorize(Policy = HrManagementPolicies.AuthDirectoryWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SyncFromKeycloak(Guid id, CancellationToken cancellationToken)

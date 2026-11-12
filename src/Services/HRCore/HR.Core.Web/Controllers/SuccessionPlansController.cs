@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
@@ -42,6 +44,7 @@ public class SuccessionPlansController(HRCoreDbContext db) : Controller
         return View(new SuccessionPlanCreateViewModel());
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(SuccessionPlanCreateViewModel vm)
@@ -75,6 +78,7 @@ public class SuccessionPlansController(HRCoreDbContext db) : Controller
         return View(plan);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddCandidate(Guid successionPlanId, Guid employeeId, decimal? latestEvaluationScore, int yearsInService, bool meetsQualification)
@@ -104,6 +108,7 @@ public class SuccessionPlansController(HRCoreDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id = successionPlanId });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RemoveCandidate(Guid id, Guid successionPlanId)
@@ -118,6 +123,7 @@ public class SuccessionPlansController(HRCoreDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id = successionPlanId });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)

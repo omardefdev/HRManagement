@@ -20,7 +20,7 @@ builder.AddHrOpenTelemetry();
 builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrContracts);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrContracts, HrManagementPolicies.HrContractsWrite);
 builder.Services.AddHrOpenApi("HR.Contracts API");
 
 builder.Services.AddHttpContextAccessor();

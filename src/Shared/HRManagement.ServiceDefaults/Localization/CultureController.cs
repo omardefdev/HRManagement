@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,6 +13,8 @@ namespace HRManagement.ServiceDefaults.Localization;
 [Route("api/[controller]")]
 public class CultureController : ControllerBase
 {
+    // PLAN-51 (§6): a preference cookie, no data. Any signed-in user, named; in a service the module filter still applies its module policy first.
+    [Authorize(Policy = HrManagementPolicies.GatewayAuthenticated)]
     [HttpPost]
     public IActionResult SetCulture([FromQuery] string culture, [FromQuery] string? returnUrl = null)
     {

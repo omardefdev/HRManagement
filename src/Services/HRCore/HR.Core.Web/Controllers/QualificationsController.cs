@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.ViewModels;
 
@@ -96,6 +97,7 @@ public class QualificationsController : Controller
 
 
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
 
     [ValidateAntiForgeryToken]
@@ -206,6 +208,7 @@ public class QualificationsController : Controller
 
 
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
 
     [ValidateAntiForgeryToken]
@@ -270,6 +273,7 @@ public class QualificationsController : Controller
 
 
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
 
     [ValidateAntiForgeryToken]

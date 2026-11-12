@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Infrastructure.Data;
@@ -43,6 +44,7 @@ public class HrStatisticReportsController(HRCoreDbContext db) : Controller
         return View(new HrStatisticReportCreateViewModel { PeriodStart = today, PeriodEnd = today });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(HrStatisticReportCreateViewModel vm)
@@ -123,6 +125,7 @@ public class DailyAttendanceRecordsController(
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(DailyAttendanceRecordCreateViewModel vm)
@@ -161,6 +164,7 @@ public class DailyAttendanceRecordsController(
         });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, DailyAttendanceRecordEditViewModel vm)
@@ -183,6 +187,7 @@ public class DailyAttendanceRecordsController(
         return RedirectToAction(nameof(Index));
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
@@ -208,6 +213,7 @@ public class DailyAttendanceRecordsController(
         return View();
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> BulkEntry(Guid orgUnitId, string month, DailyAttendanceStatus defaultStatus)
@@ -259,6 +265,7 @@ public class DailyAttendanceRecordsController(
         return View();
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ClosePeriod(DateOnly periodStart, DateOnly periodEnd, Guid? orgUnitId)
@@ -313,6 +320,7 @@ public class FieldInspectionVisitsController(HRCoreDbContext db) : Controller
     public IActionResult Create() =>
         View(new FieldInspectionVisitCreateViewModel { VisitDate = DateOnly.FromDateTime(DateTime.UtcNow) });
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(FieldInspectionVisitCreateViewModel vm)
@@ -384,6 +392,7 @@ public class DiwanCorrespondencesController(HRCoreDbContext db, HR.Core.Infrastr
         return View(new DiwanCorrespondenceCreateViewModel { Direction = CorrespondenceDirection.Inbound });
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(DiwanCorrespondenceCreateViewModel vm)

@@ -16,7 +16,7 @@ builder.AddHrOpenTelemetry();
 builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleRecordsArchive);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleRecordsArchive, HrManagementPolicies.RecordsArchiveWrite);
 builder.Services.AddHrOpenApi("Records.Archive API");
 
 builder.Services.AddHttpContextAccessor();

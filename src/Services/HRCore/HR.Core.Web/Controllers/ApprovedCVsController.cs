@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
 using HRManagement.ServiceDefaults;
@@ -118,6 +119,7 @@ public class ApprovedCVsController : Controller
 
 
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
 
     [ValidateAntiForgeryToken]
@@ -200,6 +202,7 @@ public class ApprovedCVsController : Controller
 
 
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
 
     [ValidateAntiForgeryToken]
@@ -278,6 +281,7 @@ public class ApprovedCVsController : Controller
 
 
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
 
     [ValidateAntiForgeryToken]
@@ -339,6 +343,7 @@ public class ApprovedCVsController : Controller
 
 
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
 
     [ValidateAntiForgeryToken]

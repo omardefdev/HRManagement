@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using HR.Core.Infrastructure.Data;
 using HRManagement.ServiceDefaults.Signatures;
 using HRManagement.SharedKernel.Signatures;
@@ -35,6 +37,7 @@ public class SignaturesController(HRCoreDbContext db, ISignatureService signatur
         return View(record);
     }
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Verify(Guid id)

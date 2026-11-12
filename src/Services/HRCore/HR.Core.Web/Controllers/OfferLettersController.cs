@@ -406,7 +406,7 @@ public class OfferLettersController(
 
     [ValidateAntiForgeryToken]
 
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    [Authorize(Policy = HrManagementPolicies.HrCoreDecision)]
 
     public async Task<IActionResult> Revoke(Guid id, RevokeOfferForm form)
 

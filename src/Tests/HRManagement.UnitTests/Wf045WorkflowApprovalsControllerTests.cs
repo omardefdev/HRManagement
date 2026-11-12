@@ -230,16 +230,33 @@ public sealed class Wf045WorkflowApprovalsControllerTests
     [Fact]
     public async Task The_module_filter_lets_the_controller_decide()
     {
+        // PLAN-51: no name list; the controller's override (HrCore.WorkInbox, which admits admin-logistics) replaces the module policy.
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        Microsoft.Extensions.DependencyInjection.LoggingServiceCollectionExtensions.AddLogging(services);
+        services.AddHrManagementAuthorizationPolicies();
         var context = new AuthorizationFilterContext(
             new ActionContext(
-                new DefaultHttpContext { User = User(Officer, HrManagementRoles.AdminLogistics) },
+                new DefaultHttpContext
+                {
+                    User = User(Officer, HrManagementRoles.AdminLogistics),
+                    RequestServices = Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(services)
+                },
                 new RouteData(new RouteValueDictionary { ["controller"] = "WorkflowApprovals" }),
-                new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor()),
+                new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor
+                {
+                    EndpointMetadata = typeof(WorkflowApprovalsController).GetCustomAttributes(true).ToList()
+                }),
             []);
 
-        await new HrModuleAuthorizationFilter(HrManagementPolicies.ModuleHrCore).OnAuthorizationAsync(context);
+        await new HrModuleAuthorizationFilter(HrManagementPolicies.ModuleHrCore, HrManagementPolicies.HrCoreWrite).OnAuthorizationAsync(context);
 
         Assert.Null(context.Result);
+
+        // The module policy alone would have refused: admin-logistics holds no HR.Core module role.
+        var withoutOverride = new AuthorizationFilterContext(
+            new ActionContext(context.HttpContext, context.RouteData, new Microsoft.AspNetCore.Mvc.Abstractions.ActionDescriptor()), []);
+        await new HrModuleAuthorizationFilter(HrManagementPolicies.ModuleHrCore, HrManagementPolicies.HrCoreWrite).OnAuthorizationAsync(withoutOverride);
+        Assert.IsType<ForbidResult>(withoutOverride.Result);
     }
 
     // The inbox.

@@ -76,6 +76,9 @@ services:
     environment:
       # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
       DataProtection__RequirePersistentKeyRing: "true"
+      # PLAN-51 (D-IAM-4): mirror of appsettings.Production.json, which this Acceptance stack does not load.
+      Authorization__AdminExcludedPolicies__0: "Payroll.Post"
+      Authorization__AdminExcludedPolicies__1: "Payroll.Reverse"
 
   idcard-web:
     environment:
@@ -123,6 +126,8 @@ services:
     environment:
       # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
       DataProtection__RequirePersistentKeyRing: "true"
+      # PLAN-51 (D-IAM-4): mirror of appsettings.Production.json, which this Acceptance stack does not load.
+      Authorization__AdminExcludedPolicies__0: "HrHealth.Clinical"
 
   hr-training-web:
     environment:

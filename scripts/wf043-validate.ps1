@@ -35,7 +35,9 @@ $sources = @(Get-TrackedFiles @("src/*.cs") | Where-Object { $_ -notlike "src/Te
 
 # 1. No service account acts on a step: both step policies refuse one, the routes use them, the evaluator refuses too.
 $authorization = Read-Repo "src/Shared/HRManagement.ServiceDefaults/HrManagementAuthorizationExtensions.cs"
-foreach ($policy in @("WorkflowStepAction", "HrCoreBranchOperation", "WorkflowDefinitionAdmin")) {
+# PLAN-51: HrCore.BranchOperation is deleted (its last users moved to WorkflowStepAction in PLAN-50); it must not come back.
+if ($authorization -match "HrCoreBranchOperation") { $problems.Add("HrCore.BranchOperation is back (PLAN-51 deleted it)") }
+foreach ($policy in @("WorkflowStepAction", "WorkflowDefinitionAdmin")) {
     $body = Get-PolicyBody $authorization $policy
     if ($body -eq "") { $problems.Add("policy $policy is missing"); continue }
     if ($body -notmatch '!ServiceCallerPrincipal\.IsServiceAccount\(c\.User\)') { $problems.Add("policy $policy does not refuse a service account") }

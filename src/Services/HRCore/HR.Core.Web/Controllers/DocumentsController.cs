@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 
 using HRManagement.ServiceDefaults;
@@ -94,6 +95,7 @@ public class DocumentsController : Controller
 
 
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
 
     [ValidateAntiForgeryToken]
@@ -210,6 +212,7 @@ public class DocumentsController : Controller
 
 
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
 
     [ValidateAntiForgeryToken]
@@ -276,6 +279,7 @@ public class DocumentsController : Controller
 
 
 
+    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
 
     [ValidateAntiForgeryToken]
