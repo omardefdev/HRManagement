@@ -23,7 +23,8 @@ public interface IEstablishmentFinanceReconciliationService
         int fiscalYear,
         Guid? batchId = null,
         Guid? orgUnitId = null,
-        CancellationToken ct = default);
+        CancellationToken ct = default,
+        bool unitCostCentersOnly = false);
 }
 
 public sealed class EstablishmentFinanceReconciliationService(
@@ -34,7 +35,8 @@ public sealed class EstablishmentFinanceReconciliationService(
         int fiscalYear,
         Guid? batchId = null,
         Guid? orgUnitId = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        bool unitCostCentersOnly = false)
     {
         var batchQuery = db.FinanceBudgetImportBatches.AsNoTracking().Include(b => b.Lines).AsQueryable();
         if (batchId.HasValue)
@@ -69,6 +71,12 @@ public sealed class EstablishmentFinanceReconciliationService(
                 g => g.Key,
                 g => (Count: g.Count(), FTE: g.Sum(x => x.FTE)),
                 StringComparer.OrdinalIgnoreCase);
+
+        // PLAN-52 (P0 finding): a branch user sees the imported budget of his unit's cost centers only, not the agency's.
+        if (unitCostCentersOnly)
+            importedByCostCenter = importedByCostCenter
+                .Where(kv => actualByCostCenter.ContainsKey(kv.Key))
+                .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.OrdinalIgnoreCase);
 
         var allKeys = importedByCostCenter.Keys
             .Union(actualByCostCenter.Keys, StringComparer.OrdinalIgnoreCase)

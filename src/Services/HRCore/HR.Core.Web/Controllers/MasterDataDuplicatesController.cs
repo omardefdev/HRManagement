@@ -13,6 +13,7 @@ namespace HR.Core.Web.Controllers;
 [Authorize(Policy = HrManagementPolicies.HrCoreDelete)]
 [ApiController]
 [Route("api/master-data/duplicates")]
+[OrgScopeCentralOnly]
 public class MasterDataDuplicatesController(HRCoreDbContext db) : ControllerBase
 {
     public record OpenCaseDto(

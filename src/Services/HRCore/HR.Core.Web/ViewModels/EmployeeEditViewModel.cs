@@ -88,6 +88,7 @@ public class EmployeeEditViewModel
 
     [Display(Name = "الوحدة التنظيمية")]
 
+    [HRManagement.ServiceDefaults.NotOrgScopeKey("validated by the action: a unit outside the scope is a form error (the kept answer, §2 rule 2)")]
     public Guid? PrimaryOrgUnitId { get; set; }
 
 

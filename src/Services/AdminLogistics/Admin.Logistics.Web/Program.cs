@@ -20,7 +20,11 @@ builder.AddHrLocalization();
 
 builder.Services.AddHrQuestPdfDocuments();
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleAdminLogistics, HrManagementPolicies.AdminLogisticsWrite);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleAdminLogistics, HrManagementPolicies.AdminLogisticsWrite)
+    // PLAN-52 (§4, P-8): every controller declares its scope stance; the one filter resolves the ids of a restricted user's request.
+    .AddOrgScopeFilter<Admin.Logistics.Infrastructure.Data.AdminLogisticsDbContext>(
+        Admin.Logistics.Infrastructure.OrgScope.AdminLogisticsOrgScopeKeys.Service, Admin.Logistics.Infrastructure.OrgScope.AdminLogisticsOrgScopeKeys.Configure);
+builder.Services.AddSnapshotOrgScopeProvider<Admin.Logistics.Infrastructure.Data.AdminLogisticsDbContext>();
 builder.Services.AddHrOpenApi("Admin.Logistics API");
 
 builder.Services.AddHttpContextAccessor();

@@ -18,6 +18,7 @@ using HR.Core.Infrastructure.ExportJobs;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScoped(typeof(HR.Core.Domain.Entities.Employee), OutOfScope = OrgScopeAnswer.Forbid)]
 public class ReportsController : Controller
 {
     private readonly HRCoreDbContext _context;

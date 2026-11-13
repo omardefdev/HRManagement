@@ -9,6 +9,25 @@ namespace HRManagement.ServiceDefaults;
 public static class OrgScopeControllerExtensions
 {
     /// <summary>
+    /// PLAN-52 (§1, P-4): the list, export and pick-list filter of a scoped controller, with the expression the filter resolves ids by: every
+    /// unit of the record set and inside the scope. An unrestricted scope returns the query unchanged; a denied scope returns no row; a
+    /// record with no unit is central (D-52-1). <paramref name="db"/> is the context the query runs on (the keys may read its other sets).
+    /// </summary>
+    public static IQueryable<T> WhereInOrgScope<T>(
+        this IQueryable<T> query,
+        OrgScopeKeyRegistry registry,
+        OrgAccessScope scope,
+        Microsoft.EntityFrameworkCore.DbContext db)
+        where T : class
+    {
+        if (!scope.MustFilter)
+            return query;
+        var key = registry.KeyOf(typeof(T));
+        var allowed = scope.IsDenied ? (IReadOnlyCollection<Guid>)[] : scope.AllowedOrgUnitIds;
+        return query.Where((System.Linq.Expressions.Expression<Func<T, bool>>)key.InScope(db, allowed));
+    }
+
+    /// <summary>
     /// Returns Forbid when scope is denied; otherwise null (continue).
     /// </summary>
     public static IActionResult? ForbidIfOrgScopeDenied(this ControllerBase controller, OrgAccessScope scope)

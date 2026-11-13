@@ -88,6 +88,7 @@
       "purpose": "Central HR full-tenant reader and maker",
       "scenarios": [
         "AC-IAM-50",
+        "AC-IAM-52",
         "AC-01",
         "AC-03"
       ],
@@ -453,7 +454,8 @@
       "employeeOrdinal": 17,
       "purpose": "Independent logistics checker",
       "scenarios": [
-        "AC-33"
+        "AC-33",
+        "AC-IAM-52"
       ],
       "enabled": true
     },
@@ -642,6 +644,7 @@
       "scopeOrgUnitId": "a0000001-0000-4000-8000-000000000102",
       "scenarios": [
         "AC-IAM-50",
+        "AC-IAM-52",
         "AC-02",
         "AC-04"
       ],
@@ -663,6 +666,9 @@
       "scopeSiteCode": "ALEP",
       "purpose": "Aleppo branch manager",
       "scopeOrgUnitId": "a0000001-0000-4000-8000-000000000104",
+      "scenarios": [
+        "AC-IAM-52"
+      ],
       "enabled": true
     },
     {
@@ -1063,7 +1069,10 @@
       "enabled": true,
       "fixture": "invalid-scope",
       "scopeOrgUnitId": "ffffffff-ffff-4fff-8fff-ffffffffffff",
-      "purpose": "Authorization rejection for an unknown organizational scope"
+      "purpose": "Authorization rejection for an unknown organizational scope",
+      "scenarios": [
+        "AC-IAM-52"
+      ]
     }
   ]
 }

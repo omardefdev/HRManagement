@@ -1,0 +1,16 @@
+# PLAN-52 (§6, P-11): controllers of hr-training without a scope stance. One row per controller: Controller | reason. A row is latent
+# (no restricted user reaches it, OrgScopeReach) and signed IAM-H, the wave that owns the latent controllers.
+# The list only shrinks (OrgScopeCoverageTests): a controller that declares its stance leaves it, and a new controller needs a stance.
+Certificates | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+Dashboard | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+ELearningCourses | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+EssLearning | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+Home | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+MissionFiles | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+QualificationCodes | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+TrainingCourses | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+TrainingEnrollments | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+TrainingNominations | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+TrainingPlans | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+TrainingProviders | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+TrainingResults | IAM-H: latent, no restricted role reaches it (D-IAM-3)

@@ -22,6 +22,7 @@ namespace HR.Core.Web.Controllers;
 /// </summary>
 [Authorize(Policy = HrManagementPolicies.HrCoreDelete)]
 [Route("CandidateLifecycle")]
+[OrgScopeCentralOnly]
 public sealed class CandidateLifecycleController(
     HRCoreDbContext db,
     CandidateRetentionService retention,

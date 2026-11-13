@@ -18,6 +18,7 @@ namespace HR.Core.Web.Controllers;
 [Route("api/internal/codes")]
 [Authorize(Policy = ServicePolicies.CodeGenerate)]
 [ValidateAntiForgeryToken]
+[OrgScopeNotApplicable("service-to-service: code issuance for the services")]
 public sealed class CodeGenerationInternalController(ICodeGenerator generator, ITenantContext tenantContext) : ControllerBase
 {
     [HttpPost("generate")]

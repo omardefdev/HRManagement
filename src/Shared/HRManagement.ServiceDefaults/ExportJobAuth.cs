@@ -38,6 +38,40 @@ public static class ExportJobAuth
         };
     }
 
+    /// <summary>PLAN-52 (P-7): records the requester's scope in the snapshot: unrestricted, restricted with its root, or denied.</summary>
+    public static ExportAuthSnapshot WithScope(ExportAuthSnapshot snapshot, OrgAccessScope scope, ClaimsPrincipal user)
+    {
+        snapshot.ScopeKind = scope.IsDenied ? ExportScopeKinds.Denied : scope.MustFilter ? ExportScopeKinds.Restricted : ExportScopeKinds.Unrestricted;
+        if (scope.MustFilter && !scope.IsDenied)
+            snapshot.ScopeOrgUnitId = HrOrgScopeVisibility.GetScopeRootOrgUnitId(user);
+        return snapshot;
+    }
+
+    /// <summary>
+    /// PLAN-52 (P-7): the scope a job applies, rebuilt from its snapshot. A restricted requester's job whose scope was not recorded (queued
+    /// before PLAN-52, or a restricted kind without a root) exports nothing (fail-closed): denied.
+    /// </summary>
+    public static async Task<OrgAccessScope> RecordedScopeAsync(
+        ExportAuthSnapshot? snapshot,
+        IQueryable<HRManagement.SharedKernel.Entities.OrgUnitSnapshot> units,
+        CancellationToken ct = default)
+    {
+        switch (snapshot?.ScopeKind)
+        {
+            case ExportScopeKinds.Unrestricted:
+                return OrgAccessScope.Unrestricted();
+            case ExportScopeKinds.Restricted when snapshot.ScopeOrgUnitId is Guid root:
+                return await OrgScopeResolver.GetAllowedForRootAsync(root, units, ct);
+            case null when snapshot is not null:
+                // No scope recorded: the requester's roles tell whether he was restricted (D-IAM-3's one definition).
+                var principal = new ClaimsPrincipal(new ClaimsIdentity(
+                    snapshot.Roles.Select(r => new Claim(ClaimTypes.Role, r)), "export-snapshot", ClaimTypes.Name, ClaimTypes.Role));
+                return HrOrgScopeVisibility.IsBranchScoped(principal) ? OrgAccessScope.Denied() : OrgAccessScope.Unrestricted();
+            default:
+                return OrgAccessScope.Denied();
+        }
+    }
+
     public static string Serialize(ExportAuthSnapshot snapshot) =>
         JsonSerializer.Serialize(snapshot, JsonOptions);
 

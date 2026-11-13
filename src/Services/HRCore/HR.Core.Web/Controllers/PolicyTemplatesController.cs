@@ -22,6 +22,7 @@ namespace HR.Core.Web.Controllers;
 [Authorize(Policy = HrManagementPolicies.PolicyReader)]
 // PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
 [ModulePolicyOverride(HrManagementPolicies.PolicyReader)]
+[OrgScopeNotApplicable("reference data: the policy templates (inventory C: who writes them is RBAC, IAM-H)")]
 public class PolicyTemplatesController(
     HRCoreDbContext db,
     IPolicyOrchestrator orchestrator,

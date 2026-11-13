@@ -1,0 +1,15 @@
+# PLAN-52 (§6, P-11): controllers of dev-analytics without a scope stance. One row per controller: Controller | reason. A row is latent
+# (no restricted user reaches it, OrgScopeReach) and signed IAM-H, the wave that owns the latent controllers.
+# The list only shrinks (OrgScopeCoverageTests): a controller that declares its stance leaves it, and a new controller needs a stance.
+AnalyticsEventsApi | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+AnalyticsReconciliationApi | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+AnalyticsTestHooks | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+Dashboards | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+DataRefreshSchedules | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+EtlJobs | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+ExportJobs | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+Home | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+Kpis | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+ReadModels | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+Reports | IAM-H: latent, no restricted role reaches it (D-IAM-3)
+WorkforcePlanning | IAM-H: latent, no restricted role reaches it (D-IAM-3)

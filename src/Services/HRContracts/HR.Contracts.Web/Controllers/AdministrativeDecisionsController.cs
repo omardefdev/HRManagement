@@ -25,6 +25,7 @@ namespace HR.Contracts.Web.Controllers;
 
 // PLAN-51 (§4, P-6): reads name the module policy (the management approver reads HR.Contracts); every write names HrContracts.Write or HrContracts.Approve.
 [Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
+[OrgScoped(typeof(HR.Contracts.Domain.Entities.AdministrativeDecision))]
 public class AdministrativeDecisionsController : Controller
 
 {
@@ -61,6 +62,12 @@ public class AdministrativeDecisionsController : Controller
     {
 
         var items = await _mediator.Send(new GetAdministrativeDecisionsQuery());
+        // PLAN-52 (P-7): a restricted user lists the decisions of his scope's employees only (a decision without one is central).
+        if ((await HttpContext.GetOrgScopeAsync()).MustFilter)
+        {
+            var inScope = (await (await _db.AdministrativeDecisions.AsNoTracking().InOrgScopeAsync(HttpContext, _db)).Select(d => d.Id).ToListAsync()).ToHashSet();
+            items = items.Where(x => inScope.Contains(x.Id)).ToList();
+        }
         if (!string.IsNullOrWhiteSpace(q))
         {
             var term = q.Trim();
@@ -95,6 +102,10 @@ public class AdministrativeDecisionsController : Controller
 
     {
 
+        // PLAN-52 (review 3, D-52-1): a restricted user's decision names an employee of his scope (the filter checked it); without one it
+        // would be central, out of his reach: refused, so he neither writes a central decision nor moves one to the centre.
+        if (vm.RelatedEmployeeId is null && await HttpContext.GetRestrictedRootAsync() is not null)
+            ModelState.AddModelError(nameof(vm.RelatedEmployeeId), "اختر موظفاً ضمن نطاقك.");
         if (!ModelState.IsValid) return View(vm);
 
         vm.IssuedBy = ServerAssignedIdentity.ResolveActorName(User);
@@ -167,6 +178,10 @@ public class AdministrativeDecisionsController : Controller
 
         if (vm.Id != id) return BadRequest();
 
+        // PLAN-52 (review 3, D-52-1): a restricted user's decision names an employee of his scope (the filter checked it); without one it
+        // would be central, out of his reach: refused, so he neither writes a central decision nor moves one to the centre.
+        if (vm.RelatedEmployeeId is null && await HttpContext.GetRestrictedRootAsync() is not null)
+            ModelState.AddModelError(nameof(vm.RelatedEmployeeId), "اختر موظفاً ضمن نطاقك.");
         if (!ModelState.IsValid) return View(vm);
 
 

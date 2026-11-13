@@ -11,6 +11,8 @@ public class EmployeeListViewModel
 
 public class EmployeeSearchFilter : SearchFilterBase
 {
+    // PLAN-52: a list filter on an already scoped list (an out-of-scope value lists nothing, as before; §2 rule 2).
+    [HRManagement.ServiceDefaults.NotOrgScopeKey("a filter of a list already limited to the scope")]
     public Guid? OrgUnitId { get; set; }
     public string? Status { get; set; }
     public string? Gender { get; set; }

@@ -5,6 +5,7 @@ namespace HR.Core.Web.ViewModels;
 
 public sealed class WorkforcePlanLineEditViewModel
 {
+    [HRManagement.ServiceDefaults.OrgScopeId(typeof(HR.Core.Domain.Entities.WorkforcePlan))]
     public Guid PlanId { get; set; }
 
     public string? GradeCode { get; set; }
@@ -20,6 +21,7 @@ public sealed class WorkforcePlanLineEditViewModel
 
 public sealed class WorkforcePlanApproveViewModel
 {
+    [HRManagement.ServiceDefaults.OrgScopeId(typeof(HR.Core.Domain.Entities.WorkforcePlan))]
     public Guid PlanId { get; set; }
 
     public string? LegalSourceId { get; set; }

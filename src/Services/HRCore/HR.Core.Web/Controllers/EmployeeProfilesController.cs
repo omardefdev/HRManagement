@@ -17,6 +17,7 @@ namespace HR.Core.Web.Controllers;
 /// their scope simply by supplying that employee's id.
 /// </para>
 /// </summary>
+[OrgScoped(typeof(Employee), OutOfScope = OrgScopeAnswer.Forbid)]
 public class EmployeeProfilesController : Controller
 {
     private readonly HRCoreDbContext _context;

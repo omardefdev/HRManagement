@@ -16,6 +16,7 @@ namespace HR.Contracts.Web.Controllers;
 
 // PLAN-51 (§4, P-6): reads name the module policy (the management approver reads HR.Contracts); every write names HrContracts.Write or HrContracts.Approve.
 [Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
+[OrgScoped(typeof(HR.Contracts.Domain.Entities.SeparationRecord), OutOfScope = OrgScopeAnswer.Forbid)]
 public class SeparationRecordsController : Controller
 {
     private readonly IMediator _mediator;
@@ -90,7 +91,7 @@ public class SeparationRecordsController : Controller
 
     private async Task PopulateContractsAsync(SeparationRecordCreateViewModel vm)
     {
-        var contracts = await _mediator.Send(new GetContractsLookupQuery(vm.ContractId));
+        var contracts = await _mediator.Send(new GetContractsLookupQuery(vm.ContractId, await ContractPickList.InScopeAsync(HttpContext)));
         var items = contracts.Select(c => new { Id = c.Id, Text = c.Label });
         vm.Contracts = new SelectList(items, "Id", "Text", vm.ContractId);
     }

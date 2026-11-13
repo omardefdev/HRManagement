@@ -10,6 +10,7 @@ using HRManagement.SharedKernel.ViewModels;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScoped(typeof(HR.Core.Domain.Entities.EmploymentStatusHistory), OutOfScope = OrgScopeAnswer.Forbid)]
 public class StatusHistoryController : Controller
 {
     private readonly HRCoreDbContext _context;
@@ -87,7 +88,7 @@ public class StatusHistoryController : Controller
         }
 
         ViewBag.Employees = new SelectList(
-            await _context.Employees.OrderBy(e => e.FullName).Take(SearchFilterBase.LookupMaxPageSize).Select(e => new { e.Id, e.FullName }).ToListAsync(),
+            await (await _context.Employees.AsNoTracking().InOrgScopeAsync(HttpContext, _context)).OrderBy(e => e.FullName).Take(SearchFilterBase.LookupMaxPageSize).Select(e => new { e.Id, e.FullName }).ToListAsync(),
             "Id", "FullName", employeeId);
 
         return View(items);
@@ -98,10 +99,11 @@ public class StatusHistoryController : Controller
         page = SearchFilterBase.ClampPage(page);
         pageSize = SearchFilterBase.ClampPageSize(pageSize);
 
-        var query = _context.EmploymentStatusHistories
+        var query = await _context.EmploymentStatusHistories
             .Include(h => h.Employee)
             .AsNoTracking()
-            .AsQueryable();
+            .AsQueryable()
+            .InOrgScopeAsync(HttpContext, _context);
 
         if (!string.IsNullOrWhiteSpace(search))
         {

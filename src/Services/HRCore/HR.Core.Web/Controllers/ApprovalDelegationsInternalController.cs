@@ -15,6 +15,7 @@ namespace HR.Core.Web.Controllers;
 [ApiController]
 [Route("api/internal/approval-delegations")]
 [Authorize(Policy = ServicePolicies.ApprovalDelegationRead)]
+[OrgScopeNotApplicable("service-to-service: HR.Movements' delegation lookup")]
 public sealed class ApprovalDelegationsInternalController(DbApprovalDelegationLookup lookup, ITenantContext tenantContext) : ControllerBase
 {
     [HttpGet("active")]

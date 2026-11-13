@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HRManagement.Gateway.Controllers;
 
+[OrgScopeNotApplicable("the sign-in pages: no org records")]
 public class AccountController : Controller
 {
     [HttpGet]

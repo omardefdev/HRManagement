@@ -27,6 +27,8 @@ public class OrgUnitCreateViewModel
     public string? NameEn { get; set; }
 
     [Display(Name = "الوحدة الأم")]
+    // PLAN-52: the actions validate the parent (outside the scope, or none for a restricted user, is a form error: the kept answer).
+    [HRManagement.ServiceDefaults.NotOrgScopeKey("validated by the action: a parent outside the scope, or none for a restricted user, is a form error (kept answer)")]
     public Guid? ParentId { get; set; }
 
     [Display(Name = "رئيس الوحدة")]

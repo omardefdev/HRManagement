@@ -17,7 +17,16 @@ public enum RecruitmentScopeKind
     CommitteeSession,
     CandidateDocument,
     PublicPosting,
-    CentralOnly
+    CentralOnly,
+
+    /// <summary>PLAN-52 (PLAN-25 follow-up): a citizen application: its posting's requisition's position.</summary>
+    CitizenApplication,
+
+    /// <summary>PLAN-52: an internal application: its internal vacancy's unit.</summary>
+    InternalApplication,
+
+    /// <summary>PLAN-52: an internal vacancy's unit (TalentMarketplace).</summary>
+    InternalVacancy
 }
 
 /// <summary>
@@ -40,13 +49,13 @@ public sealed class RecruitmentScopeIdAttribute(RecruitmentScopeKind kind) : Att
 /// (<see cref="RecruitmentOrgScopeQueries"/>).
 /// </summary>
 [AttributeUsage(AttributeTargets.Class)]
-public sealed class RecruitmentOrgScopeAttribute : TypeFilterAttribute
+public sealed class RecruitmentOrgScopeAttribute : TypeFilterAttribute, IOrgScopeStance
 {
     public RecruitmentOrgScopeAttribute(RecruitmentScopeKind idKind) : base(typeof(RecruitmentOrgScopeFilter)) =>
         Arguments = [idKind];
 }
 
-public sealed class RecruitmentOrgScopeFilter(RecruitmentScopeKind idKind, OrgScopeService orgScope, HRCoreDbContext db)
+public sealed class RecruitmentOrgScopeFilter(RecruitmentScopeKind idKind, OrgScopeService orgScope, HRCoreDbContext db, OrgScopeKeyRegistry registry)
     : IAsyncActionFilter
 {
     private static readonly Dictionary<string, RecruitmentScopeKind> NamedIds = new(StringComparer.OrdinalIgnoreCase)
@@ -56,7 +65,11 @@ public sealed class RecruitmentOrgScopeFilter(RecruitmentScopeKind idKind, OrgSc
         ["recruitmentApplicationId"] = RecruitmentScopeKind.Application,
         ["offerId"] = RecruitmentScopeKind.Offer,
         ["sessionId"] = RecruitmentScopeKind.CommitteeSession,
-        ["postingId"] = RecruitmentScopeKind.PublicPosting
+        ["postingId"] = RecruitmentScopeKind.PublicPosting,
+        // PLAN-52 (PLAN-25 follow-ups): PromoteFromCitizen, PromoteFromInternal, TalentMarketplace.
+        ["citizenApplicationId"] = RecruitmentScopeKind.CitizenApplication,
+        ["internalApplicationId"] = RecruitmentScopeKind.InternalApplication,
+        ["vacancyId"] = RecruitmentScopeKind.InternalVacancy
     };
 
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
@@ -85,8 +98,36 @@ public sealed class RecruitmentOrgScopeFilter(RecruitmentScopeKind idKind, OrgSc
             }
         }
 
+        // PLAN-52 (P-5): an id the action names explicitly with [OrgScopeId] (a hire's unit and employee, an interview slot, a funded
+        // position) resolves through HR.Core's registry, the way the org-scope filter resolves it; out of scope or no key is 404 here too.
+        if (context.ActionDescriptor is Microsoft.AspNetCore.Mvc.Controllers.ControllerActionDescriptor action)
+        {
+            foreach (var slot in OrgScopeIds.Slots(action.ControllerTypeInfo.AsType(), action.MethodInfo, registry: null, stanceEntity: null))
+            {
+                if (slot.Rule is not { IsKey: true } rule || !IsExplicit(slot))
+                    continue;
+                foreach (var id in OrgScopeIds.Values(slot, context.ActionArguments))
+                {
+                    var inScope = rule.EntityType == typeof(OrgScopeUnit)
+                        ? scope.CanAccess(id)
+                        : registry.Keys.TryGetValue(rule.EntityType!, out var key)
+                          && await key.IsInScopeAsync(db, id, scope.AllowedOrgUnitIds, context.HttpContext.RequestAborted);
+                    if (inScope)
+                        continue;
+                    context.Result = new NotFoundResult();
+                    return;
+                }
+            }
+        }
+
         await next();
     }
+
+    /// <summary>An [OrgScopeId] on the parameter or property itself, or on the action naming it.</summary>
+    private static bool IsExplicit(OrgScopeIdSlot slot) =>
+        (slot.Property is not null ? slot.Property.IsDefined(typeof(OrgScopeIdAttribute), true) : slot.Parameter.IsDefined(typeof(OrgScopeIdAttribute), true))
+        || slot.Parameter.Member.GetCustomAttributes(typeof(OrgScopeIdAttribute), true).OfType<OrgScopeIdAttribute>()
+            .Any(a => string.Equals(a.Name, slot.Name, StringComparison.OrdinalIgnoreCase));
 
     private static IEnumerable<(RecruitmentScopeKind Kind, Guid Id)> CollectIds(IDictionary<string, object?> arguments, RecruitmentScopeKind routeIdKind)
     {
@@ -133,6 +174,12 @@ public sealed class RecruitmentOrgScopeFilter(RecruitmentScopeKind idKind, OrgSc
                     (_, a) => new OrgUnitRow((Guid?)a.Requisition!.FundedPosition!.OrgUnitId)),
             RecruitmentScopeKind.PublicPosting => db.PublicJobPostings.AsNoTracking()
                 .Where(p => p.Id == id).Select(p => new OrgUnitRow((Guid?)p.Requisition!.FundedPosition!.OrgUnitId)),
+            RecruitmentScopeKind.CitizenApplication => db.CitizenApplications.AsNoTracking()
+                .Where(c => c.Id == id).Select(c => new OrgUnitRow((Guid?)c.PublicJobPosting!.Requisition!.FundedPosition!.OrgUnitId)),
+            RecruitmentScopeKind.InternalApplication => db.InternalApplications.AsNoTracking()
+                .Where(a => a.Id == id).Select(a => new OrgUnitRow(a.InternalVacancy!.OrgUnitId)),
+            RecruitmentScopeKind.InternalVacancy => db.InternalVacancies.AsNoTracking()
+                .Where(v => v.Id == id).Select(v => new OrgUnitRow(v.OrgUnitId)),
             _ => null
         };
         if (rows is null)

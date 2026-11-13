@@ -11,22 +11,25 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Web.Controllers;
 
+[OrgScoped(typeof(SuccessionPlan))]
 public class SuccessionPlansController(HRCoreDbContext db) : Controller
 {
     private async Task PopulateLookups()
     {
+        // PLAN-52: a branch user's pick-lists hold his scope's key positions and employees only.
         ViewBag.KeyPositions = new SelectList(
-            await db.KeyPositions.AsNoTracking().OrderBy(k => k.Title).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Title");
+            await (await db.KeyPositions.AsNoTracking().InOrgScopeAsync(HttpContext, db)).OrderBy(k => k.Title).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Title");
         ViewBag.Employees = new SelectList(
-            await db.Employees.AsNoTracking().OrderBy(e => e.FullName).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "FullName");
+            await (await db.Employees.AsNoTracking().InOrgScopeAsync(HttpContext, db)).OrderBy(e => e.FullName).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "FullName");
     }
 
     public async Task<IActionResult> Index(Guid? keyPositionId, int? year)
     {
-        var query = db.SuccessionPlans.AsNoTracking()
+        var query = await db.SuccessionPlans.AsNoTracking()
             .Include(p => p.KeyPosition)
             .Include(p => p.Candidates)
-            .AsQueryable();
+            .AsQueryable()
+            .InOrgScopeAsync(HttpContext, db);
         if (keyPositionId is Guid kpid)
             query = query.Where(p => p.KeyPositionId == kpid);
         if (year is int y)
@@ -34,7 +37,7 @@ public class SuccessionPlansController(HRCoreDbContext db) : Controller
 
         var items = await query.OrderByDescending(p => p.Year).Take(SearchFilterBase.MaxPageSize).ToListAsync();
         ViewBag.KeyPositions = new SelectList(
-            await db.KeyPositions.AsNoTracking().OrderBy(k => k.Title).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Title", keyPositionId);
+            await (await db.KeyPositions.AsNoTracking().InOrgScopeAsync(HttpContext, db)).OrderBy(k => k.Title).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Title", keyPositionId);
         return View(new SuccessionPlansIndexViewModel { Items = items, KeyPositionId = keyPositionId, Year = year });
     }
 
@@ -111,9 +114,13 @@ public class SuccessionPlansController(HRCoreDbContext db) : Controller
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
+    // PLAN-52: id is a candidate; the filter checked it (through its plan) and the plan.
+    [OrgScopeId(typeof(SuccessorCandidate))]
     public async Task<IActionResult> RemoveCandidate(Guid id, Guid successionPlanId)
     {
         var candidate = await db.SuccessorCandidates.FindAsync(id);
+        if (candidate != null && candidate.SuccessionPlanId != successionPlanId)
+            return NotFound();
         if (candidate != null)
         {
             db.SuccessorCandidates.Remove(candidate);

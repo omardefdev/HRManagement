@@ -16,7 +16,11 @@ builder.AddHrOpenTelemetry();
 builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrMovements, HrManagementPolicies.HrMovementsWrite);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrMovements, HrManagementPolicies.HrMovementsWrite)
+    // PLAN-52 (P-9): the approval screens a delegation opens to a restricted user stay inside his scope (both units of a transfer or a loan).
+    .AddOrgScopeFilter<HR.Movements.Infrastructure.Data.MovementsDbContext>(
+        HR.Movements.Infrastructure.OrgScope.MovementsOrgScopeKeys.Service, HR.Movements.Infrastructure.OrgScope.MovementsOrgScopeKeys.Configure);
+builder.Services.AddSnapshotOrgScopeProvider<HR.Movements.Infrastructure.Data.MovementsDbContext>();
 builder.Services.AddHrOpenApi("HR.Movements API");
 
 builder.Services.AddHttpContextAccessor();
@@ -68,7 +72,6 @@ builder.Services.AddServiceMassTransit(
     consumerAssembly: typeof(HR.Movements.Infrastructure.Consumers.TransferExecutedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();
-builder.Services.AddOrgScopeAuthorization();
 builder.Services.AddHrServiceHealthChecks<MovementsDbContext>(builder.Configuration);
 // PLAN-37 (§6): the SYR-003 legal pack: readiness fails without it, one start-up fingerprint line.
 builder.Services.AddServiceRegimePackCheck(builder.Configuration, builder.Environment);

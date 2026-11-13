@@ -23,6 +23,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Admin.Logistics.Web.Controllers;
 
+[OrgScoped(typeof(Admin.Logistics.Domain.Entities.Asset), OutOfScope = OrgScopeAnswer.Forbid)]
 public class AssetsController(
     AdminLogisticsDbContext db,
     IFileReferenceClient fileRefs,
@@ -195,13 +196,7 @@ public class AssetsController(
 
     public async Task<IActionResult> Create()
     {
-        ViewBag.ReceiptRecords = new SelectList(
-            await db.ReceiptRecords.AsNoTracking()
-                .OrderByDescending(r => r.ReceivedAt)
-                .Take(SearchFilterBase.LookupMaxPageSize)
-                .Select(r => new { r.Id, Label = $"{r.ReceivedAt:yyyy/MM/dd} — {r.ItemsReceived}" })
-                .ToListAsync(),
-            "Id", "Label");
+        await LoadReceiptSelectListAsync();
         return View();
     }
 
@@ -985,10 +980,11 @@ public class AssetsController(
             await LoadReceiptSelectListAsync(entity.OriginReceiptRecordId);
     }
 
+    /// <summary>PLAN-52 (review 2, P-4): the receipts an asset form offers are those of the caller's scope (a receipt's unit is its order's).</summary>
     private async Task LoadReceiptSelectListAsync(Guid? selected = null)
     {
         ViewBag.ReceiptRecords = new SelectList(
-            await db.ReceiptRecords.AsNoTracking()
+            await (await db.ReceiptRecords.AsNoTracking().InOrgScopeAsync(HttpContext, db))
                 .OrderByDescending(r => r.ReceivedAt)
                 .Take(SearchFilterBase.LookupMaxPageSize)
                 .Select(r => new { r.Id, Label = $"{r.ReceivedAt:yyyy/MM/dd} — {r.ItemsReceived}" })

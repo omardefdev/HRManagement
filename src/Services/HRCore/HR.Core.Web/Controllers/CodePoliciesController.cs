@@ -10,6 +10,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+[OrgScopeNotApplicable("reference data: the code policies; the issuance log is central")]
 public class CodePoliciesController(HRCoreDbContext db, ICodeGenerator generator) : Controller
 {
     /// <summary>
@@ -28,6 +29,7 @@ public class CodePoliciesController(HRCoreDbContext db, ICodeGenerator generator
         return View(templates);
     }
 
+    [OrgScopeCentralOnly("the issuance log lists the codes of every branch")]
     public async Task<IActionResult> Issuances(CodeEntityKind? entityKind)
     {
         var q = db.CodeIssuances.AsNoTracking().AsQueryable();

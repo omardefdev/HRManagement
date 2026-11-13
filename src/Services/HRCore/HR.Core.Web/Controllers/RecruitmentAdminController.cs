@@ -14,6 +14,7 @@ namespace HR.Core.Web.Controllers;
 [Route("api/recruitment/admin")]
 [ApiController]
 [Authorize(Policy = HrManagementPolicies.HrCoreDelete)]
+[OrgScopeCentralOnly]
 public sealed class RecruitmentAdminController(ApprovalRepairService repair) : ControllerBase
 {
     [HttpPost("repair-approvals")]

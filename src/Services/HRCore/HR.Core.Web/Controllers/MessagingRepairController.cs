@@ -15,6 +15,7 @@ namespace HR.Core.Web.Controllers;
 [ApiController]
 [Route("api/admin/messaging")]
 [Authorize(Policy = HrManagementPolicies.MessagingRepair)]
+[OrgScopeCentralOnly]
 public class MessagingRepairController(HrCoreMessagingRepair repair) : ControllerBase
 {
     [HttpGet("antiforgery")]

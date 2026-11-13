@@ -24,4 +24,11 @@ public class FieldInspectionVisit : AuditableEntity
     [Display(Name = "الحالة")]
     [StringLength(32)]
     public string Status { get; set; } = "planned";
+
+    /// <summary>PLAN-52 (D-52-2): the visit's org unit: the restricted creator's scope root, else the central user's choice; empty =
+    /// central (D-52-1). Old visits stay empty: <see cref="LeadInspectorId"/> is the inspector, not the subject.</summary>
+    [Display(Name = "الوحدة التنظيمية")]
+    public Guid? OrgUnitId { get; set; }
+
+    public virtual OrgUnit? OrgUnit { get; set; }
 }

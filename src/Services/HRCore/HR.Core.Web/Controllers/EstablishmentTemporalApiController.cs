@@ -10,6 +10,7 @@ namespace HR.Core.Web.Controllers;
 [Route("api/establishment")]
 [ApiController]
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScoped(typeof(HR.Core.Domain.Entities.FundedPosition), OutOfScope = OrgScopeAnswer.Forbid)]
 public class EstablishmentTemporalApiController(
     EstablishmentAsOfService asOfService,
     IJobCatalogVersionService jobCatalogVersions,
@@ -17,6 +18,7 @@ public class EstablishmentTemporalApiController(
     EstablishmentScopeService establishmentScope,
     OrgScopeService orgScope) : ControllerBase
 {
+    [OrgScopeCentralOnly("the job catalogue (central today)")]
     [HttpGet("catalog/{id:guid}/as-of")]
     public async Task<IActionResult> CatalogAsOf(Guid id, [FromQuery] DateTime at, CancellationToken ct)
     {
@@ -72,6 +74,7 @@ public class EstablishmentTemporalApiController(
         return Ok(history);
     }
 
+    [OrgScopeCentralOnly("the job catalogue (central today)")]
     [HttpGet("catalog/{id:guid}/history")]
     public async Task<IActionResult> CatalogHistory(Guid id, CancellationToken ct)
     {

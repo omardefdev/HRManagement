@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HR.Core.Web.Controllers;
 
 /// <summary>Legal digital signature management (SIG-001).</summary>
+[OrgScopeCentralOnly]
 public class SignaturesController(HRCoreDbContext db, ISignatureService signatureService) : Controller
 {
     public async Task<IActionResult> Index(string? subjectType = null, string? subjectId = null)

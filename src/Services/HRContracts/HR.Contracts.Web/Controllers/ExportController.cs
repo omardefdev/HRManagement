@@ -13,6 +13,7 @@ namespace HR.Contracts.Web.Controllers;
 
 // PLAN-51 (§4, P-6): reads name the module policy (the management approver reads HR.Contracts); every write names HrContracts.Write or HrContracts.Approve.
 [Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
+[OrgScoped]
 public class ExportController : Controller
 {
     private readonly ContractsDbContext _db;
@@ -26,7 +27,8 @@ public class ExportController : Controller
 
     public async Task<IActionResult> LeaveRequestsCsv(bool async = false, CancellationToken ct = default)
     {
-        var query = _db.LeaveRequests.AsNoTracking();
+        // PLAN-52 (P-7): a restricted user exports his scope's records only; the job records his scope for the same filter.
+        var query = await _db.LeaveRequests.AsNoTracking().InOrgScopeAsync(HttpContext, _db);
         var (allowed, _) = await ExportQueryLimits.EnsureWithinLimitAsync(query, cancellationToken: ct);
         if (async || !allowed)
         {
@@ -45,7 +47,8 @@ public class ExportController : Controller
 
     public async Task<IActionResult> LeaveRequestsExcel(bool async = false, CancellationToken ct = default)
     {
-        var query = _db.LeaveRequests.AsNoTracking();
+        // PLAN-52 (P-7): a restricted user exports his scope's records only; the job records his scope for the same filter.
+        var query = await _db.LeaveRequests.AsNoTracking().InOrgScopeAsync(HttpContext, _db);
         var (allowed, _) = await ExportQueryLimits.EnsureWithinLimitAsync(query, cancellationToken: ct);
         if (async || !allowed)
         {
@@ -78,7 +81,8 @@ public class ExportController : Controller
 
     public async Task<IActionResult> AdvanceRequestsCsv(bool async = false, CancellationToken ct = default)
     {
-        var query = _db.AdvanceRequests.AsNoTracking();
+        // PLAN-52 (P-7): a restricted user exports his scope's records only; the job records his scope for the same filter.
+        var query = await _db.AdvanceRequests.AsNoTracking().InOrgScopeAsync(HttpContext, _db);
         var (allowed, _) = await ExportQueryLimits.EnsureWithinLimitAsync(query, cancellationToken: ct);
         if (async || !allowed)
         {
@@ -97,7 +101,8 @@ public class ExportController : Controller
 
     public async Task<IActionResult> AdvanceRequestsExcel(bool async = false, CancellationToken ct = default)
     {
-        var query = _db.AdvanceRequests.AsNoTracking();
+        // PLAN-52 (P-7): a restricted user exports his scope's records only; the job records his scope for the same filter.
+        var query = await _db.AdvanceRequests.AsNoTracking().InOrgScopeAsync(HttpContext, _db);
         var (allowed, _) = await ExportQueryLimits.EnsureWithinLimitAsync(query, cancellationToken: ct);
         if (async || !allowed)
         {

@@ -12,6 +12,7 @@ using HRManagement.SharedKernel.ViewModels;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScoped(typeof(PerformanceEvaluation), OutOfScope = OrgScopeAnswer.Forbid)]
 public class EvaluationsController : Controller
 {
     private readonly HRCoreDbContext _context;
@@ -47,10 +48,12 @@ public class EvaluationsController : Controller
                 return denied;
         }
 
-        var query = _context.PerformanceEvaluations
+        // PLAN-52 (P0 finding): without an employee the list was the agency's; a restricted user lists his scope's evaluations only.
+        var query = await _context.PerformanceEvaluations
             .Include(e => e.Employee)
             .AsNoTracking()
-            .AsQueryable();
+            .AsQueryable()
+            .InOrgScopeAsync(HttpContext, _context);
 
         if (employeeId.HasValue)
             query = query.Where(e => e.EmployeeId == employeeId.Value);

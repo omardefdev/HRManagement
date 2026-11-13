@@ -260,4 +260,108 @@ public sealed class GuardSelfTests
     public void An_action_that_binds_an_entity_is_an_offender_and_a_view_model_is_not() =>
         Assert.Equal(["PlantedBinding.Bulk", "PlantedBinding.Create", "PlantedBinding.Wrapped"],
             MassAssignmentArchitectureTests.Offenders(Read("hr-core", typeof(PlantedBindingController))).Order(StringComparer.Ordinal).ToList());
+
+    // --- PLAN-52 (§6, P-11): the org-scope stance and the ids of a scoped action ---
+
+    public sealed class PlantedRecord
+    {
+        public Guid Id { get; set; }
+
+        public Guid? OrgUnitId { get; set; }
+    }
+
+    public sealed class PlantedScopeDb(Microsoft.EntityFrameworkCore.DbContextOptions<PlantedScopeDb> options)
+        : Microsoft.EntityFrameworkCore.DbContext(options)
+    {
+        public Microsoft.EntityFrameworkCore.DbSet<PlantedRecord> Records => Set<PlantedRecord>();
+    }
+
+    public sealed class PlantedForm
+    {
+        public Guid OwnerId { get; set; }
+
+        public List<Guid> MemberIds { get; set; } = [];
+
+        [NotOrgScopeKey("a reference type")]
+        public Guid TypeId { get; set; }
+    }
+
+    public sealed class PlantedNoStanceController : ControllerBase
+    {
+        [HttpGet]
+        public IActionResult Index() => Ok();
+    }
+
+    [OrgScoped(typeof(PlantedRecord))]
+    public sealed class PlantedScopedController : ControllerBase
+    {
+        [HttpGet]
+        public IActionResult Details(Guid id) => Ok(id);
+
+        [HttpPost]
+        public IActionResult Assign(Guid id, Guid employeeId) => Ok(employeeId);
+
+        [HttpPost]
+        public IActionResult Bulk(List<Guid> recordIds) => Ok(recordIds);
+
+        [HttpPost]
+        public IActionResult Save(Guid id, PlantedForm form) => Ok(form);
+    }
+
+    [OrgScopeNotApplicable("a page with no org records")]
+    public sealed class PlantedDeclaredController : ControllerBase
+    {
+        [HttpGet]
+        public IActionResult Index(Guid anyId) => Ok(anyId);
+    }
+
+    private static OrgScopeKeyRegistry PlantedRegistry(bool complete)
+    {
+        var registry = new OrgScopeKeyRegistry("hr-core").Key<PlantedScopeDb, PlantedRecord>(_ => r => r.OrgUnitId);
+        if (complete)
+            registry.Id("employeeId", typeof(OrgScopeUnit)).Id("recordId", typeof(PlantedRecord)).Id("ownerId", typeof(OrgScopeUnit))
+                .Id("memberId", typeof(OrgScopeUnit));
+        return registry;
+    }
+
+    [Fact]
+    public void A_controller_without_a_stance_is_an_offender_and_a_declared_one_is_not() =>
+        Assert.Equal(["PlantedNoStance"],
+            OrgScopeCoverageTests.Undeclared("hr-core", [typeof(PlantedNoStanceController), typeof(PlantedDeclaredController), typeof(PlantedScopedController)]));
+
+    [Fact]
+    public void An_id_a_list_of_ids_and_a_model_id_without_a_key_are_offenders_and_pass_once_keyed()
+    {
+        var offenders = OrgScopeCoverageTests.UnkeyedIds("hr-core", [typeof(PlantedScopedController)], PlantedRegistry(complete: false)).ToList();
+        Assert.Contains(offenders, o => o.StartsWith("PlantedScoped.Assign(employeeId)", StringComparison.Ordinal));
+        Assert.Contains(offenders, o => o.StartsWith("PlantedScoped.Bulk(recordIds)", StringComparison.Ordinal));
+        Assert.Contains(offenders, o => o.StartsWith("PlantedScoped.Save(form.OwnerId)", StringComparison.Ordinal));
+        Assert.Contains(offenders, o => o.StartsWith("PlantedScoped.Save(form.MemberIds)", StringComparison.Ordinal));
+        Assert.DoesNotContain(offenders, o => o.Contains("TypeId", StringComparison.Ordinal));
+        Assert.Equal(4, offenders.Count);
+        Assert.Empty(OrgScopeCoverageTests.UnkeyedIds("hr-core", [typeof(PlantedScopedController)], PlantedRegistry(complete: true)));
+    }
+
+    [Fact]
+    public void A_stance_naming_an_entity_without_a_key_is_an_offender() =>
+        Assert.Contains(OrgScopeCoverageTests.UnkeyedIds("hr-core", [typeof(PlantedScopedController)], new OrgScopeKeyRegistry("hr-core")),
+            o => o.Contains("the stance names PlantedRecord", StringComparison.Ordinal));
+
+    [Fact]
+    public void An_org_scope_row_needs_an_owner_and_a_new_or_stale_row_is_caught()
+    {
+        var list = CeilingList.Parse("org-scope.txt",
+        [
+            "PlantedNoStance | IAM-H: latent, no restricted role reaches it (D-IAM-3)",
+            "PlantedDeclared | IAM-H: latent",
+            "Unsigned | latent, no restricted role reaches it",
+        ]);
+        Assert.Single(list.Malformed);
+        var undeclared = OrgScopeCoverageTests.Undeclared("hr-core",
+            [typeof(PlantedNoStanceController), typeof(PlantedDeclaredController), typeof(PlantedScopedController)]).ToList();
+        Assert.Equal(["PlantedDeclared"], CeilingChecks.Stale(undeclared, list));
+        Assert.Empty(CeilingChecks.Unlisted(undeclared, list));
+        // A row above the ceiling: the list holds two valid rows where its ceiling allows one.
+        Assert.True(list.Rows.Count > 1);
+    }
 }

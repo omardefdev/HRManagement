@@ -58,13 +58,17 @@ public sealed class ServiceRegimeExceptionService(
 
     public async Task<IReadOnlyList<ServiceRegimeException>> ListOpenAsync(
         ServiceRegimeExceptionType? filterType = null,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        HRManagement.ServiceDefaults.OrgAccessScope? scope = null)
     {
         var query = db.ServiceRegimeExceptions
             .Include(e => e.Employee)
             .Include(e => e.EmploymentRecord)
             .Where(e => e.Status == ServiceRegimeExceptionStatus.Open)
             .AsNoTracking();
+        // PLAN-52 (P0 finding): a restricted user lists his scope's exceptions only.
+        if (scope is not null)
+            query = HRManagement.ServiceDefaults.OrgScopeControllerExtensions.WhereInOrgScope(query, HR.Core.Infrastructure.OrgScope.HrCoreOrgScopeKeys.Registry, scope, db);
 
         if (filterType is ServiceRegimeExceptionType type)
             query = query.Where(e => e.ExceptionType == type);

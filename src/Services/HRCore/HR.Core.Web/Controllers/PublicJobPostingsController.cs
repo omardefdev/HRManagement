@@ -143,10 +143,14 @@ public class PublicJobPostingsController(HRCoreDbContext db, CandidatePublicStat
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    // PLAN-52: id is a citizen application, not the posting (an id of another kind no longer passes as "not found").
+    [RecruitmentScopeId(RecruitmentScopeKind.CitizenApplication)]
     public async Task<IActionResult> ChangeApplicationStatus(Guid id, Guid postingId, CitizenApplicationStatus status)
     {
         var application = await db.CitizenApplications.FindAsync(id);
         if (application is null) return NotFound();
+        // PLAN-52: the filter checked both ids; the application must also belong to the posting.
+        if (application.PublicJobPostingId != postingId) return NotFound();
 
         // HCM-030 (A4): a requisition-linked application is screened on its recruitment application only.
         if (application.RequisitionId.HasValue)
@@ -171,10 +175,14 @@ public class PublicJobPostingsController(HRCoreDbContext db, CandidatePublicStat
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    // PLAN-52: id is a citizen application, not the posting (an id of another kind no longer passes as "not found").
+    [RecruitmentScopeId(RecruitmentScopeKind.CitizenApplication)]
     public async Task<IActionResult> DeclareCitizenCoi(Guid id, Guid postingId)
     {
         var application = await db.CitizenApplications.FindAsync(id);
         if (application is null) return NotFound();
+        // PLAN-52: the filter checked both ids; the application must also belong to the posting.
+        if (application.PublicJobPostingId != postingId) return NotFound();
 
         // HCM-030 (A4): a requisition-linked application is screened on its recruitment application only.
         if (application.RequisitionId.HasValue)

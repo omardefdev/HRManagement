@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using HR.Core.Web.Services;
@@ -8,6 +9,7 @@ namespace HR.Core.Web.Controllers;
 [Route("api/stats")]
 [ApiController]
 [Authorize]
+[OrgScopeNotApplicable("the user's own inbox count: the inbox filters each item by its unit")]
 public class StatsApiController(HrCoreWorkInboxService inboxService) : ControllerBase
 {
     [HttpGet("pending-approvals")]

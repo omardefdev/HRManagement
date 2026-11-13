@@ -25,6 +25,7 @@ namespace HR.Core.Web.Controllers;
 
 
 
+[OrgScoped(typeof(EmployeeDocument), OutOfScope = OrgScopeAnswer.Forbid)]
 public class DocumentsController : Controller
 
 {

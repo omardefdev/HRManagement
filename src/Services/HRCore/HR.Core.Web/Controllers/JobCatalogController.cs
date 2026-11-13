@@ -26,6 +26,7 @@ namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
 
+[OrgScopeCentralOnly]
 public class JobCatalogController(
 
     HRCoreDbContext db,

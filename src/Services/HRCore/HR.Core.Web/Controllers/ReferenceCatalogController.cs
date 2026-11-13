@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScopeCentralOnly]
 public class ReferenceCatalogController(
     IReferenceCatalogAdminService adminService,
     EstablishmentScopeService establishmentScope) : Controller
