@@ -22,6 +22,9 @@ public sealed class WorkflowInboxQueryService(
     // PLAN-50 (§6): a delegate sees his principal's items; optional so manual constructions stay role-only.
     HRManagement.ServiceDefaults.Delegation.IApprovalDelegationLookup? delegationLookup = null)
 {
+    // PLAN-52 (P-5): the one resolver of an instance's unit per entity type, shared with WorkflowStarter and HCM052.
+    private readonly HR.Core.Infrastructure.Services.Workflow.WorkflowInstanceScopeResolver instanceScopes = new(db);
+
     /// <summary>The user's delegations in force (none on any failure), and each stored principal scope among them.</summary>
     private async Task<(IReadOnlyList<HRManagement.SharedKernel.SeparationOfDuties.ActiveDelegation> Delegations,
         IReadOnlyDictionary<Guid, OrgAccessScope> PrincipalScopes)> DelegationsOfAsync(ClaimsPrincipal user, CancellationToken ct)
@@ -161,7 +164,11 @@ public sealed class WorkflowInboxQueryService(
         if (userId is null || RecruitmentAppealAccess.IsComplianceOnly(user) || WorkInboxAudience.IsAudienceOnly(user))
             return [];
 
+        // PLAN-52 (P0 finding): a restricted user's legacy queue holds the requests of his scope only (a request for an approved CV is
+        // its employee's; any other target has no unit: central). The stats count reads this list, so the two stay equal (AC-WF-23e).
+        var legacyScope = await orgScope.GetAllowedOrgUnitIdsAsync(user, ct);
         var requests = await db.ApprovalRequests.AsNoTracking()
+            .WhereInOrgScope(HR.Core.Infrastructure.OrgScope.HrCoreOrgScopeKeys.Registry, legacyScope, db)
             .Include(r => r.Steps)
             .Where(r => r.Status == ApprovalStatus.Pending)
             .OrderBy(r => r.RequestedAt)
@@ -266,6 +273,7 @@ public sealed class WorkflowInboxQueryService(
             }
 
             var entityIds = group.Select(g => g.EntityId).Distinct().ToList();
+            var units = await instanceScopes.ResolveAsync(group.Key, entityIds, ct);
             switch (group.Key)
             {
                 case "RecruitmentRequisition":
@@ -279,7 +287,7 @@ public sealed class WorkflowInboxQueryService(
                             rows.TryGetValue(instance.EntityId, out var req);
                             result[instance.Id] = new WorkflowInboxEntityContext
                             {
-                                ScopeOrgUnitId = req?.FundedPosition?.OrgUnitId,
+                                ScopeOrgUnitId = units.GetValueOrDefault(instance.EntityId),
                                 EntityMakers = eligibility.MakersOf(req?.CreatedBy, instance),
                                 IsAwaitingApproval = req?.Status == RequisitionStatus.PendingApproval && req.WorkflowInstanceId == instance.Id
                             };
@@ -298,7 +306,7 @@ public sealed class WorkflowInboxQueryService(
                             rows.TryGetValue(instance.EntityId, out var offer);
                             result[instance.Id] = new WorkflowInboxEntityContext
                             {
-                                ScopeOrgUnitId = offer?.FundedPosition?.OrgUnitId,
+                                ScopeOrgUnitId = units.GetValueOrDefault(instance.EntityId),
                                 EntityMakers = eligibility.MakersOf(offer?.CreatedBy, instance),
                                 IsAwaitingApproval = offer?.Status == OfferStatus.PendingApproval && offer.WorkflowInstanceId == instance.Id
                             };
@@ -319,7 +327,7 @@ public sealed class WorkflowInboxQueryService(
                             rows.TryGetValue(instance.EntityId, out var session);
                             result[instance.Id] = new WorkflowInboxEntityContext
                             {
-                                ScopeOrgUnitId = session?.Requisition?.FundedPosition?.OrgUnitId,
+                                ScopeOrgUnitId = units.GetValueOrDefault(instance.EntityId),
                                 EntityMakers = WorkflowMakerRules.Makers(session?.CreatedBy, null, null),
                                 CommitteeCreatedBy = session?.CreatedBy,
                                 CommitteeMembers = session?.Members.ToList(),
@@ -342,7 +350,7 @@ public sealed class WorkflowInboxQueryService(
                             rows.TryGetValue(instance.EntityId, out var appeal);
                             result[instance.Id] = new WorkflowInboxEntityContext
                             {
-                                ScopeOrgUnitId = appeal?.RecruitmentApplication?.Requisition?.FundedPosition?.OrgUnitId,
+                                ScopeOrgUnitId = units.GetValueOrDefault(instance.EntityId),
                                 Appeal = appeal,
                                 IsAwaitingApproval = appeal?.Status == RecruitmentAppealStatus.Pending && appeal.WorkflowInstanceId == instance.Id
                             };

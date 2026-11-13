@@ -19,6 +19,7 @@ using HRManagement.SharedKernel.ViewModels;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScoped(typeof(Employee), OutOfScope = OrgScopeAnswer.Forbid)]
 public class EmployeesController : Controller
 {
     private readonly HRCoreDbContext _context;

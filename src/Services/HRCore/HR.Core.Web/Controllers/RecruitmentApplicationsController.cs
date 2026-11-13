@@ -362,8 +362,11 @@ public class RecruitmentApplicationsController(
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> RescheduleInterview(Guid applicationId, Guid slotId, DateTime newTime, string? reason)
+    public async Task<IActionResult> RescheduleInterview(Guid applicationId, [OrgScopeId(typeof(RecruitmentInterviewSlot))] Guid slotId, DateTime newTime, string? reason)
     {
+        // PLAN-52: the filter checked both ids; the slot must also belong to the application.
+        if (!await db.RecruitmentInterviewSlots.AsNoTracking().AnyAsync(s => s.Id == slotId && s.RecruitmentApplicationId == applicationId))
+            return NotFound();
         var (slot, error) = await interviewService.RescheduleAsync(slotId, LocalInputToUtc(newTime), reason);
         TempData[slot is null ? "Error" : "Success"] = error ?? "تمت إعادة جدولة المقابلة";
         return RedirectToInterviews(applicationId);
@@ -372,8 +375,11 @@ public class RecruitmentApplicationsController(
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> CancelInterview(Guid applicationId, Guid slotId, string? reason)
+    public async Task<IActionResult> CancelInterview(Guid applicationId, [OrgScopeId(typeof(RecruitmentInterviewSlot))] Guid slotId, string? reason)
     {
+        // PLAN-52: the filter checked both ids; the slot must also belong to the application.
+        if (!await db.RecruitmentInterviewSlots.AsNoTracking().AnyAsync(s => s.Id == slotId && s.RecruitmentApplicationId == applicationId))
+            return NotFound();
         var (success, error) = await interviewService.CancelAsync(slotId, reason);
         TempData[success ? "Success" : "Error"] = success ? "تم إلغاء المقابلة" : error;
         return RedirectToInterviews(applicationId);
@@ -382,8 +388,11 @@ public class RecruitmentApplicationsController(
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> CompleteInterview(Guid applicationId, Guid slotId, InterviewOutcome outcome, string? notes)
+    public async Task<IActionResult> CompleteInterview(Guid applicationId, [OrgScopeId(typeof(RecruitmentInterviewSlot))] Guid slotId, InterviewOutcome outcome, string? notes)
     {
+        // PLAN-52: the filter checked both ids; the slot must also belong to the application.
+        if (!await db.RecruitmentInterviewSlots.AsNoTracking().AnyAsync(s => s.Id == slotId && s.RecruitmentApplicationId == applicationId))
+            return NotFound();
         var (success, error) = await interviewService.CompleteAsync(slotId, outcome, notes);
         TempData[success ? "Success" : "Error"] = success ? "تم تسجيل نتيجة المقابلة" : error;
         return RedirectToInterviews(applicationId);
@@ -805,6 +814,13 @@ public class RecruitmentApplicationsController(
         var legacyFlag = ResolveLegacyHireWithoutOffer();
 
         var published = await intake.GetOpenPublishedRequisitionsAsync();
+        // PLAN-25 follow-up (PLAN-52): a branch user picks only his scope's requisitions.
+        var pickScope = await RecruitmentOrgScopeQueries.GetScopeAsync(HttpContext);
+        if (pickScope.MustFilter)
+        {
+            var inScope = (await db.RecruitmentRequisitions.AsNoTracking().InScope(pickScope).Select(r => r.Id).ToListAsync()).ToHashSet();
+            published = published.Where(r => inScope.Contains(r.Id)).ToList();
+        }
         var requisitionOptions = published
             .Select(r => new
             {
@@ -917,19 +933,21 @@ public class RecruitmentApplicationsController(
 
     private async Task PopulateSelectListsAsync(RecruitmentHireViewModel vm)
     {
-        var orgUnits = await db.OrgUnits.AsNoTracking().ToListAsync();
+        // PLAN-52: the unit and employee pick-lists of a branch user hold his scope only.
+        var orgUnits = await (await db.OrgUnits.AsNoTracking().InOrgScopeAsync(HttpContext, db)).ToListAsync();
         vm.OrgUnits = new SelectList(
             OrgUnitDisplayService.BuildOptions(orgUnits, vm.PrimaryOrgUnitId),
             "Value", "Text", vm.PrimaryOrgUnitId?.ToString());
 
-        var employeeRows = await db.Employees.AsNoTracking()
+        var scopedEmployees = await db.Employees.AsNoTracking().InOrgScopeAsync(HttpContext, db);
+        var employeeRows = await scopedEmployees
             .OrderBy(e => e.FullName)
             .Take(SearchFilterBase.LookupMaxPageSize)
             .ToListAsync();
 
         // HCM-029: a pre-selected (matched) employee must be in the list even past the lookup page size.
         if (vm.ExistingEmployeeId is Guid selectedId && employeeRows.All(e => e.Id != selectedId)
-            && await db.Employees.AsNoTracking().FirstOrDefaultAsync(e => e.Id == selectedId) is Employee selected)
+            && await scopedEmployees.FirstOrDefaultAsync(e => e.Id == selectedId) is Employee selected)
             employeeRows.Insert(0, selected);
 
         var employees = employeeRows

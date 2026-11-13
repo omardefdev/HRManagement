@@ -14,6 +14,7 @@ namespace HR.Contracts.Web.Controllers;
 [Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
 [ApiController]
 [Route("api/process-interventions")]
+[OrgScopeCentralOnly("saga repair: the agency's process interventions")]
 public class ProcessInterventionsController(
     ContractsDbContext db,
     IPublishEndpoint publish) : ControllerBase

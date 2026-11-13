@@ -9,6 +9,7 @@ namespace HR.Core.Web.Controllers;
 [Route("api/signatures")]
 [ApiController]
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScopeCentralOnly]
 public class SignaturesApiController(HRCoreDbContext db) : ControllerBase
 {
     [HttpGet]

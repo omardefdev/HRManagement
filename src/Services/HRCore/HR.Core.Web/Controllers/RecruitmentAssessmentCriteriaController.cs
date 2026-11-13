@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using HR.Core.Domain.Recruitment;
 using HR.Core.Infrastructure.Services.Recruitment;
+using HR.Core.Web.Services;
 using HR.Core.Web.ViewModels;
 using HRManagement.ServiceDefaults;
 using Microsoft.AspNetCore.Authorization;
@@ -10,6 +11,8 @@ namespace HR.Core.Web.Controllers;
 
 /// <summary>HCM-026 (G-03): versioned assessment criteria per requisition.</summary>
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+// PLAN-52: the criteria belong to a requisition; a branch user writes only his scope's (form.RequisitionId).
+[RecruitmentOrgScope(RecruitmentScopeKind.Requisition)]
 public class RecruitmentAssessmentCriteriaController(
     RecruitmentAssessmentCriteriaService criteriaService,
     IAuthorizationService authorization) : Controller

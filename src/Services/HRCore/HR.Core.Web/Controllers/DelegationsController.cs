@@ -20,6 +20,7 @@ namespace HR.Core.Web.Controllers;
 /// administrator or a platform operator sees the tenant's.
 /// </summary>
 [Authorize(Policy = HrManagementPolicies.ManageDelegations)]
+[OrgScopeNotApplicable("self-service by ownership: the user's own delegations; the delegate is any employee of the directory (PLAN-50)")]
 public class DelegationsController(HRCoreDbContext db, IConfiguration configuration, ITenantContext tenantContext) : Controller
 {
     private const int MaxRevokeReason = 500;

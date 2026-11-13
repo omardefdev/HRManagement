@@ -15,6 +15,7 @@ namespace HR.Core.Web.Controllers;
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
 // PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
 [ModulePolicyOverride(HrManagementPolicies.HrCoreReadOnly)]
+[OrgScopeNotApplicable("reference data: the code policy templates; the issuance log is central")]
 public class CodeGenerationController(
     ICodeGenerator generator,
     HRCoreDbContext db,
@@ -62,6 +63,7 @@ public class CodeGenerationController(
     }
 
     [HttpGet("issuances")]
+    [OrgScopeCentralOnly("the issuance log lists the codes of every branch")]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public async Task<IActionResult> ListIssuances(
         [FromQuery] CodeEntityKind? entityKind,

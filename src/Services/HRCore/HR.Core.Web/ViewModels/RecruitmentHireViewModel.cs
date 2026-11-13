@@ -63,9 +63,12 @@ public class RecruitmentHireViewModel
     public Gender Gender { get; set; }
 
     [Display(Name = "الوحدة التنظيمية")]
+    // PLAN-52: a branch user hires into his scope only, and links an employee of his scope only (the recruitment filter resolves both).
+    [HRManagement.ServiceDefaults.OrgScopeId(typeof(HRManagement.ServiceDefaults.OrgScopeUnit))]
     public Guid? PrimaryOrgUnitId { get; set; }
 
     [Display(Name = "موظف موجود")]
+    [HRManagement.ServiceDefaults.OrgScopeId(typeof(HR.Core.Domain.Entities.Employee))]
     public Guid? ExistingEmployeeId { get; set; }
 
     [Display(Name = "تاريخ المباشرة المتوقع")]

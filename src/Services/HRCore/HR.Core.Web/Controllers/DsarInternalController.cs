@@ -19,6 +19,7 @@ namespace HR.Core.Web.Controllers;
 [ApiController]
 [Route("api/internal/dsar-subjects")]
 [Authorize(Policy = ServicePolicies.DsarSubjectRead)]
+[OrgScopeNotApplicable("service-to-service: the compliance service's data subject requests")]
 public sealed partial class DsarInternalController(HRCoreDbContext db) : ControllerBase
 {
     [HttpGet("{employeeId:guid}")]

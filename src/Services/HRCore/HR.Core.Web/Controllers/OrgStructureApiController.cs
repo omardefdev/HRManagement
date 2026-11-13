@@ -13,6 +13,7 @@ namespace HR.Core.Web.Controllers;
 [Route("api/org-structure")]
 [ApiController]
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScoped(typeof(OrgUnit), OutOfScope = OrgScopeAnswer.Forbid)]
 public class OrgStructureApiController(
     HRCoreDbContext db,
     IOrgUnitVersionService versionService,
@@ -112,6 +113,8 @@ public sealed class UpdateOrgUnitStructureRequest
     public string? NameEn { get; init; }
     public Guid? HeadEmployeeId { get; init; }
     public bool? ClearHeadEmployee { get; init; }
+    // PLAN-52 (P0 finding): a restricted user cannot move a unit under one outside his scope (the filter answers 403, the kept answer).
+    [OrgScopeId(typeof(OrgScopeUnit))]
     public Guid? ParentId { get; init; }
     public DateTime? EffectiveFrom { get; init; }
 }

@@ -20,6 +20,7 @@ namespace HR.Core.Web.Controllers;
 /// HrCore.Write, which every action had to pass as well).
 /// </summary>
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScoped(typeof(EmployeeCorrection), OutOfScope = OrgScopeAnswer.Forbid)]
 public class EmployeeCorrectionsController(HRCoreDbContext db, OrgScopeService orgScope) : Controller
 {
     public record CorrectionRequestDto(

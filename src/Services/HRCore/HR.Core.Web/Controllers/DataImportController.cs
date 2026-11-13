@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+[OrgScopeCentralOnly]
 public class DataImportController(HRCoreDbContext db, EmployeeIntegrationService integration) : Controller
 {
     public IActionResult Index() => View();

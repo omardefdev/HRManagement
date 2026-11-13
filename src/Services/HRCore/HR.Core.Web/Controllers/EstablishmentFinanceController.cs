@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScoped(OutOfScope = OrgScopeAnswer.Forbid)]
 public class EstablishmentFinanceController(
     HR.Core.Infrastructure.Data.HRCoreDbContext db,
     IFinanceBudgetImportService financeImportService,
@@ -53,14 +54,21 @@ public class EstablishmentFinanceController(
         return RedirectToAction(nameof(Reconciliation), new { fiscalYear = vm.FiscalYear, batchId = batch.Id });
     }
 
-    public async Task<IActionResult> Reconciliation(int? fiscalYear, Guid? batchId, Guid? orgUnitId)
+    public async Task<IActionResult> Reconciliation(
+        int? fiscalYear,
+        [NotOrgScopeKey("an agency budget import batch: the reconciliation is narrowed by the unit")] Guid? batchId,
+        Guid? orgUnitId)
     {
         var scope = await orgScope.GetAllowedOrgUnitIdsAsync(User);
         if (scope.IsDenied) return Forbid();
         if (orgUnitId is Guid ou && scope.MustFilter && !scope.CanAccess(ou)) return Forbid();
+        // PLAN-52 (P0 finding): without a unit the reconciliation is the agency's; a branch user's is his scope's root, and the imported
+        // side shows his unit's cost centers only.
+        if (scope.MustFilter)
+            orgUnitId ??= await HttpContext.GetRestrictedRootAsync();
 
         var year = fiscalYear ?? DateTime.UtcNow.Year;
-        var result = await reconciliationService.ReconcileAsync(year, batchId, orgUnitId);
+        var result = await reconciliationService.ReconcileAsync(year, batchId, orgUnitId, unitCostCentersOnly: scope.MustFilter);
         await PopulateOrgUnitsAsync(orgUnitId);
         return View(new FinanceReconciliationViewModel
         {

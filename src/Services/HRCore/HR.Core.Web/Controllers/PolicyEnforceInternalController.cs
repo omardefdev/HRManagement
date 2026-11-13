@@ -27,6 +27,7 @@ namespace HR.Core.Web.Controllers;
 [Route("api/internal/policies")]
 [Authorize(Policy = ServicePolicies.PolicyEnforceS2S)]
 [ValidateAntiForgeryToken]
+[OrgScopeNotApplicable("service-to-service: the policy engine's decision for the services")]
 public sealed class PolicyEnforceInternalController(
     IPolicyOrchestrator orchestrator,
     IPolicyModeResolver modeResolver,

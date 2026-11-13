@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScopeNotApplicable("reference data: the benefit plan catalogue")]
 public class BenefitPlansController(
     HRCoreDbContext context,
     ILegislationRegisterProvider legislationProvider) : Controller

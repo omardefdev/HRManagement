@@ -283,6 +283,54 @@ public sealed class KeycloakUserProvisioningService : IKeycloakUserProvisioningS
         }
     }
 
+    /// <summary>The user attribute the realm's <c>scope_org_unit_id</c> mapper reads (docker/keycloak/realm-manifest.json).</summary>
+    public const string ScopeOrgUnitAttribute = "scope_org_unit_id";
+
+    /// <summary>
+    /// PLAN-52 (D-52-4, review 5): reads the user, drops <see cref="ScopeOrgUnitAttribute"/> from his attributes and writes the whole
+    /// representation it read back (an admin update replaces the attribute map, and a realm with a user profile validates the whole user, so
+    /// every other field and attribute goes back as it was). A user without the attribute is left alone (<see cref="KeycloakProvisionResult.ScopeAbsent"/>).
+    /// </summary>
+    public async Task<KeycloakProvisionResult> TryClearScopeAttributeAsync(string keycloakUserId, CancellationToken ct = default)
+    {
+        if (!TryGetSyncConfig(out var baseUrl, out var realm, out var accessToken))
+            return _lastConfigResult!;
+
+        accessToken = await SafeGetTokenAsync(baseUrl!, realm!, ct);
+        if (accessToken is null) return KeycloakProvisionResult.Failed("token request failed");
+
+        var url = $"{baseUrl}/admin/realms/{realm}/users/{keycloakUserId}";
+        try
+        {
+            using var get = new HttpRequestMessage(HttpMethod.Get, url);
+            get.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            var current = await _http.SendAsync(get, ct);
+            if (!current.IsSuccessStatusCode)
+                return KeycloakProvisionResult.Failed($"read user status {(int)current.StatusCode}");
+
+            var user = System.Text.Json.Nodes.JsonNode.Parse(await current.Content.ReadAsStringAsync(ct))?.AsObject();
+            var attributes = user?["attributes"]?.AsObject();
+            if (user is null || attributes is null || !attributes.ContainsKey(ScopeOrgUnitAttribute))
+                return KeycloakProvisionResult.Succeeded(KeycloakProvisionResult.ScopeAbsent);
+
+            attributes.Remove(ScopeOrgUnitAttribute);
+            using var put = new HttpRequestMessage(HttpMethod.Put, url)
+            {
+                Content = new StringContent(user.ToJsonString(), System.Text.Encoding.UTF8, "application/json")
+            };
+            put.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            var resp = await _http.SendAsync(put, ct);
+            return resp.IsSuccessStatusCode
+                ? KeycloakProvisionResult.Succeeded(KeycloakProvisionResult.ScopeRemoved)
+                : KeycloakProvisionResult.Failed($"clear scope status {(int)resp.StatusCode}");
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogWarning(ex, "Keycloak DirectorySync: clear scope attribute HTTP failed");
+            return KeycloakProvisionResult.Failed("clear scope attribute HTTP failed");
+        }
+    }
+
     private KeycloakProvisionResult? _lastConfigResult;
 
     private bool TryGetSyncConfig(out string? baseUrl, out string? realm, out string? accessToken)

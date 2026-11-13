@@ -10,6 +10,11 @@
 # PLAN-50 (P-13): --employee-id also writes the employee_id attribute, which the realm's mapper puts in the token; an approval
 # delegation is matched by it (D-50-2). Without it the user carries tenant_id only, as before.
 #
+# PLAN-52 (P-16): --scope-org-unit-id writes the scope_org_unit_id attribute, which the realm's mapper puts in the token: with the
+# branch-manager role the user is restricted to that unit and its descendants. Both options come before the username, in any order:
+#
+#   ... bash -s -- --employee-id <guid> --scope-org-unit-id <guid> <username> <email> <lastName> <tenantId> <role> [role...]
+#
 # The live realm's user profile declares no tenant_id, and an admin write of an attribute it does not know is silently dropped; users of the
 # first import have it because the import bypasses the profile. So the profile allows unmanaged attributes for this write only, and goes back
 # as it was: the stored attribute stays, and the token mapper reads it as it does for the imported users.
@@ -19,13 +24,24 @@
 set -euo pipefail
 umask 077
 
+GUID_RE='^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
 EMPLOYEE_ID=""
-if [ "${1:-}" = "--employee-id" ]; then
-    EMPLOYEE_ID="${2:?employee id required after --employee-id}"
-    shift 2
-    [[ "$EMPLOYEE_ID" =~ ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$ ]] \
-        || { echo "--employee-id must be a GUID" >&2; exit 2; }
-fi
+SCOPE_ORG_UNIT_ID=""
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --employee-id)
+            EMPLOYEE_ID="${2:?employee id required after --employee-id}"
+            shift 2
+            [[ "$EMPLOYEE_ID" =~ $GUID_RE ]] || { echo "--employee-id must be a GUID" >&2; exit 2; }
+            ;;
+        --scope-org-unit-id)
+            SCOPE_ORG_UNIT_ID="${2:?org unit id required after --scope-org-unit-id}"
+            shift 2
+            [[ "$SCOPE_ORG_UNIT_ID" =~ $GUID_RE ]] || { echo "--scope-org-unit-id must be a GUID" >&2; exit 2; }
+            ;;
+        *) break ;;
+    esac
+done
 
 USERNAME="${1:?username required}"
 EMAIL="${2:?email required}"
@@ -79,6 +95,10 @@ kc update "users/$id" -r "$REALM" -s "attributes.tenant_id=[\"$TENANT\"]" > /dev
 if [ -n "$EMPLOYEE_ID" ]; then
     kc update "users/$id" -r "$REALM" -s "attributes.employee_id=[\"$EMPLOYEE_ID\"]" > /dev/null
     echo "employee_id: $USERNAME"
+fi
+if [ -n "$SCOPE_ORG_UNIT_ID" ]; then
+    kc update "users/$id" -r "$REALM" -s "attributes.scope_org_unit_id=[\"$SCOPE_ORG_UNIT_ID\"]" > /dev/null
+    echo "scope_org_unit_id: $USERNAME"
 fi
 
 for role in "$@"; do

@@ -13,6 +13,7 @@ namespace HR.Core.Web.Controllers;
 [Route("api/establishment")]
 [ApiController]
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScoped(typeof(WorkforcePlan), OutOfScope = OrgScopeAnswer.Forbid)]
 public class EstablishmentPlanningApiController(
     HRCoreDbContext db,
     IEstablishmentGapAnalysisService gapAnalysisService,
@@ -66,21 +67,27 @@ public class EstablishmentPlanningApiController(
     [HttpGet("finance/reconciliation")]
     public async Task<IActionResult> Reconciliation(
         [FromQuery] int fiscalYear,
-        [FromQuery] Guid? batchId,
+        [FromQuery, NotOrgScopeKey("an agency budget import batch: the reconciliation is narrowed by the unit")] Guid? batchId,
         [FromQuery] Guid? orgUnitId,
         CancellationToken ct)
     {
+        var orgAccess = await orgScope.GetAllowedOrgUnitIdsAsync(User, ct);
         if (orgUnitId is Guid ou)
         {
-            var orgAccess = await orgScope.GetAllowedOrgUnitIdsAsync(User, ct);
             if (orgAccess.IsDenied) return Forbid();
             if (orgAccess.MustFilter && !orgAccess.CanAccess(ou)) return Forbid();
         }
 
-        var result = await reconciliationService.ReconcileAsync(fiscalYear, batchId, orgUnitId, ct);
+        // PLAN-52 (P0 finding): without a unit the reconciliation is the agency's; a branch user's is his scope's root, and the imported
+        // side shows his unit's cost centers only.
+        if (orgAccess.MustFilter)
+            orgUnitId ??= await HttpContext.GetRestrictedRootAsync();
+
+        var result = await reconciliationService.ReconcileAsync(fiscalYear, batchId, orgUnitId, ct, unitCostCentersOnly: orgAccess.MustFilter);
         return Ok(result);
     }
 
+    [OrgScopeCentralOnly("the agency's budget import")]
     [HttpPost("finance/import")]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [RequestSizeLimit(5_000_000)]
@@ -103,6 +110,7 @@ public class EstablishmentPlanningApiController(
         return Ok(new { batchId = batch.Id, batch.RowCount, batch.FiscalYear, note = "Stub file import — no live ERP" });
     }
 
+    [OrgScopeCentralOnly("the job catalogue import (reference data, central)")]
     [HttpPost("job-catalog/import")]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [RequestSizeLimit(5_000_000)]
@@ -132,6 +140,8 @@ public class EstablishmentPlanningApiController(
         });
     }
 
+    // PLAN-52: an establishment change has no unit (D-52-1): refused before any lookup (AC-POL-49e pins exactly 403).
+    [OrgScopeCentralOnly("an establishment change is central (no unit)")]
     [HttpPost("changes/{id:guid}/submit")]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     public async Task<IActionResult> SubmitChange(

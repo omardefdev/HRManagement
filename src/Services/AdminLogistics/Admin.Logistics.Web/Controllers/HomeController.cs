@@ -1,9 +1,11 @@
+using HRManagement.ServiceDefaults;
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Admin.Logistics.Web.Models;
 
 namespace Admin.Logistics.Web.Controllers;
 
+[OrgScopeNotApplicable("a page with no org records")]
 public class HomeController : Controller
 {
     public IActionResult Index()

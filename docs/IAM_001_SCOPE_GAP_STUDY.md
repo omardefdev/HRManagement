@@ -292,6 +292,8 @@
   - **AC-IAM-Db:** معاملة تعيين لفرع ALEP ← `Step3Execute` من br1-mgr ← 404.
   - **AC-06:** نقل مدير فرع ← يفقد الوصول القديم خلال دورة رمز واحدة.
 
+- **الحالة:** ✅ عولجت في [PLAN-52](acceptance-plans/PLAN-52-iam-branch-scope-bola.md) — آلية واحدة: مسجّل مفاتيح نطاق لكل خدمة ومرشح إجراءات واحد (ترتيب −3000)، وموقف معلن لكل متحكم (`[OrgScoped]`، `[OrgScopeCentralOnly]`، `[OrgScopeNotApplicable]`)؛ كل معرّف في المسار أو الاستعلام أو النموذج أو القائمة يُحل قبل الإجراء: خارج النطاق أو بلا مفتاح ← 404 (والـ403 الذي تثبته اختبارات أقدم يبقى)، والقوائم والتصدير (مباشراً وكمهمة تسجّل نطاق الطالب) وقوائم الاختيار مرشّحة. كل متحكمات HR.Core وHR.Contracts وAdmin.Logistics تعلن موقفها، وشاشات الحركات التي يفتحها التفويض مقيدة بنطاق المفوِّض. `OrgScopeRequirement` حُذف، و`BolaArchitectureTests` استُبدل بـ`OrgScopeCoverageTests` (انعكاس على التجميعات الخمس عشرة، صفوف كامنة لـIAM-H فقط). الديوان والتفتيش يحملان وحدة (`HCM052`)، ونسخ المسارات مختومة بوحدتها (AC-IAM-52a..e). بقي: المتحكمات الكامنة (صفوف IAM-H)، ولقطة الموظف في HR.Movements (G-MOV-10).
+
 #### G-IAM-05 — مسار `/ui/ess` وسياسة `Service.HrCoreLookup` يفتحان نقاطاً داخلية لكل مستخدم مسجّل
 - **الدليل:**
   - المسار `/ui/ess/{**catch-all}` يذهب إلى HR.Core كله ([Gateway appsettings.json:338-342](../src/Gateway/HRManagement.Gateway/appsettings.json)). البوابة تنزع البادئة ([GatewayAccessTokenTransform.cs:28-41](../src/Shared/HRManagement.ServiceDefaults/GatewayAccessTokenTransform.cs))، وسياسته `Module.Ess` لكل طريقة ([GatewayPathAuthorizationMiddleware.cs:240-258](../src/Shared/HRManagement.ServiceDefaults/GatewayPathAuthorizationMiddleware.cs)).
@@ -452,6 +454,8 @@
   - **AC-IAM-Ga:** انفصال موظف ← حسابه معطّل في Keycloak خلال ≤ 5 دقائق، والخدمة الذاتية تعيده إلى الدخول.
   - **AC-IAM-Gb:** تعديل `employee_id` من حساب المستخدم ← مرفوض.
   - **AC-IAM-Gc:** خمول 31 دقيقة ← إعادة دخول.
+
+- **الحالة (جزء النقل):** ✅ عولج في [PLAN-52](acceptance-plans/PLAN-52-iam-branch-scope-bola.md) — المنقول يفقد نطاقه (fail-closed): مستهلك `TransferExecuted` في Auth.Directory يفرّغ `ScopeOrgUnitId` محلياً ويدقّقه (`ScopeClearedOnTransfer`: النطاق القديم والوحدتان والنقل)، ومع `Keycloak:DirectorySync:Enabled` يحذف الخاصية من Keycloak أياً كانت القيمة المحلية (والفشل يعيد الرسالة)؛ ومع المزامنة معطلة تحذير وعدّاد `directory_scope_sync_skipped_total` ويبقى الرمز بنطاقه حتى المزامنة (PLAN-62). ولقطة HR.Health تتبع النقل. إيصال واحد لكل نقل. بقي من G-IAM-11: المغادر وتفعيل المزامنة ← PLAN-62، والجلسة وMFA ← الموجة 2.
 
 #### G-IAM-12 — Keycloak غير مُقنَّن للإنتاج، وMFA غير مفروضة
 - **الدليل:**

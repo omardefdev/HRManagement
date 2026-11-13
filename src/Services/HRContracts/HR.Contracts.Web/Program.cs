@@ -20,7 +20,11 @@ builder.AddHrOpenTelemetry();
 builder.AddHrLocalization();
 
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrContracts, HrManagementPolicies.HrContractsWrite);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModuleHrContracts, HrManagementPolicies.HrContractsWrite)
+    // PLAN-52 (§3, P-7): every controller declares its scope stance; the one filter resolves the ids of a restricted user's request.
+    .AddOrgScopeFilter<HR.Contracts.Infrastructure.Data.ContractsDbContext>(
+        HR.Contracts.Infrastructure.OrgScope.ContractsOrgScopeKeys.Service, HR.Contracts.Infrastructure.OrgScope.ContractsOrgScopeKeys.Configure);
+builder.Services.AddSnapshotOrgScopeProvider<HR.Contracts.Infrastructure.Data.ContractsDbContext>();
 builder.Services.AddHrOpenApi("HR.Contracts API");
 
 builder.Services.AddHttpContextAccessor();

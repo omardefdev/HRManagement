@@ -343,23 +343,30 @@ public class AcQa34PushableBaselineTests
     [SkippableFact]
     public void Ac34_d_the_twelve_index_actions_are_branch_scoped()
     {
-        var r = StartTrx("34d", "AC-QA-34d: twelve Index(employeeId) actions — BR1 rows only, BR2 employee 403, on SQLite and PostgreSQL; BolaArchitectureTests green", out var unit, out var integration, out var tc);
+        var r = StartTrx("34d", "AC-QA-34d: twelve Index(employeeId) actions — BR1 rows only, BR2 employee 403, on SQLite and PostgreSQL; OrgScopeCoverageTests (BOLA v2) green", out _, out var integration, out var tc);
         var sqlite = Count(integration, "Plan034ScopedIndexTests.");
         var forbidden = Count(integration, "Plan034ScopedIndexTests.Branch_user_gets_403_for_other_branch_employee");
         var pg = Count(tc, "Plan034ScopedIndexPostgreSqlTests.");
-        var bola = Count(unit, "BolaArchitectureTests.");
+        // PLAN-52 (P-11): BOLA v1 (a text search for guard helpers, in the unit suite) is replaced by the reflective v2 in the
+        // architecture suite: every controller declares a stance or is a signed IAM-H row, and every id has a key or a declaration.
+        var architecture = LinuxTrx("architecture-results.trx");
+        AcceptanceGate.RequireData(r, architecture.Count > 0,
+            "نتائج اختبارات البنية غير موجودة", $"architecture-results.trx missing under {LinuxRun}/TestResults (run scripts/ci-local.ps1 -Out artifacts/ci-local/head).");
+        var bola = Count(architecture, "OrgScopeCoverageTests.");
         r.WriteScenarioSteps("""
             Linux clean-HEAD run (scripts/ci-local.ps1), trx files:
             - Plan034ScopedIndexTests (SQLite, real controllers): 6 cases × 12 actions, including "BR2 employee → 403", plus
               3 cases (review E-1) where 110 newer BR2 rows must not push the BR1 rows past the page-size cap.
             - Plan034ScopedIndexPostgreSqlTests (Testcontainers): ContractsController and PaymentHoldsController on PostgreSQL.
-            - BolaArchitectureTests: no Index(employeeId) action without a scope guard, no allow-list.
+            - OrgScopeCoverageTests (BOLA v2, architecture suite): every controller declares an org-scope stance or is a signed
+              IAM-H row, and every id has a scope key or a declaration; the six HR.Contracts actions are declared, the six Payroll
+              actions are IAM-H rows.
             """);
         r.WriteScenarioDbChecks(new { sqlite, forbidden, pg, pgSource = TestcontainersTrx().Source, bola });
         Assert.Equal((75, 75, 0), sqlite); // 6 × 12 + 3 page-size-cap cases
         Assert.Equal((12, 12, 0), forbidden);
         Assert.Equal((2, 2, 0), pg);
-        Assert.True(bola.Total >= 1 && bola.Failed == 0 && bola.Passed == bola.Total, $"BolaArchitectureTests {bola}");
+        Assert.True(bola.Total >= 1 && bola.Failed == 0 && bola.Passed == bola.Total, $"OrgScopeCoverageTests {bola}");
         r.WriteResult("Pass");
     }
 

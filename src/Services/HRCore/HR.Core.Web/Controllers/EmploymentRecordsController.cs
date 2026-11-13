@@ -14,6 +14,7 @@ using HRManagement.SharedKernel.ViewModels;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScoped(typeof(EmploymentRecord), OutOfScope = OrgScopeAnswer.Forbid)]
 public class EmploymentRecordsController : Controller
 {
     private readonly HRCoreDbContext _context;
@@ -62,7 +63,7 @@ public class EmploymentRecordsController : Controller
     private async Task PopulateOrgUnitsAsync(EmploymentRecordCreateViewModel vm)
     {
         vm.OrgUnits = new SelectList(
-            await _context.OrgUnits.OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", vm.OrgUnitId);
+            await (await _context.OrgUnits.AsNoTracking().InOrgScopeAsync(HttpContext, _context)).OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", vm.OrgUnitId);
     }
 
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]

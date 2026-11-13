@@ -1,3 +1,4 @@
+using HRManagement.ServiceDefaults;
 using HR.Core.Infrastructure.Middleware;
 using HR.Core.Infrastructure.Services.Recruitment;
 using HR.Core.Web.Services;
@@ -20,6 +21,7 @@ namespace HR.Core.Web.Controllers;
 /// </summary>
 [AllowAnonymous]
 [Route("my")]
+[OrgScopeNotApplicable("self-service by ownership: a candidate's own applications")]
 public class CandidatePortalController(
     CandidateOtpService otp,
     CandidatePortalSession sessions,

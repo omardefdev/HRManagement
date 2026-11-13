@@ -82,6 +82,23 @@ public static class OrgScopeResolver
         return result;
     }
 
+    /// <summary>
+    /// PLAN-52 (P-7): the restricted scope of a recorded root (an export job runs without its requester): the root and its descendants by
+    /// materialized path; a root that no longer exists is denied.
+    /// </summary>
+    public static async Task<OrgAccessScope> GetAllowedForRootAsync(Guid rootId, IQueryable<OrgUnitSnapshot> units, CancellationToken ct = default)
+    {
+        var root = await units.AsNoTracking()
+            .Where(u => u.Id == rootId)
+            .Select(u => new { u.Id, u.MaterializedPath })
+            .FirstOrDefaultAsync(ct);
+        if (root is null)
+            return OrgAccessScope.Denied();
+        var path = string.IsNullOrEmpty(root.MaterializedPath) ? $"/{root.Id:D}/" : root.MaterializedPath;
+        var ids = await units.AsNoTracking().Where(u => u.MaterializedPath.StartsWith(path)).Select(u => u.Id).ToListAsync(ct);
+        return OrgAccessScope.Restricted(ids.Count == 0 ? new HashSet<Guid> { rootId } : ids.ToHashSet());
+    }
+
     /// <summary>Invalidate snapshot scope cache entries for a tenant (call after IOrgUnitChanged).</summary>
     public static void InvalidateSnapshotScopeCache(IMemoryCache? memoryCache, Guid tenantId)
     {

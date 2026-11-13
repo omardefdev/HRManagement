@@ -224,8 +224,22 @@ public static class AcceptanceRecruitmentStatesPatch
             UpdatedAt = Created.AddDays(4)
         });
         db.ApprovalRequests.Add(legacy);
+        // PLAN-52 (P-12): the legacy queue is scoped (D-52-1: a request whose target has no unit is central), so the request names a real
+        // approved CV of a RIF employee, which a RIF branch manager reviews (AC-WF-23f); before, it named no row and no unit.
+        db.ApprovedCVs.Add(new ApprovedCV
+        {
+            Id = legacy.EntityId,
+            TenantId = tenant,
+            EmployeeId = AcceptanceSeedIds.EmpBr1Id,
+            Notes = "AC-WF-23f",
+            CreatedAt = Created.AddDays(4),
+            UpdatedAt = Created.AddDays(4),
+            CreatedBy = centralA
+        });
 
         await db.SaveChangesAsync(ct);
+        // PLAN-52 (P-5): the instances above are inserted here, not through WorkflowStarter, so they are stamped the same way.
+        await new HR.Core.Infrastructure.Services.Workflow.WorkflowInstanceScopeResolver(db).StampMissingAsync(ct);
         logger?.LogInformation("PLAN-33 acceptance patch: deterministic recruitment states seeded.");
     }
 

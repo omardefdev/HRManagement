@@ -11,6 +11,7 @@ using HRManagement.SharedKernel.ViewModels;
 
 namespace HR.Core.Web.Controllers;
 
+[OrgScoped(typeof(ContactInfo), OutOfScope = OrgScopeAnswer.Forbid)]
 public class ContactsController : Controller
 {
     private readonly HRCoreDbContext _context;

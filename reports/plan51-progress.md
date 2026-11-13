@@ -313,3 +313,39 @@ with `Deployment__Mode=demo`; no container sets an `Authorization__*` or `Gatewa
   «ملاحظات التنفيذ والانحرافات»; the others were committed in 5fcc6c6b. `reports/plan51-final-report.md` written.
 - The full Testcontainers step ran at 03:10Z..03:19Z (216 passed, 1 skipped, 0 failed) on the code of 9d130248; nothing it builds or tests
   changed after it. ProtonVPN is on, so `ci-local` runs with `-SkipTestcontainers` (memory: Testcontainers fail under the VPN).
+- Local gates on 566b44ad: `ci-local -SkipTestcontainers` 08:19:32Z..08:37:58Z (1105 s): ok, 90 passed, 0 failed, not-run the
+  Testcontainers step and the coverage gate (VPN; the full step ran on the host at 03:19Z); unit 6270, architecture 131, integration 407.
+  `plan035-prepush.ps1` 09:00:22Z..09:20:54Z: PRE-PUSH OK (gitleaks history 474 commits and range 15 commits, no leaks; actionlint;
+  cilocal on the exact HEAD; forbidden; nonprod; signatures).
+- **Stop 09:21Z..17:05Z (7 h 44 min):** no work; the session stood still after the pre-push check and resumed on the owner's "Try again".
+- `release/plan-51` from `origin/main` (`0db7292e`) with `--no-ff` merge `f86087c0` (same tree as 566b44ad); pushed once at 17:05:11Z
+  (the pre-push hook: gitleaks and forbidden OK). `reports/plan51-pr.md` is kept out of the pushed range (the gates ran on 566b44ad) and
+  goes to the merge-note branch.
+- PR: https://github.com/omardefdev/HRManagement/pull/49 opened at 17:07Z.
+
+## Merge (P-15)
+
+Merged by agent on owner instruction (UTC): 2026-11-12T19:16:55Z
+
+- The owner's instruction: "Yes, merge when green" (after the turn that opened the PR ended at 17:08Z: the app does not let the agent
+  poll checks, so the session did not wait in the turn).
+- PR: https://github.com/omardefdev/HRManagement/pull/49 (`release/plan-51` at `f86087c0` -> `main`), opened 17:07Z.
+- PR run `43266100514` (pull_request, 17:07:41Z..18:06:59Z, **59 min 18 s, success**), 15 checks, all pass: Gitleaks 48 s, Dedupe
+  post-merge run 8 s, Reuse check 18 s, CodeQL 18 min 20 s, E2E 17 min 24 s, CI 40 min 54 s, Acceptance images 23 min 6 s, Acceptance
+  stage lab-main 29 min 51 s, lab-rest 20 min 29 s, leastpriv 13 min 45 s, meta 35 min 8 s, prodlike 28 min 53 s, prodlike-final
+  31 min 13 s, prodlike-policy 13 min 50 s, Acceptance 27 s. Required (`main` strict): CI, CodeQL, Gitleaks, E2E, Acceptance.
+- **Evidence of record:** the PR run's artifact `acceptance-evidence` (id 13970411964), with the stage artifacts beside it:
+  https://github.com/omardefdev/HRManagement/actions/runs/43266100514
+- Read once at 19:16Z: every check green, `mergeStateStatus` CLEAN; `gh pr merge 49 --merge` -> merge commit `e6a93705`
+  (2026-11-12T19:16:55Z). No rerun, no red check, no fix on the release branch; `origin/main` had not moved (`0db7292e`).
+- Post-merge run `43288542045` (push to `main` at `e6a93705`, 19:16:58Z..19:17:40Z, success: the reuse of the PR run's tested tree).
+- `git switch main; git pull --ff-only`: `main` = `origin/main` = `e6a93705`.
+- Actions minutes: PR run 274 job-minutes over 15 jobs; post-merge run under a minute.
+
+## Timing (final)
+
+- Started 2026-11-11T23:26:13Z, merged 2026-11-12T19:16:55Z: **wall-clock 19 h 51 min**.
+- Stops: SSH blocked 3 h 20 min (03:23..05:17, 05:26..05:42, 05:43..06:53); the session stood still 7 h 44 min (09:21..17:05, resumed on
+  the owner's "Try again"); waiting for the owner's merge instruction 2 h 09 min (17:08..19:16), which contains the PR run's 59 min.
+- **Active about 6 h 38 min.** Waiting for CI: 59 min 18 s (the PR run); the post-merge run 42 s.
+- Keep-awake stopped at 17:08:12Z (PID 12268); nothing ran locally after it.

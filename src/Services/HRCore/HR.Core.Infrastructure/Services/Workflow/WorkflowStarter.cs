@@ -79,9 +79,22 @@ public sealed class WorkflowStarter(
         if (result.NewStatus == WorkflowStatus.Completed)
             instance.CompletedAt = DateTime.UtcNow;
 
+        // PLAN-52 (P-5): the entity's unit, so api/workflow-instances can filter by it; a type with no key stays null (central).
+        var scopes = new WorkflowInstanceScopeResolver(db);
+        instance.ScopeOrgUnitId = await scopes.ResolveAsync(entityType, entityId, ct);
+
         // PLAN-44: every caller reaches here, so the loser of a race is told the same way on every path.
         if (await WorkflowInstanceInsert.TrySaveAsync(db, instance, ct) is not null)
             throw new WorkflowInstanceRunningException(entityType, entityId);
+
+        // An entity added in the same unit of work is saved with the instance: read its unit now.
+        if (instance.ScopeOrgUnitId is null
+            && WorkflowInstanceScopeResolver.KeyedTypes.Contains(entityType)
+            && await scopes.ResolveAsync(entityType, entityId, ct) is Guid unit)
+        {
+            instance.ScopeOrgUnitId = unit;
+            await db.SaveChangesAsync(ct);
+        }
 
         return instance.Id;
     }

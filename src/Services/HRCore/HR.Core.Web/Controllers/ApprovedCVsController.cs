@@ -25,6 +25,7 @@ namespace HR.Core.Web.Controllers;
 
 
 
+[OrgScoped(typeof(ApprovedCV), OutOfScope = OrgScopeAnswer.Forbid)]
 public class ApprovedCVsController : Controller
 
 {

@@ -23,6 +23,7 @@ namespace HR.Core.Web.Controllers;
 // PLAN-51 (inventory 0.5): the module filter applies the class policy here, so the owning services no longer lean on Module.HrCore's
 // hr-core.workflow branch.
 [ModulePolicyOverride(HrManagementPolicies.WorkflowExternalStart)]
+[OrgScopeNotApplicable("service-to-service: the instances other services start and read")]
 public sealed class WorkflowExternalInstancesController(ExternalApprovalService approvals) : ControllerBase
 {
     [HttpPost]

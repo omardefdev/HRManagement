@@ -22,6 +22,9 @@ namespace HR.Core.Web.Controllers;
 [Authorize(Policy = HrManagementPolicies.HrCoreWorkInbox)]
 // PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
 [ModulePolicyOverride(HrManagementPolicies.HrCoreWorkInbox)]
+// PLAN-52: this page applies the instance's unit itself (WorkflowGateOrgScope, 403), with the requester's own exception (PLAN-45), and its
+// step decisions go through the workflow gates; the generic filter would drop the exception.
+[OrgScopeNotApplicable("the approval page of an external type: WorkflowGateOrgScope decides by the instance's unit (403), and a requester reads his own request (PLAN-45)")]
 public sealed class WorkflowApprovalsController(
     HRCoreDbContext db,
     IWorkflowInstanceActionService actions,

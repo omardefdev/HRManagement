@@ -16,6 +16,7 @@ namespace HR.Contracts.Web.Controllers;
 /// mutating hr-contracts request outside the hire wizard).
 /// </summary>
 [Authorize(Policy = HrManagementPolicies.HrContractsHireView)]
+[OrgScopeNotApplicable("reference data: the contract type to legal regime map")]
 public class ContractTypeRegimeMapsController(ContractsDbContext db) : Controller
 {
     /// <summary>SYR-003 regime ids (docs/syr/service-regimes.json).</summary>

@@ -10,19 +10,21 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Web.Controllers;
 
+[OrgScoped(typeof(KeyPosition))]
 public class KeyPositionsController(HRCoreDbContext db) : Controller
 {
     private async Task PopulateLookups()
     {
         ViewBag.OrgUnits = new SelectList(
-            await db.OrgUnits.AsNoTracking().OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr");
+            await (await db.OrgUnits.AsNoTracking().InOrgScopeAsync(HttpContext, db)).OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr");
         ViewBag.Employees = new SelectList(
-            await db.Employees.AsNoTracking().OrderBy(e => e.FullName).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "FullName");
+            await (await db.Employees.AsNoTracking().InOrgScopeAsync(HttpContext, db)).OrderBy(e => e.FullName).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "FullName");
     }
 
     public async Task<IActionResult> Index(Guid? orgUnitId, string? q, int? minCriticality)
     {
-        var query = db.KeyPositions.AsNoTracking().Include(k => k.OrgUnit).AsQueryable();
+        // PLAN-52: a branch user lists his scope's key positions only; his pick-lists hold his scope only.
+        var query = await db.KeyPositions.AsNoTracking().Include(k => k.OrgUnit).AsQueryable().InOrgScopeAsync(HttpContext, db);
         if (orgUnitId is Guid ou)
             query = query.Where(k => k.OrgUnitId == ou);
         if (minCriticality is int mc)
@@ -35,7 +37,7 @@ public class KeyPositionsController(HRCoreDbContext db) : Controller
 
         var items = await query.OrderByDescending(k => k.Criticality).Take(SearchFilterBase.MaxPageSize).ToListAsync();
         ViewBag.OrgUnits = new SelectList(
-            await db.OrgUnits.AsNoTracking().OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", orgUnitId);
+            await (await db.OrgUnits.AsNoTracking().InOrgScopeAsync(HttpContext, db)).OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", orgUnitId);
         return View(new KeyPositionsIndexViewModel { Items = items, OrgUnitId = orgUnitId, Q = q, MinCriticality = minCriticality });
     }
 
@@ -58,7 +60,8 @@ public class KeyPositionsController(HRCoreDbContext db) : Controller
         db.KeyPositions.Add(new KeyPosition
         {
             Title = vm.Title,
-            OrgUnitId = vm.OrgUnitId,
+            // PLAN-52: a restricted user's key position without a unit takes his scope root; the filter refused a foreign one.
+            OrgUnitId = vm.OrgUnitId ?? await HttpContext.GetRestrictedRootAsync(),
             CurrentHolderEmployeeId = vm.CurrentHolderEmployeeId,
             Criticality = vm.Criticality,
             Notes = vm.Notes
@@ -98,7 +101,8 @@ public class KeyPositionsController(HRCoreDbContext db) : Controller
             return View(vm);
         }
         pos.Title = vm.Title;
-        pos.OrgUnitId = vm.OrgUnitId;
+        // PLAN-52: a restricted user cannot move it out of his scope (a foreign unit was refused; none means his root).
+        pos.OrgUnitId = vm.OrgUnitId ?? await HttpContext.GetRestrictedRootAsync();
         pos.CurrentHolderEmployeeId = vm.CurrentHolderEmployeeId;
         pos.Criticality = vm.Criticality;
         pos.Notes = vm.Notes;

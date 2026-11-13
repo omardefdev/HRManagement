@@ -150,6 +150,8 @@ public static class AcceptanceRecruitmentReportsPatch
         }
 
         await db.SaveChangesAsync(ct);
+        // PLAN-52 (P-5): the instance above is inserted here, not through WorkflowStarter, so it is stamped the same way.
+        await new HR.Core.Infrastructure.Services.Workflow.WorkflowInstanceScopeResolver(db).StampMissingAsync(ct);
         logger?.LogInformation("PLAN-32 acceptance patch: recruitment report fixtures seeded.");
     }
 

@@ -15,6 +15,7 @@ using HR.Contracts.Infrastructure.Data;
 namespace HR.Contracts.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]
+[OrgScoped(typeof(HR.Contracts.Domain.Entities.ServiceTransaction), OutOfScope = OrgScopeAnswer.Forbid)]
 public class ServiceTransactionsController : Controller
 {
     private readonly IContractsRepository _repo;

@@ -12,11 +12,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Web.Controllers;
 
+[OrgScoped(typeof(HrStatisticReport))]
 public class HrStatisticReportsController(HRCoreDbContext db) : Controller
 {
+    // PLAN-52: a branch user's pick-list holds his scope's units only.
+    private async Task<SelectList> OrgUnitsAsync(Guid? selected = null) =>
+        new(await (await db.OrgUnits.AsNoTracking().InOrgScopeAsync(HttpContext, db))
+            .OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", selected);
+
     public async Task<IActionResult> Index(Guid? orgUnitId, DateOnly? periodFrom, DateOnly? periodTo, string? q)
     {
-        var query = db.HrStatisticReports.AsNoTracking().Include(r => r.OrgUnit).AsQueryable();
+        var query = await db.HrStatisticReports.AsNoTracking().Include(r => r.OrgUnit).AsQueryable().InOrgScopeAsync(HttpContext, db);
         if (orgUnitId is Guid ou)
             query = query.Where(r => r.OrgUnitId == ou);
         if (periodFrom is DateOnly pf)
@@ -32,14 +38,13 @@ public class HrStatisticReportsController(HRCoreDbContext db) : Controller
         }
 
         var items = await query.OrderByDescending(x => x.PeriodEnd).Take(SearchFilterBase.MaxPageSize).ToListAsync();
-        ViewBag.OrgUnits = new SelectList(
-            await db.OrgUnits.AsNoTracking().OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", orgUnitId);
+        ViewBag.OrgUnits = await OrgUnitsAsync(orgUnitId);
         return View(new HrStatisticReportsIndexViewModel { Items = items, OrgUnitId = orgUnitId, PeriodFrom = periodFrom, PeriodTo = periodTo, Q = q });
     }
 
     public async Task<IActionResult> Create()
     {
-        ViewBag.OrgUnits = new SelectList(await db.OrgUnits.AsNoTracking().OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr");
+        ViewBag.OrgUnits = await OrgUnitsAsync();
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         return View(new HrStatisticReportCreateViewModel { PeriodStart = today, PeriodEnd = today });
     }
@@ -51,7 +56,7 @@ public class HrStatisticReportsController(HRCoreDbContext db) : Controller
     {
         if (!ModelState.IsValid)
         {
-            ViewBag.OrgUnits = new SelectList(await db.OrgUnits.AsNoTracking().OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr");
+            ViewBag.OrgUnits = await OrgUnitsAsync(vm.OrgUnitId);
             return View(vm);
         }
         db.HrStatisticReports.Add(new HrStatisticReport
@@ -59,7 +64,8 @@ public class HrStatisticReportsController(HRCoreDbContext db) : Controller
             Title = vm.Title,
             PeriodStart = vm.PeriodStart,
             PeriodEnd = vm.PeriodEnd,
-            OrgUnitId = vm.OrgUnitId,
+            // PLAN-52 (D-52-2): a restricted user's report without a unit takes his scope root; the filter refused a foreign one.
+            OrgUnitId = vm.OrgUnitId ?? await HttpContext.GetRestrictedRootAsync(),
             MetricsSummary = vm.MetricsSummary
         });
         await db.SaveChangesAsync();
@@ -68,6 +74,7 @@ public class HrStatisticReportsController(HRCoreDbContext db) : Controller
     }
 }
 
+[OrgScoped(typeof(DailyAttendanceRecord))]
 public class DailyAttendanceRecordsController(
     HRCoreDbContext db,
     HR.Core.Infrastructure.Integration.AttendanceIntegrationService attendance,
@@ -110,8 +117,8 @@ public class DailyAttendanceRecordsController(
     {
         var record = await db.DailyAttendanceRecords.Include(a => a.Employee).FirstOrDefaultAsync(x => x.Id == id);
         if (record is null) return NotFound();
-        var scope = await orgScope.GetAllowedOrgUnitIdsAsync(User);
-        if (this.ForbidIfOrgUnitOutOfScope(scope, record.Employee?.PrimaryOrgUnitId) is { } d) return d;
+        // PLAN-52 (AC-IAM-52a): the org-scope filter answered 404 before this line for a record, or an employee (Create, Edit before and
+        // after the change), outside the scope.
         return View(record);
     }
 
@@ -151,8 +158,8 @@ public class DailyAttendanceRecordsController(
     {
         var record = await db.DailyAttendanceRecords.Include(a => a.Employee).FirstOrDefaultAsync(x => x.Id == id);
         if (record is null) return NotFound();
-        var scope = await orgScope.GetAllowedOrgUnitIdsAsync(User);
-        if (this.ForbidIfOrgUnitOutOfScope(scope, record.Employee?.PrimaryOrgUnitId) is { } d) return d;
+        // PLAN-52 (AC-IAM-52a): the org-scope filter answered 404 before this line for a record, or an employee (Create, Edit before and
+        // after the change), outside the scope.
         await PopulateEmployeesAsync(record.EmployeeId);
         return View(new DailyAttendanceRecordEditViewModel
         {
@@ -171,8 +178,8 @@ public class DailyAttendanceRecordsController(
     {
         var record = await db.DailyAttendanceRecords.Include(a => a.Employee).FirstOrDefaultAsync(x => x.Id == id);
         if (record is null) return NotFound();
-        var scope = await orgScope.GetAllowedOrgUnitIdsAsync(User);
-        if (this.ForbidIfOrgUnitOutOfScope(scope, record.Employee?.PrimaryOrgUnitId) is { } d) return d;
+        // PLAN-52 (AC-IAM-52a): the org-scope filter answered 404 before this line for a record, or an employee (Create, Edit before and
+        // after the change), outside the scope.
         if (!ModelState.IsValid)
         {
             await PopulateEmployeesAsync(vm.EmployeeId);
@@ -194,8 +201,8 @@ public class DailyAttendanceRecordsController(
     {
         var record = await db.DailyAttendanceRecords.Include(a => a.Employee).FirstOrDefaultAsync(x => x.Id == id);
         if (record is null) return NotFound();
-        var scope = await orgScope.GetAllowedOrgUnitIdsAsync(User);
-        if (this.ForbidIfOrgUnitOutOfScope(scope, record.Employee?.PrimaryOrgUnitId) is { } d) return d;
+        // PLAN-52 (AC-IAM-52a): the org-scope filter answered 404 before this line for a record, or an employee (Create, Edit before and
+        // after the change), outside the scope.
         db.DailyAttendanceRecords.Remove(record);
         await db.SaveChangesAsync();
         TempData["Success"] = "تم حذف سجل الحضور";
@@ -293,11 +300,12 @@ public class DailyAttendanceRecordsController(
     }
 }
 
+[OrgScoped(typeof(FieldInspectionVisit))]
 public class FieldInspectionVisitsController(HRCoreDbContext db) : Controller
 {
     public async Task<IActionResult> Index(string? status, DateOnly? visitFrom, DateOnly? visitTo, string? q)
     {
-        var query = db.FieldInspectionVisits.AsNoTracking().AsQueryable();
+        var query = await db.FieldInspectionVisits.AsNoTracking().AsQueryable().InOrgScopeAsync(HttpContext, db);
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(v => v.Status == status);
         if (visitFrom is DateOnly vf)
@@ -317,15 +325,27 @@ public class FieldInspectionVisitsController(HRCoreDbContext db) : Controller
         return View(new FieldInspectionVisitsIndexViewModel { Items = items, Status = status, VisitFrom = visitFrom, VisitTo = visitTo, Q = q });
     }
 
-    public IActionResult Create() =>
-        View(new FieldInspectionVisitCreateViewModel { VisitDate = DateOnly.FromDateTime(DateTime.UtcNow) });
+    // PLAN-52: a branch user's pick-list holds his scope's units only.
+    private async Task<SelectList> OrgUnitsAsync(Guid? selected = null) =>
+        new(await (await db.OrgUnits.AsNoTracking().InOrgScopeAsync(HttpContext, db))
+            .OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", selected);
+
+    public async Task<IActionResult> Create()
+    {
+        ViewBag.OrgUnits = await OrgUnitsAsync();
+        return View(new FieldInspectionVisitCreateViewModel { VisitDate = DateOnly.FromDateTime(DateTime.UtcNow) });
+    }
 
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(FieldInspectionVisitCreateViewModel vm)
     {
-        if (!ModelState.IsValid) return View(vm);
+        if (!ModelState.IsValid)
+        {
+            ViewBag.OrgUnits = await OrgUnitsAsync(vm.OrgUnitId);
+            return View(vm);
+        }
         db.FieldInspectionVisits.Add(new FieldInspectionVisit
         {
             Title = vm.Title,
@@ -333,7 +353,9 @@ public class FieldInspectionVisitsController(HRCoreDbContext db) : Controller
             VisitDate = vm.VisitDate,
             LeadInspectorId = vm.LeadInspectorId,
             Summary = vm.Summary,
-            Status = "planned"
+            Status = "planned",
+            // PLAN-52 (D-52-2): the restricted creator's scope root, else the central user's choice (empty = central).
+            OrgUnitId = vm.OrgUnitId ?? await HttpContext.GetRestrictedRootAsync()
         });
         await db.SaveChangesAsync();
         TempData["Success"] = "تم تسجيل زيارة التفتيش";
@@ -341,6 +363,7 @@ public class FieldInspectionVisitsController(HRCoreDbContext db) : Controller
     }
 }
 
+[OrgScoped(typeof(DiwanCorrespondence))]
 public class DiwanCorrespondencesController(HRCoreDbContext db, HR.Core.Infrastructure.Integration.DiwanIntegrationService integration) : Controller
 {
     public async Task<IActionResult> Index(
@@ -350,7 +373,7 @@ public class DiwanCorrespondencesController(HRCoreDbContext db, HR.Core.Infrastr
         DateTime? registeredTo,
         Guid? relatedEmployeeId)
     {
-        var query = db.DiwanCorrespondences.AsNoTracking().Include(c => c.RelatedEmployee).AsQueryable();
+        var query = await db.DiwanCorrespondences.AsNoTracking().Include(c => c.RelatedEmployee).AsQueryable().InOrgScopeAsync(HttpContext, db);
         if (direction is CorrespondenceDirection dir)
             query = query.Where(c => c.Direction == dir);
         if (registeredFrom is DateTime rf)
@@ -385,10 +408,20 @@ public class DiwanCorrespondencesController(HRCoreDbContext db, HR.Core.Infrastr
         });
     }
 
-    public async Task<IActionResult> Create()
+    // PLAN-52: a branch user's pick-lists hold his scope's employees and units only.
+    private async Task PopulateAsync(Guid? orgUnitId = null)
     {
         ViewBag.Employees = new SelectList(
-            await db.Employees.AsNoTracking().OrderBy(e => e.FullName).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "FullName");
+            await (await db.Employees.AsNoTracking().InOrgScopeAsync(HttpContext, db))
+                .OrderBy(e => e.FullName).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "FullName");
+        ViewBag.OrgUnits = new SelectList(
+            await (await db.OrgUnits.AsNoTracking().InOrgScopeAsync(HttpContext, db))
+                .OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr", orgUnitId);
+    }
+
+    public async Task<IActionResult> Create()
+    {
+        await PopulateAsync();
         return View(new DiwanCorrespondenceCreateViewModel { Direction = CorrespondenceDirection.Inbound });
     }
 
@@ -399,11 +432,19 @@ public class DiwanCorrespondencesController(HRCoreDbContext db, HR.Core.Infrastr
     {
         if (!ModelState.IsValid)
         {
-            ViewBag.Employees = new SelectList(await db.Employees.AsNoTracking().OrderBy(e => e.FullName).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "FullName");
+            await PopulateAsync(vm.OrgUnitId);
             return View(vm);
         }
+        // PLAN-52 (D-52-2): the related employee's unit, else the unit chosen on the form (the filter refused one outside a restricted
+        // creator's scope), else a restricted creator's scope root; a central user who chose nothing makes a central record.
+        // The filter refused a foreign employee before this line.
+        var orgUnitId = vm.RelatedEmployeeId is Guid related
+            ? await db.Employees.AsNoTracking().Where(e => e.Id == related).Select(e => e.PrimaryOrgUnitId).FirstOrDefaultAsync()
+            : null;
+        orgUnitId ??= vm.OrgUnitId ?? await HttpContext.GetRestrictedRootAsync();
         await integration.RegisterCorrespondenceAsync(new DiwanCorrespondence
         {
+            OrgUnitId = orgUnitId,
             ReferenceNumber = vm.ReferenceNumber,
             Subject = vm.Subject,
             Direction = vm.Direction,

@@ -7,6 +7,7 @@ using HRManagement.SharedKernel.Enums;
 
 namespace HR.Core.Web.Controllers;
 
+[OrgScoped]
 public class DashboardController : Controller
 {
     private readonly HRCoreDbContext _context;
@@ -39,8 +40,8 @@ public class DashboardController : Controller
             ActiveEmployees = activeEmployees,
             InactiveEmployees = totalEmployees - activeEmployees,
             TotalOrgUnits = await orgUnits.CountAsync(),
-            TotalQualifications = await _context.Qualifications.CountAsync(),
-            TotalDocuments = await _context.EmployeeDocuments.CountAsync(),
+            TotalQualifications = await (await _context.Qualifications.AsQueryable().InOrgScopeAsync(HttpContext, _context)).CountAsync(),
+            TotalDocuments = await (await _context.EmployeeDocuments.AsQueryable().InOrgScopeAsync(HttpContext, _context)).CountAsync(),
 
             EmployeesByStatus = await employees
                 .GroupBy(e => e.CurrentStatus)

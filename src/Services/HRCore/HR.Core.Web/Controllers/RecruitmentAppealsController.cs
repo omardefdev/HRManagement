@@ -23,6 +23,7 @@ namespace HR.Core.Web.Controllers;
 [Authorize(Policy = HrManagementPolicies.HrCoreAppealReview)]
 // PLAN-51 (§4, P-6): replaces the module filter's name list; it names the class policy every action here already requires.
 [ModulePolicyOverride(HrManagementPolicies.HrCoreAppealReview)]
+[OrgScoped(typeof(RecruitmentAppeal))]
 public class RecruitmentAppealsController(
     HRCoreDbContext db,
     RecruitmentAppealService appealService,
@@ -53,12 +54,10 @@ public class RecruitmentAppealsController(
                 || (a.IndependentReviewerEmployeeId == null && userId != null && a.IndependentReviewerId == userId));
         }
 
-        var appeals = await query.OrderByDescending(a => a.CreatedAt).Take(200).ToListAsync(ct);
+        // PLAN-52 (P0 finding): the scope is applied in the query, before the page limit, not on the 200 rows it returned.
         if (!assignedOnly)
-        {
-            var scope = await orgScope.GetAllowedOrgUnitIdsAsync(User, ct);
-            appeals = appeals.Where(a => InScope(scope, a)).ToList();
-        }
+            query = await query.InOrgScopeAsync(HttpContext, db);
+        var appeals = await query.OrderByDescending(a => a.CreatedAt).Take(200).ToListAsync(ct);
 
         var names = await ReviewerNamesAsync(appeals, ct);
         return View(new RecruitmentAppealsIndexViewModel
@@ -148,7 +147,10 @@ public class RecruitmentAppealsController(
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
-    public async Task<IActionResult> AssignReviewer(Guid id, Guid? reviewerEmployeeId, CancellationToken ct)
+    public async Task<IActionResult> AssignReviewer(
+        Guid id,
+        [NotOrgScopeKey("the independent reviewer: an employee of any unit (HCM-028)")] Guid? reviewerEmployeeId,
+        CancellationToken ct)
     {
         if (reviewerEmployeeId is not Guid reviewer)
         {

@@ -22,6 +22,7 @@ namespace HR.Movements.Web.Controllers;
 
 // PLAN-50 (§7): a delegation scoped to another entity type does not reach these screens.
 [ApprovalEntityType(EntityType)]
+[OrgScoped(typeof(HR.Movements.Domain.Entities.TransferRequest), OutOfScope = OrgScopeAnswer.Forbid)]
 public class TransferRequestsController : Controller
 {
     public const string EntityType = "TransferRequest";

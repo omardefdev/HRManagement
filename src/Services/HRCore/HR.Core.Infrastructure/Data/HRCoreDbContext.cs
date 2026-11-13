@@ -430,6 +430,20 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .WithMany()
                   .HasForeignKey(e => e.RelatedEmployeeId)
                   .OnDelete(DeleteBehavior.SetNull);
+            // PLAN-52 (D-52-2): the scope key.
+            entity.HasOne(e => e.OrgUnit)
+                  .WithMany()
+                  .HasForeignKey(e => e.OrgUnitId)
+                  .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<FieldInspectionVisit>(entity =>
+        {
+            // PLAN-52 (D-52-2): the scope key.
+            entity.HasOne(e => e.OrgUnit)
+                  .WithMany()
+                  .HasForeignKey(e => e.OrgUnitId)
+                  .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<RecruitmentApplication>(entity =>

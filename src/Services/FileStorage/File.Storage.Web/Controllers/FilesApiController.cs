@@ -18,6 +18,7 @@ namespace File.Storage.Web.Controllers;
 [Route("api/files")]
 [ApiController]
 [Authorize(Policy = HrManagementPolicies.ModuleFileStorage)]
+[OrgScopeNotApplicable("files are reached through their owning record's checks and File.Storage's own rules; a restricted user reaches only the anonymous health probe")]
 public sealed class FilesApiController(
     FilePlatformService filePlatform,
     IFileStorageService fileStorage,

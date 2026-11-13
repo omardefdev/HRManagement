@@ -255,6 +255,8 @@ public class DistributionPlansController(MovementsDbContext db) : Controller
 
 // PLAN-50 (§7): a delegation scoped to another entity type does not reach these screens.
 [ApprovalEntityType("SecondmentRequest")]
+[OrgScopeCentralOnly("only an employee and no employee snapshot in HR.Movements: central for a restricted user (P-9, G-MOV-10)")]
+[CentralForScopedPrincipal]
 public class SecondmentRequestsController(MovementsDbContext db, IPublishEndpoint publish, IApprovalActingContext? actingContext = null) : Controller
 {
     private static Guid? ParseUserId(System.Security.Claims.ClaimsPrincipal user)
@@ -649,6 +651,7 @@ public class TransferFinancialImpactsController(MovementsDbContext db) : Control
 
 // PLAN-50 (§7): a delegation scoped to another entity type does not reach these screens.
 [ApprovalEntityType("LoanAssignmentRequest")]
+[OrgScoped(typeof(HR.Movements.Domain.Entities.LoanAssignmentRequest), OutOfScope = OrgScopeAnswer.Forbid)]
 public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEndpoint publish, IApprovalActingContext? actingContext = null) : Controller
 {
     private static Guid? ParseUserId(System.Security.Claims.ClaimsPrincipal user)
@@ -990,6 +993,8 @@ public class LoanAssignmentRequestsController(MovementsDbContext db, IPublishEnd
 
 // PLAN-50 (§7): a delegation scoped to another entity type does not reach these screens.
 [ApprovalEntityType("PromotionRequest")]
+[OrgScopeCentralOnly("only an employee and no employee snapshot in HR.Movements: central for a restricted user (P-9, G-MOV-10)")]
+[CentralForScopedPrincipal]
 public class PromotionRequestsController(
     MovementsDbContext db,
     IPublishEndpoint publish,
@@ -1183,6 +1188,8 @@ public class PromotionRequestsController(
 
 // PLAN-50 (§7): a delegation scoped to another entity type does not reach these screens.
 [ApprovalEntityType("DelegationRequest")]
+[OrgScopeCentralOnly("only an employee and no employee snapshot in HR.Movements: central for a restricted user (P-9, G-MOV-10)")]
+[CentralForScopedPrincipal]
 public class DelegationRequestsController(MovementsDbContext db, IPublishEndpoint publish, IApprovalActingContext? actingContext = null) : Controller
 {
     private static Guid? ParseUserId(ClaimsPrincipal user)

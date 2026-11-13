@@ -17,6 +17,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HR.Core.Web.Controllers;
 
 [Authorize(Policy = HrManagementPolicies.HrCoreReadOnly)]
+[OrgScopeCentralOnly]
 public class EstablishmentChangesController(
     HRCoreDbContext db,
     EstablishmentScopeService establishmentScope,

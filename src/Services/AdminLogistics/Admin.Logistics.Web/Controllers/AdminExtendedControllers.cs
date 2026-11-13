@@ -18,6 +18,7 @@ using System.Security.Claims;
 
 namespace Admin.Logistics.Web.Controllers;
 
+[OrgScoped(typeof(Admin.Logistics.Domain.Entities.SupplyOrder))]
 public class SupplyOrdersController(AdminLogisticsDbContext db, IEmployeeLookup employeeLookup) : Controller
 {
     public async Task<IActionResult> Index(
@@ -51,7 +52,8 @@ public class SupplyOrdersController(AdminLogisticsDbContext db, IEmployeeLookup 
         };
         var (normalizedPage, normalizedPageSize) = filter.NormalizePaging();
 
-        var paged = await filter.Apply(db.SupplyOrders.AsNoTracking())
+        // PLAN-52 (AC-IAM-52c): a restricted user lists his scope's supply orders only.
+        var paged = await filter.Apply(await db.SupplyOrders.AsNoTracking().InOrgScopeAsync(HttpContext, db))
             .OrderByDescending(x => x.OrderedAt)
             .ToPaginatedListAsync(normalizedPage, normalizedPageSize, HttpContext.RequestAborted);
 
@@ -134,7 +136,8 @@ public class SupplyOrdersController(AdminLogisticsDbContext db, IEmployeeLookup 
         var rawUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
         var entity = new SupplyOrder
         {
-            OrgUnitId = model.OrgUnitId,
+            // PLAN-52: a restricted user's order without a unit takes his scope root; the filter refused a foreign one.
+            OrgUnitId = model.OrgUnitId ?? await HttpContext.GetRestrictedRootAsync(),
             Items = model.Items,
             OrderedAt = model.OrderedAt,
             Status = SupplyOrderStatus.Pending,
@@ -188,7 +191,8 @@ public class SupplyOrdersController(AdminLogisticsDbContext db, IEmployeeLookup 
             model.RequestedBy = e.RequestedBy;
             return View(model);
         }
-        e.OrgUnitId = model.OrgUnitId;
+        // PLAN-52: a restricted user cannot move an order out of his scope (a foreign unit was refused; none means his root).
+        e.OrgUnitId = model.OrgUnitId ?? await HttpContext.GetRestrictedRootAsync();
         e.Items = model.Items;
         e.OrderedAt = model.OrderedAt;
         await db.SaveChangesAsync();
@@ -313,6 +317,7 @@ public class SupplyOrdersController(AdminLogisticsDbContext db, IEmployeeLookup 
     }
 }
 
+[OrgScopeNotApplicable("reference data: the vendors; their writes are central (D-52-3)")]
 public class VendorsController(AdminLogisticsDbContext db) : Controller
 {
     public async Task<IActionResult> Index(
@@ -364,7 +369,10 @@ public class VendorsController(AdminLogisticsDbContext db) : Controller
         return View(e);
     }
 
+    [OrgScopeCentralOnly("D-52-3: the catalogue is written centrally")]
     public IActionResult Create() => View(new VendorFormViewModel());
+
+    [OrgScopeCentralOnly("D-52-3: the catalogue is written centrally")]
 
     [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
@@ -383,6 +391,7 @@ public class VendorsController(AdminLogisticsDbContext db) : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    [OrgScopeCentralOnly("D-52-3: the catalogue is written centrally")]
     public async Task<IActionResult> Edit(Guid id)
     {
         var e = await db.Vendors.FindAsync(id);
@@ -395,6 +404,8 @@ public class VendorsController(AdminLogisticsDbContext db) : Controller
             Country = e.Country
         });
     }
+
+    [OrgScopeCentralOnly("D-52-3: the catalogue is written centrally")]
 
     [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
@@ -413,6 +424,8 @@ public class VendorsController(AdminLogisticsDbContext db) : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    [OrgScopeCentralOnly("D-52-3: the catalogue is written centrally")]
+
     [Authorize(Policy = HrManagementPolicies.AdminLogisticsWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -427,6 +440,7 @@ public class VendorsController(AdminLogisticsDbContext db) : Controller
     }
 }
 
+[OrgScoped(typeof(Admin.Logistics.Domain.Entities.AssetAssignment), OutOfScope = OrgScopeAnswer.Forbid)]
 public class AssetAssignmentsController(AdminLogisticsDbContext db, IEmployeeLookup employeeLookup) : Controller
 {
     public async Task<IActionResult> Index(
@@ -537,6 +551,7 @@ public class AssetAssignmentsController(AdminLogisticsDbContext db, IEmployeeLoo
     }
 }
 
+[OrgScoped(typeof(Admin.Logistics.Domain.Entities.MaintenanceRecord))]
 public class MaintenanceRecordsController(AdminLogisticsDbContext db) : Controller
 {
     public async Task<IActionResult> Index(
@@ -572,8 +587,9 @@ public class MaintenanceRecordsController(AdminLogisticsDbContext db) : Controll
                 : $"{asset.TagNumber} — {asset.Name}";
         }
 
+        // PLAN-52: a restricted user lists the maintenance of his scope's assets only (an asset nobody holds is central).
         var paged = await filter.Apply(
-                db.MaintenanceRecords.AsNoTracking().Include(m => m.Asset))
+                await db.MaintenanceRecords.AsNoTracking().Include(m => m.Asset).InOrgScopeAsync(HttpContext, db))
             .OrderByDescending(x => x.PerformedAt)
             .ToPaginatedListAsync(normalizedPage, normalizedPageSize, HttpContext.RequestAborted);
 
@@ -731,7 +747,9 @@ public class MaintenanceRecordsController(AdminLogisticsDbContext db) : Controll
 
     private async Task LoadMaintenanceAssetSelectListAsync(Guid? selectedId = null)
     {
-        var assets = await db.Assets.AsNoTracking()
+        // PLAN-52: a restricted user picks an asset of his scope only.
+        var scopedAssets = await db.Assets.AsNoTracking().InOrgScopeAsync(HttpContext, db);
+        var assets = await scopedAssets
             .OrderBy(a => a.TagNumber)
             .Take(SearchFilterBase.LookupMaxPageSize)
             .Select(a => new { a.Id, a.TagNumber })
@@ -739,7 +757,7 @@ public class MaintenanceRecordsController(AdminLogisticsDbContext db) : Controll
 
         if (selectedId is Guid id && assets.All(a => a.Id != id))
         {
-            var selected = await db.Assets.AsNoTracking()
+            var selected = await scopedAssets
                 .Where(a => a.Id == id)
                 .Select(a => new { a.Id, a.TagNumber })
                 .FirstOrDefaultAsync();
@@ -751,6 +769,7 @@ public class MaintenanceRecordsController(AdminLogisticsDbContext db) : Controll
     }
 }
 
+[OrgScoped(typeof(Admin.Logistics.Domain.Entities.ReceiptRecord))]
 public class ReceiptRecordsController(AdminLogisticsDbContext db, IEmployeeLookup employeeLookup) : Controller
 {
     public async Task<IActionResult> Index(
@@ -787,10 +806,12 @@ public class ReceiptRecordsController(AdminLogisticsDbContext db, IEmployeeLooku
         if (filter.ReceivedBy is Guid empId)
             filterReceivedByName = await employeeLookup.GetEmployeeDisplayNameAsync(empId, HttpContext.RequestAborted);
 
+        // PLAN-52: a restricted user lists the receipts of his scope's supply orders only.
         var paged = await filter.Apply(
-                db.ReceiptRecords.AsNoTracking()
+                await db.ReceiptRecords.AsNoTracking()
                     .Include(r => r.SupplyOrder)
-                    .Include(r => r.InventoryItem))
+                    .Include(r => r.InventoryItem)
+                    .InOrgScopeAsync(HttpContext, db))
             .OrderByDescending(x => x.ReceivedAt)
             .ToPaginatedListAsync(normalizedPage, normalizedPageSize, HttpContext.RequestAborted);
 
@@ -993,7 +1014,7 @@ public class ReceiptRecordsController(AdminLogisticsDbContext db, IEmployeeLooku
     {
         var e = await db.ReceiptRecords.FindAsync(id);
         if (e is null) return NotFound();
-        ViewBag.Orders = new SelectList(await db.SupplyOrders.AsNoTracking().Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Items");
+        ViewBag.Orders = await OrderOptionsAsync();
         ViewBag.InventoryItems = new SelectList(await db.InventoryItems.AsNoTracking().Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Name", e.InventoryItemId);
         return View(new ReceiptRecordFormViewModel
         {
@@ -1013,9 +1034,13 @@ public class ReceiptRecordsController(AdminLogisticsDbContext db, IEmployeeLooku
     public async Task<IActionResult> Edit(Guid id, ReceiptRecordFormViewModel model)
     {
         if (id != model.Id) return NotFound();
+        // PLAN-52 (review 2, D-52-1): a receipt's unit is its order's; without an order it would be central, out of a restricted user's
+        // reach, so he cannot move one there (the filter refused a foreign order).
+        if (model.SupplyOrderId is null && await HttpContext.GetRestrictedRootAsync() is not null)
+            ModelState.AddModelError(nameof(model.SupplyOrderId), "اختر طلب تجهيز ضمن نطاقك.");
         if (!ModelState.IsValid)
         {
-            ViewBag.Orders = new SelectList(await db.SupplyOrders.AsNoTracking().Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Items");
+            ViewBag.Orders = await OrderOptionsAsync();
             ViewBag.InventoryItems = new SelectList(await db.InventoryItems.AsNoTracking().Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Name");
             return View(model);
         }
@@ -1031,4 +1056,8 @@ public class ReceiptRecordsController(AdminLogisticsDbContext db, IEmployeeLooku
         TempData["Success"] = "تم التحديث";
         return RedirectToAction(nameof(Details), new { id });
     }
+
+    /// <summary>PLAN-52 (review 2, P-4): the orders a receipt form offers are those of the caller's scope.</summary>
+    private async Task<SelectList> OrderOptionsAsync() =>
+        new(await (await db.SupplyOrders.AsNoTracking().InOrgScopeAsync(HttpContext, db)).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Items");
 }

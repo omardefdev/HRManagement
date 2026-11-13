@@ -77,6 +77,8 @@ public class InternalVacancyCreateViewModel
     [StringLength(200)]
     public string Title { get; set; } = string.Empty;
 
+    // PLAN-52: a restricted user cannot place a vacancy in another branch (the recruitment filter resolves it).
+    [HRManagement.ServiceDefaults.OrgScopeId(typeof(HRManagement.ServiceDefaults.OrgScopeUnit))]
     [Display(Name = "الوحدة التنظيمية")]
     public Guid? OrgUnitId { get; set; }
 
