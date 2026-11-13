@@ -218,23 +218,49 @@ $countQueries = [ordered]@{
     )
 }
 
+# Before HCM052, Diwan and inspections have no unit column: every row is central; Diwan's rows without an employee are the ones the
+# migration will leave central, so that is what the "before" count reports.
+$beforeHcm052 = @(
+    'SELECT ''DiwanCorrespondences (before HCM052: rows without an employee)'', count(*) FILTER (WHERE "RelatedEmployeeId" IS NULL), count(*) FROM "DiwanCorrespondences"',
+    'SELECT ''FieldInspectionVisits (before HCM052: no unit column)'', count(*), count(*) FROM "FieldInspectionVisits"'
+)
+
+# One statement, read-only, through docker exec on the local stack or ssh on the server; its unaligned rows.
+function Invoke-ReadOnlySql([string]$database, [string]$sql) {
+    # The script runs inside the postgresql container, as its administrator, in a read-only transaction. It travels as base64, so no
+    # quote has to survive Windows PowerShell's argument passing, ssh and two shells.
+    $script = (@(
+            "psql -X -q -U `"`$POSTGRES_USER`" -d $database -v ON_ERROR_STOP=1 -tA -F '|' <<'SQL'",
+            "BEGIN READ ONLY;",
+            $sql,
+            "ROLLBACK;",
+            "SQL"
+        ) -join "`n") + "`n"
+    $b64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($script))
+    if ([string]::IsNullOrWhiteSpace($SshHost)) {
+        $pg = (& docker ps -q --filter "label=com.docker.compose.project=$Project" --filter "label=com.docker.compose.service=postgresql" | Select-Object -First 1)
+        if ([string]::IsNullOrWhiteSpace($pg)) { throw "No postgresql container of the project $Project is running." }
+        $output = & docker exec $pg sh -c "echo $b64 | base64 -d | sh"
+    }
+    else {
+        $remote = "pg=`$(docker ps -q --filter label=com.docker.compose.project=$Project --filter label=com.docker.compose.service=postgresql | head -n 1); " +
+            "test -n `$pg || exit 2; docker exec `$pg sh -c 'echo $b64 | base64 -d | sh'"
+        $output = & ssh -o BatchMode=yes $SshHost $remote
+    }
+    if ($LASTEXITCODE -ne 0) { throw "psql on $database failed (exit $LASTEXITCODE)." }
+    return @($output)
+}
+
 function Invoke-Counts {
-    $OutputEncoding = New-Object System.Text.UTF8Encoding $false
-    $locate = "docker ps -q --filter label=com.docker.compose.project=$Project --filter label=com.docker.compose.service=postgresql"
     $rows = @()
+    $migrated = (Invoke-ReadOnlySql "hr_core_db" "SELECT count(*) FROM information_schema.columns WHERE table_name = 'DiwanCorrespondences' AND column_name = 'OrgUnitId';" |
+        Where-Object { $_ -match '^\d+$' } | Select-Object -First 1) -eq "1"
     foreach ($database in $countQueries.Keys) {
-        $sql = ($countQueries[$database] -join " UNION ALL ") + " ORDER BY 1;"
-        if ([string]::IsNullOrWhiteSpace($SshHost)) {
-            $pg = (& docker ps -q --filter "label=com.docker.compose.project=$Project" --filter "label=com.docker.compose.service=postgresql" | Select-Object -First 1)
-            if ([string]::IsNullOrWhiteSpace($pg)) { throw "No postgresql container of the project $Project is running." }
-            $output = $sql | & docker exec -i $pg sh -c "psql -X -q -U `"`$POSTGRES_USER`" -d $database -v ON_ERROR_STOP=1 -tA -F '|' -c 'BEGIN READ ONLY' -f - -c 'ROLLBACK'"
+        $queries = @($countQueries[$database])
+        if ($database -eq "hr_core_db" -and -not $migrated) {
+            $queries = @($queries | Where-Object { $_ -notmatch 'DiwanCorrespondences|FieldInspectionVisits' }) + $beforeHcm052
         }
-        else {
-            # One remote shell: find the container, then psql reads the statement from stdin, inside a read-only transaction.
-            $remote = "pg=`$($locate | head -n 1); [ -n `"`$pg`" ] || { echo 'no postgresql container' >&2; exit 2; }; docker exec -i `"`$pg`" sh -c 'psql -X -q -U `"`$POSTGRES_USER`" -d $database -v ON_ERROR_STOP=1 -tA -F `"|`" -c `"BEGIN READ ONLY`" -f - -c ROLLBACK'"
-            $output = $sql | & ssh -o BatchMode=yes $SshHost $remote
-        }
-        if ($LASTEXITCODE -ne 0) { throw "psql on $database failed (exit $LASTEXITCODE)." }
+        $output = Invoke-ReadOnlySql $database (($queries -join " UNION ALL ") + " ORDER BY 1;")
         foreach ($line in @($output | Where-Object { $_ -match '\|' })) {
             $parts = $line -split '\|'
             $rows += [pscustomobject]@{ Database = $database; Entity = $parts[0]; NoKey = [int]$parts[1]; Total = [int]$parts[2] }

@@ -995,6 +995,26 @@
           "98655dae-f87e-4d46-9703-a17c0b5cc09a"
         ]
       }
+    },
+    {
+      "username": "e2e-branch-manager",
+      "email": "e2e-branch-manager@hrm.local",
+      "firstName": "E2E",
+      "lastName": "BranchManager",
+      "realmRoles": [
+        "branch-manager",
+        "hr-core",
+        "admin-logistics",
+        "offline_access"
+      ],
+      "attributes": {
+        "tenant_id": [
+          "00000000-0000-4000-8000-000000000001"
+        ],
+        "scope_org_unit_id": [
+          "11111111-1111-1111-1111-111111111102"
+        ]
+      }
     }
   ]
 }
