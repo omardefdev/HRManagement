@@ -10,7 +10,7 @@
     var hasScheduled = Model.InterviewSlots.Any(s => s.Status == InterviewSlotStatus.Scheduled);
     var canSchedule = canWrite && !hasScheduled
         && app.Status is RecruitmentApplicationStatus.Shortlisted or RecruitmentApplicationStatus.InterviewScheduled;
-    var nowLocal = DateTime.Now.ToString("yyyy-MM-ddTHH:mm");
+    var nowLocal = Html.HrDateTimeLocalValue(DateTime.UtcNow);
 
     string StatusBadge(InterviewSlotStatus status) => status switch
     {
@@ -50,10 +50,10 @@
                         {
                             <tr>
                                 <td>
-                                    @slot.ScheduledAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")
+                                    @Html.HrDateTime(slot.ScheduledAt)
                                     @if (slot.RescheduledFromSlotId is Guid fromId && slotsById.TryGetValue(fromId, out var from))
                                     {
-                                        <div class="small text-muted">بدلاً من موعد @from.ScheduledAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</div>
+                                        <div class="small text-muted">بدلاً من موعد @Html.HrDateTime(from.ScheduledAt)</div>
                                     }
                                 </td>
                                 <td>@Html.HrEnumDisplay(slot.Mode) — @(slot.Location ?? "—")</td>

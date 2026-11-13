@@ -24,10 +24,10 @@
             <dd class="col-sm-9">@Model.AssignedTo</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.ResolvedAt)</dt>
-            <dd class="col-sm-9">@(Model.ResolvedAt?.ToString("yyyy/MM/dd HH:mm") ?? "—")</dd>
+            <dd class="col-sm-9">@Html.HrDateTime(Model.ResolvedAt)</dd>
 
             <dt class="col-sm-3">تزويد الدليل</dt>
-            <dd class="col-sm-9">@Model.ProvisioningStatus @(Model.ProvisioningError is null ? "" : $"— {Model.ProvisioningError}")</dd>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(Model.ProvisioningStatus) @(Model.ProvisioningError is null ? "" : $"— {Model.ProvisioningError}")</dd>
         </dl>
     </div>
     <div class="card-footer">

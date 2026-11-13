@@ -132,7 +132,7 @@
                     @foreach (var item in trace)
                     {
                         <tr>
-                            <td>@item.OccurredAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
+                            <td>@Html.HrDateTime(item.OccurredAtUtc)</td>
                             <td>@HRManagement.Gateway.Models.GatewayAuditDisplay.Decision(item.Decision)</td>
                             <td>@item.StatusCode</td>
                             <td>@item.Method</td>

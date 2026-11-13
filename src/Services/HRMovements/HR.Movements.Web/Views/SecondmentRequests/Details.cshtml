@@ -18,8 +18,8 @@
         <table class="table table-borderless table-sm w-auto">
             <tr><th>الموظف</th><td><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></td></tr>
             <tr><th>الجهة المستضيفة</th><td>@Model.HostOrg</td></tr>
-            <tr><th>من</th><td>@Model.StartDate</td></tr>
-            <tr><th>إلى</th><td>@Model.EndDate</td></tr>
+            <tr><th>من</th><td>@Html.HrDate(Model.StartDate)</td></tr>
+            <tr><th>إلى</th><td>@Html.HrDate(Model.EndDate)</td></tr>
             <tr><th>الحالة</th><td><span class="badge bg-info">@Html.HrEnumDisplay(Model.Status)</span></td></tr>
             @if (!string.IsNullOrEmpty(Model.Terms)) { <tr><th>الشروط</th><td>@Model.Terms</td></tr> }
         </table>
@@ -52,7 +52,7 @@
                 <tbody>
                 @foreach (var r in Model.ExecutionRecords.OrderByDescending(r => r.ExecutedAt))
                 {
-                    <tr><td>@r.ExecutedAt.ToString("yyyy/MM/dd HH:mm")</td><td>@r.ExecutedBy</td><td>@r.Notes</td></tr>
+                    <tr><td>@Html.HrDateTime(r.ExecutedAt)</td><td>@r.ExecutedBy</td><td>@r.Notes</td></tr>
                 }
                 </tbody>
             </table>

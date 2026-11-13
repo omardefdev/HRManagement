@@ -20,7 +20,7 @@
             <tr><th>من</th><td>@Model.FromGrade / @Model.FromStep</td></tr>
             <tr><th>إلى</th><td>@Model.ToGrade / @Model.ToStep</td></tr>
             <tr><th>مرجع القرار</th><td>@Model.TransitionDecisionRef</td></tr>
-            <tr><th>تاريخ النفاذ</th><td>@Model.EffectiveDate</td></tr>
+            <tr><th>تاريخ النفاذ</th><td>@Html.HrDate(Model.EffectiveDate)</td></tr>
             <tr><th>الحالة</th><td>@Html.HrEnumDisplay(Model.Status)</td></tr>
         </table>
         <partial name="_MovementApprovalRecord" />

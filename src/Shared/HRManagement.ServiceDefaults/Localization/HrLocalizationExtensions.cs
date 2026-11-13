@@ -1,6 +1,8 @@
 using System.Globalization;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace HRManagement.ServiceDefaults.Localization;
@@ -31,7 +33,10 @@ public static class HrLocalizationExtensions
                 new CookieRequestCultureProvider { CookieName = CultureCookieName }
             ];
         });
-        services.AddSingleton<ICalendarService, DamascusCalendarService>();
+        // PLAN-67 (D-67-2): the display zone comes from Localization:TimeZone (Asia/Damascus by default); a datetime-local value posted
+        // to a page is read in that zone and bound as UTC.
+        services.AddSingleton<ICalendarService>(sp => new DamascusCalendarService(sp.GetService<IConfiguration>()));
+        services.Configure<MvcOptions>(options => options.ModelBinderProviders.Insert(0, new HrLocalDateTimeModelBinderProvider()));
         return services;
     }
 

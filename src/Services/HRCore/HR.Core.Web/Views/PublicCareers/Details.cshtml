@@ -75,7 +75,7 @@
         }
         @if (closingDate is DateOnly closing)
         {
-            <p class="careers-accent"><i class="fas fa-clock ms-1" aria-hidden="true"></i> آخر موعد للتقديم: <bdi dir="ltr">@closing.ToString("dd-MM-yyyy", System.Globalization.CultureInfo.InvariantCulture)</bdi></p>
+            <p class="careers-accent"><i class="fas fa-clock ms-1" aria-hidden="true"></i> آخر موعد للتقديم: <bdi dir="ltr">@Html.HrDate(closing)</bdi></p>
         }
         @if (!string.IsNullOrWhiteSpace(Model.Description))
         {
@@ -236,8 +236,8 @@ else
                 <div class="col-md-4">
                     <label class="form-label" for="apply-birthdate">تاريخ الميلاد</label>
                     <input id="apply-birthdate" name="BirthDate" type="date" class="form-control@(InvalidClass("BirthDate"))"
-                           max="@maxBirthDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)"
-                           value="@applyModel.BirthDate?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)"
+                           max="@Html.HrDateInputValue(maxBirthDate)"
+                           value="@Html.HrDateInputValue(applyModel.BirthDate)"
                            aria-invalid="@Invalid("BirthDate")"
                            aria-describedby="apply-birthdate-help@(Err("BirthDate") is null ? "" : " apply-birthdate-error")" />
                     <small id="apply-birthdate-help" class="text-muted">يُستخدم للتحقق من شروط العمر فقط ولا يظهر إلا لفريق التوظيف.</small>

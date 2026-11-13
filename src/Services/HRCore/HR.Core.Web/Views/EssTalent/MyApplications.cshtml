@@ -22,7 +22,7 @@
                         <td>@(a.InternalVacancy?.Title ?? "—")</td>
                         <td>@(req?.RequisitionNumber ?? "—")</td>
                         <td>@(req?.FundedPosition?.GradeCode ?? "—")</td>
-                        <td>@a.AppliedAt.ToString("yyyy-MM-dd")</td>
+                        <td>@Html.HrDate(a.AppliedAt)</td>
                         <td>
                             @if (a.PromotedRecruitmentApplicationId is Guid linkedId && publicStatuses.TryGetValue(linkedId, out var publicView))
                             {

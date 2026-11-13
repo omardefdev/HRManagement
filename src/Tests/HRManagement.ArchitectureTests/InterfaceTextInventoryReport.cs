@@ -48,10 +48,44 @@ public sealed class InterfaceTextInventoryReport
         md.AppendLine();
         foreach (var k in kinds)
             md.AppendLine($"- {k}: {findings.Where(f => f.Rule == k).Select(f => f.File).Distinct().Count()} files");
+        md.AppendLine();
+        md.AppendLine($"Views whose @model the asp-for label check could not resolve: {InterfaceTextScanner.UnresolvedModels.Distinct().Count()} (ui-unresolved-models.txt).");
         global::System.IO.File.WriteAllText(Path.Combine(outDir, "ui-inventory.md"), md.ToString(), new UTF8Encoding(false));
+        global::System.IO.File.WriteAllText(Path.Combine(outDir, "ui-unresolved-models.txt"),
+            string.Join("\n", InterfaceTextScanner.UnresolvedModels.Distinct().Order()) + "\n", new UTF8Encoding(false));
 
         if (string.Equals(Environment.GetEnvironmentVariable("UX067_SEED_LISTS"), "true", StringComparison.OrdinalIgnoreCase))
             SeedLists(findings);
+        if (string.Equals(Environment.GetEnvironmentVariable("UX067_PRUNE_LISTS"), "true", StringComparison.OrdinalIgnoreCase))
+            PruneLists(findings, outDir);
+    }
+
+    /// <summary>
+    /// P3–P6: removes the rows whose finding is gone (the lists only shrink) and writes, into <c>ui-unlisted.txt</c>, any finding that has
+    /// no row: those are fixed in the view, never added to a list.
+    /// </summary>
+    private static void PruneLists(IReadOnlyList<UiFinding> findings, string outDir)
+    {
+        var keys = findings.Where(f => InterfaceTextScanner.GuardedRules.Contains(f.Rule)).Select(f => f.Key).ToHashSet(StringComparer.Ordinal);
+        var unlisted = new List<string>();
+        foreach (var project in InterfaceTextGuardTests.Projects)
+        {
+            var relative = $"{InterfaceTextGuardTests.ListFolder}/{project}.txt";
+            var path = Path.Combine(HRManagement.TestSupport.RepoPaths.Root, relative);
+            var list = CeilingList.Load(relative);
+            unlisted.AddRange(findings.Where(f => f.Project == project && InterfaceTextScanner.GuardedRules.Contains(f.Rule) && !list.Rows.ContainsKey(f.Key))
+                .Select(f => $"{f.File}:{f.Line} [{f.Rule}] {f.Snippet}"));
+            if (!global::System.IO.File.Exists(path))
+                continue;
+            var lines = global::System.IO.File.ReadAllLines(path);
+            var kept = lines.Where(l => l.TrimStart().StartsWith('#') || l.Trim().Length == 0 || keys.Contains(l.Split('|', 2)[0].Trim())).ToList();
+            if (kept.All(l => l.TrimStart().StartsWith('#') || l.Trim().Length == 0))
+                global::System.IO.File.Delete(path);
+            else
+                global::System.IO.File.WriteAllText(path, string.Join("\n", kept) + "\n", new UTF8Encoding(false));
+        }
+
+        global::System.IO.File.WriteAllText(Path.Combine(outDir, "ui-unlisted.txt"), string.Join("\n", unlisted) + "\n", new UTF8Encoding(false));
     }
 
     /// <summary>The phase of PLAN-67 that empties each kind of row (P2 seeds the lists once; the guard then only lets them shrink).</summary>

@@ -42,10 +42,10 @@
                     <dd class="col-sm-8">@(Model.KeycloakUserId ?? "—")</dd>
 
                     <dt class="col-sm-4">آخر تسجيل دخول</dt>
-                    <dd class="col-sm-8">@(Model.LastLoginAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</dd>
+                    <dd class="col-sm-8">@Html.HrDateTime(Model.LastLoginAt)</dd>
 
                     <dt class="col-sm-4">تاريخ الإنشاء</dt>
-                    <dd class="col-sm-8">@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+                    <dd class="col-sm-8">@Html.HrDateTime(Model.CreatedAt)</dd>
                 </dl>
             </div>
         </div>
@@ -62,7 +62,7 @@
                         {
                             <tr>
                                 <td>@ur.Role.Name</td>
-                                <td>@ur.AssignedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@Html.HrDateTime(ur.AssignedAt)</td>
                                 <td>@(ur.AssignedBy ?? "—")</td>
                             </tr>
                         }
@@ -84,8 +84,8 @@
                         @foreach (var t in Model.Tokens.OrderByDescending(t => t.IssuedAt).Take(10))
                         {
                             <tr>
-                                <td>@t.IssuedAt.ToString("yyyy-MM-dd HH:mm")</td>
-                                <td>@t.ExpiresAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td>@Html.HrDateTime(t.IssuedAt)</td>
+                                <td>@Html.HrDateTime(t.ExpiresAt)</td>
                                 <td>
                                     @if (t.Revoked)
                                     {

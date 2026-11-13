@@ -44,11 +44,11 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">من</label>
-                <input type="datetime-local" name="from" value="@Model.From?.ToString("yyyy-MM-ddTHH:mm")" class="form-control" />
+                <input type="datetime-local" name="from" value="@Html.HrDateTimeLocalValue(Model.From)" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">إلى</label>
-                <input type="datetime-local" name="to" value="@Model.To?.ToString("yyyy-MM-ddTHH:mm")" class="form-control" />
+                <input type="datetime-local" name="to" value="@Html.HrDateTimeLocalValue(Model.To)" class="form-control" />
             </div>
             <div class="col-md-auto">
                 <button type="submit" class="btn btn-primary">تصفية</button>
@@ -81,8 +81,8 @@
                     <td>@(d.DelegateName ?? (d.DelegateEmployeeId ?? d.DelegateId)?.ToString())</td>
                     <td>@(d.RoleScope ?? "—")</td>
                     <td>@(d.EntityTypeScope ?? "الكل")</td>
-                    <td>@d.ActiveFrom.ToString("u")</td>
-                    <td>@d.ActiveUntil.ToString("u")</td>
+                    <td>@Html.HrDateTime(d.ActiveFrom)</td>
+                    <td>@Html.HrDateTime(d.ActiveUntil)</td>
                     <td>@state @if (d.IsRevoked && !string.IsNullOrEmpty(d.RevokedReason)) { <span class="text-muted small">(@d.RevokedReason)</span> }</td>
                     <td>
                         @if (!d.IsRevoked && (IsMine(d) || Model.SeesAll))

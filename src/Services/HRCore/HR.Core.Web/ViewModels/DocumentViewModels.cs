@@ -78,6 +78,7 @@ public class DocumentEditViewModel : DocumentCreateViewModel
 
     public Guid Id { get; set; }
 
+    [Display(Name = "موثّق")]
     public bool Verified { get; set; }
 
 }

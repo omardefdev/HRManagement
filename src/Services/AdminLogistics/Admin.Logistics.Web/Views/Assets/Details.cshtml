@@ -73,7 +73,7 @@
             <dt class="col-sm-3">رقم العهدة</dt><dd class="col-sm-9">@Model.TagNumber</dd>
             <dt class="col-sm-3">الفئة</dt><dd class="col-sm-9">@(Model.Category ?? "—")</dd>
             <dt class="col-sm-3">الماركة / الموديل</dt><dd class="col-sm-9">@(string.Join(" ", new[] { Model.Brand, Model.Model }.Where(s => !string.IsNullOrWhiteSpace(s))) is { Length: > 0 } t ? t : "—")</dd>
-            <dt class="col-sm-3">تاريخ الشراء</dt><dd class="col-sm-9">@(Model.PurchaseDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الشراء</dt><dd class="col-sm-9">@Html.HrDate(Model.PurchaseDate)</dd>
             <dt class="col-sm-3">القيمة</dt><dd class="col-sm-9">@(Model.Value?.ToString("N2") ?? "—")</dd>
             @if (Model.IsLegacyEntry)
             {
@@ -88,7 +88,7 @@
                 <dt class="col-sm-3">مصدر التوريد (سجل الاستلام)</dt>
                 <dd class="col-sm-9">
                     <a asp-controller="ReceiptRecords" asp-action="Details" asp-route-id="@receiptId">
-                        استلام @Model.OriginReceiptRecord?.ReceivedAt?.ToString("yyyy/MM/dd") — @(Model.OriginReceiptRecord?.ItemsReceived ?? "—")
+                        استلام @Html.HrDate(Model.OriginReceiptRecord?.ReceivedAt) — @(Model.OriginReceiptRecord?.ItemsReceived ?? "—")
                     </a>
                     @if (Model.OriginReceiptRecord?.SupplyOrderId is Guid soId)
                     {
@@ -98,7 +98,7 @@
             }
             @if (Model.IsCancelled)
             {
-                <dt class="col-sm-3">تاريخ الإلغاء</dt><dd class="col-sm-9">@(Model.CancelledAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
+                <dt class="col-sm-3">تاريخ الإلغاء</dt><dd class="col-sm-9">@Html.HrDate(Model.CancelledAt)</dd>
                 <dt class="col-sm-3">سبب الإلغاء</dt><dd class="col-sm-9">@(Model.CancellationReason ?? "—")</dd>
             }
         </dl>
@@ -125,7 +125,7 @@
                         <span data-hr-employee-id="@pendingAssignment.EmployeeId">غير متاح</span>
                     }
                 </dd>
-                <dt class="col-sm-3">تاريخ الطلب</dt><dd class="col-sm-9">@pendingAssignment.AssignedAt.ToString("yyyy/MM/dd")</dd>
+                <dt class="col-sm-3">تاريخ الطلب</dt><dd class="col-sm-9">@Html.HrDate(pendingAssignment.AssignedAt)</dd>
                 <dt class="col-sm-3">الدليل</dt>
                 <dd class="col-sm-9">@await Html.PartialAsync("_AssignmentEvidenceDisplay", new AssignmentEvidenceViewModel { Assignment = pendingAssignment, Asset = Model })</dd>
             </dl>
@@ -156,8 +156,8 @@
                         <span data-hr-employee-id="@openAssignment.EmployeeId">غير متاح</span>
                     }
                 </dd>
-                <dt class="col-sm-3">تاريخ التسليم</dt><dd class="col-sm-9">@openAssignment.AssignedAt.ToString("yyyy/MM/dd")</dd>
-                <dt class="col-sm-3">إعادة متوقعة</dt><dd class="col-sm-9">@(openAssignment.DueBackDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+                <dt class="col-sm-3">تاريخ التسليم</dt><dd class="col-sm-9">@Html.HrDate(openAssignment.AssignedAt)</dd>
+                <dt class="col-sm-3">إعادة متوقعة</dt><dd class="col-sm-9">@Html.HrDate(openAssignment.DueBackDate)</dd>
                 <dt class="col-sm-3">الحالة عند التسليم</dt><dd class="col-sm-9">@AssetAssignmentDisplay.FormatHandoverCondition(openAssignment)</dd>
                 @if (!string.IsNullOrWhiteSpace(openAssignment.ReturnNotes))
                 {
@@ -226,7 +226,7 @@
                 <div class="col-md-2">
                     <label class="form-label">إعادة متوقعة</label>
                     <input type="date" name="dueBackDate" class="form-control"
-                           value="@(assignDraft?.DueBackDate?.ToString("yyyy-MM-dd"))" />
+                           value="@(Html.HrDateInputValue(assignDraft?.DueBackDate))" />
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">الحالة عند التسليم</label>
@@ -419,7 +419,7 @@
                     @foreach (var lr in lossHistory)
                     {
                         <tr>
-                            <td>@lr.CreatedAt.ToString("yyyy/MM/dd")</td>
+                            <td>@Html.HrDate(lr.CreatedAt)</td>
                             <td>@Html.HrEnumDisplay(lr.Status)</td>
                             <td>@AssetLossDisplay.FormatReport(lr)</td>
                             <td><small class="text-muted">@AssetLossDisplay.FormatStateSnapshot(lr)</small></td>
@@ -462,9 +462,9 @@
                             }
                         </td>
                         <td>@Html.HrEnumDisplay(a.Status)</td>
-                        <td>@a.AssignedAt.ToString("yyyy/MM/dd")</td>
-                        <td>@(a.DueBackDate?.ToString("yyyy/MM/dd") ?? "—")</td>
-                        <td>@(a.ReturnedAt?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@Html.HrDate(a.AssignedAt)</td>
+                        <td>@Html.HrDate(a.DueBackDate)</td>
+                        <td>@Html.HrDate(a.ReturnedAt)</td>
                         <td>@await Html.PartialAsync("_AssignmentEvidenceDisplay", new AssignmentEvidenceViewModel { Assignment = a, Asset = Model })</td>
                         <td>@AssetAssignmentDisplay.FormatReturnNotesHtml(a.ReturnNotes)</td>
                         <td>
@@ -497,7 +497,7 @@
                 {
                     <tr>
                         <td>@Html.HrEnumDisplay(m.MaintenanceType)</td>
-                        <td>@m.PerformedAt?.ToString("yyyy/MM/dd")</td>
+                        <td>@Html.HrDate(m.PerformedAt)</td>
                         <td>@(m.Cost?.ToString("N2") ?? "—")</td>
                         <td><a asp-controller="MaintenanceRecords" asp-action="Details" asp-route-id="@m.Id" class="btn btn-sm btn-outline-secondary">تفاصيل</a></td>
                     </tr>

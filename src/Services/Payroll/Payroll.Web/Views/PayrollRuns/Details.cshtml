@@ -20,7 +20,7 @@
 
     <div class="card-header d-flex justify-content-between flex-wrap gap-2">
 
-        <h3 class="card-title mb-0">تشغيل @Model.RunDate.ToString("yyyy/MM/dd") — @Html.HrEnumDisplay(Model.RunType)</h3>
+        <h3 class="card-title mb-0">تشغيل @Html.HrDate(Model.RunDate) — @Html.HrEnumDisplay(Model.RunType)</h3>
 
         <div>
 
@@ -62,7 +62,7 @@
                     }
                     @if (job.EstimatedCompletionAt is not null && job.Status == PayrollRunJobStatus.Running)
                     {
-                        <div>ETA: @job.EstimatedCompletionAt.Value.ToLocalTime().ToString("HH:mm:ss")</div>
+                        <div>ETA: @Html.HrDateTime(job.EstimatedCompletionAt.Value)</div>
                     }
                 }
                 @if (!string.IsNullOrEmpty(job.Error))
@@ -139,10 +139,10 @@
             @if (Model.PayrollConfiguration is not null)
             {
                 <div>الإطار: @Model.PayrollConfiguration.RegimeCode — @Model.PayrollConfiguration.NameAr</div>
-                <div>الإصدار: v@Model.PayrollConfiguration.VersionNumber — @Model.PayrollConfiguration.PublicationStatus</div>
+                <div>الإصدار: v@Model.PayrollConfiguration.VersionNumber — @Html.HrEnumDisplay(Model.PayrollConfiguration.PublicationStatus)</div>
                 <div>العملة/التقريب: @Model.PayrollConfiguration.CurrencyCode / @Html.HrEnumDisplay(Model.PayrollConfiguration.RoundingMode)</div>
                 <div>البصمة: <code>@(Model.ConfigContentHash ?? Model.PayrollConfiguration.ContentHash ?? "—")</code></div>
-                <div>اعتماد/نشر: @(Model.PayrollConfiguration.ApprovedAt?.ToString("yyyy-MM-dd") ?? "—") / @(Model.PayrollConfiguration.PublishedAt?.ToString("yyyy-MM-dd") ?? "—")</div>
+                <div>اعتماد/نشر: @Html.HrDate(Model.PayrollConfiguration.ApprovedAt) / @Html.HrDate(Model.PayrollConfiguration.PublishedAt)</div>
             }
             else if (!string.IsNullOrEmpty(Model.ConfigContentHash))
             {
@@ -278,7 +278,7 @@
 
                 {
 
-                    <tr><td>@Html.HrEnumDisplay(a.Decision)</td><td>@a.DecidedAt?.ToString("yyyy/MM/dd HH:mm")</td><td>@a.Notes</td></tr>
+                    <tr><td>@Html.HrEnumDisplay(a.Decision)</td><td>@Html.HrDateTime(a.DecidedAt)</td><td>@a.Notes</td></tr>
 
                 }
 

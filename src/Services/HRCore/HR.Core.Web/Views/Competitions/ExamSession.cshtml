@@ -16,7 +16,7 @@
         <a asp-action="Details" asp-route-id="@Model.Competition.Id" class="btn btn-outline-secondary btn-sm">@Model.Competition.Number</a>
     </div>
     <div class="card-body">
-        <p class="small mb-2">@s.ScheduledAt.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) UTC · @s.Venue · السعة @s.Capacity · @Html.HrEnumDisplay(s.Status)</p>
+        <p class="small mb-2">@Html.HrDateTime(s.ScheduledAt) UTC · @s.Venue · السعة @s.Capacity · @Html.HrEnumDisplay(s.Status)</p>
         <div class="d-flex flex-wrap gap-2">
             @if (Model.CanWrite && s.Status == ExamSessionStatus.Seated)
             {

@@ -1,29 +1,4 @@
 # PLAN-67 (P-12): what InterfaceTextGuardTests found in HR.Health.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
-src/Services/HRHealth/HR.Health.Web/Views/HealthRetirementRecords/Details.cshtml#unformatted-time#@Model.EffectiveDate</d | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/HealthRetirementRecords/Index.cshtml#unformatted-time#@x.EffectiveDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/HealthStatusEntries/Details.cshtml#unformatted-time#ss="col-sm-9">@Model.EntryDate.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/HealthStatusEntries/Index.cshtml#unformatted-time#..</span></td><td>@x.EntryDate.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/InsuranceCards/Details.cshtml#unformatted-time#@Model.ExpiryDate</d | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/InsuranceCards/Index.cshtml#unformatted-time#@x.ExpiryDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/InsuranceContracts/Details.cshtml#unformatted-time#@Model.StartDate</d | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/InsuranceContracts/Index.cshtml#unformatted-time#@x.StartDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRHealth/HR.Health.Web/Views/MedicalCommitteeReports/Details.cshtml#printed-id#@(Model.IssuedBy ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRHealth/HR.Health.Web/Views/MedicalCommitteeReports/Details.cshtml#unformatted-time#@Model.CommitteeDate</d | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRHealth/HR.Health.Web/Views/MedicalCommitteeReports/Index.cshtml#printed-id#@x.MedicalRecordId</t | PLAN-67: P4 shows the name instead of the id
-src/Services/HRHealth/HR.Health.Web/Views/MedicalCommitteeReports/Index.cshtml#unformatted-time#@x.CommitteeDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRHealth/HR.Health.Web/Views/MedicalRecommendations/Details.cshtml#printed-id#@(Model.IssuedBy ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRHealth/HR.Health.Web/Views/MedicalRecommendations/Details.cshtml#unformatted-time#s="col-sm-9">@(Model.IssuedAt?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/MedicalRecommendations/Index.cshtml#unformatted-time#<td>@(x.IssuedAt?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/MedicalRecords/Details.cshtml#unformatted-time#@r.CommitteeDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/MedicalRecords/Index.cshtml#unformatted-time#) ?? "—")</td><td>@x.UpdatedAt.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/MedicalRecords/Index.cshtml#unformatted-time#pan></td><td>@(x.LastExamDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/PeriodicMedicalChecks/Details.cshtml#unformatted-time#@Model.CheckDate</d | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/PeriodicMedicalChecks/Index.cshtml#unformatted-time#@x.CheckDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/WorkplaceSafety/Details.cshtml#unformatted-time#"col-sm-9">@Model.AccidentDate.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/WorkplaceSafety/FirstAid.cshtml#unformatted-time#.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/WorkplaceSafety/FirstAid.cshtml#unformatted-time#<td>@(x.ExpiryDate?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/WorkplaceSafety/FirstAid.cshtml#unformatted-time#<td>@x.TrainingDate.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/WorkplaceSafety/Index.cshtml#unformatted-time#<td>@x.AccidentDate.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/WorkplaceSafety/Inspections.cshtml#unformatted-time#.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/WorkplaceSafety/Inspections.cshtml#unformatted-time#<td>@(x.NextDue?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRHealth/HR.Health.Web/Views/WorkplaceSafety/Inspections.cshtml#unformatted-time#<td>@x.InspectionDate.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone

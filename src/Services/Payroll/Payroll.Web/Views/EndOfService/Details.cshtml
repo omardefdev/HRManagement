@@ -23,7 +23,7 @@
             <tr><th>إجمالي الخصومات</th><td class="text-danger">@Model.TotalDeductions.ToString("N2")</td></tr>
             <tr class="table-primary"><th>صافي التسوية</th><td><strong>@Model.NetSettlement.ToString("N2")</strong></td></tr>
             <tr><th>الحالة</th><td><span class="badge @(Model.Status == EosStatus.Paid ? "bg-info" : Model.Status == EosStatus.Approved ? "bg-success" : "bg-warning")">@Html.HrEnumDisplay(Model.Status)</span></td></tr>
-            <tr><th>تاريخ الحساب</th><td>@Model.CalculatedAt.ToString("yyyy/MM/dd HH:mm")</td></tr>
+            <tr><th>تاريخ الحساب</th><td>@Html.HrDateTime(Model.CalculatedAt)</td></tr>
         </table>
 
         <div class="d-flex gap-2">

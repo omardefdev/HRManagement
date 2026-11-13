@@ -61,8 +61,8 @@
                     <tr>
                         <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(c.EmployeeId, employeeNames.GetValueOrDefault(c.EmployeeId)))</td>
                         <td>@c.ContractType.NameAr</td>
-                        <td>@c.StartDate.ToString("yyyy/MM/dd")</td>
-                        <td>@(c.EndDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@Html.HrDate(c.StartDate)</td>
+                        <td>@Html.HrDate(c.EndDate)</td>
                         <td>
                             <span class="badge @StatusBadge(c.Status)">@Html.HrEnumDisplay(c.Status)</span>
                         </td>

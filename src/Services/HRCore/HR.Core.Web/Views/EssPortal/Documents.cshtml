@@ -12,8 +12,8 @@
             {
                 <tr>
                     <td>@d.DocTitle</td>
-                    <td>@d.DocType</td>
-                    <td>@d.CreatedAt.ToString("yyyy-MM-dd")</td>
+                    <td>@Html.HrEnumDisplay(d.DocType)</td>
+                    <td>@Html.HrDate(d.CreatedAt)</td>
                 </tr>
             }
             </tbody>

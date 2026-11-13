@@ -86,11 +86,11 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">شراء من</label>
-                <input type="date" name="purchaseFrom" value="@Model.PurchaseFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="purchaseFrom" value="@Html.HrDateInputValue(Model.PurchaseFrom)" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">شراء إلى</label>
-                <input type="date" name="purchaseTo" value="@Model.PurchaseTo?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="purchaseTo" value="@Html.HrDateInputValue(Model.PurchaseTo)" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">القيمة من</label>

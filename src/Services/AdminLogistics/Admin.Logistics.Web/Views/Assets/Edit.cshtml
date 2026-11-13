@@ -21,7 +21,7 @@
                 <div class="alert alert-secondary py-2">
                     <strong>مصدر التوريد (سجل الاستلام):</strong>
                     <a asp-controller="ReceiptRecords" asp-action="Details" asp-route-id="@receiptId">
-                        استلام @Model.OriginReceiptReceivedAt?.ToString("yyyy/MM/dd") — @(Model.OriginReceiptItemsReceived ?? "—")
+                        استلام @Html.HrDate(Model.OriginReceiptReceivedAt) — @(Model.OriginReceiptItemsReceived ?? "—")
                     </a>
                     <span class="text-muted small">(للقراءة فقط)</span>
                 </div>

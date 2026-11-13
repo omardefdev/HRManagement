@@ -12,7 +12,7 @@
         @if (Model.Requisition is not null)
         {
             <a asp-controller="RecruitmentRequisitions" asp-action="Details" asp-route-id="@Model.RequisitionId">@Model.Requisition.RequisitionNumber</a>
-            <span class="badge bg-secondary ms-2">@Model.Requisition.Status</span>
+            <span class="badge bg-secondary ms-2">@Html.HrEnumDisplay(Model.Requisition.Status)</span>
         }
         — الحقول الأساسية للإعلان للقراءة فقط.
     </div>
@@ -38,7 +38,7 @@
             <dt class="col-sm-3">الجهة</dt><dd class="col-sm-9">@(Model.Entity ?? "—")</dd>
             <dt class="col-sm-3">مكان العمل</dt><dd class="col-sm-9">@(Model.Location ?? "—")</dd>
             <dt class="col-sm-3">الحالة</dt><dd class="col-sm-9">@(Model.IsPublished ? "منشور" : "مخفي")</dd>
-            <dt class="col-sm-3">تاريخ الإغلاق</dt><dd class="col-sm-9">@(Model.ClosingDate?.ToString("yyyy-MM-dd") ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الإغلاق</dt><dd class="col-sm-9">@Html.HrDate(Model.ClosingDate)</dd>
         </dl>
     </div>
 </div>
@@ -66,7 +66,7 @@
                         </td>
                         <td>@a.NationalId</td>
                         <td>@(a.Phone ?? "—")</td>
-                        <td>@a.SubmittedAt.ToString("yyyy-MM-dd")</td>
+                        <td>@Html.HrDate(a.SubmittedAt)</td>
                         @if (a.RequisitionId.HasValue)
                         {
                             @* HCM-030 (A4): screened in one place — the recruitment application. *@

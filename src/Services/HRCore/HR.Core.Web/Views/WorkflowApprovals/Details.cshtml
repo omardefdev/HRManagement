@@ -28,11 +28,11 @@
                 <dd class="col-sm-9">@Model.SubjectName</dd>
             }
             <dt class="col-sm-3">تاريخ الطلب</dt>
-            <dd class="col-sm-9">@Model.StartedAt.ToString("yyyy/MM/dd HH:mm", System.Globalization.CultureInfo.InvariantCulture)</dd>
+            <dd class="col-sm-9">@Html.HrDateTime(Model.StartedAt)</dd>
             @if (Model.CompletedAt is DateTime completed)
             {
                 <dt class="col-sm-3">تاريخ الانتهاء</dt>
-                <dd class="col-sm-9">@completed.ToString("yyyy/MM/dd HH:mm", System.Globalization.CultureInfo.InvariantCulture)</dd>
+                <dd class="col-sm-9">@Html.HrDateTime(completed)</dd>
             }
         </dl>
 
@@ -80,7 +80,7 @@
                                 }
                             </td>
                             <td>@entry.Comments</td>
-                            <td>@entry.ActionAt.ToString("yyyy/MM/dd HH:mm", System.Globalization.CultureInfo.InvariantCulture)</td>
+                            <td>@Html.HrDateTime(entry.ActionAt)</td>
                         </tr>
                     }
                 </tbody>

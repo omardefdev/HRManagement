@@ -1,6 +1,6 @@
 @model HR.Core.Domain.Entities.Policy.PolicyTemplateVersion
 @{
-    ViewData["Title"] = "مسودة قواعد — " + Model.PolicyTemplate.Domain;
+    ViewData["Title"] = "مسودة قواعد — " + HRManagement.SharedKernel.Policy.PolicyVocabularyAr.DomainName(Model.PolicyTemplate.Domain);
     var edits = ViewBag.Editors as List<HR.Core.Domain.Entities.Policy.PolicyVersionEdit> ?? [];
     var canPublish = ViewBag.CanPublish is true;
     var canAuthor = ViewBag.CanAuthor is true;
@@ -28,7 +28,7 @@
     }
     <div class="card-body p-0">
         <table class="table table-sm mb-0 align-middle">
-            <thead><tr><th>المفتاح</th><th>الاسم</th><th>الأولوية</th><th>When</th><th>Then</th><th></th></tr></thead>
+            <thead><tr><th>المفتاح</th><th>الاسم</th><th>الأولوية</th><th>الشرط</th><th>الأثر</th><th></th></tr></thead>
             <tbody>
                 @foreach (var r in Model.Rules.OrderBy(x => x.Priority).ThenBy(x => x.RuleKey))
                 {
@@ -103,16 +103,16 @@
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="versionId" value="@Model.Id" />
                 <div class="col-md-4">
-                    <label class="form-label">ينفذ من (UTC، فارغ = عند النشر)</label>
-                    <input name="effectiveFromUtc" class="form-control form-control-sm" dir="ltr" placeholder="2026-12-01T00:00:00Z"
-                           value="@(Model.EffectiveFrom?.ToString("yyyy-MM-ddTHH:mm:ssZ", inv))" />
+                    <label class="form-label" for="effectiveFromInput">ينفذ من (بتوقيت دمشق، فارغ = عند النشر)</label>
+                    <input id="effectiveFromInput" name="effectiveFromUtc" type="datetime-local" class="form-control form-control-sm" dir="ltr"
+                           value="@(Html.HrDateTimeLocalValue(Model.EffectiveFrom))" />
                 </div>
                 <div class="col-md-2"><button type="submit" class="btn btn-sm btn-outline-secondary">حفظ</button></div>
             </form>
         }
         else
         {
-            <p class="mb-0" dir="ltr">@(Model.EffectiveFrom?.ToString("u", inv) ?? "عند النشر")</p>
+            <p class="mb-0">@Html.HrDateTime(Model.EffectiveFrom, "عند النشر")</p>
         }
     </div>
 </div>
@@ -121,19 +121,19 @@
     <div class="card-header">المحرّرون</div>
     <div class="card-body p-0">
         <table class="table table-sm mb-0">
-            <thead><tr><th>المستخدم</th><th>الإجراء</th><th>القاعدة</th><th>الوقت (UTC)</th></tr></thead>
+            <thead><tr><th>المستخدم</th><th>الإجراء</th><th>القاعدة</th><th>الوقت</th></tr></thead>
             <tbody>
                 @if (Model.CreatedBy is Guid creator && edits.All(e => e.UserId != creator))
                 {
-                    <tr><td><code>@creator</code></td><td>Create</td><td></td><td>@Model.CreatedAt.ToString("u", inv)</td></tr>
+                    <tr><td><code>@creator</code></td><td>@Html.HrEnumDisplay(HR.Core.Domain.Entities.Policy.PolicyVersionEditAction.Create)</td><td></td><td>@Html.HrDateTime(Model.CreatedAt)</td></tr>
                 }
                 @foreach (var e in edits)
                 {
                     <tr>
                         <td><code>@(e.UserId?.ToString() ?? "system")</code></td>
-                        <td>@e.Action</td>
+                        <td>@Html.HrEnumDisplay(e.Action)</td>
                         <td>@e.RuleKey</td>
-                        <td>@e.OccurredAt.ToString("u", inv)</td>
+                        <td>@Html.HrDateTime(e.OccurredAt)</td>
                     </tr>
                 }
             </tbody>

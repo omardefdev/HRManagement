@@ -41,7 +41,7 @@
                 }
                 else { <span>—</span> }
             </dd>
-            <dt class="col-sm-3">تاريخ الاستلام</dt><dd class="col-sm-9">@r.ReceivedAt?.ToString("yyyy/MM/dd")</dd>
+            <dt class="col-sm-3">تاريخ الاستلام</dt><dd class="col-sm-9">@Html.HrDate(r.ReceivedAt)</dd>
             <dt class="col-sm-3">المواد المستلمة</dt><dd class="col-sm-9">@(r.ItemsReceived ?? "—")</dd>
             <dt class="col-sm-3">عنصر المخزون</dt><dd class="col-sm-9">@(r.InventoryItem?.Name ?? "—")</dd>
             <dt class="col-sm-3">الكمية المستلمة</dt><dd class="col-sm-9">@(r.QuantityReceived?.ToString() ?? "—")</dd>

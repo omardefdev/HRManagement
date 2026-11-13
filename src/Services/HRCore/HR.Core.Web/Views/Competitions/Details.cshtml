@@ -5,7 +5,7 @@
 @{
     var c = Model.Competition;
     ViewData["Title"] = $"المسابقة {c.Number}";
-    string D(DateOnly? d) => d?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture) ?? "—";
+    string D(DateOnly? d) => Html.HrDateText(d);
 }
 
 @if (TempData["Success"] is string ok) { <div class="alert alert-success" role="status">@ok</div> }
@@ -234,7 +234,7 @@
                                     <td><a asp-controller="RecruitmentApplications" asp-action="Details" asp-route-id="@row.Id">@row.ApplicantFullName</a></td>
                                     <td>@Html.HrEnumDisplay(row.Channel)</td>
                                     <td>@Html.HrEnumDisplay(row.Status)</td>
-                                    <td>@row.AppliedAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td>
+                                    <td>@Html.HrDate(row.AppliedAt)</td>
                                     <td class="small">@foreach (var p in row.Preferences) { <div>@p</div> }</td>
                                     <td class="small">@(row.FlagLabels.Count == 0 ? "—" : string.Join("، ", row.FlagLabels))</td>
                                 </tr>
@@ -315,7 +315,7 @@
             <div class="card mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <a asp-action="ExamSession" asp-route-id="@s.Id"><strong>@s.Title</strong></a>
-                    <span class="small text-muted">@Html.HrEnumDisplay(s.Type) · @s.ScheduledAt.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) UTC · @s.Venue · السعة @s.Capacity · العلامة العظمى @s.MaxScore.ToString("0.##", CultureInfo.InvariantCulture) · @Html.HrEnumDisplay(s.Status)</span>
+                    <span class="small text-muted">@Html.HrEnumDisplay(s.Type) · @Html.HrDateTime(s.ScheduledAt) UTC · @s.Venue · السعة @s.Capacity · العلامة العظمى @s.MaxScore.ToString("0.##", CultureInfo.InvariantCulture) · @Html.HrEnumDisplay(s.Status)</span>
                 </div>
                 <div class="card-body">
                     <p class="small mb-2">الموزعون @row.Seated · حاضر @row.Present · غائب @row.Absent · البطاقات الصادرة @row.CardsIssued</p>
@@ -448,8 +448,8 @@
                             <tr>
                                 <td>@v.Version.VersionNo</td>
                                 <td>@Html.HrEnumDisplay(v.Version.Status)</td>
-                                <td>@v.Version.ComputedAt.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)</td>
-                                <td>@(v.Version.PublishedAt?.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) ?? "—")</td>
+                                <td>@Html.HrDateTime(v.Version.ComputedAt)</td>
+                                <td>@Html.HrDateTime(v.Version.PublishedAt)</td>
                                 <td>@v.Candidates</td>
                                 <td>@v.Passed</td>
                                 <td>@v.Ties</td>
@@ -557,7 +557,7 @@
     <div class="tab-pane fade" id="tab-objections" role="tabpanel" aria-labelledby="tab-objections-btn">
         @if (Model.ObjectionDeadlineUtc is DateTime objectionDeadline)
         {
-            <p class="small">آخر موعد للاعتراض: @objectionDeadline.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture) UTC (يُحسب من أول نشر ولا يُعاد فتحه بنسخ لاحقة).</p>
+            <p class="small">آخر موعد للاعتراض: @Html.HrDateTime(objectionDeadline) UTC (يُحسب من أول نشر ولا يُعاد فتحه بنسخ لاحقة).</p>
             @if (Model.CanWrite && DateTime.UtcNow <= objectionDeadline && c.Status == RecruitmentCompetitionStatus.ResultsPublished)
             {
                 <form asp-action="FileObjection" asp-route-id="@c.Id" method="post" class="row g-2 align-items-end mb-3">
@@ -590,7 +590,7 @@
                                 <td><a asp-controller="RecruitmentAppeals" asp-action="Details" asp-route-id="@o.AppealId">@o.ApplicantFullName</a></td>
                                 <td><bdi dir="ltr">@(o.ExamNumber ?? "—")</bdi></td>
                                 <td>@(o.FiledBy == HR.Core.Domain.Entities.RecruitmentAppealFiledBy.Candidate ? "المتقدم" : "الموارد البشرية")</td>
-                                <td>@o.FiledAt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td>
+                                <td>@Html.HrDate(o.FiledAt)</td>
                                 <td>@Html.HrEnumDisplay(o.Status)</td>
                                 <td>@if (o.Outcome is { } oc) { @Html.HrEnumDisplay(oc) } else { <text>—</text> }@(o.CorrectedScore is decimal cs ? $" ({cs.ToString("0.##", CultureInfo.InvariantCulture)})" : "")</td>
                                 <td>@(o.HasReviewer ? "معيّن" : "لم يُعيّن")</td>
@@ -692,7 +692,7 @@
                     <tbody>
                         @foreach (var r in Model.Reserves)
                         {
-                            <tr><td>@r.LineNo</td><td>@r.LineRank</td><td>@r.ApplicantFullName</td><td>@r.ReserveUntil.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)</td><td>@Html.HrEnumDisplay(r.Status)</td></tr>
+                            <tr><td>@r.LineNo</td><td>@r.LineRank</td><td>@r.ApplicantFullName</td><td>@Html.HrDate(r.ReserveUntil)</td><td>@Html.HrEnumDisplay(r.Status)</td></tr>
                         }
                     </tbody>
                 </table>
@@ -704,7 +704,7 @@
             <ul class="small">
                 @foreach (var log in Model.RecallLog)
                 {
-                    <li>@log.At.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture) — @(log.Action == HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionReserveService.RecallAuditAction ? "استدعاء مرشح احتياط" : HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionReserveService.NoValidReserveNotice)</li>
+                    <li>@Html.HrDateTime(log.At) — @(log.Action == HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionReserveService.RecallAuditAction ? "استدعاء مرشح احتياط" : HR.Core.Infrastructure.Services.Recruitment.Competitions.CompetitionReserveService.NoValidReserveNotice)</li>
                 }
             </ul>
         }

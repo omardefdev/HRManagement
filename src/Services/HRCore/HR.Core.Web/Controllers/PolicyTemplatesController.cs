@@ -1,4 +1,5 @@
 using System.Globalization;
+using HRManagement.ServiceDefaults.Localization;
 using System.Security.Claims;
 using HR.Core.Domain.Entities.Policy;
 using HR.Core.Domain.Services.Policy;
@@ -123,7 +124,8 @@ public class PolicyTemplatesController(
         DateTime? asOf = null;
         if (!string.IsNullOrWhiteSpace(asOfUtc))
         {
-            if (!DateTime.TryParse(asOfUtc, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var parsed))
+            // PLAN-67 (D-67-2): the form sends local time (datetime-local); an ISO value with an offset is read as such.
+            if (!HrLocalTime.TryParseUserTime(asOfUtc, HrLocalTime.Zone, out var parsed))
             {
                 TempData["Error"] = "التاريخ غير صالح";
                 return RedirectToAction(nameof(Simulate), new { versionId });
@@ -142,6 +144,10 @@ public class PolicyTemplatesController(
         };
         var decision = await orchestrator.EvaluateAsync(request);
         ViewBag.Decision = decision;
+        // PLAN-67 (G-UX-04): the page names the version by its number, not its id.
+        ViewBag.DecisionVersionNumber = decision.PolicyVersionId is Guid decidedBy
+            ? await db.ReadablePolicyVersions().Where(v => v.Id == decidedBy).Select(v => (int?)v.VersionNumber).FirstOrDefaultAsync()
+            : null;
         ViewBag.VersionId = versionId;
         ViewBag.FactsJson = factsJson;
         ViewBag.AsOfUtc = asOfUtc;
@@ -297,7 +303,8 @@ public class PolicyTemplatesController(
         DateTime? value = null;
         if (!string.IsNullOrWhiteSpace(effectiveFromUtc))
         {
-            if (!DateTime.TryParse(effectiveFromUtc, CultureInfo.InvariantCulture, DateTimeStyles.AdjustToUniversal | DateTimeStyles.AssumeUniversal, out var parsed))
+            // PLAN-67 (D-67-2): the form sends local time (datetime-local); an ISO value with an offset is read as such.
+            if (!HrLocalTime.TryParseUserTime(effectiveFromUtc, HrLocalTime.Zone, out var parsed))
             {
                 TempData["Error"] = "التاريخ غير صالح";
                 return RedirectToAction(nameof(EditRules), new { versionId });

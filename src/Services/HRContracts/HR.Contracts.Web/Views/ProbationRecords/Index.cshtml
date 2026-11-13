@@ -44,8 +44,8 @@
                     <tr>
                         <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(x.EmployeeId, employeeNames.GetValueOrDefault(x.EmployeeId)))</td>
                         <td>@x.Contract.ContractType.NameAr</td>
-                        <td>@x.StartDate.ToString("yyyy/MM/dd")</td>
-                        <td>@x.EndDate.ToString("yyyy/MM/dd")</td>
+                        <td>@Html.HrDate(x.StartDate)</td>
+                        <td>@Html.HrDate(x.EndDate)</td>
                         <td>@Html.HrEnumDisplay(x.Result)</td>
                         <td>
                             <a asp-action="Edit" asp-route-id="@x.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>

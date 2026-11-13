@@ -32,11 +32,11 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">أُنشئ من</label>
-                <input type="date" name="createdFrom" value="@createdFrom?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+                <input type="date" name="createdFrom" value="@Html.HrDateInputValue(createdFrom)" class="form-control form-control-sm" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">أُنشئ إلى</label>
-                <input type="date" name="createdTo" value="@createdTo?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+                <input type="date" name="createdTo" value="@Html.HrDateInputValue(createdTo)" class="form-control form-control-sm" />
             </div>
             <div class="col-md-3 d-flex align-items-end gap-1">
                 <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button>

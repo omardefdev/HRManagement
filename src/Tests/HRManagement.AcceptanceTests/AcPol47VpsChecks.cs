@@ -157,8 +157,9 @@ public partial class AcOps36VpsBootTests
 
                 // The history shows both publications.
                 var history = await Wf45PageAsync(approver, details);
-                Assert.Contains("Rollback", history);
-                Assert.Contains("Manual", history);
+                // PLAN-67 (G-UX-03): the publication kinds print by their Arabic names.
+                Assert.Contains("<strong>تراجع</strong>", System.Net.WebUtility.HtmlDecode(history));
+                Assert.Contains("<strong>يدوي</strong>", System.Net.WebUtility.HtmlDecode(history));
 
                 recorder.WriteScenarioDbChecks(new { template, start, copy, rollback, first, second, selfPublish = selfStatus, rulesUnchanged = true });
                 recorder.WriteScenarioSteps(

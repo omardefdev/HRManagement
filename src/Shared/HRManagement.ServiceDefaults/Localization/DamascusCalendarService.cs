@@ -1,17 +1,27 @@
 using System.Globalization;
+using Microsoft.Extensions.Configuration;
 
 namespace HRManagement.ServiceDefaults.Localization;
 
-/// <summary>Gregorian formatting in Asia/Damascus; optional Hijri via System.Globalization.</summary>
-public sealed class DamascusCalendarService : ICalendarService
+/// <summary>
+/// Gregorian formatting in the configured zone; optional Hijri via System.Globalization. PLAN-67 (D-67-2): the zone is
+/// <c>Localization:TimeZone</c> (<see cref="HrLocalTime.DefaultTimeZoneId"/>, Asia/Damascus, when absent); an unknown id stops the service.
+/// </summary>
+public sealed class DamascusCalendarService(IConfiguration? configuration = null) : ICalendarService
 {
-    private static readonly TimeZoneInfo DamascusZone = ResolveDamascusZone();
     private static readonly HijriCalendar Hijri = new();
+    private readonly TimeZoneInfo _zone = Configure(HrLocalTime.ResolveZone(configuration?[HrLocalTime.TimeZoneKey]));
 
-    public TimeZoneInfo TimeZone => DamascusZone;
+    private static TimeZoneInfo Configure(TimeZoneInfo zone)
+    {
+        HrLocalTime.UseZone(zone);
+        return zone;
+    }
+
+    public TimeZoneInfo TimeZone => _zone;
 
     public DateTimeOffset ToLocalTime(DateTimeOffset utc) =>
-        TimeZoneInfo.ConvertTime(utc, DamascusZone);
+        TimeZoneInfo.ConvertTime(utc, _zone);
 
     public string FormatGregorianDate(DateTime date, string? cultureName = null)
     {
@@ -32,11 +42,5 @@ public sealed class DamascusCalendarService : ICalendarService
         {
             return null;
         }
-    }
-
-    private static TimeZoneInfo ResolveDamascusZone()
-    {
-        var id = OperatingSystem.IsWindows() ? "Syria Standard Time" : "Asia/Damascus";
-        return TimeZoneInfo.FindSystemTimeZoneById(id);
     }
 }

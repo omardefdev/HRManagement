@@ -12,7 +12,7 @@
             قائمة التحقق — @Html.HrEnumDisplay(Model.Txn.State)
             @if (Model.Txn.CommencementOverdueAt is not null)
             {
-                <span class="badge bg-danger fs-6 ms-1" title="تأخر المباشرة عن المهلة منذ @Model.Txn.CommencementOverdueAt.Value.ToString("yyyy/MM/dd")">متأخر عن المباشرة</span>
+                <span class="badge bg-danger fs-6 ms-1" title="تأخر المباشرة عن المهلة منذ @Html.HrDateText(Model.Txn.CommencementOverdueAt.Value)">متأخر عن المباشرة</span>
             }
         </h3>
         @if (Model.Contract is not null)
@@ -20,7 +20,7 @@
             <span class="text-muted small">
                 العقد: @Model.Contract.ContractType?.Code — الدرجة @(Model.Contract.GradeCode ?? "—")
                 — الراتب @(Model.Contract.AgreedBaseSalary?.ToString("#,0.##") ?? "—")
-                — النظام @(Model.Contract.LegalRegimeId ?? "—") — @(Model.Contract.EmploymentType ?? "—")
+                — النظام @(Model.Contract.LegalRegimeId ?? "—") — @Html.HrStoredEnumDisplay("HireEmploymentTypes", Model.Contract.EmploymentType)
             </span>
         }
     </div>
@@ -85,7 +85,7 @@
                     <div class="small mt-1">
                         <i class="fas fa-check text-success"></i>
                         القرار رقم <code>@Model.Decision.DecisionNumber</code> — @Model.Decision.Subject
-                        (@(Model.Decision.IssuedDate?.ToString("yyyy/MM/dd") ?? "—"))
+                        (@Html.HrDate(Model.Decision.IssuedDate))
                     </div>
                 }
                 else if (canExecute)

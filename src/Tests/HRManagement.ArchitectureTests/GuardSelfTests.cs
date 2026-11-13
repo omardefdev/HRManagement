@@ -382,6 +382,30 @@ public sealed class GuardSelfTests
         Assert.DoesNotContain(InterfaceTextScanner.EnglishLabel, UiRules(fixedView));
     }
 
+    public sealed class PlantedLabelModel
+    {
+        public int PlannedCount { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Display(Name = "العدد المخطط")]
+        public int ArabicCount { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Display(Name = "Planned count")]
+        public int EnglishCount { get; set; }
+    }
+
+    [Theory]
+    [InlineData("<label asp-for=\"PlannedCount\" class=\"form-label\"></label>", true)]
+    [InlineData("<label asp-for=\"EnglishCount\"></label>", true)]
+    [InlineData("<th>@Html.DisplayNameFor(m => m.PlannedCount)</th>", true)]
+    [InlineData("<label asp-for=\"ArabicCount\"></label>", false)]
+    [InlineData("<label asp-for=\"PlannedCount\">العدد المخطط</label>", false)]
+    public void A_label_taken_from_a_model_property_without_an_arabic_name_is_found(string view, bool flagged)
+    {
+        var rules = InterfaceTextScanner.Scan("src/Services/HRCore/HR.Core.Web/Views/Planted/Form.cshtml", "@model PlantedLabelModel\n" + view, modelType: typeof(PlantedLabelModel))
+            .Select(f => f.Rule).ToList();
+        Assert.Equal(flagged, rules.Contains(InterfaceTextScanner.EnglishLabel));
+    }
+
     [Fact]
     public void An_internal_code_shown_as_secondary_text_is_not_part_of_the_label() =>
         Assert.Empty(UiRules("<h3>المناصب الممولة <span class=\"hr-internal-code\">EST-001</span></h3>"));
@@ -463,6 +487,7 @@ public sealed class GuardSelfTests
     [InlineData("<input type=\"date\" value=\"@x.Date.ToString(\"yyyy-MM-dd\")\" />")]
     [InlineData("<span>@publication.PublishedAt.ToString(\"u\", inv)</span>")]
     [InlineData("<td>@x.CreatedAtUtc</td>")]
+    [InlineData("<td>@l.OccurredAt.ToLocalTime()</td>")]
     [InlineData("<input type=\"datetime-local\" name=\"at\" value=\"@x.At.ToString(\"yyyy-MM-ddTHH:mm\")\" />")]
     public void A_time_outside_the_helpers_is_found(string planted) =>
         Assert.Contains(InterfaceTextScanner.UnformattedTime, UiRules(planted));

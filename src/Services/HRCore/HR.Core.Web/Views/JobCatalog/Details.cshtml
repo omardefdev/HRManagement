@@ -30,10 +30,10 @@
         <form method="get" class="row g-2 align-items-end mb-3">
             <div class="col-md-4">
                 <label class="form-label">عرض كما في تاريخ</label>
-                <input type="datetime-local" name="asOf" value="@(ViewBag.AsOfDate is DateTime d ? d.ToString("yyyy-MM-ddTHH:mm") : "")" class="form-control" />
+                <input type="datetime-local" name="asOf" value="@(ViewBag.AsOfDate is DateTime d ? Html.HrDateTimeLocalValue(d) : "")" class="form-control" />
             </div>
             <div class="col-md-auto">
-                <button type="submit" class="btn btn-outline-primary">استعلام as-of</button>
+                <button type="submit" class="btn btn-outline-primary">استعلام في تاريخ</button>
                 <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-secondary">الحالة الحالية</a>
             </div>
         </form>
@@ -41,7 +41,7 @@
         @if (asOfSnapshot is not null)
         {
             <div class="alert alert-info">
-                <strong>كما في @(((DateTime)ViewBag.AsOfDate!).ToString("yyyy-MM-dd HH:mm")):</strong>
+                <strong>كما في @Html.HrDateTime(((DateTime)ViewBag.AsOfDate!)):</strong>
                 @asOfSnapshot.TitleAr (@asOfSnapshot.JobCode) — @(asOfSnapshot.IsActive ? "نشط" : "معطّل")
             </div>
         }
@@ -70,9 +70,9 @@
                     @foreach (var v in timeline)
                     {
                         <tr>
-                            <td>@v.ValidFrom.ToString("yyyy-MM-dd HH:mm")</td>
-                            <td>@(v.ValidTo?.ToString("yyyy-MM-dd HH:mm") ?? "—")</td>
-                            <td>@v.OperationType</td>
+                            <td>@Html.HrDateTime(v.ValidFrom)</td>
+                            <td>@Html.HrDateTime(v.ValidTo)</td>
+                            <td>@Html.HrEnumDisplay(v.OperationType)</td>
                             <td>@(v.LegalSourceId ?? "—")</td>
                         </tr>
                     }

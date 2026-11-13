@@ -1,7 +1,2 @@
 # PLAN-67 (P-12): what InterfaceTextGuardTests found in HRManagement.Gateway when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
 src/Gateway/HRManagement.Gateway/Views/Home/Audit.cshtml#empty-table#<table class="table table-striped table-bordered align-middl | PLAN-67: P4 adds the empty message
-src/Gateway/HRManagement.Gateway/Views/Home/Audit.cshtml#unformatted-time#ow.OccurredAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Gateway/HRManagement.Gateway/Views/Home/Index.cshtml#unformatted-time#l.GeneratedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Gateway/HRManagement.Gateway/Views/Home/JourneyDetails.cshtml#raw-status#@Model.Journey.Category</p | PLAN-67: P3 prints the value by its Arabic name
-src/Gateway/HRManagement.Gateway/Views/Home/Journeys.cshtml#raw-status#@journey.Category</s | PLAN-67: P3 prints the value by its Arabic name
-src/Gateway/HRManagement.Gateway/Views/Home/Operations.cshtml#unformatted-time#em.OccurredAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone

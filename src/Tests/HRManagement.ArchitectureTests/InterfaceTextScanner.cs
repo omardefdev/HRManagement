@@ -92,12 +92,13 @@ public static partial class InterfaceTextScanner
     {
         var all = new List<UiFinding>();
         foreach (var file in ViewFiles())
-            all.AddRange(Scan(file, global::System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, file), Encoding.UTF8)));
+            all.AddRange(Scan(file, global::System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, file), Encoding.UTF8), reflectModels: true));
         return all;
     }
 
     /// <summary>Scans one view's text; <paramref name="relativePath"/> names it in the findings and their keys.</summary>
-    public static IReadOnlyList<UiFinding> Scan(string relativePath, string text)
+    /// <param name="reflectModels">Also check the labels a view takes from its model (asp-for, DisplayNameFor) by reflection.</param>
+    public static IReadOnlyList<UiFinding> Scan(string relativePath, string text, bool reflectModels = false, Type? modelType = null)
     {
         var project = ProjectOf(relativePath);
         var clean = StripComments(text);
@@ -126,7 +127,13 @@ public static partial class InterfaceTextScanner
         foreach (var (start, _) in blocks.Styles)
             raw.Add((start, InlineStyle, Excerpt(clean, start, 40)));
 
-        // 1: English labels.
+        // 1: English labels, and (by reflection) the labels a view takes from its model.
+        if (reflectModels || modelType is not null)
+        {
+            foreach (var (index, snippet) in EnglishModelLabels(relativePath, clean, modelType))
+                raw.Add((index, EnglishLabel, snippet));
+        }
+
         foreach (Match m in LabelElementRegex().Matches(clean))
         {
             if (InBlocks(blocks.Scripts, m.Index))
@@ -528,7 +535,12 @@ public static partial class InterfaceTextScanner
     [GeneratedRegex(@"(?<name>[\w:-]+)\s*=\s*[""']?[^""'<>]*$")]
     private static partial Regex AttributeBeforeRegex();
 
-    [GeneratedRegex(@"^(?:\w*Status|\w*State|\w*Type|\w*Kind|\w*Mode|Scope|\w*Category|\w*Stage|\w*Outcome|\w*Decision|\w*Severity)$")]
+    /// <summary>
+    /// A status or a type (P-12 rule 2). <c>…Category</c> and <c>…Decision</c> are not in the rule: in this codebase they are text the user
+    /// types (an asset's category, a course's category, an appeal's decision); the coded ones (a fraud alert's category, an offer's
+    /// decline category) print through their Arabic names all the same.
+    /// </summary>
+    [GeneratedRegex(@"^(?:\w*Status|\w*State|\w*Type|\w*Kind|\w*Mode|Scope|\w*Stage|\w*Outcome|\w*Severity)$")]
     private static partial Regex StatusMember();
 
     /// <summary>Members that end like a status but carry a name, a count or text (counts, names, descriptions).</summary>
@@ -554,7 +566,7 @@ public static partial class InterfaceTextScanner
     [GeneratedRegex(@"(?:yy|MM|dd|HH|hh|mm)")]
     private static partial Regex DateTokenRegex();
 
-    [GeneratedRegex(@"\.To(?:Short|Long)(?:Date|Time)String\(\)|\{[^{}""]+:(?:yyyy|yy|dd|MM|HH)[^{}""]*\}|asp-format\s*=\s*""[^""]*(?:yyyy|dd|HH)[^""]*""")]
+    [GeneratedRegex(@"\.To(?:Short|Long)(?:Date|Time)String\(\)|\.ToLocalTime\(\)|\{[^{}""]+:(?:yyyy|yy|dd|MM|HH)[^{}""]*\}|asp-format\s*=\s*""[^""]*(?:yyyy|dd|HH)[^""]*""")]
     private static partial Regex OtherDateFormatRegex();
 
     [GeneratedRegex(@"<table\b.*?</table\s*>", RegexOptions.Singleline | RegexOptions.IgnoreCase)]

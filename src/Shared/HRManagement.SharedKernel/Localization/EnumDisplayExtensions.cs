@@ -76,6 +76,23 @@ public static class EnumDisplayExtensions
             ["fraud"] = "احتيال",
             ["proofoflife"] = "إثبات حياة",
             ["manual"] = "يدوي",
+            // PLAN-67 (G-UX-03): codes stored as text that the interface prints.
+            ["planned"] = "مخطط لها",
+            ["ended"] = "منتهٍ",
+            ["completed"] = "مكتمل",
+            ["cancelled"] = "ملغى",
+            ["submitted"] = "مقدَّم",
+            ["permanent"] = "دائم",
+            ["temporary"] = "مؤقت",
+            ["grosspay"] = "الراتب الإجمالي",
+            ["basicsalary"] = "الراتب الأساسي",
+            ["familysupport"] = "دعم الأسرة",
+            ["lowincome"] = "دخل منخفض",
+            ["general"] = "عام",
+            ["payprofileactivation"] = "تفعيل ملف الراتب",
+            ["advancerecovery"] = "استرداد سلفة",
+            ["advancefinalrecovery"] = "الاسترداد النهائي للسلفة",
+            ["disciplinarydeduction"] = "حسم انضباطي",
         };
 
     public static Type? ResolveEnumType(string enumTypeName)

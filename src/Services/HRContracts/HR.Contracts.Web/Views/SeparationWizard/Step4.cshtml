@@ -49,7 +49,7 @@
                                     <span class="badge bg-warning"><i class="fas fa-clock"></i> قيد الانتظار</span>
                                 }
                             </td>
-                            <td>@(item.CompletedAt?.ToString("yyyy/MM/dd HH:mm") ?? "—")</td>
+                            <td>@Html.HrDateTime(item.CompletedAt)</td>
                             <td>@(item.Notes ?? "—")</td>
                         </tr>
                     }

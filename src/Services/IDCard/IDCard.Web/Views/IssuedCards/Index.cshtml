@@ -15,12 +15,12 @@
                         <td><span data-hr-employee-id="@x.EmployeeId">جاري التحميل...</span></td>
                         <td>@x.CardDesign.Name</td>
                         <td>@x.SerialNumber</td>
-                        <td>@x.IssuedAt.ToString("yyyy/MM/dd")</td>
+                        <td>@Html.HrDate(x.IssuedAt)</td>
                         <td>@Html.HrEnumDisplay(x.Status)</td>
                         <td class="small">
-                            @(x.DeliveryRecord?.PrintedAt != null ? $"طباعة: {x.DeliveryRecord.PrintedAt:yyyy/MM/dd}" : "—")
+                            @(x.DeliveryRecord?.PrintedAt != null ? $"طباعة: {Html.HrDateText(x.DeliveryRecord.PrintedAt)}" : "—")
                             <br />
-                            @(x.DeliveryRecord?.DeliveredAt != null ? $"تسليم: {x.DeliveryRecord.DeliveredAt:yyyy/MM/dd}" : "")
+                            @(x.DeliveryRecord?.DeliveredAt != null ? $"تسليم: {Html.HrDateText(x.DeliveryRecord.DeliveredAt)}" : "")
                         </td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
                         <td class="text-nowrap">

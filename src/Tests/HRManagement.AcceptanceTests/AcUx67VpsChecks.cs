@@ -47,17 +47,17 @@ public partial class AcOps36VpsBootTests
                 $"- {r.Name}: HTTP {r.Status}, {r.CspHeaders} CSP header(s), {r.CspPolicies} policies, {r.Violations.Count} violation(s)" +
                 (r.Note is null ? "" : $" ({r.Note})"))));
 
-            if (string.Equals(Ux67Label, "before", StringComparison.OrdinalIgnoreCase))
+            Assert.Equal(Ux067PageProbe.KeyPages.Count, results.Count);
+            // The before run (P0) only records: the demo then carried two policies on every forwarded page.
+            if (!string.Equals(Ux67Label, "before", StringComparison.OrdinalIgnoreCase))
             {
-                recorder.WriteResult("Pass", "baseline recorded (no assertion in the before run)");
-                return;
+                var failures = results
+                    .Where(r => r.Note is not null || r.CspPolicies != 1 || r.Violations.Count > 0)
+                    .Select(r => $"{r.Name}: {r.CspPolicies} policies, {r.Violations.Count} violations {string.Join("; ", r.Violations.Select(v => $"{v.Directive} {v.BlockedUri} {v.Source}"))} {r.Note}")
+                    .ToList();
+                Assert.True(failures.Count == 0, "Key pages failing the CSP check:\n" + string.Join("\n", failures));
             }
 
-            var failures = results
-                .Where(r => r.Note is not null || r.CspPolicies != 1 || r.Violations.Count > 0)
-                .Select(r => $"{r.Name}: {r.CspPolicies} policies, {r.Violations.Count} violations {string.Join("; ", r.Violations.Select(v => $"{v.Directive} {v.BlockedUri} {v.Source}"))} {r.Note}")
-                .ToList();
-            Assert.True(failures.Count == 0, "Key pages failing the CSP check:\n" + string.Join("\n", failures));
             recorder.WriteResult("Pass");
         }
         finally

@@ -57,8 +57,8 @@
                     <tr>
                         <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(x.EmployeeId, employeeNames.GetValueOrDefault(x.EmployeeId)))</td>
                         <td>@Html.HrEnumDisplay(x.LeaveType)</td>
-                        <td>@x.StartDate.ToString("yyyy/MM/dd")</td>
-                        <td>@x.EndDate.ToString("yyyy/MM/dd")</td>
+                        <td>@Html.HrDate(x.StartDate)</td>
+                        <td>@Html.HrDate(x.EndDate)</td>
                         <td>@x.DurationDays</td>
                         <td>@Html.HrEnumDisplay(x.Status)</td>
                         <td>

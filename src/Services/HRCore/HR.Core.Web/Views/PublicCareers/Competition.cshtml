@@ -52,7 +52,7 @@
     <div class="card-body">
         <h1 class="card-title careers-posting-title">@competition.Title</h1>
         <p class="text-muted mb-2"><i class="fas fa-hashtag ms-1" aria-hidden="true"></i> رقم المسابقة: <bdi dir="ltr">@competition.Number</bdi></p>
-        <p class="careers-accent"><i class="fas fa-clock ms-1" aria-hidden="true"></i> آخر موعد للتقديم: <bdi dir="ltr">@competition.ApplicationClosingDate.ToString("dd-MM-yyyy", CultureInfo.InvariantCulture)</bdi></p>
+        <p class="careers-accent"><i class="fas fa-clock ms-1" aria-hidden="true"></i> آخر موعد للتقديم: <bdi dir="ltr">@Html.HrDate(competition.ApplicationClosingDate)</bdi></p>
         @if (!Model.IntakeOpen)
         {
             <p><span class="badge bg-secondary">التقديم مغلق</span></p>
@@ -217,8 +217,8 @@ else
                 <div class="col-md-4">
                     <label class="form-label" for="cmp-birthdate">تاريخ الميلاد</label>
                     <input id="cmp-birthdate" name="BirthDate" type="date" class="form-control@(InvalidClass("BirthDate"))"
-                           max="@maxBirthDate.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)"
-                           value="@applyModel.BirthDate?.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)"
+                           max="@Html.HrDateInputValue(maxBirthDate)"
+                           value="@Html.HrDateInputValue(applyModel.BirthDate)"
                            aria-invalid="@Invalid("BirthDate")"
                            aria-describedby="cmp-birthdate-help@(Err("BirthDate") is null ? "" : " cmp-birthdate-error")" />
                     <small id="cmp-birthdate-help" class="text-muted">يُستخدم للتحقق من شروط العمر فقط ولا يظهر إلا لفريق التوظيف.</small>

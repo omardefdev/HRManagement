@@ -7,7 +7,7 @@
 @inject Microsoft.Extensions.Options.IOptions<HR.Core.Infrastructure.Services.Recruitment.RecruitmentOptions> RecruitmentOptions
 @{
     var todayUtc = DateOnly.FromDateTime(DateTime.UtcNow);
-    var minClosingDate = todayUtc.AddDays(RecruitmentOptions.Value.MinPostingDays).ToString("yyyy-MM-dd");
+    var minClosingDate = Html.HrDateInputValue(todayUtc.AddDays(RecruitmentOptions.Value.MinPostingDays));
     var intakeClosed = requisition.Status == RequisitionStatus.Published
         && (requisition.IntakeClosedAt is not null || requisition.ApplicationClosingDate < todayUtc);
 }
@@ -126,7 +126,7 @@
                         @Html.AntiForgeryToken()
 
                         <input type="date" name="applicationClosingDate" class="form-control form-control-sm d-inline-block w-auto"
-                               value="@(requisition.ApplicationClosingDate?.ToString("yyyy-MM-dd"))" min="@minClosingDate" required
+                               value="@(Html.HrDateInputValue(requisition.ApplicationClosingDate))" min="@minClosingDate" required
                                aria-label="تاريخ إغلاق التقديم" title="تاريخ إغلاق التقديم" />
 
                         <button type="submit" class="btn btn-success btn-sm">نشر الإعلان العام</button>
@@ -144,7 +144,7 @@
                         @Html.AntiForgeryToken()
 
                         <input type="date" name="applicationClosingDate" class="form-control form-control-sm d-inline-block w-auto"
-                               value="@(requisition.ApplicationClosingDate?.ToString("yyyy-MM-dd"))" min="@minClosingDate" required
+                               value="@(Html.HrDateInputValue(requisition.ApplicationClosingDate))" min="@minClosingDate" required
                                aria-label="تاريخ إغلاق التقديم" title="تاريخ إغلاق التقديم" />
 
                         <button type="submit" class="btn btn-outline-success btn-sm">نشر الشاغر الداخلي</button>
@@ -213,7 +213,7 @@
 
         <div class="mb-3">
 
-            <span class="badge @StatusBadgeClass(requisition.Status)">@requisition.Status</span>
+            <span class="badge @StatusBadgeClass(requisition.Status)">@Html.HrEnumDisplay(requisition.Status)</span>
             @if (intakeClosed)
             {
                 <span class="badge bg-secondary">التقديم مغلق</span>
@@ -275,19 +275,19 @@
 
             <dt class="col-sm-3">تاريخ الطلب</dt>
 
-            <dd class="col-sm-9">@requisition.RequestedDate.ToString("yyyy-MM-dd HH:mm") UTC</dd>
+            <dd class="col-sm-9">@Html.HrDateTime(requisition.RequestedDate) UTC</dd>
 
             <dt class="col-sm-3">تاريخ الاعتماد</dt>
 
-            <dd class="col-sm-9">@(requisition.ApprovedDate?.ToString("yyyy-MM-dd HH:mm") ?? "—")</dd>
+            <dd class="col-sm-9">@Html.HrDateTime(requisition.ApprovedDate)</dd>
 
             <dt class="col-sm-3">تاريخ النشر</dt>
 
-            <dd class="col-sm-9">@(requisition.PublishedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</dd>
+            <dd class="col-sm-9">@Html.HrDateTime(requisition.PublishedAt)</dd>
 
             <dt class="col-sm-3">تاريخ الإغلاق</dt>
 
-            <dd class="col-sm-9">@(requisition.ClosedDate?.ToString("yyyy-MM-dd HH:mm") ?? "—")</dd>
+            <dd class="col-sm-9">@Html.HrDateTime(requisition.ClosedDate)</dd>
 
             <dt class="col-sm-3">عدد الشواغر</dt>
 
@@ -319,7 +319,7 @@
 
             <dt class="col-sm-3">حالة المنصب</dt>
 
-            <dd class="col-sm-9">@(requisition.FundedPosition?.Status.ToString() ?? "—")</dd>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(requisition.FundedPosition?.Status)</dd>
 
             <dt class="col-sm-3">مبررات الطلب</dt>
 
@@ -331,17 +331,17 @@
 
             <dt class="col-sm-3">تاريخ إغلاق التقديم</dt>
             <dd class="col-sm-9">
-                @(requisition.ApplicationClosingDate?.ToString("yyyy-MM-dd") ?? "—")
+                @Html.HrDate(requisition.ApplicationClosingDate)
                 @if (requisition.IntakeClosedAt is not null)
                 {
-                    <span class="badge bg-secondary ms-1">التقديم مغلق منذ @requisition.IntakeClosedAt.Value.ToString("yyyy-MM-dd HH:mm") UTC</span>
+                    <span class="badge bg-secondary ms-1">التقديم مغلق منذ @Html.HrDateTime(requisition.IntakeClosedAt.Value) UTC</span>
                 }
             </dd>
 
             @if (requisition.Status == RequisitionStatus.Cancelled && requisition.CancelledAt is not null)
             {
                 <dt class="col-sm-3">تاريخ الإلغاء</dt>
-                <dd class="col-sm-9">@requisition.CancelledAt.Value.ToString("yyyy-MM-dd HH:mm") UTC</dd>
+                <dd class="col-sm-9">@Html.HrDateTime(requisition.CancelledAt.Value) UTC</dd>
                 <dt class="col-sm-3">سبب الإلغاء</dt>
                 <dd class="col-sm-9">@(requisition.CancellationReason ?? "—")</dd>
             }
@@ -368,7 +368,7 @@
                 @Html.AntiForgeryToken()
                 <div class="col-md-3">
                     <label class="form-label" for="extendNewDate">التاريخ الجديد</label>
-                    <input type="date" id="extendNewDate" name="newDate" class="form-control" min="@todayUtc.ToString("yyyy-MM-dd")" required />
+                    <input type="date" id="extendNewDate" name="newDate" class="form-control" min="@Html.HrDateInputValue(todayUtc)" required />
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="extendReason">سبب التمديد (10 أحرف على الأقل)</label>

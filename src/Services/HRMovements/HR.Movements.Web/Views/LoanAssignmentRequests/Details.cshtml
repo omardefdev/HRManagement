@@ -18,8 +18,8 @@
             <tr><th>الموظف</th><td><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></td></tr>
             <tr><th>مُعير</th><td><span data-hr-org-unit-id="@Model.LendingOrgUnitId">جاري التحميل...</span></td></tr>
             <tr><th>مستفيد</th><td><span data-hr-org-unit-id="@Model.BorrowingOrgUnitId">جاري التحميل...</span></td></tr>
-            <tr><th>من</th><td>@Model.StartDate</td></tr>
-            <tr><th>إلى</th><td>@Model.EndDate</td></tr>
+            <tr><th>من</th><td>@Html.HrDate(Model.StartDate)</td></tr>
+            <tr><th>إلى</th><td>@Html.HrDate(Model.EndDate)</td></tr>
             <tr><th>الحالة</th><td>@Html.HrEnumDisplay(Model.Status)</td></tr>
         </table>
         <partial name="_MovementApprovalRecord" />

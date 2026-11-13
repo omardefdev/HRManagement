@@ -12,7 +12,7 @@
                 <tr>
                     <td><span data-hr-employee-id="@r.EmployeeId">جاري التحميل...</span></td>
                     <td>@type</td>
-                    <td>@r.ExecutedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                    <td>@Html.HrDateTime(r.ExecutedAt)</td>
                     <td>@r.ExecutedBy</td>
                     <td><a asp-action="Details" asp-route-id="@r.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
                 </tr>

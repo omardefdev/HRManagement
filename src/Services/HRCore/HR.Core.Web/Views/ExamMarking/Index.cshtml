@@ -31,7 +31,7 @@
                             <tr>
                                 <td><a asp-action="Session" asp-route-id="@s.SessionId">@s.Title</a></td>
                                 <td>@Html.HrEnumDisplay(s.Type)</td>
-                                <td>@s.ScheduledAt.ToString("yyyy-MM-dd HH:mm", CultureInfo.InvariantCulture)</td>
+                                <td>@Html.HrDateTime(s.ScheduledAt)</td>
                                 <td>@Html.HrEnumDisplay(s.Role)</td>
                                 <td>@s.Papers</td>
                                 <td>@s.Done</td>

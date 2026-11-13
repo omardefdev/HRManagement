@@ -17,7 +17,7 @@
             <dd class="col-sm-9">@Html.HrEnumDisplay(Model.Severity)</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.ReportedAt)</dt>
-            <dd class="col-sm-9">@Model.ReportedAt.ToString("yyyy/MM/dd HH:mm")</dd>
+            <dd class="col-sm-9">@Html.HrDateTime(Model.ReportedAt)</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Status)</dt>
             <dd class="col-sm-9">@Html.HrEnumDisplay(Model.Status)</dd>

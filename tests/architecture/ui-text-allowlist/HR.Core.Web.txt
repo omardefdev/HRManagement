@@ -1,315 +1,46 @@
 # PLAN-67 (P-12): what InterfaceTextGuardTests found in HR.Core.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
 src/Services/HRCore/HR.Core.Web/Views/Approvals/Index.cshtml#empty-table#<table class="table table-sm table-hover"> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/Approvals/Index.cshtml#raw-status#@req.EntityType</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/Approvals/Index.cshtml#unformatted-time#<td dir="ltr">@req.RequestedAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Approvals/Pending.cshtml#raw-status#@req.EntityType</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/Approvals/Pending.cshtml#unformatted-time#<td dir="ltr">@req.RequestedAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/Approvals/Review.cshtml#empty-table#<table class="table table-sm table-bordered"> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/Approvals/Review.cshtml#raw-status#@Model.EntityType</d | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/Approvals/Review.cshtml#unformatted-time#" dir="ltr">@Model.RequestedAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Approvals/Review.cshtml#unformatted-time#d dir="ltr">@(step.ReviewedAt?.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/ApprovedCVs/Index.cshtml#unformatted-time#<td>@(c.ApprovedAt?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/BenefitPlans/Index.cshtml#printed-id#@(plan.LegalRegimeId ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/BenefitPlans/Index.cshtml#unformatted-time#<td>@plan.EffectiveFrom.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/CandidateLifecycle/Index.cshtml#unformatted-time#ate(DateTime? value) => value?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/CandidateLifecycle/Index.cshtml#unformatted-time#s="text-end">@item.TriggerDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/CandidatePortal/Index.cshtml#unformatted-time#, TimeZoneInfo.Local) .ToString("HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/CandidatePortal/Index.cshtml#unformatted-time#, TimeZoneInfo.Local) .ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/CandidatePortal/Index.cshtml#unformatted-time#@result.PublishedOn</b | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/CodePolicies/Index.cshtml#empty-table#<table class="table table-striped" data-testid="code-policie | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/CodePolicies/Index.cshtml#english-label#<h3> سياسات الترميز (COD-001) | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/CodePolicies/Index.cshtml#raw-status#@t.EntityKind</t | PLAN-67: P3 prints the value by its Arabic name
 src/Services/HRCore/HR.Core.Web/Views/CodePolicies/Issuances.cshtml#empty-table#<table class="table table-sm"> <thead><tr><th>ا | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/CodePolicies/Issuances.cshtml#raw-status#@i.EntityKind</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/CodePolicies/Issuances.cshtml#unformatted-time#<td>@i.IssuedAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/Competitions/Details.cshtml#empty-table#<table class="table table-sm align-middle"> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/Competitions/Details.cshtml#unformatted-time#<li>@log.At.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Competitions/Details.cshtml#unformatted-time#<td>@(v.Version.PublishedAt?.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Competitions/Details.cshtml#unformatted-time#<td>@o.FiledAt.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Competitions/Details.cshtml#unformatted-time#<td>@row.AppliedAt.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Competitions/Details.cshtml#unformatted-time#<td>@v.Version.ComputedAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Competitions/Details.cshtml#unformatted-time#llName</td><td>@r.ReserveUntil.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Competitions/Details.cshtml#unformatted-time#splay(s.Type) · @s.ScheduledAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Competitions/Details.cshtml#unformatted-time#string D(DateOnly? d) => d?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Competitions/Details.cshtml#unformatted-time#د للاعتراض: @objectionDeadline.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Competitions/ExamSession.cshtml#unformatted-time#ss="small mb-2">@s.ScheduledAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Competitions/Index.cshtml#unformatted-time#td>@row.ApplicationClosingDate.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/DailyAttendanceRecords/Index.cshtml#unformatted-time#"dateTo" value="@Model.DateTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/DailyAttendanceRecords/Index.cshtml#unformatted-time#@x.AttendanceDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/DailyAttendanceRecords/Index.cshtml#unformatted-time#eFrom" value="@Model.DateFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Dashboard/Index.cshtml#unformatted-time#fa-clock"></i> @activity.Date.ToString("HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Dashboard/Index.cshtml#unformatted-time#ivity.CssClass">@activity.Date.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Delegations/Index.cshtml#unformatted-time#<td>@d.ActiveFrom.ToString("u" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Delegations/Index.cshtml#unformatted-time#<td>@d.ActiveUntil.ToString("u" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Delegations/Index.cshtml#unformatted-time#ame="from" value="@Model.From?.ToString("yyyy-MM-ddTHH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Delegations/Index.cshtml#unformatted-time#l" name="to" value="@Model.To?.ToString("yyyy-MM-ddTHH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/DiwanCorrespondences/Index.cshtml#unformatted-time#@x.RegisteredAt</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/DiwanCorrespondences/Index.cshtml#unformatted-time#o" value="@Model.RegisteredTo?.ToString("yyyy-MM-ddTHH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/DiwanCorrespondences/Index.cshtml#unformatted-time#value="@Model.RegisteredFrom?.ToString("yyyy-MM-ddTHH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/Documents/Index.cshtml#printed-id#@(d.IssuedBy ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/Documents/Index.cshtml#unformatted-time#<td>@(d.ExpiryDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Documents/Index.cshtml#unformatted-time#<td>@(d.IssueDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/EmployeeCorrections/Index.cshtml#english-label#<h3> طلبات تصحيح بيانات الموظفين (DATA-002) | PLAN-67: P3 gives the label its Arabic text
 src/Services/HRCore/HR.Core.Web/Views/EmployeeCorrections/Index.cshtml#printed-id#@c.Id.ToString()[ | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/EmployeeCorrections/Index.cshtml#unformatted-time#<td>@c.RequestedAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/EmployeeCorrections/Index.cshtml#unformatted-time#edTo" value="@Model.CreatedTo?.ToString("yyyy-MM-ddTHH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/EmployeeCorrections/Index.cshtml#unformatted-time#om" value="@Model.CreatedFrom?.ToString("yyyy-MM-ddTHH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/Employees/Details.cshtml#printed-id#@(t.FromRegimeId ?? "—") | PLAN-67: P4 shows the name instead of the id
 src/Services/HRCore/HR.Core.Web/Views/Employees/Details.cshtml#printed-id#@Model.DisplayNationalId</t | PLAN-67: P4 shows the name instead of the id
 src/Services/HRCore/HR.Core.Web/Views/Employees/Details.cshtml#printed-id#@t.ToRegimeId</t | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/Employees/Details.cshtml#unformatted-time#<td>@(q.CompletionDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Employees/Details.cshtml#unformatted-time#<td>@t.EffectiveFrom.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Employees/Details.cshtml#unformatted-time#الميلاد</th><td>@emp.BirthDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Employees/Details.cshtml#unformatted-time#لتعيين</th><td>@(emp.HireDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Employees/Index.cshtml#unformatted-time#<td>@(emp.HireDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/EmploymentRecords/Index.cshtml#unformatted-time#<td>@(r.EndDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/EmploymentRecords/Index.cshtml#unformatted-time#<td>@r.StartDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/EssPortal/Attendance.cshtml#empty-table#<table class="table table-striped"> <thead><tr><th>التا | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/EssPortal/Attendance.cshtml#unformatted-time#@r.AttendanceDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/EssPortal/Documents.cshtml#empty-table#<table class="table table-striped"> <thead><tr> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/EssPortal/Documents.cshtml#raw-status#@d.DocType</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/EssPortal/Documents.cshtml#unformatted-time#<td>@d.CreatedAt.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/EssPortal/Index.cshtml#raw-status#@Model.CurrentStatus</s | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/EssPortal/Index.cshtml#raw-status#@Model.WorkScheduleMode</d | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/EssTalent/Index.cshtml#unformatted-time#ull ? $" • يُغلق في {v.ClosingDate:yyyy-MM-dd} | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/EssTalent/Index.cshtml#unformatted-time#ق في @c.ApplicationClosingDate.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/EssTalent/MyApplications.cshtml#unformatted-time#<td>@a.AppliedAt.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/Details.cshtml#printed-id#@(r.ResultEntityId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
 src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/Details.cshtml#printed-id#@(r.TargetEntityId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
 src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/Details.cshtml#raw-json#@r.PayloadJson</p | PLAN-67: P5 moves the JSON behind the technical view
-src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/Details.cshtml#raw-status#@r.ChangeType</h | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/Details.cshtml#raw-status#@r.ChangeType</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/Details.cshtml#raw-status#@r.Status</s | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/Details.cshtml#raw-status#@r.Status</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/Details.cshtml#unformatted-time#خ الطلب</th><td>@r.RequestedAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/Details.cshtml#unformatted-time#ريخ التطبيق</th><td>@appliedAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/Index.cshtml#english-label#<h3> طلبات تغيير الملاك (EST-002) | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/Index.cshtml#raw-status#@item.ChangeType</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/Index.cshtml#raw-status#@item.Status</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/Index.cshtml#unformatted-time#<td>@item.RequestedAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/_EstablishmentChangeWorkflowPanel.cshtml#raw-status#@Model.WorkflowStatus</s | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/EstablishmentFinance/Reconciliation.cshtml#english-label#<h3> مصالحة الموازنة vs المناصب الممولة | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/ExamMarking/Index.cshtml#unformatted-time#<td>@s.ScheduledAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/FieldInspectionVisits/Index.cshtml#raw-status#@x.Status</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/FieldInspectionVisits/Index.cshtml#unformatted-time#@x.VisitDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/FieldInspectionVisits/Index.cshtml#unformatted-time#From" value="@Model.VisitFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/FieldInspectionVisits/Index.cshtml#unformatted-time#isitTo" value="@Model.VisitTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/FundedPositions/Details.cshtml#english-label#<button> استعلام as-of | PLAN-67: P3 gives the label its Arabic text
 src/Services/HRCore/HR.Core.Web/Views/FundedPositions/Details.cshtml#printed-id#@(v.LegalSourceId ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/FundedPositions/Details.cshtml#raw-status#@asOfSnapshot.Status | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/FundedPositions/Details.cshtml#raw-status#@p.Status</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/FundedPositions/Details.cshtml#raw-status#@r.Status)</ | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/FundedPositions/Details.cshtml#raw-status#@v.OperationType</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/FundedPositions/Details.cshtml#unformatted-time#(((DateTime)ViewBag.AsOfDate!).ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/FundedPositions/Details.cshtml#unformatted-time#<td>@(v.ValidTo?.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/FundedPositions/Details.cshtml#unformatted-time#<td>@v.ValidFrom.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/FundedPositions/Details.cshtml#unformatted-time#Bag.AsOfDate is DateTime d ? d.ToString("yyyy-MM-ddTHH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/FundedPositions/Details.cshtml#unformatted-time#لتجميد</th><td>@(p.FreezeDate?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/FundedPositions/Index.cshtml#english-label#<h3> المناصب الممولة (EST-001) | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/FundedPositions/Index.cshtml#raw-status#@p.Status</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/HrStatisticReports/Index.cshtml#unformatted-time#iodTo" value="@Model.PeriodTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/HrStatisticReports/Index.cshtml#unformatted-time#rom" value="@Model.PeriodFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/JobCatalog/Details.cshtml#english-label#<button> استعلام as-of | PLAN-67: P3 gives the label its Arabic text
 src/Services/HRCore/HR.Core.Web/Views/JobCatalog/Details.cshtml#printed-id#@(v.LegalSourceId ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/JobCatalog/Details.cshtml#raw-status#@v.OperationType</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/JobCatalog/Details.cshtml#unformatted-time#(((DateTime)ViewBag.AsOfDate!).ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/JobCatalog/Details.cshtml#unformatted-time#<td>@(v.ValidTo?.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/JobCatalog/Details.cshtml#unformatted-time#<td>@v.ValidFrom.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/JobCatalog/Details.cshtml#unformatted-time#Bag.AsOfDate is DateTime d ? d.ToString("yyyy-MM-ddTHH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/JobCatalog/Index.cshtml#english-label#<h3> دليل الوظائف (EST-001) | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/OfferLetters/Details.cshtml#unformatted-time#"col-sm-9">@(offer.DeclinedAt?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/OfferLetters/Details.cshtml#unformatted-time#"col-sm-9">@(offer.ExpiryDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/OfferLetters/Details.cshtml#unformatted-time#"col-sm-9">@(offer.IssuedDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/OfferLetters/Details.cshtml#unformatted-time#="col-sm-9">@(offer.ExpiredAt?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/OfferLetters/Details.cshtml#unformatted-time#="col-sm-9">@(offer.RevokedAt?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/OfferLetters/Details.cshtml#unformatted-time#ol-sm-9">@(offer.AcceptedDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/OfferLetters/Details.cshtml#unformatted-time#sm-9">@offer.ProposedStartDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/OfferLetters/Details.cshtml#unformatted-time#ر @(offer.DocumentGeneratedAt?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/OfferLetters/Details.cshtml#unformatted-time#قق في @(offer.SalaryCheckedAt?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/OfferLetters/Index.cshtml#unformatted-time#<td>@offer.ProposedStartDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/OfferLetters/_OfferWorkflowPanel.cshtml#raw-status#@Model.WorkflowStatus</s | PLAN-67: P3 prints the value by its Arabic name
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#empty-table#<table class="table table-sm mb-0"> <thead>< | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#english-label#<dt> Domain | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#english-label#<dt> Scope | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#english-label#<dt> Subject | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#english-label#<th> Priority | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#english-label#<th> Rule | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#english-label#<th> Then | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#english-label#<th> When | PLAN-67: P3 gives the label its Arabic text
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#printed-id#@(publication.CheckerUserId?.ToString() ?? publication.CheckerRole ?? "—") | PLAN-67: P4 shows the name instead of the id
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#printed-id#@(publication.MakerUserId?.ToString() ?? publication.MakerRole ?? "—") | PLAN-67: P4 shows the name instead of the id
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#raw-json#@r.ThenJson</c | PLAN-67: P5 moves the JSON behind the technical view
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#raw-json#@r.WhenJson</c | PLAN-67: P5 moves the JSON behind the technical view
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#raw-status#@Model.Scope</d | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#raw-status#@Model.SubjectType</d | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#raw-status#@publication.Kind</s | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#raw-status#@v.Status | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#unformatted-time#"ltr">@publication.PublishedAt.ToString("u" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#unformatted-time#g("u", inv) → @(v.EffectiveTo?.ToString("u" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#unformatted-time#xt-muted ms-2" dir="ltr">@from.ToString("u" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#unformatted-time#ر أخير بلا قواعد في @retiredAt.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml#empty-table#<table class="table table-sm mb-0 align-middle"> | PLAN-67: P4 adds the empty message
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml#empty-table#<table class="table table-sm mb-0"> <thead><tr>< | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml#english-label#<th> Then | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml#english-label#<th> When | PLAN-67: P3 gives the label its Arabic text
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml#printed-id#@(e.UserId?.ToString() ?? "system") | PLAN-67: P4 shows the name instead of the id
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml#raw-json#@r.ThenJson</c | PLAN-67: P5 moves the JSON behind the technical view
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml#raw-json#@r.WhenJson</c | PLAN-67: P5 moves the JSON behind the technical view
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml#unformatted-time#<td>@e.OccurredAt.ToString("u" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml#unformatted-time#><td></td><td>@Model.CreatedAt.ToString("u" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml#unformatted-time#r="ltr">@(Model.EffectiveFrom?.ToString("u" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml#unformatted-time#value="@(Model.EffectiveFrom?.ToString("yyyy-MM-ddTHH:mm:ssZ" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Index.cshtml#empty-table#<table class="table table-sm mb-0"> <thead> | PLAN-67: P4 adds the empty message
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Index.cshtml#empty-table#<table class="table table-sm mb-0"> <thead><tr>< | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Index.cshtml#english-label#<th> Domain | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Index.cshtml#english-label#<th> Domain#2 | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Index.cshtml#raw-status#@last.Mode@(l | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Index.cshtml#raw-status#@row.Mode</s | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Index.cshtml#unformatted-time#etiredReason">مسحوب @retiredAt.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Index.cshtml#unformatted-time#on" dir="ltr">@last.OccurredAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Ledger.cshtml#empty-table#<table class="table table-sm mb-0"> <thead><tr> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Ledger.cshtml#english-label#<h3> Enforcement Ledger | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Ledger.cshtml#english-label#<th> Action | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Ledger.cshtml#english-label#<th> Domain | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Ledger.cshtml#english-label#<th> Hash | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Ledger.cshtml#english-label#<th> Mode | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Ledger.cshtml#english-label#<th> Workflow | PLAN-67: P3 gives the label its Arabic text
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Ledger.cshtml#printed-id#@(x.WorkflowInstanceId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Ledger.cshtml#raw-status#@x.Mode</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Ledger.cshtml#unformatted-time#<td>@x.OccurredAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/ShadowReport.cshtml#empty-table#<table class="table table-sm mb-0"> <thead><tr> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/ShadowReport.cshtml#english-label#<h3> Shadow diffs | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/ShadowReport.cshtml#english-label#<th> Action | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/ShadowReport.cshtml#english-label#<th> Diffs | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/ShadowReport.cshtml#english-label#<th> Domain | PLAN-67: P3 gives the label its Arabic text
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/ShadowReport.cshtml#raw-json#@(l.ShadowDiffJson ?? "—") | PLAN-67: P5 moves the JSON behind the technical view
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Simulate.cshtml#english-label#<label> Facts (JSON) | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Simulate.cshtml#printed-id#@decision.PolicyVersionId<br | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/PublicCareers/Competition.cshtml#unformatted-time#etition.ApplicationClosingDate.ToString("dd-MM-yyyy" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PublicCareers/Competition.cshtml#unformatted-time#max="@maxBirthDate.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PublicCareers/Competition.cshtml#unformatted-time#value="@applyModel.BirthDate?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/PublicCareers/CompetitionResults.cshtml#empty-table#<table class="table table-sm align-middle"> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/PublicCareers/CompetitionResults.cshtml#unformatted-time#">@(Model.Version.PublishedAt?.ToString("dd-MM-yyyy" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PublicCareers/CompetitionResults.cshtml#unformatted-time#تراض: <bdi dir="ltr">@deadline.ToString("dd-MM-yyyy" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PublicCareers/Details.cshtml#unformatted-time#max="@maxBirthDate.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PublicCareers/Details.cshtml#unformatted-time#value="@applyModel.BirthDate?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PublicCareers/Details.cshtml#unformatted-time#تقديم: <bdi dir="ltr">@closing.ToString("dd-MM-yyyy" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PublicCareers/Index.cshtml#unformatted-time#dir="ltr">@p.ClosingDate.Value.ToString("dd-MM-yyyy" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/PublicJobPostings/Details.cshtml#printed-id#@a.NationalId</t | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/PublicJobPostings/Details.cshtml#raw-status#@Model.Requisition.Status</s | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/PublicJobPostings/Details.cshtml#unformatted-time#<td>@a.SubmittedAt.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PublicJobPostings/Details.cshtml#unformatted-time#col-sm-9">@(Model.ClosingDate?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PublicJobPostings/Index.cshtml#raw-status#@(x.Requisition?.Status.ToString() ?? "legacy") | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/PublicJobPostings/Index.cshtml#unformatted-time#<td>@(x.ClosingDate?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PublicJobPostings/Index.cshtml#unformatted-time#ngTo" value="@Model.ClosingTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/PublicJobPostings/Index.cshtml#unformatted-time#om" value="@Model.ClosingFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Qualifications/Index.cshtml#unformatted-time#<td>@(q.CompletionDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/RecruitmentAppeals/Details.cshtml#printed-id#@appeal.IndependentReviewerId</c | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentAppeals/Details.cshtml#raw-status#@(appeal.Decision ?? "—") | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentAppeals/Details.cshtml#unformatted-time#InfoRequestedAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentAppeals/Details.cshtml#unformatted-time#appeal.CreatedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentAppeals/Details.cshtml#unformatted-time#dditionalInfoAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentAppeals/Details.cshtml#unformatted-time#ewedAt : null))?.ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentAppeals/Details.cshtml#unformatted-time#sm-9">@decidedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentAppeals/Details.cshtml#unformatted-time#ن في @assignedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentAppeals/Index.cshtml#unformatted-time#appeal.CreatedAt.ToLocalTime().ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Details.cshtml#printed-id#@(app.NationalId ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Details.cshtml#unformatted-time#">@app.AppliedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Details.cshtml#unformatted-time#<td>@(past.ExpiryDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Details.cshtml#unformatted-time#<td>@(past.IssuedDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Details.cshtml#unformatted-time#>@doc.UploadedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Details.cshtml#unformatted-time#Model.DefaultProposedStartDate.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Details.cshtml#unformatted-time#app.ReviewedAt)?.ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Details.cshtml#unformatted-time#ed small">حتى @rowReserveUntil.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Details.cshtml#unformatted-time#erestDeclaredAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Details.cshtml#unformatted-time#lign-middle">حتى @reserveUntil.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Details.cshtml#unformatted-time#min="@DateTime.UtcNow.Date.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Details.cshtml#unformatted-time#note.CreatedAt).ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Details.cshtml#unformatted-time#sm-9">@offer.ProposedStartDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Details.cshtml#unformatted-time#ss="col-sm-9">@(app.BirthDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Index.cshtml#unformatted-time#cation.AppliedAt.ToLocalTime().ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Index.cshtml#unformatted-time#muted small">حتى @reserveUntil.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/_AssessmentScoringPanel.cshtml#unformatted-time#.LastSubmittedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/_InterviewsPanel.cshtml#unformatted-time#from.ScheduledAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/_InterviewsPanel.cshtml#unformatted-time#slot.ScheduledAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/_InterviewsPanel.cshtml#unformatted-time#var nowLocal = DateTime.Now.ToString("yyyy-MM-ddTHH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentReports/Requisition.cshtml#raw-status#@(o.DeclineCategory ?? "—") | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/Details.cshtml#raw-status#@(requisition.FundedPosition?.Status.ToString() ?? "—") | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/Details.cshtml#raw-status#@requisition.Status</s | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/Details.cshtml#unformatted-time#-9">@(requisition.PublishedAt?.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/Details.cshtml#unformatted-time#-9">@requisition.RequestedDate.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/Details.cshtml#unformatted-time#9">@(requisition.ApprovedDate?.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/Details.cshtml#unformatted-time#="form-control" min="@todayUtc.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/Details.cshtml#unformatted-time#@requisition.CancelledAt.Value.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/Details.cshtml#unformatted-time#m-9">@(requisition.ClosedDate?.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/Details.cshtml#unformatted-time#quisition.IntakeClosedAt.Value.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/Details.cshtml#unformatted-time#sition.ApplicationClosingDate?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/Details.cshtml#unformatted-time#sition.ApplicationClosingDate?.ToString("yyyy-MM-dd"#2 | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/Details.cshtml#unformatted-time#sition.ApplicationClosingDate?.ToString("yyyy-MM-dd"#3 | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/Details.cshtml#unformatted-time#tOptions.Value.MinPostingDays).ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/Index.cshtml#raw-status#@x.Status</s | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/Index.cshtml#unformatted-time#<td>@x.RequestedDate.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/_AssessmentCriteriaPanel.cshtml#empty-table#<table class="table table-sm align-middle mb-2"> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/_AssessmentCriteriaPanel.cshtml#unformatted-time#<td>@c.EffectiveFrom.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/_AssessmentCriteriaPanel.cshtml#unformatted-time#dark" title="@c.LockedAt.Value.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/_CommitteePanel.cshtml#unformatted-time#pprovedAt!.Value.ToLocalTime().ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/_CommitteePanel.cshtml#unformatted-time#st.CommitteeDate.ToLocalTime().ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/_RequisitionWorkflowPanel.cshtml#raw-status#@Model.WorkflowStatus</s | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/ReferenceCatalog/Details.cshtml#raw-status#@Model.Entry.CatalogKind</d | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/ReferenceCatalog/Details.cshtml#unformatted-time#l-sm-9">@(Model.Entry.ValidTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/ReferenceCatalog/Details.cshtml#unformatted-time#sm-9">@(Model.Entry.ValidFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Rosters/Details.cshtml#unformatted-time#<td>@a.WorkDate.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Rosters/Details.cshtml#unformatted-time#rol" value="@Model.PeriodStart.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Rosters/Details.cshtml#unformatted-time#yyy-MM-dd") ← @Model.PeriodEnd.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Rosters/Details.cshtml#unformatted-time#ة:</strong> @Model.PeriodStart.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Rosters/Index.cshtml#unformatted-time#<td>@x.PeriodEnd.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Rosters/Index.cshtml#unformatted-time#<td>@x.PeriodStart.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Rosters/Index.cshtml#unformatted-time#iodTo" value="@Model.PeriodTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Rosters/Index.cshtml#unformatted-time#rom" value="@Model.PeriodFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/SelectionCommittees/Details.cshtml#unformatted-time#ApprovedAt.Value.ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/SelectionCommittees/Details.cshtml#unformatted-time#ion.SubmittedAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/SelectionCommittees/Details.cshtml#unformatted-time#on.CommitteeDate.ToLocalTime().ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/SelectionCommittees/Details.cshtml#unformatted-time#sion.ApprovedAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/SelectionCommittees/Index.cshtml#unformatted-time#ApprovedAt.Value.ToLocalTime().ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/SelectionCommittees/Index.cshtml#unformatted-time#el.CommitteeDate.ToLocalTime().ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/SelectionCommittees/_CommitteeWorkflowPanel.cshtml#raw-status#@Model.WorkflowStatus</s | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/ServiceRegimeExceptions/Index.cshtml#english-label#<label> قرار GOV-002 | PLAN-67: P3 gives the label its Arabic text
 src/Services/HRCore/HR.Core.Web/Views/ServiceRegimeExceptions/Index.cshtml#raw-json#@item.ConflictingEntitlementsJson</p | PLAN-67: P5 moves the JSON behind the technical view
-src/Services/HRCore/HR.Core.Web/Views/ServiceRegimeExceptions/Index.cshtml#raw-status#@item.ExceptionType</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/ServiceRegimeExceptions/Index.cshtml#unformatted-time#<td>@item.CreatedAt.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/ServiceRegimeExceptions/Index.cshtml#unformatted-time#ntrol" value="@DateTime.UtcNow.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/Shared/_EstablishmentChangeLogTable.cshtml#empty-table#<table class="table table-sm table-bordered"> <thead> | PLAN-67: P4 adds the empty message
 src/Services/HRCore/HR.Core.Web/Views/Shared/_EstablishmentChangeLogTable.cshtml#printed-id#@(log.ActorUserId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
 src/Services/HRCore/HR.Core.Web/Views/Shared/_EstablishmentChangeLogTable.cshtml#printed-id#@(log.LegalSourceId ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/Shared/_EstablishmentChangeLogTable.cshtml#raw-status#@log.ChangeType</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/Shared/_EstablishmentChangeLogTable.cshtml#unformatted-time#<td>@log.OccurredAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/Shared/_EstablishmentVersionTimeline.cshtml#printed-id#@(item.LegalSourceId ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/Shared/_EstablishmentVersionTimeline.cshtml#raw-status#@item.OperationType</t | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/Shared/_EstablishmentVersionTimeline.cshtml#unformatted-time#d>@(((DateTime)item.ValidFrom).ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Shared/_EstablishmentVersionTimeline.cshtml#unformatted-time#em.ValidTo is DateTime vt ? vt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Shifts/Index.cshtml#unformatted-time#<td>@x.EndTime.ToString("HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/Shifts/Index.cshtml#unformatted-time#<td>@x.StartTime.ToString("HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/StatusHistory/FullLog.cshtml#empty-table#<table class="table table-sm table-striped table-hover"> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/StatusHistory/FullLog.cshtml#unformatted-time#<td dir="ltr">@h.ChangedAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/StatusHistory/Index.cshtml#empty-table#<table class="table table-sm table-striped table-hover"> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/StatusHistory/Index.cshtml#unformatted-time#<td dir="ltr">@h.ChangedAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/TalentMarketplace/Details.cshtml#unformatted-time#<td>@a.AppliedAt.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/TalentMarketplace/Details.cshtml#unformatted-time#col-sm-9">@(Model.ClosingDate?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/TalentMarketplace/Index.cshtml#unformatted-time#ngTo" value="@Model.ClosingTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/TalentMarketplace/Index.cshtml#unformatted-time#om" value="@Model.ClosingFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/WorkInbox/Index.cshtml#english-label#<option> اعتمادات legacy | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/WorkInbox/Index.cshtml#english-label#<option> مسارات workflow | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/WorkInbox/Index.cshtml#unformatted-time#<td dir="ltr">@item.CreatedAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/WorkflowApprovals/Details.cshtml#unformatted-time#<td>@entry.ActionAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/WorkflowApprovals/Details.cshtml#unformatted-time#dd class="col-sm-9">@completed.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/WorkflowApprovals/Details.cshtml#unformatted-time#ss="col-sm-9">@Model.StartedAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/WorkforcePlans/Details.cshtml#english-label#<label> استعلام as-of | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/WorkforcePlans/Details.cshtml#english-label#<label> مرجع قانوني (SYR-001) | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/WorkforcePlans/Details.cshtml#raw-status#@p.Status</d | PLAN-67: P3 prints the value by its Arabic name
-src/Services/HRCore/HR.Core.Web/Views/WorkforcePlans/Details.cshtml#unformatted-time#" asp-route-asOf="@Model.AsOf?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/WorkforcePlans/Details.cshtml#unformatted-time#ame="asOf" value="@Model.AsOf?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/HRCore/HR.Core.Web/Views/WorkforcePlans/GapReport.cshtml#empty-table#<table class="table table-sm"> <thead><tr>< | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/WorkforcePlans/GapReport.cshtml#english-label#<h3> تقرير فجوة الملاك (FundedPosition) | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/WorkforcePlans/GapReport.cshtml#english-label#<label> as-of (اختياري) | PLAN-67: P3 gives the label its Arabic text
-src/Services/HRCore/HR.Core.Web/Views/WorkforcePlans/GapReport.cshtml#unformatted-time#ame="asOf" value="@Model.AsOf?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/HRCore/HR.Core.Web/Views/WorkforcePlans/Index.cshtml#raw-status#@x.Status</t | PLAN-67: P3 prints the value by its Arabic name

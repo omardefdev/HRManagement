@@ -13,7 +13,7 @@
             <dt class="col-sm-3">محال إلى</dt>
             <dd class="col-sm-9">@(Model.ReferredTo ?? "—")</dd>
             <dt class="col-sm-3">تاريخ الإحالة</dt>
-            <dd class="col-sm-9">@Model.ReferralDate?.ToString("yyyy/MM/dd")</dd>
+            <dd class="col-sm-9">@Html.HrDate(Model.ReferralDate)</dd>
             <dt class="col-sm-3">المستندات</dt>
             <dd class="col-sm-9">@(Model.Documents ?? "—")</dd>
         </dl>

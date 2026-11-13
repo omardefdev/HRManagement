@@ -49,7 +49,7 @@
                 <dt class="col-sm-3">آخر جلسة</dt>
                 <dd class="col-sm-9">
                     <a asp-controller="SelectionCommittees" asp-action="Details" asp-route-id="@latest.Id">
-                        @latest.CommitteeDate.ToLocalTime().ToString("yyyy/MM/dd") — @EnumDisplayExtensions.GetDisplayName(latest.Purpose)
+                        @Html.HrDate(latest.CommitteeDate) — @EnumDisplayExtensions.GetDisplayName(latest.Purpose)
                     </a>
                     @if (latest.ApprovedAt is not null)
                     {
@@ -73,7 +73,7 @@
                     else
                     {
                         <a asp-controller="SelectionCommittees" asp-action="Details" asp-route-id="@approved.Id">
-                            معتمدة @approved.ApprovedAt!.Value.ToLocalTime().ToString("yyyy/MM/dd")
+                            معتمدة @Html.HrDate(approved.ApprovedAt!.Value)
                         </a>
                         <span class="text-muted small ms-1">(@approved.Decisions.Count(d => d.Recommendation != CommitteeRecommendation.Reject) توصية بترتيب)</span>
                     }

@@ -89,7 +89,7 @@
         @foreach (var row in Model.Items)
         {
             <tr>
-                <td>@row.OccurredAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
+                <td>@Html.HrDateTime(row.OccurredAtUtc)</td>
                 <td>@HRManagement.Gateway.Models.GatewayAuditDisplay.Decision(row.Decision)</td>
                 <td>@row.StatusCode</td>
                 <td>@row.Method</td>

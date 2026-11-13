@@ -19,7 +19,7 @@
             <dt class="col-sm-3">الإجراء الموصى به</dt>
             <dd class="col-sm-9">@(Model.RecommendedAction ?? "—")</dd>
             <dt class="col-sm-3">تاريخ الاستحقاق</dt>
-            <dd class="col-sm-9">@(Model.DueDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dd class="col-sm-9">@Html.HrDate(Model.DueDate)</dd>
             <dt class="col-sm-3">الوحدة المسؤولة</dt>
             <dd class="col-sm-9">@(Model.ResponsibleUnitId?.ToString() ?? "—")</dd>
             <dt class="col-sm-3">الحالة</dt>

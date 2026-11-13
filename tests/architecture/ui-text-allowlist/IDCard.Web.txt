@@ -1,15 +1,5 @@
 # PLAN-67 (P-12): what InterfaceTextGuardTests found in IDCard.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
 src/Services/IDCard/IDCard.Web/Views/AccessPermissions/Index.cshtml#printed-id#@x.IssuedCardId</t | PLAN-67: P4 shows the name instead of the id
 src/Services/IDCard/IDCard.Web/Views/CardRequests/Details.cshtml#printed-id#@Model.RequestedBy</d | PLAN-67: P4 shows the name instead of the id
-src/Services/IDCard/IDCard.Web/Views/CardRequests/Details.cshtml#unformatted-time#@Model.RequestDate</d | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/IDCard/IDCard.Web/Views/CardRequests/Details.cshtml#unformatted-time#sm-9">@Model.SubmittedAt.Value.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/IDCard/IDCard.Web/Views/CardRequests/Index.cshtml#unformatted-time#<td>@x.RequestDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/IDCard/IDCard.Web/Views/IssuedCards/Details.cshtml#unformatted-time#="col-sm-9">@(Model.ExpiresAt?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/IDCard/IDCard.Web/Views/IssuedCards/Details.cshtml#unformatted-time#ass="col-sm-9">@Model.IssuedAt.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/IDCard/IDCard.Web/Views/IssuedCards/Details.cshtml#unformatted-time#el.DeliveryRecord.DeliveredAt?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/IDCard/IDCard.Web/Views/IssuedCards/Details.cshtml#unformatted-time#odel.DeliveryRecord.PrintedAt?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/IDCard/IDCard.Web/Views/IssuedCards/Index.cshtml#unformatted-time#!= null ? $"تسليم: {x.DeliveryRecord.DeliveredAt:yyyy/MM/dd} | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/IDCard/IDCard.Web/Views/IssuedCards/Index.cshtml#unformatted-time#!= null ? $"طباعة: {x.DeliveryRecord.PrintedAt:yyyy/MM/dd} | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
-src/Services/IDCard/IDCard.Web/Views/IssuedCards/Index.cshtml#unformatted-time#<td>@x.IssuedAt.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
 src/Services/IDCard/IDCard.Web/Views/OfficialSealRecords/Details.cshtml#printed-id#@(Model.IssuedBy ?? "—") | PLAN-67: P4 shows the name instead of the id
 src/Services/IDCard/IDCard.Web/Views/OfficialSealRecords/Index.cshtml#printed-id#@x.IssuedBy</t | PLAN-67: P4 shows the name instead of the id

@@ -54,8 +54,8 @@
             </dd>
             <dt class="col-sm-3">الوحدة التنظيمية</dt><dd class="col-sm-9"><span data-hr-org-unit-id="@Model.OrgUnitId">@Model.OrgUnitId</span></dd>
             <dt class="col-sm-3">التفاصيل</dt><dd class="col-sm-9">@(Model.Items ?? "—")</dd>
-            <dt class="col-sm-3">تاريخ الطلب</dt><dd class="col-sm-9">@Model.OrderedAt?.ToString("yyyy/MM/dd")</dd>
-            <dt class="col-sm-3">تاريخ التنفيذ</dt><dd class="col-sm-9">@(Model.FulfilledAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الطلب</dt><dd class="col-sm-9">@Html.HrDate(Model.OrderedAt)</dd>
+            <dt class="col-sm-3">تاريخ التنفيذ</dt><dd class="col-sm-9">@Html.HrDate(Model.FulfilledAt)</dd>
         </dl>
     </div>
 </div>
@@ -64,7 +64,7 @@
     <div class="card-header">بنود الطلب</div>
     <div class="card-body p-0">
         <table class="table table-sm mb-0">
-            <thead><tr><th>SKU</th><th>مطلوب</th><th>مستلم</th><th>تكلفة</th><th>رسملة</th></tr></thead>
+            <thead><tr><th>رمز الصنف (SKU)</th><th>مطلوب</th><th>مستلم</th><th>تكلفة</th><th>رسملة</th></tr></thead>
             <tbody>
                 @foreach (var line in Model.Lines)
                 {
@@ -86,7 +86,7 @@
             <form asp-action="AddLine" method="post" class="row g-2 align-items-end">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" value="@Model.Id" />
-                <div class="col-md-2"><label class="form-label">SKU</label><input name="sku" class="form-control" /></div>
+                <div class="col-md-2"><label class="form-label">رمز الصنف (SKU)</label><input name="sku" class="form-control" /></div>
                 <div class="col-md-2"><label class="form-label">الكمية</label><input name="qtyRequested" type="number" min="1" class="form-control" required /></div>
                 <div class="col-md-2"><label class="form-label">تكلفة الوحدة</label><input name="unitCost" type="number" step="0.01" class="form-control" /></div>
                 <div class="col-md-2 form-check mt-4"><input name="isCapitalizable" type="checkbox" class="form-check-input" id="cap" value="true" /><label class="form-check-label" for="cap">قابل للرسملة</label></div>
@@ -107,7 +107,7 @@
                     @foreach (var rr in receipts)
                     {
                         <tr>
-                            <td>@rr.ReceivedAt?.ToString("yyyy/MM/dd")</td>
+                            <td>@Html.HrDate(rr.ReceivedAt)</td>
                             <td>@(rr.ItemsReceived ?? "—")</td>
                             <td><a asp-controller="ReceiptRecords" asp-action="Details" asp-route-id="@rr.Id" class="btn btn-sm btn-outline-secondary">تفاصيل</a></td>
                         </tr>

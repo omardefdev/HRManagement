@@ -39,11 +39,11 @@
                     var isArticle159 = item.ExceptionType == ServiceRegimeExceptionType.Article159Conflict;
                     <tr>
                         <td>@(item.Employee?.FullName ?? item.EmployeeId.ToString())</td>
-                        <td>@item.ExceptionType</td>
+                        <td>@Html.HrEnumDisplay(item.ExceptionType)</td>
                         <td>@item.SourceContext</td>
                         <td>@(item.LegalSourceId is null ? "—" : (legalLabels.TryGetValue(item.LegalSourceId, out var label) ? label : item.LegalSourceId))</td>
                         <td>@item.Reason</td>
-                        <td>@item.CreatedAt.ToString("yyyy/MM/dd")</td>
+                        <td>@Html.HrDate(item.CreatedAt)</td>
                         <td>
                             <button type="button" class="btn btn-primary btn-xs" data-bs-toggle="modal" data-bs-target="#resolveModal-@item.Id">
                                 حل
@@ -69,7 +69,7 @@
                                                 <div class="mb-2"><label class="form-label">التعارض المسجّل</label><pre class="small bg-light p-2">@item.ConflictingEntitlementsJson</pre></div>
                                             }
                                             <div class="mb-2">
-                                                <label class="form-label">قرار GOV-002</label>
+                                                <label class="form-label">قرار الاستثناء <span class="hr-internal-code">GOV-002</span></label>
                                                 <select name="legalDecisionId" class="form-select" asp-items="legalDecisionOptions" required></select>
                                             </div>
                                             <div class="mb-2">
@@ -114,7 +114,7 @@
                                             </div>
                                             <div class="mb-2">
                                                 <label class="form-label">ساري من</label>
-                                                <input name="effectiveFrom" type="date" class="form-control" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" required />
+                                                <input name="effectiveFrom" type="date" class="form-control" value="@Html.HrDateInputValue(DateTime.UtcNow)" required />
                                             </div>
                                             <div class="mb-2">
                                                 <label class="form-label">رمز الشرط (اختياري)</label>

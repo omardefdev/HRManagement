@@ -8,7 +8,7 @@
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="mb-0">@p.Title</h3>
         <div>
-            <a asp-action="GapReport" asp-route-planId="@p.Id" asp-route-asOf="@Model.AsOf?.ToString("yyyy-MM-dd")" class="btn btn-outline-primary btn-sm">تقرير الفجوة</a>
+            <a asp-action="GapReport" asp-route-planId="@p.Id" asp-route-asOf="@Html.HrDateInputValue(Model.AsOf)" class="btn btn-outline-primary btn-sm">تقرير الفجوة</a>
             <a asp-action="Index" class="btn btn-secondary btn-sm">رجوع</a>
         </div>
     </div>
@@ -16,14 +16,14 @@
         <dl class="row">
             <dt class="col-sm-3">السنة المالية</dt><dd class="col-sm-9">@p.FiscalYear</dd>
             <dt class="col-sm-3">الوحدة</dt><dd class="col-sm-9">@(p.OrgUnit?.NameAr ?? "—")</dd>
-            <dt class="col-sm-3">الحالة</dt><dd class="col-sm-9">@p.Status</dd>
+            <dt class="col-sm-3">الحالة</dt><dd class="col-sm-9">@Html.HrStoredEnumDisplay("WorkforcePlanStatus", p.Status)</dd>
             <dt class="col-sm-3">الملخص</dt><dd class="col-sm-9">@(p.Summary ?? "—")</dd>
         </dl>
         <form method="get" class="row g-2 align-items-end mb-3">
             <input type="hidden" name="id" value="@p.Id" />
             <div class="col-auto">
-                <label class="form-label">استعلام as-of</label>
-                <input type="date" name="asOf" value="@Model.AsOf?.ToString("yyyy-MM-dd")" class="form-control" />
+                <label class="form-label">استعلام في تاريخ</label>
+                <input type="date" name="asOf" value="@Html.HrDateInputValue(Model.AsOf)" class="form-control" />
             </div>
             <div class="col-auto"><button type="submit" class="btn btn-outline-secondary">تطبيق</button></div>
         </form>
@@ -45,7 +45,7 @@
     <div class="card-header"><h4 class="mb-0">أهداف الخطة</h4></div>
     <div class="card-body p-0">
         <table class="table mb-0">
-            <thead><tr><th>الدرجة</th><th>العدد المخطط</th><th>FTE</th><th>ممول</th><th>مشغول</th><th>شاغر</th><th>مجمد</th><th>عجز</th><th></th></tr></thead>
+            <thead><tr><th>الدرجة</th><th>العدد المخطط</th><th>مكافئ الدوام الكامل (FTE)</th><th>ممول</th><th>مشغول</th><th>شاغر</th><th>مجمد</th><th>عجز</th><th></th></tr></thead>
             <tbody>
             @foreach (var line in p.Lines)
             {
@@ -102,7 +102,7 @@
             <form asp-action="Approve" method="post" class="row g-2 align-items-end">
                 @Html.AntiForgeryToken()
                 <input type="hidden" asp-for="Approve.PlanId" />
-                <div class="col-md-4"><label asp-for="Approve.LegalSourceId" class="form-label">مرجع قانوني (SYR-001)</label><input asp-for="Approve.LegalSourceId" class="form-control" /></div>
+                <div class="col-md-4"><label asp-for="Approve.LegalSourceId" class="form-label">مرجع قانوني <span class="hr-internal-code">SYR-001</span></label><input asp-for="Approve.LegalSourceId" class="form-control" /></div>
                 <div class="col-auto"><button type="submit" class="btn btn-success">اعتماد</button></div>
             </form>
         </div>

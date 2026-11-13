@@ -19,11 +19,11 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">من تاريخ</label>
-                <input type="date" name="dateFrom" value="@Model.DateFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="dateFrom" value="@Html.HrDateInputValue(Model.DateFrom)" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">إلى تاريخ</label>
-                <input type="date" name="dateTo" value="@Model.DateTo?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="dateTo" value="@Html.HrDateInputValue(Model.DateTo)" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">الحالة</label>
@@ -44,7 +44,7 @@
     </div>
     <div class="card-body p-0">
         <table class="table mb-0"><thead><tr><th>الموظف</th><th>اليوم</th><th>الحالة</th></tr></thead><tbody>
-        @foreach (var x in Model.Items){<tr><td>@x.Employee?.FullName</td><td>@x.AttendanceDate</td><td>@Html.HrEnumDisplay(x.Status)</td></tr>}
+        @foreach (var x in Model.Items){<tr><td>@x.Employee?.FullName</td><td>@Html.HrDate(x.AttendanceDate)</td><td>@Html.HrEnumDisplay(x.Status)</td></tr>}
         @if(!Model.Items.Any()){<tr><td colspan="3" class="text-center text-muted">لا توجد</td></tr>}</tbody></table>
     </div>
 </div>

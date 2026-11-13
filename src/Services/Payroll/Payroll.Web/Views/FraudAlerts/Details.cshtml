@@ -14,7 +14,7 @@
 
         <table class="table table-bordered">
             <tr><th>القاعدة</th><td>@Model.RuleId</td></tr>
-            <tr><th>الفئة</th><td>@Model.Category</td></tr>
+            <tr><th>الفئة</th><td>@Html.HrStoredEnumDisplay("FraudAlertCategory", Model.Category)</td></tr>
             <tr><th>الخطورة</th><td>@Html.HrStoredEnumDisplay("Code", Model.Severity)</td></tr>
             <tr><th>الموظف</th><td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(Model.EmployeeId, ViewBag.EmployeeName as string))</td></tr>
             <tr><th>تشغيل الرواتب</th><td>@(Model.PayrollRunId?.ToString() ?? "—")</td></tr>
@@ -22,7 +22,7 @@
             <tr><th>المالك</th><td>@(Model.OwnerId?.ToString() ?? "—")</td></tr>
             <tr><th>التفاصيل</th><td>@(Model.Details ?? "—")</td></tr>
             <tr><th>حجز الصرف</th><td>@(Model.PaymentHoldId?.ToString() ?? "—")</td></tr>
-            <tr><th>وقت الاكتشاف</th><td>@Model.DetectedAtUtc.ToString("yyyy/MM/dd HH:mm")</td></tr>
+            <tr><th>وقت الاكتشاف</th><td>@Html.HrDateTime(Model.DetectedAtUtc)</td></tr>
         </table>
 
         @if (Model.Status is FraudAlertStatus.Open or FraudAlertStatus.UnderReview)

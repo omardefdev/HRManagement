@@ -11,10 +11,10 @@
                 <input type="text" name="q" value="@q" class="form-control form-control-sm" placeholder="بحث بالموضوع أو الرقم..." />
             </div>
             <div class="col-auto">
-                <input type="date" name="issuedFrom" value="@issuedFrom?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" title="من تاريخ" />
+                <input type="date" name="issuedFrom" value="@Html.HrDateInputValue(issuedFrom)" class="form-control form-control-sm" title="من تاريخ" />
             </div>
             <div class="col-auto">
-                <input type="date" name="issuedTo" value="@issuedTo?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" title="إلى تاريخ" />
+                <input type="date" name="issuedTo" value="@Html.HrDateInputValue(issuedTo)" class="form-control form-control-sm" title="إلى تاريخ" />
             </div>
             <div class="col-auto"><button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-search"></i> بحث</button></div>
         </form>
@@ -28,7 +28,7 @@
                     <tr>
                         <td>@x.DecisionNumber</td>
                         <td>@x.Subject</td>
-                        <td>@(x.IssuedDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@Html.HrDate(x.IssuedDate)</td>
                         <td>
                             <a asp-action="Edit" asp-route-id="@x.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
                             <button type="button" class="btn btn-danger btn-xs" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="@Url.Action("Delete", new { id = x.Id })" aria-label="حذف"><i aria-hidden="true" class="fas fa-trash"></i></button>

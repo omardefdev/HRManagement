@@ -64,10 +64,10 @@
             <div class="card-body p-0">
                 <table class="table table-sm">
                     <tr><th>الرقم الوطني</th><td>@Model.DisplayNationalId</td></tr>
-                    <tr><th>تاريخ الميلاد</th><td>@emp.BirthDate.ToString("yyyy/MM/dd")</td></tr>
+                    <tr><th>تاريخ الميلاد</th><td>@Html.HrDate(emp.BirthDate)</td></tr>
                     <tr><th>الجنس</th><td>@(emp.Gender == HRManagement.SharedKernel.Enums.Gender.Male ? "ذكر" : emp.Gender == HRManagement.SharedKernel.Enums.Gender.Female ? "أنثى" : "آخر")</td></tr>
                     <tr><th>الحالة الاجتماعية</th><td>@Html.HrEnumDisplay(emp.MaritalStatus)</td></tr>
-                    <tr><th>تاريخ التعيين</th><td>@(emp.HireDate?.ToString("yyyy/MM/dd") ?? "—")</td></tr>
+                    <tr><th>تاريخ التعيين</th><td>@Html.HrDate(emp.HireDate)</td></tr>
                     @if (!string.IsNullOrWhiteSpace(Model.ServiceRegimeLabel))
                     {
                         <tr><th>نظام الخدمة</th><td>@Model.ServiceRegimeLabel</td></tr>
@@ -101,7 +101,7 @@
                                 <tr>
                                     <td>@(t.FromRegimeId ?? "—")</td>
                                     <td>@t.ToRegimeId</td>
-                                    <td>@t.EffectiveFrom.ToString("yyyy/MM/dd")</td>
+                                    <td>@Html.HrDate(t.EffectiveFrom)</td>
                                     <td>@t.TransitionDecisionRef</td>
                                     <td>@(string.IsNullOrWhiteSpace(t.ConflictNotes) ? "—" : t.ConflictNotes)</td>
                                 </tr>
@@ -150,7 +150,7 @@
                             <tr>
                                 <td>@q.Title</td>
                                 <td>@(q.Provider ?? "—")</td>
-                                <td>@(q.CompletionDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                                <td>@Html.HrDate(q.CompletionDate)</td>
                             </tr>
                         }
                         @if (!Model.Qualifications.Any()) { <tr><td colspan="3" class="text-center text-muted">لا توجد مؤهلات</td></tr> }

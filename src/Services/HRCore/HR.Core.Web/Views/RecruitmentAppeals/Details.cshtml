@@ -27,11 +27,11 @@
             <dt class="col-sm-3">سبب الاستئناف</dt>
             <dd class="col-sm-9">@appeal.Reason</dd>
             <dt class="col-sm-3">تاريخ التقديم</dt>
-            <dd class="col-sm-9">@appeal.CreatedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm") — @(appeal.FiledBy == HR.Core.Domain.Entities.RecruitmentAppealFiledBy.Candidate ? "المرشح" : "الموارد البشرية نيابة عن المرشح")</dd>
+            <dd class="col-sm-9">@Html.HrDateTime(appeal.CreatedAt) — @(appeal.FiledBy == HR.Core.Domain.Entities.RecruitmentAppealFiledBy.Candidate ? "المرشح" : "الموارد البشرية نيابة عن المرشح")</dd>
             @if (appeal.DecidedAt is DateTime decidedAt)
             {
                 <dt class="col-sm-3">تاريخ القرار</dt>
-                <dd class="col-sm-9">@decidedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</dd>
+                <dd class="col-sm-9">@Html.HrDateTime(decidedAt)</dd>
                 <dt class="col-sm-3">التعليل</dt>
                 <dd class="col-sm-9">@(appeal.Decision ?? "—")</dd>
                 @if (appeal.CorrectedRank is int correctedRank)
@@ -83,7 +83,7 @@
                 }
             </dd>
             <dt class="col-sm-3">تاريخ الرفض</dt>
-            <dd class="col-sm-9">@((app.RejectedAt ?? (app.Status == RecruitmentApplicationStatus.Rejected ? app.ReviewedAt : null))?.ToLocalTime().ToString("yyyy/MM/dd HH:mm") ?? "—")</dd>
+            <dd class="col-sm-9">@Html.HrDateTime((app.RejectedAt ?? (app.Status == RecruitmentApplicationStatus.Rejected ? app.ReviewedAt : null)))</dd>
             @if (!string.IsNullOrWhiteSpace(app.RejectionNote))
             {
                 <dt class="col-sm-3">ملاحظة الرفض</dt>
@@ -125,7 +125,7 @@
                 <strong>@Model.ReviewerName</strong>
                 @if (appeal.AssignedAt is DateTime assignedAt)
                 {
-                    <span class="text-muted small ms-1">عُيّن في @assignedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</span>
+                    <span class="text-muted small ms-1">عُيّن في @Html.HrDateTime(assignedAt)</span>
                 }
             }
             else if (appeal.IndependentReviewerId is not null)
@@ -186,12 +186,12 @@
         <div class="card-header"><h5 class="mb-0">طلب معلومات إضافية</h5></div>
         <div class="card-body">
             <p class="mb-1">@appeal.InfoRequest</p>
-            <p class="text-muted small">@appeal.InfoRequestedAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</p>
+            <p class="text-muted small">@Html.HrDateTime(appeal.InfoRequestedAt)</p>
             @if (!string.IsNullOrWhiteSpace(appeal.AdditionalInfo))
             {
                 <h6>المعلومات المقدّمة</h6>
                 <p class="mb-1">@appeal.AdditionalInfo</p>
-                <p class="text-muted small mb-0">@appeal.AdditionalInfoAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</p>
+                <p class="text-muted small mb-0">@Html.HrDateTime(appeal.AdditionalInfoAt)</p>
             }
             @if (Model.CanResubmit)
             {

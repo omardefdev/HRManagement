@@ -27,7 +27,7 @@
         }
         <dl class="row">
             <dt class="col-sm-3">النوع</dt>
-            <dd class="col-sm-9">@Model.Entry.CatalogKind</dd>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(Model.Entry.CatalogKind)</dd>
             <dt class="col-sm-3">الرمز</dt>
             <dd class="col-sm-9"><strong>@Model.Entry.Code</strong></dd>
             <dt class="col-sm-3">الاسم بالعربية</dt>
@@ -37,9 +37,9 @@
             <dt class="col-sm-3">نشط</dt>
             <dd class="col-sm-9">@(Model.Entry.IsActive ? "نعم" : "لا")</dd>
             <dt class="col-sm-3">صالح من</dt>
-            <dd class="col-sm-9">@(Model.Entry.ValidFrom?.ToString("yyyy-MM-dd") ?? "—")</dd>
+            <dd class="col-sm-9">@Html.HrDate(Model.Entry.ValidFrom)</dd>
             <dt class="col-sm-3">صالح حتى</dt>
-            <dd class="col-sm-9">@(Model.Entry.ValidTo?.ToString("yyyy-MM-dd") ?? "—")</dd>
+            <dd class="col-sm-9">@Html.HrDate(Model.Entry.ValidTo)</dd>
             <dt class="col-sm-3">الإصدار</dt>
             <dd class="col-sm-9">@Model.Entry.Version</dd>
         </dl>

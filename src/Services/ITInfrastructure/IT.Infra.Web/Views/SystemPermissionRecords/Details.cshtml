@@ -17,10 +17,10 @@
             <dd class="col-sm-9">@Model.Roles</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.GrantedAt)</dt>
-            <dd class="col-sm-9">@Model.GrantedAt.ToString("yyyy/MM/dd HH:mm")</dd>
+            <dd class="col-sm-9">@Html.HrDateTime(Model.GrantedAt)</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.RevokedAt)</dt>
-            <dd class="col-sm-9">@(Model.RevokedAt?.ToString("yyyy/MM/dd HH:mm") ?? "—")</dd>
+            <dd class="col-sm-9">@Html.HrDateTime(Model.RevokedAt)</dd>
         </dl>
     </div>
     <div class="card-footer">

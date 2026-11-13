@@ -12,7 +12,7 @@
             <tr><th>الدرجة</th><td>@Model.Score</td></tr>
             @if (!string.IsNullOrEmpty(Model.EvaluationNotes)) { <tr><th>ملاحظات</th><td>@Model.EvaluationNotes</td></tr> }
             <tr><th>المقيّم</th><td>@(Model.GradedBy?.ToString() ?? "—")</td></tr>
-            <tr><th>تاريخ التقييم</th><td>@Model.GradedAt?.ToString("yyyy/MM/dd HH:mm")</td></tr>
+            <tr><th>تاريخ التقييم</th><td>@Html.HrDateTime(Model.GradedAt)</td></tr>
         </table>
     </div>
 </div>

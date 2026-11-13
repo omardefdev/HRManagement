@@ -110,3 +110,39 @@ Started (UTC): 2026-11-13T08:06:22.4518317Z
   - a row needs an owner, and a stale or unlisted row is caught.
 - Architecture tests: 292/292.
 - Finished (UTC): 2026-11-13T16:30:47Z
+
+## P3 — Arabic vocabulary and Damascus time
+
+- **Time (D-67-2):**
+  - `HrLocalTime` (ServiceDefaults): the zone from `Localization:TimeZone` (Asia/Damascus by default; an unknown id stops the service), one date format `yyyy/MM/dd` and one time format `yyyy/MM/dd HH:mm`, the input formats, and `TryParseUserTime` (local without offset, or ISO with an offset).
+  - `DamascusCalendarService` reads the setting and publishes it as `HrLocalTime.Zone`, for code outside views.
+  - `HrTimeHtmlExtensions` (Web.Shared): `HrDate`, `HrDateTime` (a `<time>` with the UTC value and the title «بتوقيت دمشق»), `HrTime` (a time of day, never converted), their `…Text` forms, and the input values `HrDateInputValue`, `HrDateTimeLocalValue`, `HrMonthInputValue`.
+  - `HrDateTimeLocalTagHelper`: every `datetime-local` bound with `asp-for` shows the local value (52 inputs, no view change); a typed value is kept on redisplay.
+  - `HrLocalDateTimeModelBinder` (registered by `AddHrLocalization`): a posted `datetime-local` value is local and binds as UTC. Not for `[ApiController]`, a date alone, or a value with an offset.
+- **The time pass:**
+  - 370 formats replaced by script (`artifacts/plan67/p3-times.js`; input, route and data attributes get the ISO input helpers);
+  - 47 raw prints and 4 interpolations converted;
+  - the candidate portal's `Date`/`Time`, the interview `min`, and the requisition closing `min` fixed by hand;
+  - `CandidatePortalCompetitionResult.PublishedOn` (a preformatted string) becomes `PublishedAtUtc`;
+  - the candidate portal, its notifications and the exam admission card used `TimeZoneInfo.Local` (UTC in the containers): now `HrLocalTime.Zone`;
+  - `EditRules` effective-from and `Simulate` as-of are `datetime-local` and parsed with `TryParseUserTime` (PLAN-47's API tests send ISO with Z: unchanged).
+- **Vocabulary:**
+  - 61 raw prints go through `HrEnumDisplay` (new nullable overload), `HrStoredEnumDisplay` (new labels: planned, ended, completed, cancelled, submitted, permanent, temporary, the payroll codes), or `HrEntityTypeDisplay` (new `EntityTypeNamesAr`; the class's `[Display]` wins).
+  - Arabic `[Display]` on `PolicyTemplateScope`, `PolicyVersionStatus`, `PolicyPublicationKind`, `PolicyVersionEditAction`, both enforcement-mode enums, `PolicyDomainStatus`, `ServiceRegimeExceptionType`, `CodeEntityKind`.
+  - `PolicyDomainDescriptor.NameAr` is required and set in `PolicyDomainCatalog` for all 20 domains (the catalog is the only file that may name out-of-scope domains: PLAN-49's test), plus `OwnerServiceAr`.
+  - `PolicyVocabularyAr`: operators, effects, actions, workflow codes, services.
+  - `HrTextWithCodes`: in stored text, effects, services, domains and workflows by name; any other code as secondary text (`hr-internal-code`).
+  - The six policy pages in Arabic; Ledger and ShadowReport rewritten, with empty messages.
+  - Card codes in headings (`EST-001`…) as secondary text; `as-of`, `vs`, `workflow`, `legacy` and the English glosses translated. D-67-7: «رمز الصنف (SKU)», «إفصاح تضارب المصالح (COI)», «مكافئ الدوام الكامل (FTE)».
+- **The guard:**
+  - It gains a reflective check: a `<label asp-for>` with no text, or `DisplayNameFor`, whose property has no Arabic `[Display]`. 7 found and fixed; 0 view models unresolved.
+  - `…Category` and `…Decision` leave the raw-status rule: they are free text in this codebase. The coded ones were fixed anyway.
+  - `.ToLocalTime()` prints are now found.
+  - Lists pruned: English labels 41→0, raw statuses 61→0, times 423→0.
+- **Tests:**
+  - `Ux067TimeAndVocabularyTests` (unit): the midnight, month-end and year-end boundaries; 00:30 Damascus stored as 21:30 UTC the day before and read back; the offset cases; the configured zone; the binder (page vs API vs date alone); the vocabulary.
+  - `Ux067LocalTimeInputTests` (integration): the delegation form shows the Damascus clock.
+  - `AcPol47VpsChecks` reads «تراجع»/«يدوي» (P-13).
+  - Unit suite 6313 run: the 4 failures (my acceptance classes' gate pattern, and the domain-name file) fixed and rerun (43/43).
+  - Integration (no Testcontainers) 419 passed, 4 skipped. Architecture 298/298.
+- Finished (UTC): 2026-11-13T17:01:15Z

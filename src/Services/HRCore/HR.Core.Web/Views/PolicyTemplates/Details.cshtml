@@ -35,17 +35,17 @@
     </div>
     <div class="card-body">
         <dl class="row mb-0">
-            <dt class="col-sm-3">Domain</dt><dd class="col-sm-9"><code>@Model.Domain</code></dd>
-            <dt class="col-sm-3">Subject</dt><dd class="col-sm-9">@Model.SubjectType</dd>
-            <dt class="col-sm-3">Scope</dt><dd class="col-sm-9">@Model.Scope</dd>
+            <dt class="col-sm-3">المجال</dt><dd class="col-sm-9">@PolicyVocabularyAr.DomainName(Model.Domain) <span class="hr-internal-code">@Model.Domain</span></dd>
+            <dt class="col-sm-3">نوع السجل</dt><dd class="col-sm-9">@Html.HrEntityTypeDisplay(Model.SubjectType)</dd>
+            <dt class="col-sm-3">النطاق</dt><dd class="col-sm-9">@Html.HrEnumDisplay(Model.Scope)</dd>
         </dl>
         @if (!governed)
         {
             <p class="alert alert-secondary small mt-2 mb-0" data-testid="out-of-scope-note">
-                @PolicyDomainCatalog.OutOfScopeMessageAr: @(PolicyDomainCatalog.Find(Model.Domain)?.OutOfScopeReasonAr)
+                @PolicyDomainCatalog.OutOfScopeMessageAr: @Html.HrTextWithCodes(PolicyDomainCatalog.Find(Model.Domain)?.OutOfScopeReasonAr)
                 @if (Model.RetiredAt is { } retiredAt)
                 {
-                    <span data-testid="retired-note">سُحب القالب بإصدار أخير بلا قواعد في @retiredAt.ToString("yyyy-MM-dd", inv). الإصدارات السابقة باقية كما هي للسجل.</span>
+                    <span data-testid="retired-note">سُحب القالب بإصدار أخير بلا قواعد في @Html.HrDate(retiredAt). الإصدارات السابقة باقية كما هي للسجل.</span>
                 }
             </p>
         }
@@ -63,14 +63,14 @@
     <div class="card mb-3">
         <div class="card-header d-flex justify-content-between">
             <span>
-                إصدار @v.VersionNumber — @v.Status
+                إصدار @v.VersionNumber — @Html.HrEnumDisplay(v.Status)
                 @if (v.Id == effectiveId)
                 {
                     <span class="badge bg-success ms-1">النافذ الآن</span>
                 }
                 @if (v.EffectiveFrom is DateTime from)
                 {
-                    <small class="text-muted ms-2" dir="ltr">@from.ToString("u", inv) → @(v.EffectiveTo?.ToString("u", inv) ?? "…")</small>
+                    <small class="text-muted ms-2">ينفذ من @Html.HrDateTime(from) إلى @Html.HrDateTime(v.EffectiveTo, "…")</small>
                 }
             </span>
             <span>
@@ -84,11 +84,11 @@
         @if (publication is not null)
         {
             <div class="card-body border-bottom small">
-                النوع: <strong>@publication.Kind</strong>
+                النوع: <strong>@Html.HrEnumDisplay(publication.Kind)</strong>
                 · المحرّر: <code>@(publication.MakerUserId?.ToString() ?? publication.MakerRole ?? "—")</code>
                 · الناشر: <code>@(publication.CheckerUserId?.ToString() ?? publication.CheckerRole ?? "—")</code>
-                · الدليل: @(publication.EvidenceRef ?? "—")
-                · النشر: <span dir="ltr">@publication.PublishedAt.ToString("u", inv)</span>
+                · الدليل: @Html.HrTextWithCodes(publication.EvidenceRef)
+                · النشر: @Html.HrDateTime(publication.PublishedAt)
                 @if (publication.RolledBackFromVersionId is Guid rolledBack)
                 {
                     var target = Model.Versions.FirstOrDefault(x => x.Id == rolledBack);
@@ -98,11 +98,11 @@
         }
         @if (!string.IsNullOrWhiteSpace(v.ChangeReason))
         {
-            <div class="card-body border-bottom small">السبب: @v.ChangeReason</div>
+            <div class="card-body border-bottom small">السبب: @Html.HrTextWithCodes(v.ChangeReason)</div>
         }
         <div class="card-body p-0">
             <table class="table table-sm mb-0">
-                <thead><tr><th>Rule</th><th>Priority</th><th>When</th><th>Then</th></tr></thead>
+                <thead><tr><th>القاعدة</th><th>الأولوية</th><th>الشرط</th><th>الأثر</th></tr></thead>
                 <tbody>
                     @foreach (var r in v.Rules.OrderBy(x => x.Priority).ThenBy(x => x.RuleKey))
                     {

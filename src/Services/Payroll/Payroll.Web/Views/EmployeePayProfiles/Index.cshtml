@@ -50,11 +50,11 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">ساري من</label>
-                <input type="date" name="effectiveFrom" value="@effectiveFrom?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+                <input type="date" name="effectiveFrom" value="@Html.HrDateInputValue(effectiveFrom)" class="form-control form-control-sm" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">ساري إلى</label>
-                <input type="date" name="effectiveTo" value="@effectiveTo?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+                <input type="date" name="effectiveTo" value="@Html.HrDateInputValue(effectiveTo)" class="form-control form-control-sm" />
             </div>
             <div class="col-md-1 d-flex align-items-end gap-1">
                 <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button>
@@ -83,9 +83,9 @@
 
                         <td>@p.BaseSalary.ToString("N2")</td>
 
-                        <td>@p.EffectiveFrom.ToString("yyyy/MM/dd")</td>
+                        <td>@Html.HrDate(p.EffectiveFrom)</td>
 
-                        <td>@(p.EffectiveTo?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@Html.HrDate(p.EffectiveTo)</td>
 
                         <td>@(p.IsActive ? "نعم" : "لا")</td>
 

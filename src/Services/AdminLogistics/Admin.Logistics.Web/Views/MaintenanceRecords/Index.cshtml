@@ -32,11 +32,11 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">من تاريخ</label>
-                <input type="date" name="performedFrom" value="@Model.PerformedFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="performedFrom" value="@Html.HrDateInputValue(Model.PerformedFrom)" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">إلى تاريخ</label>
-                <input type="date" name="performedTo" value="@Model.PerformedTo?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="performedTo" value="@Html.HrDateInputValue(Model.PerformedTo)" class="form-control" />
             </div>
             <div class="col-md-auto">
                 <button type="submit" class="btn btn-primary">تصفية</button>
@@ -70,7 +70,7 @@
                     <tr>
                         <td><a asp-controller="Assets" asp-action="Details" asp-route-id="@x.AssetId">@x.Asset?.TagNumber</a></td>
                         <td>@Html.HrEnumDisplay(x.MaintenanceType)</td>
-                        <td>@x.PerformedAt?.ToString("yyyy/MM/dd")</td>
+                        <td>@Html.HrDate(x.PerformedAt)</td>
                         <td>@x.Cost</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
                     </tr>

@@ -8,7 +8,7 @@
     @foreach (var r in Model)
     {
         <tr>
-            <td>@r.AttendanceDate</td>
+            <td>@Html.HrDate(r.AttendanceDate)</td>
             <td>@Html.HrEnumDisplay(r.Status)</td>
             <td>@r.Notes</td>
         </tr>

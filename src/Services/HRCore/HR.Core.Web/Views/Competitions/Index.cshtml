@@ -46,7 +46,7 @@
                                 <td><a asp-action="Details" asp-route-id="@row.Id">@row.Number</a></td>
                                 <td>@row.Title</td>
                                 <td><span class="badge bg-secondary">@Html.HrEnumDisplay(row.Status)</span></td>
-                                <td>@row.ApplicationClosingDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)</td>
+                                <td>@Html.HrDate(row.ApplicationClosingDate)</td>
                                 <td>@row.Lines</td>
                                 <td>@row.Vacancies</td>
                             </tr>

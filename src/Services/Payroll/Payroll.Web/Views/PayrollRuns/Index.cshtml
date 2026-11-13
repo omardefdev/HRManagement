@@ -24,8 +24,8 @@
                     <option value="@item" selected="@(selectedStatus == item ? "selected" : null)">@Html.HrEnumDisplay(item)</option>
                 }
             </select></div>
-            <div class="col-md-3"><label class="form-label">الفترة من</label><input type="date" name="periodFrom" value="@periodFrom?.ToString("yyyy-MM-dd")" class="form-control" /></div>
-            <div class="col-md-3"><label class="form-label">الفترة إلى</label><input type="date" name="periodTo" value="@periodTo?.ToString("yyyy-MM-dd")" class="form-control" /></div>
+            <div class="col-md-3"><label class="form-label">الفترة من</label><input type="date" name="periodFrom" value="@Html.HrDateInputValue(periodFrom)" class="form-control" /></div>
+            <div class="col-md-3"><label class="form-label">الفترة إلى</label><input type="date" name="periodTo" value="@Html.HrDateInputValue(periodTo)" class="form-control" /></div>
             <div class="col-md-3"><button type="submit" class="btn btn-primary" title="تطبيق الفلاتر"><i class="fas fa-search"></i> بحث</button> <a asp-action="Index" class="btn btn-outline-secondary" title="مسح الفلاتر"><i class="fas fa-times"></i></a></div>
         </form>
     </div>
@@ -36,8 +36,8 @@
                 @foreach (var run in Model)
                 {
                     <tr>
-                        <td>@run.PeriodStart.ToString("yyyy/MM/dd") — @run.PeriodEnd.ToString("yyyy/MM/dd")</td>
-                        <td>@run.RunDate.ToString("yyyy/MM/dd")</td>
+                        <td>@Html.HrDate(run.PeriodStart) — @Html.HrDate(run.PeriodEnd)</td>
+                        <td>@Html.HrDate(run.RunDate)</td>
                         <td>@Html.HrEnumDisplay(run.RunType)</td>
                         <td>@Html.HrEnumDisplay(run.Status)</td>
                         <td>@run.TotalNetPay.ToString("N2")</td>
@@ -53,7 +53,7 @@
         <nav class="p-3" aria-label="صفحات تشغيلات الرواتب"><ul class="pagination mb-0">
             @for (var current = 1; current <= pageCount; current++)
             {
-                <li class="page-item @(current == page ? "active" : "")"><a class="page-link" asp-action="Index" asp-route-page="@current" asp-route-pageSize="@pageSize" asp-route-status="@selectedStatus" asp-route-periodFrom="@periodFrom?.ToString("yyyy-MM-dd")" asp-route-periodTo="@periodTo?.ToString("yyyy-MM-dd")">@current</a></li>
+                <li class="page-item @(current == page ? "active" : "")"><a class="page-link" asp-action="Index" asp-route-page="@current" asp-route-pageSize="@pageSize" asp-route-status="@selectedStatus" asp-route-periodFrom="@Html.HrDateInputValue(periodFrom)" asp-route-periodTo="@Html.HrDateInputValue(periodTo)">@current</a></li>
             }
         </ul></nav>
     }

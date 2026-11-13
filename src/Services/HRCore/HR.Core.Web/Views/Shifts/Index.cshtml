@@ -47,8 +47,8 @@
                         <td>@x.Code</td>
                         <td>@x.NameAr</td>
                         <td>@Html.HrEnumDisplay(x.ShiftType)</td>
-                        <td>@x.StartTime.ToString("HH:mm")</td>
-                        <td>@x.EndTime.ToString("HH:mm")</td>
+                        <td>@Html.HrTime(x.StartTime)</td>
+                        <td>@Html.HrTime(x.EndTime)</td>
                         <td>@(x.IsActive ? "مفعّلة" : "موقوفة")</td>
                         <td><a asp-action="Edit" asp-route-id="@x.Id" class="btn btn-outline-secondary btn-xs">تعديل</a></td>
                     </tr>

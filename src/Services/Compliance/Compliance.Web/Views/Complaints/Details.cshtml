@@ -23,7 +23,7 @@
             </dd>
             <dt class="col-sm-3">ضد</dt><dd class="col-sm-9">@Model.Against</dd>
             <dt class="col-sm-3">الوصف</dt><dd class="col-sm-9">@Model.Description</dd>
-            <dt class="col-sm-3">تاريخ التقديم</dt><dd class="col-sm-9">@Model.FiledAt.ToString("yyyy/MM/dd")</dd>
+            <dt class="col-sm-3">تاريخ التقديم</dt><dd class="col-sm-9">@Html.HrDate(Model.FiledAt)</dd>
             <dt class="col-sm-3">مسند إلى</dt><dd class="col-sm-9">@(Model.AssignedTo?.ToString() ?? "—")</dd>
             <dt class="col-sm-3">القرار</dt><dd class="col-sm-9">@Model.Resolution</dd>
         </dl>
@@ -103,7 +103,7 @@
             @foreach (var f in Model.FollowUps.OrderByDescending(x => x.CreatedAt))
             {
                 <li class="list-group-item">
-                    <small class="text-muted">@f.PerformedAt?.ToString("yyyy/MM/dd HH:mm")</small>
+                    <small class="text-muted">@Html.HrDateTime(f.PerformedAt)</small>
                     <div>@f.ActionTaken</div>
                 </li>
             }

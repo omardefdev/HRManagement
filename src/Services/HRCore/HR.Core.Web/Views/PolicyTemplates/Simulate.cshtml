@@ -6,28 +6,28 @@
     var factsJson = ViewBag.FactsJson as string ?? "{\"isPrivileged\":\"true\",\"value\":\"15000\"}";
 }
 <div class="card">
-    <div class="card-header">محاكاة — @domain</div>
+    <div class="card-header">محاكاة — @HRManagement.SharedKernel.Policy.PolicyVocabularyAr.DomainName(domain)</div>
     <div class="card-body">
         <form asp-action="Simulate" method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" name="versionId" value="@versionId" />
             <div class="mb-3">
-                <label class="form-label">Facts (JSON)</label>
+                <label class="form-label">الحقائق (JSON)</label>
                 <textarea name="factsJson" class="form-control font-monospace" rows="8">@factsJson</textarea>
             </div>
             <div class="mb-3">
-                <label class="form-label">كما في تاريخ (UTC، فارغ = الآن)</label>
-                <input name="asOfUtc" class="form-control" dir="ltr" placeholder="2026-12-01T00:00:00Z" value="@(ViewBag.AsOfUtc as string)" />
+                <label class="form-label" for="asOfInput">كما في تاريخ (بتوقيت دمشق، فارغ = الآن)</label>
+                <input id="asOfInput" name="asOfUtc" type="datetime-local" class="form-control" dir="ltr" value="@(ViewBag.AsOfUtc as string)" />
             </div>
             <button type="submit" class="btn btn-primary">تشغيل</button>
         </form>
         @if (decision is not null)
         {
             <div class="alert alert-info mt-3">
-                <strong>Allowed:</strong> @decision.Allowed<br />
-                <strong>Version:</strong> @decision.PolicyVersionId<br />
-                <strong>Effects:</strong> @string.Join(", ", decision.Effects)<br />
-                <strong>Explanations:</strong> @string.Join("؛ ", decision.Explanations)
+                <strong>القرار:</strong> @(decision.Allowed ? "مسموح" : "مرفوض")<br />
+                <strong>الإصدار المطبَّق:</strong> @(ViewBag.DecisionVersionNumber is int number ? $"الإصدار {number}" : "—")<br />
+                <strong>الآثار:</strong> @(decision.Effects.Count == 0 ? "لا أثر" : string.Join("، ", decision.Effects.Select(e => HRManagement.SharedKernel.Policy.PolicyVocabularyAr.Effects.TryGetValue(e, out var verb) ? verb : e.ToString())))<br />
+                <strong>التفسيرات:</strong> @string.Join("؛ ", decision.Explanations)
             </div>
         }
     </div>

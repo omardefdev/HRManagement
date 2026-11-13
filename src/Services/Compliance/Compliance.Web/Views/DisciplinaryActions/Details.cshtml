@@ -30,7 +30,7 @@
             <dt class="col-sm-3">صادر من</dt>
             <dd class="col-sm-9">@(Model.IssuedBy?.ToString() ?? "—")</dd>
             <dt class="col-sm-3">تاريخ الإصدار</dt>
-            <dd class="col-sm-9">@Model.IssuedAt.ToString("yyyy/MM/dd")</dd>
+            <dd class="col-sm-9">@Html.HrDate(Model.IssuedAt)</dd>
             <dt class="col-sm-3">ملاحظات</dt>
             <dd class="col-sm-9">@(Model.Notes ?? "—")</dd>
             <dt class="col-sm-3">حالة الاستئناف</dt>

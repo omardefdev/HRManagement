@@ -18,22 +18,22 @@
 
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <h3 class="mb-0">@r.RequestNumber — @r.ChangeType</h3>
-        <span class="badge @StatusBadgeClass(r.Status)">@r.Status</span>
+        <h3 class="mb-0">@r.RequestNumber — @Html.HrEnumDisplay(r.ChangeType)</h3>
+        <span class="badge @StatusBadgeClass(r.Status)">@Html.HrEnumDisplay(r.Status)</span>
     </div>
     <div class="card-body">
         <table class="table table-sm">
-            <tr><th class="hr-col-30">نوع التغيير</th><td>@r.ChangeType</td></tr>
-            <tr><th>الحالة</th><td>@r.Status</td></tr>
+            <tr><th class="hr-col-30">نوع التغيير</th><td>@Html.HrEnumDisplay(r.ChangeType)</td></tr>
+            <tr><th>الحالة</th><td>@Html.HrEnumDisplay(r.Status)</td></tr>
             <tr><th>الكيان المستهدف</th><td>@(r.TargetEntityId?.ToString() ?? "—")</td></tr>
             <tr><th>الكيان الناتج</th><td>@(r.ResultEntityId?.ToString() ?? "—")</td></tr>
             <tr><th>المرجع القانوني</th><td>@(Model.LegalSourceLabel ?? r.LegalSourceId ?? "—")</td></tr>
             <tr><th>مرجع القرار</th><td>@(r.DecisionReference ?? "—")</td></tr>
             <tr><th>مبررات</th><td>@(r.JustificationNotes ?? "—")</td></tr>
-            <tr><th>تاريخ الطلب</th><td>@r.RequestedAt.ToString("yyyy-MM-dd HH:mm")</td></tr>
+            <tr><th>تاريخ الطلب</th><td>@Html.HrDateTime(r.RequestedAt)</td></tr>
             @if (r.AppliedAt is DateTime appliedAt)
             {
-                <tr><th>تاريخ التطبيق</th><td>@appliedAt.ToString("yyyy-MM-dd HH:mm")</td></tr>
+                <tr><th>تاريخ التطبيق</th><td>@Html.HrDateTime(appliedAt)</td></tr>
             }
         </table>
 

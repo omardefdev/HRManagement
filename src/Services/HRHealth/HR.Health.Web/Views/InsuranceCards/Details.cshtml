@@ -20,8 +20,8 @@
             <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9"><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></dd>
             <dt class="col-sm-3">رقم العضوية</dt><dd class="col-sm-9">@Model.MemberNumber</dd>
             <dt class="col-sm-3">الشركة</dt><dd class="col-sm-9">@(Model.Provider ?? "—")</dd>
-            <dt class="col-sm-3">الإصدار</dt><dd class="col-sm-9">@Model.IssueDate</dd>
-            <dt class="col-sm-3">الانتهاء</dt><dd class="col-sm-9">@Model.ExpiryDate</dd>
+            <dt class="col-sm-3">الإصدار</dt><dd class="col-sm-9">@Html.HrDate(Model.IssueDate)</dd>
+            <dt class="col-sm-3">الانتهاء</dt><dd class="col-sm-9">@Html.HrDate(Model.ExpiryDate)</dd>
             <dt class="col-sm-3">أفراد الأسرة</dt><dd class="col-sm-9">@(Model.FamilyMembers ?? "—")</dd>
         </dl>
     </div>

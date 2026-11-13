@@ -12,7 +12,7 @@
             <div class="card-body">
                 <dl class="row">
                     <dt class="col-sm-4">نوع الكيان</dt>
-                    <dd class="col-sm-8">@Model.EntityType</dd>
+                    <dd class="col-sm-8">@Html.HrEntityTypeDisplay(Model.EntityType)</dd>
 
                     <dt class="col-sm-4">الوصف</dt>
                     <dd class="col-sm-8">@(Model.Description ?? "—")</dd>
@@ -21,7 +21,7 @@
                     <dd class="col-sm-8">@(Model.RequestedByName ?? "—")</dd>
 
                     <dt class="col-sm-4">تاريخ الطلب</dt>
-                    <dd class="col-sm-8" dir="ltr">@Model.RequestedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+                    <dd class="col-sm-8" dir="ltr">@Html.HrDateTime(Model.RequestedAt)</dd>
 
                     <dt class="col-sm-4">الحالة</dt>
                     <dd class="col-sm-8">
@@ -74,7 +74,7 @@
                                     <span class="badge @stepBadge">@Html.HrEnumDisplay(step.Status)</span>
                                 </td>
                                 <td>@(step.ReviewedByName ?? "—")</td>
-                                <td dir="ltr">@(step.ReviewedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</td>
+                                <td dir="ltr">@Html.HrDateTime(step.ReviewedAt)</td>
                                 <td>@(step.Comments ?? "—")</td>
                             </tr>
                         }
