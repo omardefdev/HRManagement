@@ -144,7 +144,7 @@ public partial class AcOps36VpsBootTests
                 Assert.Equal($"Manual|{authorId}|{approverId}", first);
 
                 // 3. The author makes a rollback draft to the version the tour started from; the approver publishes it.
-                await Wf45PostRenderedAsync(author, details, "CreateRollbackDraft", new Dictionary<string, string> { ["reason"] = "PLAN-47 server check: rollback" });
+                await Wf45PostRenderedAsync(author, details, "CreateRollbackDraft", new Dictionary<string, string> { ["reason"] = "تراجع إلى الإصدار السابق للتحقق من سلسلة النشر" });
                 var rollback = Draft();
                 Assert.NotNull(rollback);
                 await Wf45PostRenderedAsync(approver, $"/ui/hr-core/PolicyTemplates/EditRules?versionId={rollback}", "PublishFromUi",

@@ -197,3 +197,28 @@ Started (UTC): 2026-11-13T08:06:22.4518317Z
   - `Ux067PolicyPagesTests` (integration, SQLite with `PolicyEngineSeeder`) 7/7: every seeded and published rule names each field, operator, value and effect of its JSON, with no unknown node; the details page shows the sentences and the JSON to `hr-admin` and `policy-approver` only (not `hr-core-supervisory`); the form and the JSON give the same decision, both allowed and refused; an unknown fact is refused as before.
   - All `Ux067` integration tests 30/30; architecture 299/299.
 - Finished (UTC): 2026-11-13T17:21:54Z
+
+## P6 — the portal at /careers, the server checks, the guard empty
+
+- **The portal (D-67-5):**
+  - HR.Core strips `/careers` into the path base, so the portal's links and anonymous assets resolve under `/careers`, but its routes sat at the root and answered `/ui/hr-core/` too.
+  - `[PublicPortalOnly]` (an action constraint on `PublicCareersController` and `CandidatePortalController`) accepts a request that came through `/careers`, or one with no path base (the service reached directly, as the in-process tests do). It refuses the module's path base, so the conventional route opens the dashboard at `/ui/hr-core/`; an anonymous visitor is sent to sign-in by the gateway, as for every `/ui` path.
+  - Every public link keeps its address: `/careers`, a posting, `/careers/track`, `/careers/my`, competition results and the PDF, and the links in messages.
+  - The portal's dates were converted in P3 (`dd-MM-yyyy` → `HrDate`).
+  - This deviates in form from P-9's "moves under careers": the controller is not re-routed. Re-routing would have sent the portal's assets to the gateway's own static files; the constraint gives the same result, `/careers` alone.
+- **The server checks (P-11):**
+  - The requisitions of PLAN-43, 44 and 50 have realistic Arabic titles («محاسب أول», «أمين مستودع», «مدقق داخلي»), Arabic criteria titles and Arabic approval comments; the marker stays in `JustificationNotes` (admin only).
+  - PLAN-45's assets are «حاسوب محمول (عهدة|مفقود|مخزن) xxxxxx»; the marker stays in `LegacyEntryReason` and the loss notes.
+  - PLAN-47's rollback reason is Arabic; the marker stays in the evidence reference.
+  - PLAN-49's freeze reason is Arabic; the marker stays in `DecisionReference`, which its clean-up looks rows up by.
+  - The leave, delegation, transfer and disciplinary notes keep their markers (internal fields the checks look rows up by).
+  - None of the checks publishes a requisition, so none leaves a posting. The posting on the demo predates this plan and is closed in P9.
+  - Each check keeps its meaning; PLAN-49's third check reads ledger rows by domain, not by marker.
+- **The guard:** every list is empty and the files are gone; `PLAN-67` leaves `CeilingList.Owners`, so any new row would be malformed.
+- **Fix:** P4's empty row in `Payroll/PayrollReports/MonthlySummary` checked a nullable collection (CS8604). Incremental builds had skipped the view; now `runs ?? []`. A no-incremental solution build is clean.
+- **Tests:** `Ux067PortalRoutingTests` 4/4, on HR.Core with the module path base:
+  - `/careers` is the portal (its navbar) and `/careers/track` answers;
+  - `/ui/hr-core/` is the dashboard (its sidebar, no portal);
+  - `/ui/hr-core/track` and `/ui/hr-core/my` answer 404.
+- Architecture 299/299.
+- Finished (UTC): 2026-11-13T17:26:55Z

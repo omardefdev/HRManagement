@@ -431,7 +431,7 @@ public partial class AcOps36VpsBootTests
                 AcceptanceGate.RequireData(recorder, position.Length == 1, "لا وظيفة شاغرة", "No vacant funded position without an open change request.");
                 positionId = position[0];
                 await Wf45PostRenderedAsync(operatorClient, $"/ui/hr-core/FundedPositions/Details/{positionId}", "Freeze",
-                    new Dictionary<string, string> { ["FreezeReason"] = Pol49Marker });
+                    new Dictionary<string, string> { ["FreezeReason"] = "تجميد مؤقت لمراجعة الموازنة" });
                 var draft = Sql("hr_core_db",
                     $"select \"Id\" from \"EstablishmentChangeRequests\" where \"TargetEntityId\" = '{positionId}' and \"Status\" = 'Draft' and \"ChangeType\" = 'FreezeFundedPosition' " +
                     "order by \"CreatedAt\" desc limit 1");

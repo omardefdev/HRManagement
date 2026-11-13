@@ -277,7 +277,7 @@ public partial class AcOps36VpsBootTests
                     ["__RequestVerificationToken"] = await TokenAsync(creator, createPage),
                     ["ScopeOrgUnitId"] = orgUnit,
                     ["FundedPositionId"] = positionId,
-                    ["JobTitle"] = Iam50Marker,
+                    ["JobTitle"] = "مدقق داخلي",
                     ["JustificationNotes"] = Iam50Marker,
                     ["LegalSourceId"] = "SYR-LAW-50-2004",
                     ["BudgetYear"] = DateTime.UtcNow.Year.ToString(CultureInfo.InvariantCulture),
@@ -293,7 +293,7 @@ public partial class AcOps36VpsBootTests
             {
                 ["__RequestVerificationToken"] = await TokenAsync(creator, details),
                 ["RequisitionId"] = requisition,
-                ["Title"] = Iam50Marker
+                ["Title"] = "معايير المفاضلة لوظيفة مدقق داخلي"
             };
             (string Key, string Name, string Weight, string Stage)[] items =
                 [("interview", "المقابلة", "40", "Interview"), ("exam", "الاختبار", "30", "Exam"), ("experience", "الخبرة", "30", "Experience")];
@@ -346,7 +346,7 @@ public partial class AcOps36VpsBootTests
                     {
                         ["__RequestVerificationToken"] = await TokenAsync(delegateUser, details),
                         ["RequisitionId"] = requisition,
-                        ["Comments"] = $"{Iam50Marker} {step}"
+                        ["Comments"] = $"مطابق للملاك المعتمد — الخطوة {step}"
                     });
                 }
 

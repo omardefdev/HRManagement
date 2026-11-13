@@ -11,8 +11,8 @@ public sealed class CeilingList
 {
     /// <summary>The plans that may own a row: PLAN-53 (Payroll's writes), wave 2 IAM-F (the entity bindings outside HR.Movements) and wave 2
     /// IAM-H (the org-scope lists' latent controllers, PLAN-52). PLAN-51 owned the rows its P1 seeded until its P4 emptied them; PLAN-52 owned
-    /// the org-scope rows its P2 seeded until its P5 emptied them. PLAN-67 owns the interface rows its P2 seeds, until its P6 empties them.</summary>
-    public static readonly IReadOnlyList<string> Owners = ["PLAN-53", "IAM-F", "IAM-H", "PLAN-67"];
+    /// the org-scope rows its P2 seeded until its P5 emptied them. PLAN-67 owned the interface rows its P2 seeded until its P6 emptied them.</summary>
+    public static readonly IReadOnlyList<string> Owners = ["PLAN-53", "IAM-F", "IAM-H"];
 
     private CeilingList(string relativePath, IReadOnlyDictionary<string, string> rows, IReadOnlyList<string> malformed)
     {

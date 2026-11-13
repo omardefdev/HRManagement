@@ -22,6 +22,7 @@ namespace HR.Core.Web.Controllers;
 
 [AllowAnonymous]
 [Route("")]
+[PublicPortalOnly]
 [OrgScopeNotApplicable("the public careers portal: anonymous candidates, published postings only")]
 public class PublicCareersController(
     HRCoreDbContext db,

@@ -6,7 +6,7 @@ namespace HRManagement.AcceptanceTests;
 /// <summary>
 /// PLAN-45 (P7) on the demo server (<c>VPS_SSH_HOST=hrm-vps</c>) after the deploy, with the AC-OPS-36 helpers. The demo users' password is read
 /// from the server's .env into memory only. Evidence goes under <c>artifacts/plan45/vps</c>: it is never committed. The checks leave assets
-/// named «PLAN-45 server check» on the demo server: one held, one lost, one free.
+/// named «حاسوب محمول» and marked «PLAN-45 server check» in their legacy-entry reason on the demo server: one held, one lost, one free.
 /// </summary>
 public partial class AcOps36VpsBootTests
 {
@@ -60,9 +60,18 @@ public partial class AcOps36VpsBootTests
         return body;
     }
 
+    /// <summary>PLAN-67 (P-11): the asset's name reads as a real asset's; the marker stays in its legacy-entry reason.</summary>
+    private static string Wf45SuffixAr(string suffix) => suffix switch
+    {
+        "held" => "عهدة",
+        "lost" => "مفقود",
+        "free" => "مخزن",
+        _ => suffix
+    };
+
     private static async Task<string> Wf45AssetAsync(HttpClient maker, string suffix)
     {
-        var name = $"{Wf45Marker} {suffix} {Guid.NewGuid():N}";
+        var name = $"حاسوب محمول ({Wf45SuffixAr(suffix)}) {Guid.NewGuid().ToString("N")[..6]}";
         const string create = "/ui/admin-logistics/Assets/CreateLegacy";
         await PostFormAsync(maker, create, new Dictionary<string, string>
         {
@@ -73,7 +82,7 @@ public partial class AcOps36VpsBootTests
             ["PurchaseDate"] = DateTime.UtcNow.AddDays(-30).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
             ["Value"] = "50000",
             ["Status"] = "InStorage",
-            ["LegacyEntryReason"] = "PLAN-45: an asset for the server check of the custody chain"
+            ["LegacyEntryReason"] = $"{Wf45Marker}: an asset for the custody chain"
         });
 
         var row = Sql("admin_db", $"select \"Id\", \"IsPrivileged\" from \"Assets\" where \"Name\" = '{name}'");
