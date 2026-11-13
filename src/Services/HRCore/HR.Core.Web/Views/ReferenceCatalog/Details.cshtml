@@ -85,9 +85,9 @@
                     @if (Model.Impact.Count == 0)
                     {
                         <form asp-action="Deactivate" asp-route-id="@Model.Entry.Id" method="post"
-                              onsubmit="return confirm('تأكيد تعطيل هذا الرمز؟');">
+                              data-hr-confirm="تأكيد تعطيل هذا الرمز؟" data-hr-confirm-variant="danger">
                             @Html.AntiForgeryToken()
-                            <div class="row g-2 align-items-end" style="max-width: 560px;">
+                            <div class="row g-2 align-items-end hr-maxw-560px">
                                 <div class="col-md-8">
                                     <label for="replacedByCode" class="form-label">استُبدل برمز (اختياري)</label>
                                     <select id="replacedByCode" name="replacedByCode" class="form-select"

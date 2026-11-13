@@ -29,7 +29,7 @@
 
         @if (Model.RevokedAt == null)
         {
-            <form asp-action="Revoke" asp-route-id="@Model.Id" method="post" style="display:inline">
+            <form asp-action="Revoke" asp-route-id="@Model.Id" method="post" class="d-inline">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-danger">سحب الصلاحية</button>
             </form>

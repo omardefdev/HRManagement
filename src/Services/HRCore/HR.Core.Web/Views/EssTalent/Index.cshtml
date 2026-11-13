@@ -75,7 +75,7 @@
                         @if (!string.IsNullOrWhiteSpace(v.Description)) { <p class="mb-1 mt-2">@v.Description</p> }
                         @if (!string.IsNullOrWhiteSpace(v.RequiredQualifications)) { <p class="mb-0 small"><strong>المؤهلات:</strong> @v.RequiredQualifications</p> }
                     </div>
-                    <form asp-action="Apply" method="post" class="text-start" style="min-width:240px;">
+                    <form asp-action="Apply" method="post" class="text-start hr-minw-240px">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="vacancyId" value="@v.Id" />
                         <textarea name="motivation" class="form-control form-control-sm mb-2" rows="2" placeholder="مسوّغات الترشّح (اختياري)"></textarea>

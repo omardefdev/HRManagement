@@ -43,7 +43,7 @@
                     @foreach (var l in m.Lessons.OrderBy(l => l.Order))
                     {
                         <tr>
-                            <td style="width:60px;">@l.Order</td>
+                            <td class="hr-w-60px">@l.Order</td>
                             <td>@l.Title</td>
                             <td>
                                 @if (l.ContentFileId.HasValue)

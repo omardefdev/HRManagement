@@ -917,3 +917,65 @@ button:focus:not(:focus-visible) {
         padding: 0 !important;
     }
 }
+
+/* ------------------------------------------------------------------------------------------------------------------
+   PLAN-67 (G-UX-01): what the views wrote in style="..." attributes, which an enforced CSP without 'unsafe-inline'
+   ignores. Views use these classes instead; a computed width (a progress bar) is a data-hr-progress value that
+   shared-ui.js applies through the CSSOM, which the CSP does not block.
+   ------------------------------------------------------------------------------------------------------------------ */
+.hr-col-30 { width: 30%; }
+.hr-col-40 { width: 40%; }
+.hr-w-60px { width: 60px; }
+.hr-w-80px { width: 80px; }
+.hr-w-120px { width: 120px; }
+.hr-minw-10rem { min-width: 10rem; }
+.hr-minw-12rem { min-width: 12rem; }
+.hr-minw-16rem { min-width: 16rem; }
+.hr-minw-140px { min-width: 140px; }
+.hr-minw-200px { min-width: 200px; }
+.hr-minw-240px { min-width: 240px; }
+.hr-maxw-280px { max-width: 280px; }
+.hr-maxw-400px { max-width: 400px; }
+.hr-maxw-560px { max-width: 560px; }
+.hr-h-18px { height: 18px; }
+.hr-h-25px { height: 25px; }
+.hr-pre-line { white-space: pre-line; }
+.hr-chart-box { max-width: 400px; margin: auto; }
+.hr-img-maxh-100 { max-height: 100px; }
+.hr-img-maxh-120 { max-height: 120px; }
+.hr-border-gold-soft { border-color: rgba(185, 167, 121, 0.2) !important; }
+.hr-avatar-100 { width: 100px; height: 100px; overflow: hidden; }
+.hr-avatar-initials {
+    width: 100px;
+    height: 100px;
+    margin: auto;
+    background: var(--sy-primary);
+    color: #fff;
+    font-size: 2rem;
+}
+.hr-text-teal { color: var(--sy-teal); }
+.hr-text-teal-dark { color: var(--sy-teal-dark); }
+.hr-text-primary { color: var(--sy-primary); }
+.hr-text-primary-dark { color: var(--sy-primary-dark); }
+.hr-text-gold-dark { color: var(--sy-gold-dark); }
+.hr-text-gray { color: var(--sy-gray); }
+.hr-certificate-frame { border: 3px double #198754; }
+#hr-notification-container,
+.hr-notification-container {
+    position: fixed;
+    top: 1rem;
+    z-index: 10000;
+    max-width: 350px;
+}
+
+/* PLAN-67 (P-5): an internal code (a card, a decision or an evidence reference) shown as secondary text, never inside the
+   user's sentence. */
+.hr-internal-code {
+    font-size: 0.75em;
+    color: var(--sy-gray);
+    opacity: 0.75;
+    font-family: var(--bs-font-monospace, monospace);
+    unicode-bidi: isolate;
+    direction: ltr;
+    margin-inline-start: 0.35em;
+}

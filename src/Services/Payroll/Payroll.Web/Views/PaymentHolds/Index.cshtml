@@ -81,7 +81,7 @@
                     <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(x.EmployeeId, employeeNames.GetValueOrDefault(x.EmployeeId)))</td>
                     <td>@Html.HrStoredEnumDisplay("Code", x.HoldType)</td>
                     <td>@Html.HrStoredEnumDisplay("Code", x.Status)</td>
-                    <td class="text-truncate" style="max-width:280px">@x.Reason</td>
+                    <td class="text-truncate hr-maxw-280px">@x.Reason</td>
                     <td>@x.HeldAtUtc.ToString("yyyy/MM/dd HH:mm")</td>
                     <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-primary">تفاصيل</a></td>
                 </tr>

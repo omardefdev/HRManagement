@@ -35,7 +35,7 @@
         <a asp-action="Index" class="btn btn-default">رجوع</a>
         @if (Model.ProvisioningStatus == ProvisioningStatus.Failed)
         {
-            <form asp-action="RetryProvision" asp-route-id="@Model.Id" method="post" style="display:inline">
+            <form asp-action="RetryProvision" asp-route-id="@Model.Id" method="post" class="d-inline">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-outline-danger">إعادة التزويد</button>
             </form>
@@ -64,7 +64,7 @@
 
 @if (Model.Status == TicketStatus.Open || Model.Status == TicketStatus.Assigned)
 {
-    <form asp-action="Resolve" asp-route-id="@Model.Id" method="post" style="display:inline">
+    <form asp-action="Resolve" asp-route-id="@Model.Id" method="post" class="d-inline">
         @Html.AntiForgeryToken()
         <button type="submit" class="btn btn-success">تم الحل</button>
     </form>
@@ -72,7 +72,7 @@
 
 @if (Model.Status == TicketStatus.Resolved)
 {
-    <form asp-action="Close" asp-route-id="@Model.Id" method="post" style="display:inline">
+    <form asp-action="Close" asp-route-id="@Model.Id" method="post" class="d-inline">
         @Html.AntiForgeryToken()
         <button type="submit" class="btn btn-secondary">إغلاق</button>
     </form>
@@ -80,7 +80,7 @@
 
 @if (Model.Status == TicketStatus.Resolved || Model.Status == TicketStatus.Closed)
 {
-    <form asp-action="Reopen" asp-route-id="@Model.Id" method="post" style="display:inline">
+    <form asp-action="Reopen" asp-route-id="@Model.Id" method="post" class="d-inline">
         @Html.AntiForgeryToken()
         <button type="submit" class="btn btn-info">إعادة فتح</button>
     </form>

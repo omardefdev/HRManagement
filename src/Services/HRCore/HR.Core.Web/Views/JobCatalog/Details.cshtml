@@ -17,9 +17,10 @@
                 <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">طلب تعديل</a>
                 @if (Model.IsActive)
                 {
-                    <form asp-action="Deactivate" asp-route-id="@Model.Id" method="post" class="d-inline">
+                    <form asp-action="Deactivate" asp-route-id="@Model.Id" method="post" class="d-inline"
+                          data-hr-confirm="إنشاء طلب تعطيل لهذا الدليل؟" data-hr-confirm-variant="danger">
                         @Html.AntiForgeryToken()
-                        <button type="submit" class="btn btn-outline-danger btn-sm" onclick="return confirm('إنشاء طلب تعطيل لهذا الدليل؟');">طلب تعطيل</button>
+                        <button type="submit" class="btn btn-outline-danger btn-sm">طلب تعطيل</button>
                     </form>
                 }
             </div>
@@ -46,7 +47,7 @@
         }
 
         <table class="table table-sm">
-            <tr><th style="width:30%">رمز الوظيفة</th><td>@Model.JobCode</td></tr>
+            <tr><th class="hr-col-30">رمز الوظيفة</th><td>@Model.JobCode</td></tr>
             <tr><th>المسمى بالعربي</th><td>@Model.TitleAr</td></tr>
             <tr><th>المسمى بالإنكليزي</th><td>@(Model.TitleEn ?? "—")</td></tr>
             <tr><th>رمز الدرجة</th><td>@Model.GradeCode</td></tr>

@@ -1,7 +1,7 @@
 @model HR.Training.Domain.Entities.LearningEnrollment
 @{ ViewData["Title"] = "شهادة إتمام"; }
 <div class="card">
-    <div class="card-body text-center p-5" style="border:3px double #198754;">
+    <div class="card-body text-center p-5 hr-certificate-frame">
         <h2 class="mb-4">شهادة إتمام دورة</h2>
         <p class="lead mb-1">تشهد إدارة الموارد البشرية بأن الموظف أكمل بنجاح دورة</p>
         <h3 class="my-3">«@(Model.ELearningCourse?.TitleAr ?? "—")»</h3>

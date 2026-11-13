@@ -31,7 +31,7 @@
         }
 
         <table class="table table-sm">
-            <tr><th style="width:30%">رمز المنصب</th><td>@p.PositionCode</td></tr>
+            <tr><th class="hr-col-30">رمز المنصب</th><td>@p.PositionCode</td></tr>
             <tr><th>المسمى من الدليل</th><td>@(p.JobCatalogEntry?.TitleAr ?? "—")</td></tr>
             <tr><th>رمز الدليل</th><td>@(p.JobCatalogEntry?.JobCode ?? "—")</td></tr>
             <tr><th>رمز الدرجة</th><td>@p.GradeCode</td></tr>
@@ -70,22 +70,24 @@
             <hr />
             @if (p.Status == FundedPositionStatus.Vacant)
             {
-                <form asp-action="Freeze" asp-route-id="@p.Id" method="post" class="row g-2 align-items-end">
+                <form asp-action="Freeze" asp-route-id="@p.Id" method="post" class="row g-2 align-items-end"
+                      data-hr-confirm="إنشاء طلب تجميد لهذا المنصب؟">
                     @Html.AntiForgeryToken()
                     <div class="col-md-8">
                         <label asp-for="FreezeReason" class="form-label"></label>
                         <input asp-for="FreezeReason" class="form-control" />
                     </div>
                     <div class="col-md-auto">
-                        <button type="submit" class="btn btn-warning" onclick="return confirm('إنشاء طلب تجميد لهذا المنصب؟');">طلب تجميد</button>
+                        <button type="submit" class="btn btn-warning">طلب تجميد</button>
                     </div>
                 </form>
             }
             else if (p.Status == FundedPositionStatus.Frozen)
             {
-                <form asp-action="Unfreeze" asp-route-id="@p.Id" method="post" class="d-inline">
+                <form asp-action="Unfreeze" asp-route-id="@p.Id" method="post" class="d-inline"
+                      data-hr-confirm="إنشاء طلب إلغاء تجميد؟">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-success" onclick="return confirm('إنشاء طلب إلغاء تجميد؟');">طلب إلغاء التجميد</button>
+                    <button type="submit" class="btn btn-success">طلب إلغاء التجميد</button>
                 </form>
             }
         }

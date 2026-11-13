@@ -23,7 +23,7 @@
     </div>
     <div class="card-body">
         <table class="table table-sm">
-            <tr><th style="width:30%">نوع التغيير</th><td>@r.ChangeType</td></tr>
+            <tr><th class="hr-col-30">نوع التغيير</th><td>@r.ChangeType</td></tr>
             <tr><th>الحالة</th><td>@r.Status</td></tr>
             <tr><th>الكيان المستهدف</th><td>@(r.TargetEntityId?.ToString() ?? "—")</td></tr>
             <tr><th>الكيان الناتج</th><td>@(r.ResultEntityId?.ToString() ?? "—")</td></tr>
@@ -83,7 +83,7 @@
 
         @if (EstablishmentChangeWorkflowRules.CanCancel(r.Status) && Model.CanMutate)
         {
-            <form asp-action="Cancel" asp-route-id="@r.Id" method="post" class="mt-3 d-inline" onsubmit="return confirm('إلغاء طلب التغيير؟');">
+            <form asp-action="Cancel" asp-route-id="@r.Id" method="post" class="mt-3 d-inline" data-hr-confirm="إلغاء طلب التغيير؟" data-hr-confirm-variant="danger">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-outline-danger btn-sm">إلغاء الطلب</button>
             </form>

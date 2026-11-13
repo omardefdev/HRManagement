@@ -83,7 +83,7 @@
                 </form>
                 <form asp-action="Reject" asp-route-id="@Model.Id" method="post" class="d-flex flex-wrap gap-2 align-items-end">
                     @Html.AntiForgeryToken()
-                    <div class="flex-grow-1" style="min-width:12rem">
+                    <div class="flex-grow-1 hr-minw-12rem">
                         <label class="form-label small">سبب الرفض</label>
                         <input type="text" name="notes" class="form-control form-control-sm" />
                     </div>
@@ -106,7 +106,7 @@
                         <label class="form-label small">فرق البدلات (اختياري)</label>
                         <input type="number" step="0.01" name="allowanceChange" class="form-control form-control-sm" placeholder="0.00" />
                     </div>
-                    <div class="flex-grow-1" style="min-width:10rem">
+                    <div class="flex-grow-1 hr-minw-10rem">
                         <label class="form-label small">ملاحظات مالية</label>
                         <input type="text" name="financialNotes" class="form-control form-control-sm" />
                     </div>

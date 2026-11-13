@@ -61,3 +61,20 @@ Started (UTC): 2026-11-13T08:06:22.4518317Z
 - **0.5:** the first image build was stopped. It sends a fresh context for each service, so it would have picked up P1 edits made during the build. The P1 edits were stashed (`stash@{0}` plan67-p1-wip), and the images were rebuilt from the clean tree with `Security__CspMode=Enforce` in the prod-like compose file. That compose change is uncommitted and lands in P1.
 - Rule for this session: never edit `src/` outside `src/Tests` while an image build runs.
 - Finished (UTC): 2026-11-13T16:27:52Z — P0 committed (baseline, the CSP cause on the demo and locally, the inventory, before screenshots, the demo's residue).
+
+## P1 — one CSP per response, nothing inline
+
+- **Headers (D-67-1):** `UseHrSecurityHeaders` builds the policy as before but writes every security header in `Response.OnStarting`, and each only if the response does not carry it (a policy in either mode counts). A forwarded page keeps its service's policy and nonce; a gateway page, or a forwarded response without headers, gets the gateway's. The policy is unchanged (no `unsafe-*`, no wildcard).
+- **Handlers:** the ten `confirm()` calls are `data-hr-confirm` on their forms, with the same Arabic text (`danger` for the destructive ones). The approval review page has one form holding the comments and both decisions; Reject posts to its action through `formaction` (`asp-action` on the button). AC-WF-44 reads the form's own action: unaffected.
+- **`style` attributes (46):** classes in `syrian-theme.css` (`hr-col-30`, `hr-minw-*`, `hr-avatar-*`, `hr-text-*`, `hr-notification-container`…). Progress bars use `data-hr-progress`, applied by `shared-ui.js` through the CSSOM. `_FileImagePreview` takes `MaxHeightClass`.
+- **Test stacks:** `Security__CspMode: "Enforce"` on the 15 apps of `docker-compose.acceptance-prodlike.yml` and of `docker-compose.ci-e2e.yml`. The E2E compose config validates, with 15 `Enforce`.
+- **Tests:**
+  - `Ux067GatewaySecurityHeadersTests` 4/4. Through YARP's forwarder: a forwarded page keeps the destination's policy alone; a forwarded response without headers gets the gateway's once; a gateway page's nonce matches its policy. The real gateway (`GatewayTestFactory`) forwards `/careers` with the destination's policy alone.
+  - `Ux067ApprovalReviewCommentsTests` 2/2: the page has no `onclick`; approve and reject, posted to the targets the page renders, store the comments.
+  - `GuardSelfTests` 53/53.
+  - Unit tests over the compose files (`ProductionWiringMatrix`, `Pol049PolicyModeConsistency`, `Wf046Registry`, `Iam051ModuleFilterAndPolicies`, `Qa066Workflow`, `CiStepsParity`) 150/150.
+  - `ux003-no-native-confirm.ps1` OK. Solution build `-warnaserror` 0/0.
+  - Inventory after P1: 0 handlers, 0 `style` attributes.
+- The browser test of the confirmation (the dialog shows, cancel changes nothing) is AC-UX-67a (P7), on the prod-like stack's browser.
+- `acceptance-up.ps1` stops at its live verification without PowerShell 7 (the stack itself is up): use `-SkipLiveVerification`.
+- Finished (UTC): 2026-11-13T16:29:33Z

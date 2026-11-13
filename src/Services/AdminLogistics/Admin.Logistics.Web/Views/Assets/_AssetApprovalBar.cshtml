@@ -52,7 +52,7 @@
                 <input type="hidden" name="id" value="@Model.AssetId" />
                 <input type="hidden" name="requestId" value="@request.Id" />
                 <input type="hidden" name="kind" value="@Model.Kind" />
-                <input type="text" name="reason" class="form-control form-control-sm" style="min-width: 16rem"
+                <input type="text" name="reason" class="form-control form-control-sm hr-minw-16rem"
                        minlength="@AssetApprovalRules.MinWithdrawReasonLength" maxlength="@AssetApprovalRules.MaxWithdrawReasonLength"
                        required placeholder="سبب السحب (@AssetApprovalRules.MinWithdrawReasonLength أحرف على الأقل)" aria-label="سبب السحب" />
                 <button type="submit" class="btn btn-sm btn-outline-danger">سحب الطلب</button>

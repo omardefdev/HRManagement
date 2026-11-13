@@ -17,8 +17,8 @@
                     <h5 class="mb-0">@(e.ELearningCourse?.TitleAr ?? "—")</h5>
                     <span class="badge @(e.Status == HR.Training.Domain.Enums.LearningEnrollmentStatus.Completed ? "bg-success" : "bg-info")">@Html.DisplayFor(_ => e.Status)</span>
                 </div>
-                <div class="progress mb-2" style="height:18px;">
-                    <div class="progress-bar" role="progressbar" style="width:@(e.ProgressPercent)%;">@e.ProgressPercent%</div>
+                <div class="progress mb-2 hr-h-18px">
+                    <div class="progress-bar" role="progressbar" data-hr-progress="@e.ProgressPercent">@e.ProgressPercent%</div>
                 </div>
                 <div class="d-flex justify-content-between align-items-end">
                     <form asp-action="UpdateProgress" method="post" class="d-flex gap-2 align-items-end">
@@ -26,7 +26,7 @@
                         <input type="hidden" name="enrollmentId" value="@e.Id" />
                         <div>
                             <label class="form-label small mb-0">تحديث نسبة الإنجاز</label>
-                            <input name="progressPercent" type="number" min="0" max="100" value="@e.ProgressPercent" class="form-control form-control-sm" style="width:120px;" />
+                            <input name="progressPercent" type="number" min="0" max="100" value="@e.ProgressPercent" class="form-control form-control-sm hr-w-120px" />
                         </div>
                         <button type="submit" class="btn btn-outline-primary btn-sm">حفظ</button>
                     </form>

@@ -15,8 +15,8 @@
             <tr><th>رمز التأهيل</th><td>@qc.TitleAr (@qc.Code)</td></tr>
             <tr><th>الموظف</th><td><span data-hr-employee-id="@employeeId">جاري التحميل...</span></td></tr>
             <tr><th>نسبة الإكتمال</th><td>
-                <div class="progress" style="min-width:200px">
-                    <div class="progress-bar" style="width: @Model.CompletionPercentage%">@Model.CompletionPercentage%</div>
+                <div class="progress hr-minw-200px">
+                    <div class="progress-bar" data-hr-progress="@Model.CompletionPercentage.ToString(System.Globalization.CultureInfo.InvariantCulture)">@Model.CompletionPercentage%</div>
                 </div>
             </td></tr>
         </table>

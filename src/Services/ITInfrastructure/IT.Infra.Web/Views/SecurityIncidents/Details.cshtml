@@ -32,7 +32,7 @@
 
         @if (Model.Status == TicketStatus.Open)
         {
-            <form asp-action="Handle" asp-route-id="@Model.Id" method="post" style="display:inline">
+            <form asp-action="Handle" asp-route-id="@Model.Id" method="post" class="d-inline">
                 @Html.AntiForgeryToken()
                 <button type="submit" class="btn btn-warning">معالجة</button>
             </form>

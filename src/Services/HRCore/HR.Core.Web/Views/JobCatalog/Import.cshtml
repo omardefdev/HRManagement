@@ -17,7 +17,7 @@
         </p>
         @if (TempData["Error"] is string err)
         {
-            <div class="alert alert-danger" style="white-space: pre-line">@err</div>
+            <div class="alert alert-danger hr-pre-line">@err</div>
         }
         <form asp-action="Import" method="post" enctype="multipart/form-data">
             @Html.AntiForgeryToken()

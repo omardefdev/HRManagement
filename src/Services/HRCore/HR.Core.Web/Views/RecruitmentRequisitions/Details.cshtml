@@ -81,7 +81,7 @@
 
                 <a asp-action="Edit" asp-route-id="@requisition.Id" class="btn btn-primary btn-sm">تعديل</a>
 
-                <form asp-action="Delete" asp-route-id="@requisition.Id" method="post" class="d-inline" onsubmit="return confirm('حذف مسودة طلب الشاغر؟');">
+                <form asp-action="Delete" asp-route-id="@requisition.Id" method="post" class="d-inline" data-hr-confirm="حذف مسودة طلب الشاغر؟" data-hr-confirm-variant="danger" data-testid="requisition-delete-form">
 
                     @Html.AntiForgeryToken()
 
@@ -89,7 +89,7 @@
 
                 </form>
 
-                <form asp-action="Cancel" asp-route-id="@requisition.Id" method="post" class="d-inline" onsubmit="return confirm('إلغاء طلب الشاغر؟');">
+                <form asp-action="Cancel" asp-route-id="@requisition.Id" method="post" class="d-inline" data-hr-confirm="إلغاء طلب الشاغر؟" data-hr-confirm-variant="danger">
 
                     @Html.AntiForgeryToken()
 
@@ -103,7 +103,7 @@
 
             {
 
-                <form asp-action="Cancel" asp-route-id="@requisition.Id" method="post" class="d-inline" onsubmit="return confirm('إلغاء طلب الشاغر؟');">
+                <form asp-action="Cancel" asp-route-id="@requisition.Id" method="post" class="d-inline" data-hr-confirm="إلغاء طلب الشاغر؟" data-hr-confirm-variant="danger">
 
                     @Html.AntiForgeryToken()
 
@@ -177,7 +177,7 @@
 
             {
 
-                <form asp-action="Close" asp-route-id="@requisition.Id" method="post" class="d-inline" onsubmit="return confirm('إغلاق طلب الشاغر وإخفاء الإعلان؟');">
+                <form asp-action="Close" asp-route-id="@requisition.Id" method="post" class="d-inline" data-hr-confirm="إغلاق طلب الشاغر وإخفاء الإعلان؟" data-hr-confirm-variant="danger">
 
                     @Html.AntiForgeryToken()
 
