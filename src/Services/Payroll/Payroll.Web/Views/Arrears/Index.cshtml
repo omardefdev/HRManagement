@@ -82,7 +82,7 @@
                     };
                     <tr>
                         <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(e.EmployeeId, employeeNames.GetValueOrDefault(e.EmployeeId)))</td>
-                        <td>@e.PayrollRunId</td>
+                        <td><a asp-controller="PayrollRuns" asp-action="Details" asp-route-id="@e.PayrollRunId">عرض المسير</a></td>
                         <td>@e.OriginalAmount.ToString("N2")</td>
                         <td>@e.PaidAmount.ToString("N2")</td>
                         <td><strong>@e.ArrearsAmount.ToString("N2")</strong></td>

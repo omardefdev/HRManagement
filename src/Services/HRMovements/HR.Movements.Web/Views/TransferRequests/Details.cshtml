@@ -23,8 +23,8 @@
             <tr><th>التاريخ</th><td>@Html.HrDate(Model.RequestDate)</td></tr>
             <tr><th>الحالة</th><td><span class="badge bg-info">@Html.HrEnumDisplay(Model.Status)</span></td></tr>
             @if (!string.IsNullOrEmpty(Model.Reason)) { <tr><th>السبب</th><td>@Model.Reason</td></tr> }
-            @if (!string.IsNullOrEmpty(Model.SourceLegalRegimeId)) { <tr><th>نظام الخدمة الحالي</th><td>@Model.SourceLegalRegimeId</td></tr> }
-            @if (!string.IsNullOrEmpty(Model.TargetLegalRegimeId)) { <tr><th>نظام الخدمة الهدف</th><td>@Model.TargetLegalRegimeId</td></tr> }
+            @if (!string.IsNullOrEmpty(Model.SourceLegalRegimeId)) { <tr><th>نظام الخدمة الحالي</th><td>@Html.HrLegalName(Model.SourceLegalRegimeId)</td></tr> }
+            @if (!string.IsNullOrEmpty(Model.TargetLegalRegimeId)) { <tr><th>نظام الخدمة الهدف</th><td>@Html.HrLegalName(Model.TargetLegalRegimeId)</td></tr> }
             @if (!string.IsNullOrEmpty(Model.TransitionDecisionRef)) { <tr><th>مرجع القرار</th><td>@Model.TransitionDecisionRef</td></tr> }
             @if (!string.IsNullOrEmpty(Model.ConditionCode)) { <tr><th>شرط الانتقال</th><td>@Model.ConditionCode</td></tr> }
             @if (!string.IsNullOrEmpty(Model.ConflictNotes)) { <tr><th>ملاحظات المادة 159</th><td>@Model.ConflictNotes</td></tr> }
@@ -39,7 +39,7 @@
                 <div class="d-flex align-items-start mb-2">
                     <i class="fas fa-check-circle text-success me-2 mt-1"></i>
                     <div>
-                        <span class="fw-bold">@Html.HrDateTime(a.ApprovedAt)</span> — المعتمد: @a.ApprovedBy
+                        <span class="fw-bold">@Html.HrDateTime(a.ApprovedAt)</span> — المعتمد: @Html.HrUserName(a.ApprovedBy)
                         @if (a.OnBehalfOfUserId is not null)
                         {
                             @* PLAN-50 (§7) *@

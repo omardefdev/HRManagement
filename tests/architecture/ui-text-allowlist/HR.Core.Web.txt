@@ -1,46 +1,8 @@
 # PLAN-67 (P-12): what InterfaceTextGuardTests found in HR.Core.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
-src/Services/HRCore/HR.Core.Web/Views/Approvals/Index.cshtml#empty-table#<table class="table table-sm table-hover"> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/Approvals/Review.cshtml#empty-table#<table class="table table-sm table-bordered"> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/BenefitPlans/Index.cshtml#printed-id#@(plan.LegalRegimeId ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/CodePolicies/Index.cshtml#empty-table#<table class="table table-striped" data-testid="code-policie | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/CodePolicies/Issuances.cshtml#empty-table#<table class="table table-sm"> <thead><tr><th>ا | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/Competitions/Details.cshtml#empty-table#<table class="table table-sm align-middle"> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/Documents/Index.cshtml#printed-id#@(d.IssuedBy ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/EmployeeCorrections/Index.cshtml#printed-id#@c.Id.ToString()[ | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/Employees/Details.cshtml#printed-id#@(t.FromRegimeId ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/Employees/Details.cshtml#printed-id#@Model.DisplayNationalId</t | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/Employees/Details.cshtml#printed-id#@t.ToRegimeId</t | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/EssPortal/Attendance.cshtml#empty-table#<table class="table table-striped"> <thead><tr><th>التا | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/EssPortal/Documents.cshtml#empty-table#<table class="table table-striped"> <thead><tr> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/Details.cshtml#printed-id#@(r.ResultEntityId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/Details.cshtml#printed-id#@(r.TargetEntityId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
 src/Services/HRCore/HR.Core.Web/Views/EstablishmentChanges/Details.cshtml#raw-json#@r.PayloadJson</p | PLAN-67: P5 moves the JSON behind the technical view
-src/Services/HRCore/HR.Core.Web/Views/FundedPositions/Details.cshtml#printed-id#@(v.LegalSourceId ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/JobCatalog/Details.cshtml#printed-id#@(v.LegalSourceId ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#empty-table#<table class="table table-sm mb-0"> <thead>< | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#printed-id#@(publication.CheckerUserId?.ToString() ?? publication.CheckerRole ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#printed-id#@(publication.MakerUserId?.ToString() ?? publication.MakerRole ?? "—") | PLAN-67: P4 shows the name instead of the id
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#raw-json#@r.ThenJson</c | PLAN-67: P5 moves the JSON behind the technical view
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Details.cshtml#raw-json#@r.WhenJson</c | PLAN-67: P5 moves the JSON behind the technical view
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml#empty-table#<table class="table table-sm mb-0 align-middle"> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml#empty-table#<table class="table table-sm mb-0"> <thead><tr>< | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml#printed-id#@(e.UserId?.ToString() ?? "system") | PLAN-67: P4 shows the name instead of the id
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml#raw-json#@r.ThenJson</c | PLAN-67: P5 moves the JSON behind the technical view
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/EditRules.cshtml#raw-json#@r.WhenJson</c | PLAN-67: P5 moves the JSON behind the technical view
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Index.cshtml#empty-table#<table class="table table-sm mb-0"> <thead> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Index.cshtml#empty-table#<table class="table table-sm mb-0"> <thead><tr>< | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/Ledger.cshtml#printed-id#@(x.WorkflowInstanceId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
 src/Services/HRCore/HR.Core.Web/Views/PolicyTemplates/ShadowReport.cshtml#raw-json#@(l.ShadowDiffJson ?? "—") | PLAN-67: P5 moves the JSON behind the technical view
-src/Services/HRCore/HR.Core.Web/Views/PublicCareers/CompetitionResults.cshtml#empty-table#<table class="table table-sm align-middle"> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/PublicJobPostings/Details.cshtml#printed-id#@a.NationalId</t | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentAppeals/Details.cshtml#printed-id#@appeal.IndependentReviewerId</c | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentApplications/Details.cshtml#printed-id#@(app.NationalId ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/RecruitmentRequisitions/_AssessmentCriteriaPanel.cshtml#empty-table#<table class="table table-sm align-middle mb-2"> | PLAN-67: P4 adds the empty message
 src/Services/HRCore/HR.Core.Web/Views/ServiceRegimeExceptions/Index.cshtml#raw-json#@item.ConflictingEntitlementsJson</p | PLAN-67: P5 moves the JSON behind the technical view
-src/Services/HRCore/HR.Core.Web/Views/Shared/_EstablishmentChangeLogTable.cshtml#empty-table#<table class="table table-sm table-bordered"> <thead> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/Shared/_EstablishmentChangeLogTable.cshtml#printed-id#@(log.ActorUserId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/Shared/_EstablishmentChangeLogTable.cshtml#printed-id#@(log.LegalSourceId ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/Shared/_EstablishmentVersionTimeline.cshtml#printed-id#@(item.LegalSourceId ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRCore/HR.Core.Web/Views/StatusHistory/FullLog.cshtml#empty-table#<table class="table table-sm table-striped table-hover"> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/StatusHistory/Index.cshtml#empty-table#<table class="table table-sm table-striped table-hover"> | PLAN-67: P4 adds the empty message
-src/Services/HRCore/HR.Core.Web/Views/WorkforcePlans/GapReport.cshtml#empty-table#<table class="table table-sm"> <thead><tr>< | PLAN-67: P4 adds the empty message

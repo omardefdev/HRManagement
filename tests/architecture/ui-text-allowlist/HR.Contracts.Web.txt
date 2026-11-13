@@ -1,6 +1,0 @@
-# PLAN-67 (P-12): what InterfaceTextGuardTests found in HR.Contracts.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
-src/Services/HRContracts/HR.Contracts.Web/Views/CommencementRecords/Index.cshtml#printed-id#@(x.ContractId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRContracts/HR.Contracts.Web/Views/ContractTypeRegimeMaps/Form.cshtml#printed-id#@r.Id — | PLAN-67: P4 shows the name instead of the id
-src/Services/HRContracts/HR.Contracts.Web/Views/HireWizard/Step2.cshtml#printed-id#@(Model.Contract.LegalRegimeId ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRContracts/HR.Contracts.Web/Views/SeparationWizard/Step4.cshtml#empty-table#<table class="table table-bordered"> <thead> | PLAN-67: P4 adds the empty message
-src/Services/HRContracts/HR.Contracts.Web/Views/ServiceTransactions/Details.cshtml#printed-id#@Model.Id</t | PLAN-67: P4 shows the name instead of the id

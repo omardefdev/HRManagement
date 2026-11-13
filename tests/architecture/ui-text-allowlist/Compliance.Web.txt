@@ -1,8 +1,0 @@
-# PLAN-67 (P-12): what InterfaceTextGuardTests found in Compliance.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
-src/Services/Compliance/Compliance.Web/Views/AuditFindings/Details.cshtml#printed-id#@(Model.AuditId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/Compliance/Compliance.Web/Views/Complaints/Details.cshtml#printed-id#@Model.FiledBy | PLAN-67: P4 shows the name instead of the id
-src/Services/Compliance/Compliance.Web/Views/ComplianceRecommendations/Details.cshtml#printed-id#@(Model.ResponsibleUnitId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/Compliance/Compliance.Web/Views/ComplianceRecommendations/Details.cshtml#printed-id#@Model.FindingId</a | PLAN-67: P4 shows the name instead of the id
-src/Services/Compliance/Compliance.Web/Views/ComplianceRecommendations/Index.cshtml#printed-id#@x.FindingId</t | PLAN-67: P4 shows the name instead of the id
-src/Services/Compliance/Compliance.Web/Views/DisciplinaryActions/Details.cshtml#printed-id#@(Model.IssuedBy?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/Compliance/Compliance.Web/Views/DisciplinaryActions/Details.cshtml#printed-id#@Model.ComplaintId</a | PLAN-67: P4 shows the name instead of the id

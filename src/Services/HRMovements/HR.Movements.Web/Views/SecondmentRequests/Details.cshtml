@@ -52,7 +52,7 @@
                 <tbody>
                 @foreach (var r in Model.ExecutionRecords.OrderByDescending(r => r.ExecutedAt))
                 {
-                    <tr><td>@Html.HrDateTime(r.ExecutedAt)</td><td>@r.ExecutedBy</td><td>@r.Notes</td></tr>
+                    <tr><td>@Html.HrDateTime(r.ExecutedAt)</td><td>@Html.HrUserName(r.ExecutedBy)</td><td>@r.Notes</td></tr>
                 }
                 </tbody>
             </table>

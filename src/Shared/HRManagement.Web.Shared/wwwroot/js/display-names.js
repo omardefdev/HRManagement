@@ -78,9 +78,22 @@
 
 
 
-    function fetchBatch(path, ids, groups) {
+    // PLAN-67 (D-67-3): user names come from the gateway (its own origin), not from HR.Core's lookup base.
+    function userNamesBase() {
+        return document.body.getAttribute('data-user-names-base') || '';
+    }
 
-        return fetch(lookupBase() + path, {
+    function applyUserName(item, elements) {
+        if (!item || !item.label) return;
+        elements.forEach(function (el) {
+            el.textContent = item.label;
+            el.removeAttribute('title');
+        });
+    }
+
+    function fetchBatch(path, ids, groups, base, apply) {
+
+        return fetch((base === undefined ? lookupBase() : base) + path, {
 
             method: 'POST',
 
@@ -110,7 +123,7 @@
 
                     var els = groups.get(key) || groups.get(String(item.id));
 
-                    if (els) applyLabel(item, els);
+                    if (els) (apply || applyLabel)(item, els);
 
                 });
 
@@ -129,7 +142,7 @@
 
 
 
-    function hydrateBatch(path, groups) {
+    function hydrateBatch(path, groups, base, apply) {
 
         var ids = Array.from(groups.keys());
 
@@ -139,7 +152,7 @@
 
         return Promise.all(chunks.map(function (chunk) {
 
-            return fetchBatch(path, chunk, groups);
+            return fetchBatch(path, chunk, groups, base, apply);
 
         }));
 
@@ -152,12 +165,15 @@
         var employeeGroups = groupElements('[data-hr-employee-id]', 'data-hr-employee-id');
 
         var orgUnitGroups = groupElements('[data-hr-org-unit-id]', 'data-hr-org-unit-id');
+        var userGroups = groupElements('[data-hr-user-id]', 'data-hr-user-id');
 
         Promise.all([
 
             hydrateBatch('/api/lookup/employees/by-ids', employeeGroups),
 
-            hydrateBatch('/api/lookup/org-units/by-ids', orgUnitGroups)
+            hydrateBatch('/api/lookup/org-units/by-ids', orgUnitGroups),
+            // An id the registry does not know keeps «مستخدم غير معروف» and its tooltip.
+            hydrateBatch('/api/user-names/by-ids', userGroups, userNamesBase(), applyUserName)
 
         ]);
 

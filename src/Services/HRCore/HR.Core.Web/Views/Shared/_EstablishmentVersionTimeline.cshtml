@@ -21,7 +21,7 @@
                     <td>@Html.HrDateTime(((DateTime)item.ValidFrom))</td>
                     <td>@(item.ValidTo is DateTime vt ? Html.HrDateTimeText(vt) : "—")</td>
                     <td>@Html.HrEnumDisplay((Enum)item.OperationType)</td>
-                    <td>@(item.LegalSourceId ?? "—")</td>
+                    <td>@Html.HrLegalName((string?)item.LegalSourceId)</td>
                     <td>@(item.DecisionReference ?? "—")</td>
                 </tr>
             }

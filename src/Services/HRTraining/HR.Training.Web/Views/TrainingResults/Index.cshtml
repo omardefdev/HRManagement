@@ -9,7 +9,7 @@
             @foreach (var x in Model)
             {
                 <tr>
-                    <td>@x.Enrollment.EmployeeId</td>
+                    <td>@Html.HrEmployeeName(x.Enrollment.EmployeeId)</td>
                     <td>@(x.Enrollment.Course?.TitleAr ?? "—")</td>
                     <td>@x.Score</td>
                     <td>@Html.HrDate(x.GradedAt)</td>

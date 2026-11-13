@@ -63,7 +63,7 @@
                             <tr>
                                 <td>@ur.Role.Name</td>
                                 <td>@Html.HrDateTime(ur.AssignedAt)</td>
-                                <td>@(ur.AssignedBy ?? "—")</td>
+                                <td>@Html.HrUserName(ur.AssignedBy)</td>
                             </tr>
                         }
                         @if (!Model.UserRoles.Any())

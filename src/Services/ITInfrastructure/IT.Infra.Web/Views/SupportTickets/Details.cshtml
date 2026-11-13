@@ -18,7 +18,7 @@
             <dd class="col-sm-9">@Html.HrEnumDisplay(Model.Status)</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.ReportedBy)</dt>
-            <dd class="col-sm-9">@Model.ReportedBy</dd>
+            <dd class="col-sm-9">@Html.HrUserName(Model.ReportedBy)</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.AssignedTo)</dt>
             <dd class="col-sm-9">@Model.AssignedTo</dd>

@@ -51,10 +51,10 @@
             @foreach (var x in Model)
             {
                 <tr>
-                    <td>@x.PayrollRunId</td>
+                    <td><a asp-controller="PayrollRuns" asp-action="Details" asp-route-id="@x.PayrollRunId">عرض المسير</a></td>
                     <td>@Html.HrEnumDisplay(x.Status)</td>
-                    <td>@(x.AuditorId?.ToString() ?? "—")</td>
-                    <td>@(x.ClosedBy?.ToString() ?? "—")</td>
+                    <td>@Html.HrUserName(x.AuditorId)</td>
+                    <td>@Html.HrUserName(x.ClosedBy)</td>
                     <td>@(x.Findings ?? "—")</td>
                     <td class="text-end">
                         @if (x.Status == AuditStatus.Open)

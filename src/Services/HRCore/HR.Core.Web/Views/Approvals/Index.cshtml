@@ -82,6 +82,10 @@
                             </td>
                         </tr>
                     }
+                @if (!(Model.Requests.Items).Any())
+                    {
+                        <tr><td colspan="7"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
             </table>
         </div>

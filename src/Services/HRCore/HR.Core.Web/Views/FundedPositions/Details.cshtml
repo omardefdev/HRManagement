@@ -104,7 +104,7 @@
                             <td>@Html.HrDateTime(v.ValidFrom)</td>
                             <td>@Html.HrDateTime(v.ValidTo)</td>
                             <td>@Html.HrEnumDisplay(v.OperationType)</td>
-                            <td>@(v.LegalSourceId ?? "—")</td>
+                            <td>@Html.HrLegalName(v.LegalSourceId)</td>
                         </tr>
                     }
                 </tbody>

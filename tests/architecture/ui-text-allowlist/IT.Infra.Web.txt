@@ -1,5 +1,0 @@
-# PLAN-67 (P-12): what InterfaceTextGuardTests found in IT.Infra.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
-src/Services/ITInfrastructure/IT.Infra.Web/Views/SecurityIncidents/Details.cshtml#printed-id#@Model.HandledBy</d | PLAN-67: P4 shows the name instead of the id
-src/Services/ITInfrastructure/IT.Infra.Web/Views/SupportTickets/Details.cshtml#printed-id#@Model.ReportedBy</d | PLAN-67: P4 shows the name instead of the id
-src/Services/ITInfrastructure/IT.Infra.Web/Views/SystemPermissionRecords/Details.cshtml#printed-id#@Model.UserId</d | PLAN-67: P4 shows the name instead of the id
-src/Services/ITInfrastructure/IT.Infra.Web/Views/SystemPermissionRecords/Index.cshtml#printed-id#@x.UserId</t | PLAN-67: P4 shows the name instead of the id

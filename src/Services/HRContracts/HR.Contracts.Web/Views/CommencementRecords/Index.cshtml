@@ -45,7 +45,7 @@
                     <tr>
                         <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(x.EmployeeId, employeeNames.GetValueOrDefault(x.EmployeeId)))</td>
                         <td>@Html.HrDate(x.StartDate)</td>
-                        <td>@(x.ContractId?.ToString() ?? "—")</td>
+                        <td>@if (x.ContractId is Guid linkedContract) { <a asp-controller="Contracts" asp-action="Details" asp-route-id="@linkedContract">عرض العقد</a> } else { <span>—</span> }</td>
                         <td>
                             <a asp-action="Edit" asp-route-id="@x.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
                             <button type="button" class="btn btn-danger btn-xs" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="@Url.Action("Delete", new { id = x.Id })" aria-label="حذف"><i aria-hidden="true" class="fas fa-trash"></i></button>

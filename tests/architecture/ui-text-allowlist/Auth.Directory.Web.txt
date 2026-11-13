@@ -1,3 +1,0 @@
-# PLAN-67 (P-12): what InterfaceTextGuardTests found in Auth.Directory.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
-src/Services/AuthDirectory/Auth.Directory.Web/Views/AuthUsers/Details.cshtml#printed-id#@(Model.KeycloakUserId ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/AuthDirectory/Auth.Directory.Web/Views/AuthUsers/Details.cshtml#printed-id#@(ur.AssignedBy ?? "—") | PLAN-67: P4 shows the name instead of the id

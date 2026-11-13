@@ -1,5 +1,0 @@
-# PLAN-67 (P-12): what InterfaceTextGuardTests found in IDCard.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
-src/Services/IDCard/IDCard.Web/Views/AccessPermissions/Index.cshtml#printed-id#@x.IssuedCardId</t | PLAN-67: P4 shows the name instead of the id
-src/Services/IDCard/IDCard.Web/Views/CardRequests/Details.cshtml#printed-id#@Model.RequestedBy</d | PLAN-67: P4 shows the name instead of the id
-src/Services/IDCard/IDCard.Web/Views/OfficialSealRecords/Details.cshtml#printed-id#@(Model.IssuedBy ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/IDCard/IDCard.Web/Views/OfficialSealRecords/Index.cshtml#printed-id#@x.IssuedBy</t | PLAN-67: P4 shows the name instead of the id

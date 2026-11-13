@@ -73,7 +73,7 @@
             @foreach (var c in Model.Items)
             {
                 <tr>
-                    <td><code>@c.Id.ToString()[..8]</code></td>
+                    <td>@Html.HrDate(c.CreatedAt)</td>
                     <td><span data-hr-employee-id="@c.EmployeeId">جاري التحميل...</span></td>
                     <td>@c.Reason</td>
                     <td>@Html.HrEnumDisplay(c.Status)</td>

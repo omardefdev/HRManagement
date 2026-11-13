@@ -18,6 +18,10 @@
                     <td><a asp-action="Payslip" asp-route-salaryLineId="@line.Id" class="btn btn-sm btn-outline-primary">عرض</a></td>
                 </tr>
             }
+            @if (!(Model).Any())
+                {
+                    <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

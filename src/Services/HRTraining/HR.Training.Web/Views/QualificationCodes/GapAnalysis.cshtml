@@ -37,6 +37,10 @@
                     </td>
                 </tr>
             }
+            @if (!(Model.RequiredCourseIds).Any())
+                {
+                    <tr><td colspan="2"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

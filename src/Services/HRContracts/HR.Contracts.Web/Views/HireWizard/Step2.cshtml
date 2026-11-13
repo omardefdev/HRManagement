@@ -20,7 +20,7 @@
             <span class="text-muted small">
                 العقد: @Model.Contract.ContractType?.Code — الدرجة @(Model.Contract.GradeCode ?? "—")
                 — الراتب @(Model.Contract.AgreedBaseSalary?.ToString("#,0.##") ?? "—")
-                — النظام @(Model.Contract.LegalRegimeId ?? "—") — @Html.HrStoredEnumDisplay("HireEmploymentTypes", Model.Contract.EmploymentType)
+                — النظام @Html.HrLegalName(Model.Contract.LegalRegimeId) — @Html.HrStoredEnumDisplay("HireEmploymentTypes", Model.Contract.EmploymentType)
             </span>
         }
     </div>

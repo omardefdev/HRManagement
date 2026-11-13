@@ -20,7 +20,7 @@
                             <td>@PolicyVocabularyAr.DomainName(x.Domain) <span class="hr-internal-code">@x.Domain</span></td>
                             <td>@PolicyVocabularyAr.Action(x.Action)</td>
                             <td>@Html.HrEnumDisplay(x.Mode)</td>
-                            <td>@(x.WorkflowInstanceId?.ToString() ?? "—")</td>
+                            <td>@if (x.WorkflowInstanceId is Guid wf) { <span data-workflow-instance-id="@wf">بدأ مساراً</span> } else { <span>—</span> }</td>
                             <td><code class="small" dir="ltr" title="بصمة تقنية للحقائق التي قُرّر عليها">@x.FactsHash</code></td>
                         </tr>
                     }

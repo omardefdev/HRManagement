@@ -52,7 +52,7 @@
                     <span data-hr-employee-id="@Model.RequestedBy">@EmpName(Model.RequestedBy)</span>
                 }
             </dd>
-            <dt class="col-sm-3">الوحدة التنظيمية</dt><dd class="col-sm-9"><span data-hr-org-unit-id="@Model.OrgUnitId">@Model.OrgUnitId</span></dd>
+            <dt class="col-sm-3">الوحدة التنظيمية</dt><dd class="col-sm-9">@Html.HrOrgUnitName(Model.OrgUnitId)</dd>
             <dt class="col-sm-3">التفاصيل</dt><dd class="col-sm-9">@(Model.Items ?? "—")</dd>
             <dt class="col-sm-3">تاريخ الطلب</dt><dd class="col-sm-9">@Html.HrDate(Model.OrderedAt)</dd>
             <dt class="col-sm-3">تاريخ التنفيذ</dt><dd class="col-sm-9">@Html.HrDate(Model.FulfilledAt)</dd>

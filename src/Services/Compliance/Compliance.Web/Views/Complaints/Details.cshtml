@@ -14,7 +14,7 @@
             <dd class="col-sm-9">
                 @if (ViewBag.CanSeeReporter is true)
                 {
-                    @Model.FiledBy
+                    @Html.HrUserName(Model.FiledBy)
                 }
                 else
                 {

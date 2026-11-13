@@ -549,6 +549,10 @@
                                 <td class="small">@(r.TieUnresolved ? HR.Core.Domain.Services.CompetitionScoringRules.UnresolvedTieMessage : r.TieDecisionReason)</td>
                             </tr>
                         }
+                    @if (!(Model.Results).Any())
+                        {
+                            <tr><td colspan="7"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                        }
                     </tbody>
                 </table>
             </div>

@@ -122,6 +122,8 @@ builder.Services.AddSingleton<IGatewayModuleCatalog, GatewayModuleCatalog>();
 builder.Services.AddSingleton<IGatewayJourneyCatalog, GatewayJourneyCatalog>();
 builder.Services.AddScoped<IGatewayHealthProbeService, GatewayHealthProbeService>();
 builder.Services.AddScoped<IGatewayAuditQueryService, GatewayAuditQueryService>();
+// PLAN-67 (D-67-3): the names of signed-in users, for the pages that show a person instead of an id.
+builder.Services.AddSingleton<GatewayUserNameRegistry>();
 builder.Services.AddScoped<IJourneyRebuildService, JourneyRebuildService>();
 // PLAN-37: required URLs (start-up error naming the key outside Development; no localhost fallback in a container).
 var gatewayEndpoints = GatewayIntegrationEndpoints.Resolve(builder.Configuration, builder.Environment);
@@ -239,6 +241,7 @@ app.UsePlatformTenantSession();
 app.UseHrTenantId();
 app.UseGatewayAccessTokenRefresh();
 app.UseAuthorization();
+app.UseMiddleware<GatewayUserNameRegistryMiddleware>();
 app.UseGatewayAudit();
 app.UseGatewayPathAuthorization();
 

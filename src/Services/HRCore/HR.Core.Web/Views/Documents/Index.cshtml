@@ -85,7 +85,7 @@
 
                         <td>@DocTypeAr(d.DocType)</td>
 
-                        <td>@(d.IssuedBy ?? "—")</td>
+                        <td>@Html.HrUserName(d.IssuedBy)</td>
 
                         <td>@Html.HrDate(d.IssueDate)</td>
 

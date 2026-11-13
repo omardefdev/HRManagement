@@ -17,7 +17,7 @@
             <dt class="col-sm-3">تاريخ الانعقاد</dt><dd class="col-sm-9">@Html.HrDate(Model.CommitteeDate)</dd>
             <dt class="col-sm-3">النتائج</dt><dd class="col-sm-9">@(Model.Findings ?? "—")</dd>
             <dt class="col-sm-3">التوصية</dt><dd class="col-sm-9"><span class="badge bg-info">@Html.HrEnumDisplay(Model.Recommendation)</span></dd>
-            <dt class="col-sm-3">صادر عن</dt><dd class="col-sm-9">@(Model.IssuedBy ?? "—")</dd>
+            <dt class="col-sm-3">صادر عن</dt><dd class="col-sm-9">@Html.HrUserName(Model.IssuedBy)</dd>
             <dt class="col-sm-3">المستندات</dt><dd class="col-sm-9">@(Model.RelatedDocuments ?? "—")</dd>
         </dl>
     </div>

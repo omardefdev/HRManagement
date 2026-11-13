@@ -14,6 +14,19 @@
         EstablishmentChangeStatus.Cancelled => "bg-dark",
         _ => "bg-secondary"
     };
+
+    // PLAN-67 (G-UX-04): the record a change targets or produced, by its link, not its id.
+    Microsoft.AspNetCore.Html.IHtmlContent EntityLink(Guid? id)
+    {
+        if (id is not Guid entityId)
+            return Html.Raw("—");
+        var controller = Model.Request.ChangeType is EstablishmentChangeType.CreateFundedPosition
+            or EstablishmentChangeType.FreezeFundedPosition or EstablishmentChangeType.UnfreezeFundedPosition
+            ? "FundedPositions"
+            : "JobCatalog";
+        var label = controller == "FundedPositions" ? "عرض المنصب الممول" : "عرض الوظيفة في الدليل";
+        return Html.Raw($"<a href=\"{System.Net.WebUtility.HtmlEncode(Url.Action("Details", controller, new { id = entityId }))}\">{label}</a>");
+    }
 }
 
 <div class="card">
@@ -25,8 +38,8 @@
         <table class="table table-sm">
             <tr><th class="hr-col-30">نوع التغيير</th><td>@Html.HrEnumDisplay(r.ChangeType)</td></tr>
             <tr><th>الحالة</th><td>@Html.HrEnumDisplay(r.Status)</td></tr>
-            <tr><th>الكيان المستهدف</th><td>@(r.TargetEntityId?.ToString() ?? "—")</td></tr>
-            <tr><th>الكيان الناتج</th><td>@(r.ResultEntityId?.ToString() ?? "—")</td></tr>
+            <tr><th>الكيان المستهدف</th><td>@EntityLink(r.TargetEntityId)</td></tr>
+            <tr><th>الكيان الناتج</th><td>@EntityLink(r.ResultEntityId)</td></tr>
             <tr><th>المرجع القانوني</th><td>@(Model.LegalSourceLabel ?? r.LegalSourceId ?? "—")</td></tr>
             <tr><th>مرجع القرار</th><td>@(r.DecisionReference ?? "—")</td></tr>
             <tr><th>مبررات</th><td>@(r.JustificationNotes ?? "—")</td></tr>

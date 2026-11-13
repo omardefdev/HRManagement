@@ -84,7 +84,7 @@
             @foreach (var x in Model)
             {
                 <tr>
-                    <td>@x.RuleId</td>
+                    <td>@Html.HrTextWithCodes(x.RuleId)</td>
                     <td>@Html.HrStoredEnumDisplay("FraudAlertCategory", x.Category)</td>
                     <td>@Html.HrStoredEnumDisplay("Code", x.Severity)</td>
                     <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(x.EmployeeId, employeeNames.GetValueOrDefault(x.EmployeeId)))</td>

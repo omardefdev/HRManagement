@@ -15,7 +15,7 @@
         @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
 
         <table class="table table-sm">
-            <tr><th>المعرّف</th><td>@Model.Id</td></tr>
+            <tr><th>الرقم المرجعي</th><td>@(Model.ReferenceNumber ?? "—")</td></tr>
             <tr><th>الرقم المرجعي</th><td>@(Model.ReferenceNumber ?? "—")</td></tr>
             <tr><th>الموظف</th><td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(Model.EmployeeId, ViewBag.EmployeeName as string))</td></tr>
             <tr><th>النوع</th><td>@Html.HrEnumDisplay(Model.TransactionType)</td></tr>

@@ -20,6 +20,9 @@ public sealed class GatewayAuditDbContext(DbContextOptions<GatewayAuditDbContext
     public DbSet<EvidencePackExport> EvidencePackExports => Set<EvidencePackExport>();
     public DbSet<GatewayAuditChainState> AuditChainStates => Set<GatewayAuditChainState>();
 
+    /// <summary>PLAN-67 (D-67-3): the names of the users who signed in, for the pages that show a person instead of an id.</summary>
+    public DbSet<GatewayUserName> UserNames => Set<GatewayUserName>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         var e = modelBuilder.Entity<GatewayAuditEntry>();
@@ -70,6 +73,15 @@ public sealed class GatewayAuditDbContext(DbContextOptions<GatewayAuditDbContext
 
         modelBuilder.ConfigureEvidenceRecords();
         modelBuilder.ConfigureEvidenceArtifacts();
+
+        modelBuilder.Entity<GatewayUserName>(entity =>
+        {
+            entity.ToTable("gateway_user_names");
+            entity.HasKey(x => x.Sub);
+            entity.Property(x => x.Sub).HasMaxLength(128);
+            entity.Property(x => x.DisplayName).HasMaxLength(256);
+            entity.HasIndex(x => x.TenantId);
+        });
 
         modelBuilder.Entity<GatewayAuditChainState>(entity =>
         {

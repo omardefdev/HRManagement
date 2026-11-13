@@ -168,6 +168,10 @@
                                     <td><button type="button" class="btn btn-outline-danger btn-sm" data-criteria-remove title="حذف البند"><i class="fas fa-trash"></i></button></td>
                                 </tr>
                             }
+                        @if (!(Model.EditorSeed).Any())
+                            {
+                                <tr><td colspan="6"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                            }
                         </tbody>
                         <tfoot>
                             <tr>

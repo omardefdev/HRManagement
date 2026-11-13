@@ -85,8 +85,8 @@
         {
             <div class="card-body border-bottom small">
                 النوع: <strong>@Html.HrEnumDisplay(publication.Kind)</strong>
-                · المحرّر: <code>@(publication.MakerUserId?.ToString() ?? publication.MakerRole ?? "—")</code>
-                · الناشر: <code>@(publication.CheckerUserId?.ToString() ?? publication.CheckerRole ?? "—")</code>
+                · المحرّر: @(publication.MakerUserId is null ? Html.HrUserName(publication.Kind == PolicyPublicationKind.SystemSeed ? "system" : publication.MakerRole) : Html.HrUserName(publication.MakerUserId))
+                · الناشر: @(publication.CheckerUserId is null ? Html.HrUserName(publication.Kind == PolicyPublicationKind.SystemSeed ? "system" : publication.CheckerRole) : Html.HrUserName(publication.CheckerUserId))
                 · الدليل: @Html.HrTextWithCodes(publication.EvidenceRef)
                 · النشر: @Html.HrDateTime(publication.PublishedAt)
                 @if (publication.RolledBackFromVersionId is Guid rolledBack)
@@ -112,6 +112,10 @@
                             <td><code class="small" dir="ltr">@r.WhenJson</code></td>
                             <td><code class="small" dir="ltr">@r.ThenJson</code></td>
                         </tr>
+                    }
+                @if (!(v.Rules.OrderBy(x => x.Priority).ThenBy(x => x.RuleKey)).Any())
+                    {
+                        <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا قواعد في هذا الإصدار.")" /></td></tr>
                     }
                 </tbody>
             </table>

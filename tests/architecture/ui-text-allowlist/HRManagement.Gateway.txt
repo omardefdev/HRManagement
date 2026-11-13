@@ -1,2 +1,0 @@
-# PLAN-67 (P-12): what InterfaceTextGuardTests found in HRManagement.Gateway when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
-src/Gateway/HRManagement.Gateway/Views/Home/Audit.cshtml#empty-table#<table class="table table-striped table-bordered align-middl | PLAN-67: P4 adds the empty message

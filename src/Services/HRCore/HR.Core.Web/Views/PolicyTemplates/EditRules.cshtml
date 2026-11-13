@@ -68,6 +68,10 @@
                         </tr>
                     }
                 }
+            @if (!(Model.Rules.OrderBy(x => x.Priority).ThenBy(x => x.RuleKey)).Any())
+                {
+                    <tr><td colspan="6"><partial name="_HrEmptyState" model="@("لا قواعد في هذه المسودة بعد.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>
@@ -125,16 +129,20 @@
             <tbody>
                 @if (Model.CreatedBy is Guid creator && edits.All(e => e.UserId != creator))
                 {
-                    <tr><td><code>@creator</code></td><td>@Html.HrEnumDisplay(HR.Core.Domain.Entities.Policy.PolicyVersionEditAction.Create)</td><td></td><td>@Html.HrDateTime(Model.CreatedAt)</td></tr>
+                    <tr><td>@Html.HrUserName(creator)</td><td>@Html.HrEnumDisplay(HR.Core.Domain.Entities.Policy.PolicyVersionEditAction.Create)</td><td></td><td>@Html.HrDateTime(Model.CreatedAt)</td></tr>
                 }
                 @foreach (var e in edits)
                 {
                     <tr>
-                        <td><code>@(e.UserId?.ToString() ?? "system")</code></td>
+                        <td>@Html.HrUserName(e.UserId?.ToString() ?? "system")</td>
                         <td>@Html.HrEnumDisplay(e.Action)</td>
                         <td>@e.RuleKey</td>
                         <td>@Html.HrDateTime(e.OccurredAt)</td>
                     </tr>
+                }
+            @if (!(edits).Any())
+                {
+                    <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا قواعد في هذه المسودة بعد.")" /></td></tr>
                 }
             </tbody>
         </table>

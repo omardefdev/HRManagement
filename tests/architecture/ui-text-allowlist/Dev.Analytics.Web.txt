@@ -1,4 +1,0 @@
-# PLAN-67 (P-12): what InterfaceTextGuardTests found in Dev.Analytics.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
-src/Services/DevAnalytics/Dev.Analytics.Web/Views/Dashboards/Details.cshtml#printed-id#@Model.OwnerId</d | PLAN-67: P4 shows the name instead of the id
-src/Services/DevAnalytics/Dev.Analytics.Web/Views/Dashboards/Index.cshtml#empty-table#<table class="table table-sm"> <caption> | PLAN-67: P4 adds the empty message
-src/Services/DevAnalytics/Dev.Analytics.Web/Views/Reports/Details.cshtml#printed-id#@Model.GeneratedBy</d | PLAN-67: P4 shows the name instead of the id

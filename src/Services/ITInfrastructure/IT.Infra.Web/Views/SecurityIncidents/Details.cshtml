@@ -23,7 +23,7 @@
             <dd class="col-sm-9">@Html.HrEnumDisplay(Model.Status)</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.HandledBy)</dt>
-            <dd class="col-sm-9">@Model.HandledBy</dd>
+            <dd class="col-sm-9">@Html.HrUserName(Model.HandledBy)</dd>
         </dl>
     </div>
     <div class="card-footer">

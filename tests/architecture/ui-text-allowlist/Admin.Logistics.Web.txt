@@ -1,3 +1,0 @@
-# PLAN-67 (P-12): what InterfaceTextGuardTests found in Admin.Logistics.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
-src/Services/AdminLogistics/Admin.Logistics.Web/Views/MaintenanceRecords/Details.cshtml#printed-id#@(Model.PerformedBy ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/AdminLogistics/Admin.Logistics.Web/Views/SupplyOrders/Details.cshtml#printed-id#@Model.OrgUnitId</s | PLAN-67: P4 shows the name instead of the id

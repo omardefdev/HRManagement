@@ -99,8 +99,8 @@
                             @foreach (var t in Model.RegimeTransitions)
                             {
                                 <tr>
-                                    <td>@(t.FromRegimeId ?? "—")</td>
-                                    <td>@t.ToRegimeId</td>
+                                    <td>@Html.HrLegalName(t.FromRegimeId)</td>
+                                    <td>@Html.HrLegalName(t.ToRegimeId)</td>
                                     <td>@Html.HrDate(t.EffectiveFrom)</td>
                                     <td>@t.TransitionDecisionRef</td>
                                     <td>@(string.IsNullOrWhiteSpace(t.ConflictNotes) ? "—" : t.ConflictNotes)</td>

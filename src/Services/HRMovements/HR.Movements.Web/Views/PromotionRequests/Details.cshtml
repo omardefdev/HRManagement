@@ -16,7 +16,7 @@
         @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
         <table class="table table-borderless table-sm w-auto">
             <tr><th>الموظف</th><td><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></td></tr>
-            <tr><th>نظام الخدمة</th><td>@Model.SourceLegalRegimeId</td></tr>
+            <tr><th>نظام الخدمة</th><td>@Html.HrLegalName(Model.SourceLegalRegimeId)</td></tr>
             <tr><th>من</th><td>@Model.FromGrade / @Model.FromStep</td></tr>
             <tr><th>إلى</th><td>@Model.ToGrade / @Model.ToStep</td></tr>
             <tr><th>مرجع القرار</th><td>@Model.TransitionDecisionRef</td></tr>

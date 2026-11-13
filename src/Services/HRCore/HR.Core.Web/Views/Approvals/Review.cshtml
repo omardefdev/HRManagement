@@ -78,6 +78,10 @@
                                 <td>@(step.Comments ?? "—")</td>
                             </tr>
                         }
+                    @if (!(Model.Steps).Any())
+                        {
+                            <tr><td colspan="6"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                        }
                     </tbody>
                 </table>
 

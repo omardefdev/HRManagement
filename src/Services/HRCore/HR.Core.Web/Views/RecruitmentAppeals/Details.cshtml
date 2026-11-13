@@ -130,7 +130,7 @@
             }
             else if (appeal.IndependentReviewerId is not null)
             {
-                <span>معرّف مستخدم قديم: <code>@appeal.IndependentReviewerId</code></span>
+                <span>مراجع مستقل (سجل قديم): @Html.HrUserName(appeal.IndependentReviewerId)</span>
             }
             else
             {

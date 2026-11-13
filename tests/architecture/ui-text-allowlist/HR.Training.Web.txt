@@ -1,5 +1,0 @@
-# PLAN-67 (P-12): what InterfaceTextGuardTests found in HR.Training.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
-src/Services/HRTraining/HR.Training.Web/Views/QualificationCodes/GapAnalysis.cshtml#empty-table#<table class="table table-sm table-striped"> <th | PLAN-67: P4 adds the empty message
-src/Services/HRTraining/HR.Training.Web/Views/TrainingResults/Details.cshtml#printed-id#@(Model.GradedBy?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
-src/Services/HRTraining/HR.Training.Web/Views/TrainingResults/Details.cshtml#printed-id#@Model.Enrollment.EmployeeId</t | PLAN-67: P4 shows the name instead of the id
-src/Services/HRTraining/HR.Training.Web/Views/TrainingResults/Index.cshtml#printed-id#@x.Enrollment.EmployeeId</t | PLAN-67: P4 shows the name instead of the id

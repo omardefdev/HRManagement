@@ -11,7 +11,7 @@
             <dd class="col-sm-9"><pre>@Model.Widgets</pre></dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.OwnerId)</dt>
-            <dd class="col-sm-9">@Model.OwnerId</dd>
+            <dd class="col-sm-9">@Html.HrUserName(Model.OwnerId)</dd>
         </dl>
     </div>
     <div class="card-footer">

@@ -64,6 +64,10 @@ public static partial class InterfaceTextScanner
     public static readonly IReadOnlyList<(string FileSuffix, string Member, string Reason)> TechnicalIds =
     [
         ("HRManagement.Gateway/Views/Home/Audit.cshtml", "CorrelationId", "the correlation id on the audit page: what an operator searches the logs with"),
+        ("Auth.Directory.Web/Views/AuthUsers/Details.cshtml", "KeycloakUserId", "the Keycloak id on the user admin page: what links the directory entry to its identity"),
+        ("HR.Core.Web/Views/Employees/Details.cshtml", "DisplayNationalId", "the national number is the person's identifier itself, shown masked by the model"),
+        ("HR.Core.Web/Views/RecruitmentApplications/Details.cshtml", "NationalId", "the candidate's national number is the identifier the committee checks"),
+        ("HR.Core.Web/Views/PublicJobPostings/Details.cshtml", "NationalId", "the applicants' national numbers are the identifiers the committee checks"),
     ];
 
     private static readonly string[] ExcludedDirectories = ["/bin/", "/obj/", "/node_modules/", "/.claude/", "/artifacts/"];

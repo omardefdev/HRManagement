@@ -11,7 +11,7 @@
             <dt class="col-sm-3">النوع</dt><dd class="col-sm-9">@Html.HrEnumDisplay(Model.RecommendationType)</dd>
             <dt class="col-sm-3">التفاصيل</dt><dd class="col-sm-9">@(Model.Details ?? "—")</dd>
             <dt class="col-sm-3">تاريخ الإصدار</dt><dd class="col-sm-9">@Html.HrDate(Model.IssuedAt)</dd>
-            <dt class="col-sm-3">صادر عن</dt><dd class="col-sm-9">@(Model.IssuedBy ?? "—")</dd>
+            <dt class="col-sm-3">صادر عن</dt><dd class="col-sm-9">@Html.HrUserName(Model.IssuedBy)</dd>
             <dt class="col-sm-3">التقرير</dt><dd class="col-sm-9">
                 @if (Model.Report != null)
                 {
