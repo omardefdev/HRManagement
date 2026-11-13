@@ -102,6 +102,10 @@ public class AdministrativeDecisionsController : Controller
 
     {
 
+        // PLAN-52 (review 3, D-52-1): a restricted user's decision names an employee of his scope (the filter checked it); without one it
+        // would be central, out of his reach: refused, so he neither writes a central decision nor moves one to the centre.
+        if (vm.RelatedEmployeeId is null && await HttpContext.GetRestrictedRootAsync() is not null)
+            ModelState.AddModelError(nameof(vm.RelatedEmployeeId), "اختر موظفاً ضمن نطاقك.");
         if (!ModelState.IsValid) return View(vm);
 
         vm.IssuedBy = ServerAssignedIdentity.ResolveActorName(User);
@@ -174,6 +178,10 @@ public class AdministrativeDecisionsController : Controller
 
         if (vm.Id != id) return BadRequest();
 
+        // PLAN-52 (review 3, D-52-1): a restricted user's decision names an employee of his scope (the filter checked it); without one it
+        // would be central, out of his reach: refused, so he neither writes a central decision nor moves one to the centre.
+        if (vm.RelatedEmployeeId is null && await HttpContext.GetRestrictedRootAsync() is not null)
+            ModelState.AddModelError(nameof(vm.RelatedEmployeeId), "اختر موظفاً ضمن نطاقك.");
         if (!ModelState.IsValid) return View(vm);
 
 

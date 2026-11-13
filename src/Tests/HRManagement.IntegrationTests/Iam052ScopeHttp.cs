@@ -42,7 +42,9 @@ public interface IIam052ScopeHost
 /// <item>each keyed id (route, query, form, a bound model's property, a list) is sent with another branch's record of its type while every
 /// other keyed id is the user's own: the answer is the stance's (404, or the kept 403), and nothing changes in the database (the target
 /// record and the row count of every seeded type);</item>
-/// <item>a GET without a keyed id is a list: its body holds no foreign record id of the controller's type.</item>
+/// <item>a GET whose ids may all be left out is a page (a list, or a form and its pick-lists): opened with no id, its body holds no id of the
+/// other branch's records, of any seeded type, nor the other branch's unit; and every GET opened with the user's own ids (a details page,
+/// an edit form and its pick-lists) shows none either (review 2).</item>
 /// </list>
 /// A 403 where the scope's answer is not 403 (or a 403 that may come from a policy) is told apart by a control request of a central user with
 /// the same roles: if he is refused too, the action is out of the roles' reach and not counted. A controller with no exercised action fails.
@@ -88,23 +90,51 @@ public static class Iam052ScopeHttp
 
                 var slots = keyedSlots;
 
-                if (slots.Count == 0)
+                // Review 2: a GET whose ids are all optional filters (Index(employeeId), Index(orgUnitId), a Create form…) is a page: opened
+                // with no id, it is the list and the pick-lists its form fills, and it shows no foreign record of any seeded type, nor the
+                // other branch's unit.
+                if (verb == "GET" && IsPage(controller, method, host))
                 {
-                    if (verb != "GET" || method.GetParameters().Any(p => OrgScopeIds.IsId(p.ParameterType) && p.Name == "id"))
-                        continue;
-                    var (status, body) = await SendAsync(restricted, verb, controller, method, host, slots, target: null, restrictedToken);
+                    var (status, body) = await SendAsync(restricted, verb, controller, method, host, [], target: null, restrictedToken, bare: true);
                     if (status is HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized)
+                        skipped.Add($"{name}: page refused to the roles ({(int)status})");
+                    else if (status != HttpStatusCode.OK)
+                        skipped.Add($"{name}: page answered {(int)status}");
+                    else
                     {
-                        skipped.Add($"{name}: list refused to the roles");
-                        continue;
-                    }
+                        foreach (var (type, foreign) in ForeignRecords(host))
+                        {
+                            if (body.Contains(foreign.ToString("D"), StringComparison.OrdinalIgnoreCase))
+                                offenders.Add($"{name}: the page shows another branch's {type} {foreign}");
+                        }
 
-                    if (stance.EntityType is { } listed && host.Records.TryGetValue(listed, out var pair)
-                        && body.Contains(pair.Foreign.ToString("D"), StringComparison.OrdinalIgnoreCase))
-                        offenders.Add($"{name}: the list shows another branch's {listed.Name} {pair.Foreign}");
-                    exercised.Add($"{name} (list, {(int)status})");
-                    controllerExercised = true;
+                        exercised.Add($"{name} (page, {(int)status})");
+                        controllerExercised = true;
+                    }
+                }
+
+                if (slots.Count == 0)
                     continue;
+
+                // Review 2: the same page opened with the user's own records (a details page, an edit form and its pick-lists) shows no
+                // foreign record either.
+                if (verb == "GET")
+                {
+                    var (ownStatus, ownBody) = await SendAsync(restricted, verb, controller, method, host, slots, target: null, restrictedToken);
+                    if (ownStatus == HttpStatusCode.OK)
+                    {
+                        foreach (var (type, foreign) in ForeignRecords(host))
+                        {
+                            if (ownBody.Contains(foreign.ToString("D"), StringComparison.OrdinalIgnoreCase))
+                                offenders.Add($"{name} (own ids): the page shows another branch's {type} {foreign}");
+                        }
+
+                        exercised.Add($"{name} (own page, 200)");
+                    }
+                    else
+                    {
+                        skipped.Add($"{name}: own page answered {(int)ownStatus}");
+                    }
                 }
 
                 foreach (var target in slots)
@@ -143,6 +173,23 @@ public static class Iam052ScopeHttp
 
         return new Outcome(offenders, exercised, skipped);
     }
+
+    /// <summary>
+    /// A GET that can be opened with no id: no <c>id</c> parameter, and every id slot is a top-level parameter that may be left out (nullable,
+    /// a reference type, or with a default), so model binding leaves it empty and the page shows its unfiltered list or its empty form.
+    /// </summary>
+    private static bool IsPage(Type controller, MethodInfo method, IIam052ScopeHost host)
+    {
+        if (method.GetParameters().Any(p => OrgScopeIds.IsId(p.ParameterType) && string.Equals(p.Name, "id", StringComparison.OrdinalIgnoreCase)))
+            return false;
+        var slots = OrgScopeIds.Slots(controller, method, host.Registry, OrgScopeActionStance.For(controller, method)?.EntityType);
+        return slots.All(s => s.Property is null
+            && (s.Parameter.HasDefaultValue || !s.Parameter.ParameterType.IsValueType || Nullable.GetUnderlyingType(s.Parameter.ParameterType) is not null));
+    }
+
+    /// <summary>Every seeded record of the other branch, and the other branch's unit.</summary>
+    private static IEnumerable<(string Type, Guid Id)> ForeignRecords(IIam052ScopeHost host) =>
+        host.Records.Select(r => (r.Key.Name, r.Value.Foreign)).Append(("OrgUnit (foreign unit)", host.ForeignUnit));
 
     private static IEnumerable<Type> Controllers(Assembly assembly) =>
         assembly.GetTypes()
@@ -231,9 +278,10 @@ public static class Iam052ScopeHttp
 
     private static async Task<(HttpStatusCode Status, string Body)> SendAsync(
         HttpClient client, string verb, Type controller, MethodInfo method, IIam052ScopeHost host,
-        IReadOnlyList<OrgScopeIdSlot> keyed, OrgScopeIdSlot? target, string token, bool unknownIds = false)
+        IReadOnlyList<OrgScopeIdSlot> keyed, OrgScopeIdSlot? target, string token, bool unknownIds = false, bool bare = false)
     {
-        var all = OrgScopeIds.Slots(controller, method, host.Registry, OrgScopeActionStance.For(controller, method)?.EntityType);
+        // A bare page request names no id at all.
+        IReadOnlyList<OrgScopeIdSlot> all = bare ? [] : OrgScopeIds.Slots(controller, method, host.Registry, OrgScopeActionStance.For(controller, method)?.EntityType);
         var values = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var body = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         var fromBody = method.GetParameters().FirstOrDefault(p => p.IsDefined(typeof(FromBodyAttribute)));

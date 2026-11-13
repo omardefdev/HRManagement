@@ -26,7 +26,9 @@ public static class HrCoreOrgScopeKeys
     /// <summary>The registry, for the services that are not controllers (the inbox, the export jobs); Program.cs registers its own copy.</summary>
     public static OrgScopeKeyRegistry Registry => Built.Value;
 
-    private const string FileReason = "a file of the record the action resolves by its own id";
+    // Review 6: a File.Storage object, not an HR.Core record, so no unit to key it by. HR.Core does not check today that a posted file is
+    // the caller's upload (File.Storage records the uploader); that gap predates PLAN-52 and is recorded in its report for File.Storage's owner.
+    private const string FileReason = "a File.Storage object, not an HR.Core record (the uploader check is File.Storage's, recorded open in the PLAN-52 report)";
 
     /// <summary>The unit of an employee, by id: <c>Employee.PrimaryOrgUnitId</c>.</summary>
     private static Expression<Func<Guid?, Guid?>> EmployeeUnit(HRCoreDbContext db) =>

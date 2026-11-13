@@ -79,7 +79,7 @@ public class ProbationRecordsController : Controller
 
     private async Task PopulateContractsAsync(ProbationRecordViewModel vm)
     {
-        var contracts = await _mediator.Send(new GetContractsLookupQuery(vm.ContractId));
+        var contracts = await _mediator.Send(new GetContractsLookupQuery(vm.ContractId, await ContractPickList.InScopeAsync(HttpContext)));
         var items = contracts.Select(c => new { Id = c.Id, Text = c.Label });
         vm.Contracts = new SelectList(items, "Id", "Text", vm.ContractId);
     }

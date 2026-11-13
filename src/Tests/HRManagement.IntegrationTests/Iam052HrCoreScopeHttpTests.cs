@@ -282,4 +282,24 @@ public sealed class Iam052HrCoreScopeHttpTests(Iam052HrCoreScopeHost host, ITest
         Assert.True(outcome.Offenders.Count == 0, string.Join("\n", outcome.Offenders));
         Assert.True(outcome.Exercised.Count > 50, $"only {outcome.Exercised.Count} checks ran");
     }
+
+    /// <summary>PLAN-52 (review 4): an edit that names no unit keeps a restricted editor's legacy vacancy in his scope (its root), never central.</summary>
+    [Fact]
+    public async Task A_restricted_edit_without_a_unit_keeps_the_vacancy_in_his_scope()
+    {
+        var vacancy = host.Records[typeof(InternalVacancy)].Own;
+        using var client = host.Restricted();
+        var page = await client.GetAsync(host.TokenPage);
+        var token = System.Text.RegularExpressions.Regex.Match(await page.Content.ReadAsStringAsync(),
+            "<input[^>]*name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;
+        var response = await client.PostAsync($"/TalentMarketplace/Edit/{vacancy}", new FormUrlEncodedContent(
+        [
+            new("__RequestVerificationToken", System.Net.WebUtility.HtmlDecode(token)), new("Id", vacancy.ToString("D")),
+            new("Title", "IV edited"), new("OrgUnitId", ""), new("IsOpen", "true")
+        ]));
+        Assert.True((int)response.StatusCode is 200 or 302, $"edit answered {(int)response.StatusCode}");
+        var unit = await host.WithDbAsync(async db =>
+            (await ((HRCoreDbContext)db).InternalVacancies.AsNoTracking().SingleAsync(v => v.Id == vacancy)).OrgUnitId);
+        Assert.Equal(host.OwnUnit, unit);
+    }
 }

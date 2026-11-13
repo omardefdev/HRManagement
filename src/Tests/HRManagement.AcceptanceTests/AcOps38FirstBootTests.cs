@@ -196,8 +196,18 @@ public class AcOps38FirstBootTests
         var sw = Stopwatch.StartNew();
         while (sw.Elapsed < timeout)
         {
-            if (await probe())
-                return true;
+            // PLAN-52 (P6): right after a recreate, the broker is healthy (rabbitmq-diagnostics ping) before its management listener is up;
+            // Docker Desktop's port forwarder then accepts and drops the connection ("The response ended prematurely"). Inside the wait that
+            // is "not yet"; the last probe after the timeout is not caught, so an API that never comes up still fails the test.
+            try
+            {
+                if (await probe())
+                    return true;
+            }
+            catch (HttpRequestException)
+            {
+            }
+
             await Task.Delay(TimeSpan.FromSeconds(3));
         }
         return await probe();

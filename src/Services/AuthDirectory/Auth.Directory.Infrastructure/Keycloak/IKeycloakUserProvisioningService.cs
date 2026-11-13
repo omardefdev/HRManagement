@@ -32,5 +32,13 @@ public sealed record KeycloakProvisionResult(bool Attempted, bool Success, strin
 {
     public static KeycloakProvisionResult Disabled() => new(false, true, "sync disabled");
     public static KeycloakProvisionResult Succeeded(string? id) => new(true, true, id);
+
+    /// <summary>PLAN-52: <see cref="IKeycloakUserProvisioningService.TryClearScopeAttributeAsync"/> removed the attribute (the user had one).</summary>
+    public const string ScopeRemoved = "scope removed";
+
+    /// <summary>PLAN-52: the user had no scope attribute; nothing was written.</summary>
+    public const string ScopeAbsent = "no scope";
+
+    public bool RemovedScope => Success && Detail == ScopeRemoved;
     public static KeycloakProvisionResult Failed(string error) => new(true, false, error);
 }

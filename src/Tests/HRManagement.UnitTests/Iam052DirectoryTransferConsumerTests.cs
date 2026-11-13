@@ -107,6 +107,29 @@ public sealed class Iam052DirectoryTransferConsumerTests
         Assert.DoesNotContain("scope_org_unit_id", put.Body);
         Assert.Contains("tenant_id", put.Body);
         Assert.Contains("employee_id", put.Body);
+        // Review 5: the whole representation read goes back, so a realm with a user profile keeps every other field.
+        Assert.Contains("\"username\":\"mgr\"", put.Body);
+    }
+
+    [Fact]
+    public async Task With_the_sync_on_a_scope_held_only_in_Keycloak_is_removed_and_audited()
+    {
+        var (db, user) = await SeedAsync($"iam052-kc-only-{Guid.NewGuid():N}");
+        await using var _ = db;
+        user.ScopeOrgUnitId = null;
+        await db.SaveChangesAsync();
+        var keycloak = new FakeKeycloak();
+        var configuration = Configuration(syncEnabled: true);
+        var provisioning = new KeycloakUserProvisioningService(new HttpClient(keycloak), configuration, NullLogger<KeycloakUserProvisioningService>.Instance);
+        var consumer = new TransferExecutedConsumer(db, NullLogger<TransferExecutedConsumer>.Instance, provisioning, configuration);
+
+        await consumer.Consume(Context(new Transfer(user.EmployeeId!.Value, From, To, DateTime.UtcNow, Guid.NewGuid(), Tenant), Guid.NewGuid()));
+
+        var put = Assert.Single(keycloak.Requests, r => r.Method == HttpMethod.Put);
+        Assert.DoesNotContain("scope_org_unit_id", put.Body);
+        var audit = Assert.Single(await db.AuthAuditLogs.AsNoTracking().Where(a => a.Action == TransferExecutedConsumer.ScopeClearedAction).ToListAsync());
+        Assert.Contains("removed", audit.Details);
+        Assert.Null((await db.AuthUsers.AsNoTracking().SingleAsync()).ScopeOrgUnitId);
     }
 
     [Fact]

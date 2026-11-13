@@ -113,7 +113,9 @@ public class TalentMarketplaceController(
             db, nameof(InternalVacancy), vacancy.Id, vacancy.ClosingDate, vm.ClosingDate,
             Guid.TryParse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value, out var uid) ? uid : null);
         vacancy.Title = vm.Title;
-        vacancy.OrgUnitId = vm.OrgUnitId;
+        // PLAN-52 (review 4, D-52-2): no unit would make the vacancy central, out of a restricted editor's scope; it takes his scope root, as a
+        // new record does (the filter refused a foreign unit).
+        vacancy.OrgUnitId = vm.OrgUnitId ?? await HttpContext.GetRestrictedRootAsync();
         vacancy.Description = vm.Description;
         vacancy.RequiredQualifications = vm.RequiredQualifications;
         vacancy.ClosingDate = vm.ClosingDate;

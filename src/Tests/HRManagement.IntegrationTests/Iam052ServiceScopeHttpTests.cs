@@ -163,6 +163,9 @@ public sealed class Iam052PgServiceHost<TEntry, TContext> : IIam052ScopeHost, IA
 
     public HttpClient Central() => Client(CentralUser, _centralRoles, null);
 
+    /// <summary>An unrestricted caller with the given roles and employee (a delegate with no scope of his own).</summary>
+    public HttpClient CentralWith(string roles, Guid employee) => Client(CentralUser, roles, null, employee);
+
     public async ValueTask DisposeAsync() => await Host.DisposeAsync();
 }
 
@@ -258,6 +261,27 @@ public sealed class Iam052ServiceScopeHttpTests(PostgreSqlFixture postgres, ITes
             "/LeaveRequests/Create",
             SeedContractsAsync);
         Report(await Iam052ScopeHttp.RunAsync(host), host);
+
+        // Review 3 (D-52-1): a restricted user's decision without an employee would be central; it is refused and no row is written. A
+        // central user's is accepted.
+        async Task<int> CountAsync(string number) => await host.WithDbAsync(async db =>
+            await ((ContractsDbContext)db).AdministrativeDecisions.CountAsync(d => d.DecisionNumber == number));
+        foreach (var (client, number, expected) in new[] { (host.Restricted(), "IAM52-R", 0), (host.Central(), "IAM52-C", 1) })
+        {
+            using (client)
+            {
+                var page = await client.GetAsync("/AdministrativeDecisions/Create");
+                var token = System.Text.RegularExpressions.Regex.Match(await page.Content.ReadAsStringAsync(),
+                    "<input[^>]*name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value;
+                using var response = await client.PostAsync("/AdministrativeDecisions/Create", new FormUrlEncodedContent(
+                [
+                    new("__RequestVerificationToken", System.Net.WebUtility.HtmlDecode(token)), new("Subject", "IAM-52"), new("DecisionNumber", number),
+                    new("IssuedDate", "2026-02-01")
+                ]));
+                Assert.True((int)response.StatusCode < 500, $"{number}: {(int)response.StatusCode}");
+                Assert.Equal(expected, await CountAsync(number));
+            }
+        }
     }
 
     [Trait("Category", "Testcontainers")]

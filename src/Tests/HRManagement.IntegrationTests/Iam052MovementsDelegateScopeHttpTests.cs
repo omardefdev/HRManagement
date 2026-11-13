@@ -136,6 +136,72 @@ public sealed class Iam052MovementsDelegateScopeHttpTests(PostgreSqlFixture post
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/TransferRequests/Details/{m.TransferInside}")).StatusCode);
     }
 
+    /// <summary>
+    /// PLAN-52 (review 1): a delegate with no scope of his own, admitted through a delegation whose principal was branch-scoped, acts within
+    /// that principal's scope, so the three employee-only types are central for him too (403, nothing approved); under a central principal's
+    /// delegation he reaches them.
+    /// </summary>
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task An_unrestricted_delegate_of_a_branch_scoped_principal_is_refused_the_employee_only_types()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        var delegation = new FixedDelegation();
+        await using var host = await Iam052PgServiceHost<HR.Movements.Web.Controllers.TransferRequestsController, MovementsDbContext>.StartAsync(
+            postgres, "MovementsDb", RegistryOf(), $"{HrManagementRoles.BranchManager},{HrManagementRoles.HrCore}", HrManagementRoles.HrMovements,
+            "/TransferRequests", SeedAsync,
+            services =>
+            {
+                services.RemoveAll<IApprovalDelegationLookup>();
+                services.AddSingleton<IApprovalDelegationLookup>(delegation);
+            });
+
+        var ids = await host.WithDbAsync(async context =>
+        {
+            var db = (MovementsDbContext)context;
+            var employee = Guid.NewGuid();
+            var secondment = new SecondmentRequest { TenantId = Tenant, EmployeeId = employee, HostOrg = "host", StartDate = Today, EndDate = Today.AddMonths(2) };
+            var promotion = new PromotionRequest { TenantId = Tenant, EmployeeId = employee, FromGrade = 5, ToGrade = 6, TransitionDecisionRef = "ref", EffectiveDate = Today };
+            var delegationRequest = new DelegationRequest { TenantId = Tenant, EmployeeId = employee, HostOrg = "host", StartDate = Today, EndDate = Today.AddMonths(2) };
+            db.AddRange(secondment, promotion, delegationRequest);
+            await db.SaveChangesAsync();
+            return new[] { ("SecondmentRequests", secondment.Id), ("PromotionRequests", promotion.Id), ("DelegationRequests", delegationRequest.Id) };
+        });
+
+        using var client = host.CentralWith(HrManagementRoles.HrCore, DelegateEmployee);
+
+        delegation.PrincipalScope = null;
+        foreach (var (controller, id) in ids)
+        {
+            Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/{controller}")).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/{controller}/Details/{id}")).StatusCode);
+        }
+
+        async Task<string> StatusesAsync() => await host.WithDbAsync(async context =>
+        {
+            var db = (MovementsDbContext)context;
+            return string.Join("|",
+                (await db.SecondmentRequests.AsNoTracking().SingleAsync(r => r.Id == ids[0].Item2)).Status,
+                (await db.PromotionRequests.AsNoTracking().SingleAsync(r => r.Id == ids[1].Item2)).Status,
+                (await db.DelegationRequests.AsNoTracking().SingleAsync(r => r.Id == ids[2].Item2)).Status);
+        });
+        var before = await StatusesAsync();
+
+        delegation.PrincipalScope = host.OwnUnit;
+        var page = await client.GetAsync("/TransferRequests");
+        Assert.Equal(HttpStatusCode.OK, page.StatusCode);
+        var token = WebUtilityDecode(TokenPattern.Match(await page.Content.ReadAsStringAsync()).Groups[1].Value);
+        foreach (var (controller, id) in ids)
+        {
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/{controller}")).StatusCode);
+            Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/{controller}/Details/{id}")).StatusCode);
+            var refused = await client.PostAsync($"/{controller}/Approve/{id}", new FormUrlEncodedContent([new("__RequestVerificationToken", token)]));
+            Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
+        }
+
+        Assert.Equal(before, await StatusesAsync());
+    }
+
     private static string WebUtilityDecode(string value) => WebUtility.HtmlDecode(value);
 
     private static OrgScopeKeyRegistry RegistryOf()

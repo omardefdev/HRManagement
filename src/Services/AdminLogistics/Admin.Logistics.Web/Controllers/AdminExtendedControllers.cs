@@ -1014,7 +1014,7 @@ public class ReceiptRecordsController(AdminLogisticsDbContext db, IEmployeeLooku
     {
         var e = await db.ReceiptRecords.FindAsync(id);
         if (e is null) return NotFound();
-        ViewBag.Orders = new SelectList(await db.SupplyOrders.AsNoTracking().Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Items");
+        ViewBag.Orders = await OrderOptionsAsync();
         ViewBag.InventoryItems = new SelectList(await db.InventoryItems.AsNoTracking().Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Name", e.InventoryItemId);
         return View(new ReceiptRecordFormViewModel
         {
@@ -1034,9 +1034,13 @@ public class ReceiptRecordsController(AdminLogisticsDbContext db, IEmployeeLooku
     public async Task<IActionResult> Edit(Guid id, ReceiptRecordFormViewModel model)
     {
         if (id != model.Id) return NotFound();
+        // PLAN-52 (review 2, D-52-1): a receipt's unit is its order's; without an order it would be central, out of a restricted user's
+        // reach, so he cannot move one there (the filter refused a foreign order).
+        if (model.SupplyOrderId is null && await HttpContext.GetRestrictedRootAsync() is not null)
+            ModelState.AddModelError(nameof(model.SupplyOrderId), "اختر طلب تجهيز ضمن نطاقك.");
         if (!ModelState.IsValid)
         {
-            ViewBag.Orders = new SelectList(await db.SupplyOrders.AsNoTracking().Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Items");
+            ViewBag.Orders = await OrderOptionsAsync();
             ViewBag.InventoryItems = new SelectList(await db.InventoryItems.AsNoTracking().Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Name");
             return View(model);
         }
@@ -1052,4 +1056,8 @@ public class ReceiptRecordsController(AdminLogisticsDbContext db, IEmployeeLooku
         TempData["Success"] = "تم التحديث";
         return RedirectToAction(nameof(Details), new { id });
     }
+
+    /// <summary>PLAN-52 (review 2, P-4): the orders a receipt form offers are those of the caller's scope.</summary>
+    private async Task<SelectList> OrderOptionsAsync() =>
+        new(await (await db.SupplyOrders.AsNoTracking().InOrgScopeAsync(HttpContext, db)).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "Items");
 }

@@ -287,8 +287,9 @@ public sealed class KeycloakUserProvisioningService : IKeycloakUserProvisioningS
     public const string ScopeOrgUnitAttribute = "scope_org_unit_id";
 
     /// <summary>
-    /// PLAN-52 (D-52-4): reads the user, drops <see cref="ScopeOrgUnitAttribute"/> from his attributes and writes the rest back (an admin
-    /// update replaces the attribute map, so the others go back as they were). A user without the attribute is left alone.
+    /// PLAN-52 (D-52-4, review 5): reads the user, drops <see cref="ScopeOrgUnitAttribute"/> from his attributes and writes the whole
+    /// representation it read back (an admin update replaces the attribute map, and a realm with a user profile validates the whole user, so
+    /// every other field and attribute goes back as it was). A user without the attribute is left alone (<see cref="KeycloakProvisionResult.ScopeAbsent"/>).
     /// </summary>
     public async Task<KeycloakProvisionResult> TryClearScopeAttributeAsync(string keycloakUserId, CancellationToken ct = default)
     {
@@ -309,19 +310,18 @@ public sealed class KeycloakUserProvisioningService : IKeycloakUserProvisioningS
 
             var user = System.Text.Json.Nodes.JsonNode.Parse(await current.Content.ReadAsStringAsync(ct))?.AsObject();
             var attributes = user?["attributes"]?.AsObject();
-            if (attributes is null || !attributes.ContainsKey(ScopeOrgUnitAttribute))
-                return KeycloakProvisionResult.Succeeded(keycloakUserId);
+            if (user is null || attributes is null || !attributes.ContainsKey(ScopeOrgUnitAttribute))
+                return KeycloakProvisionResult.Succeeded(KeycloakProvisionResult.ScopeAbsent);
 
             attributes.Remove(ScopeOrgUnitAttribute);
-            var payload = new System.Text.Json.Nodes.JsonObject { ["attributes"] = attributes.DeepClone() };
             using var put = new HttpRequestMessage(HttpMethod.Put, url)
             {
-                Content = new StringContent(payload.ToJsonString(), System.Text.Encoding.UTF8, "application/json")
+                Content = new StringContent(user.ToJsonString(), System.Text.Encoding.UTF8, "application/json")
             };
             put.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             var resp = await _http.SendAsync(put, ct);
             return resp.IsSuccessStatusCode
-                ? KeycloakProvisionResult.Succeeded(keycloakUserId)
+                ? KeycloakProvisionResult.Succeeded(KeycloakProvisionResult.ScopeRemoved)
                 : KeycloakProvisionResult.Failed($"clear scope status {(int)resp.StatusCode}");
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
