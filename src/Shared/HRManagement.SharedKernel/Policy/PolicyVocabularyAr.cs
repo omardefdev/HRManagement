@@ -70,36 +70,6 @@ public static class PolicyVocabularyAr
         ["ESTABLISHMENT-CHANGE-APPROVAL"] = "اعتماد تغيير الملاك",
     };
 
-    /// <summary>The subject types of the policy templates and their schemas.</summary>
-    public static readonly IReadOnlyDictionary<string, string> SubjectTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-    {
-        ["Asset"] = "أصل",
-        ["AssetAssignment"] = "تسليم عهدة",
-        ["CardRequest"] = "طلب بطاقة",
-        ["LeaveRequest"] = "طلب إجازة",
-        ["RecruitmentRequisition"] = "طلب شاغر",
-        ["RecruitmentApplication"] = "طلب توظيف",
-        ["OfferLetter"] = "عرض تعيين",
-        ["SelectionCommitteeSession"] = "جلسة لجنة اختيار",
-        ["RecruitmentAppeal"] = "تظلّم",
-        ["EstablishmentChangeRequest"] = "طلب تغيير ملاك",
-        ["Employee"] = "موظف",
-        ["TransferRequest"] = "طلب نقل",
-        ["ServiceTransaction"] = "معاملة خدمة",
-        ["Contract"] = "عقد",
-        ["SeparationRecord"] = "إنهاء خدمة",
-        ["AdvanceRequest"] = "طلب سلفة",
-        ["PayrollPeriod"] = "فترة رواتب",
-        ["SupportTicket"] = "طلب دعم تقني",
-        ["ArchiveItem"] = "مادة أرشيف",
-        ["Enrollment"] = "تسجيل في تدريب",
-        ["EtlJob"] = "مهمة تحميل بيانات",
-        ["DisciplinaryAction"] = "إجراء انضباطي",
-        ["InsuranceClaim"] = "مطالبة تأمين",
-        ["WorkforcePlan"] = "خطة قوى عاملة",
-        ["SupplyOrder"] = "أمر توريد",
-    };
-
     /// <summary>The services that own a domain.</summary>
     public static readonly IReadOnlyDictionary<string, string> Services = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
@@ -124,8 +94,7 @@ public static class PolicyVocabularyAr
 
     public static string Action(string? action) => action is not null && Actions.TryGetValue(action, out var ar) ? ar : action ?? "—";
 
-    public static string SubjectType(string? subjectType) =>
-        subjectType is not null && SubjectTypes.TryGetValue(subjectType, out var ar) ? ar : subjectType ?? "—";
+    public static string SubjectType(string? subjectType) => HRManagement.SharedKernel.Localization.EntityTypeNamesAr.Get(subjectType);
 
     public static string Workflow(string? code) => code is not null && WorkflowCodes.TryGetValue(code, out var ar) ? ar : code ?? "—";
 }

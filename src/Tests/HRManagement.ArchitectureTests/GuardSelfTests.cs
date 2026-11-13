@@ -458,6 +458,7 @@ public sealed class GuardSelfTests
     [Theory]
     [InlineData("<form method=\"post\" onsubmit=\"return confirm('حذف؟');\"></form>")]
     [InlineData("<button type=\"submit\" onclick=\"go()\">موافقة</button>")]
+    [InlineData("<a href=\"javascript:history.back()\">رجوع</a>")]
     [InlineData("<form method=\"post\"\n      onsubmit=\"return confirm('x');\">\n</form>")]
     public void An_inline_handler_is_found(string planted)
     {

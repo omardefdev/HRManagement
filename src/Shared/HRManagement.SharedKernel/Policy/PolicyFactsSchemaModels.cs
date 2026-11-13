@@ -27,7 +27,7 @@ public static class PolicyFactsValidator
         foreach (var key in facts.Keys)
         {
             if (!allowed.Contains(key))
-                errors.Add($"حقل غير مسموح في schema: {key}");
+                errors.Add($"حقل غير معروف في مخطط الحقائق: {key}");
         }
 
         foreach (var field in schema.Fields.Where(f => f.Required))

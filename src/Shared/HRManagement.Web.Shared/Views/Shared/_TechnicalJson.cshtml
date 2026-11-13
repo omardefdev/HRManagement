@@ -1,0 +1,13 @@
+@model HRManagement.Web.Shared.Models.TechnicalJsonModel
+@* PLAN-67 (§5, D-67-4): the one place a view prints raw JSON, folded under «عرض تقني» for specialists. *@
+<details class="hr-technical-json mt-1" data-testid="technical-json">
+    <summary class="text-muted small">@Model.Summary</summary>
+    @foreach (var (label, json) in Model.Parts)
+    {
+        @if (!string.IsNullOrEmpty(label))
+        {
+            <div class="small text-muted mt-1">@label</div>
+        }
+        <pre class="bg-light p-2 rounded small mb-1" dir="ltr">@HRManagement.Web.Shared.Models.TechnicalJsonModel.Pretty(json)</pre>
+    }
+</details>

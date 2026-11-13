@@ -22,7 +22,7 @@
                             <td>@Html.HrDateTime(l.OccurredAt)</td>
                             <td>@PolicyVocabularyAr.DomainName(l.Domain) <span class="hr-internal-code">@l.Domain</span></td>
                             <td>@PolicyVocabularyAr.Action(l.Action)</td>
-                            <td><code class="small">@(l.ShadowDiffJson ?? "—")</code></td>
+                            <td><partial name="_TechnicalJson" model="@(new HRManagement.Web.Shared.Models.TechnicalJsonModel(l.ShadowDiffJson, "عرض تقني: الفروق"))" /></td>
                         </tr>
                     }
                 </tbody>

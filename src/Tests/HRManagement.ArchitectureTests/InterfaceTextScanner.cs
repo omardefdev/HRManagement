@@ -117,6 +117,9 @@ public static partial class InterfaceTextScanner
                 continue;
             foreach (Match h in HandlerRegex().Matches(tag.Value))
                 raw.Add((tag.Index + h.Index, InlineHandler, h.Value.Trim()));
+            // A javascript: URL is inline script too: an enforced CSP blocks it like a handler.
+            foreach (Match j in JavascriptUrlRegex().Matches(tag.Value))
+                raw.Add((tag.Index + j.Index, InlineHandler, j.Value.Trim()));
             foreach (Match s in StyleAttrRegex().Matches(tag.Value))
                 raw.Add((tag.Index + s.Index, StyleAttribute, Excerpt(tag.Value, s.Index, 60)));
             // A datetime-local input bound with asp-for is shown and read in local time by the shared tag helper and model binder
@@ -486,6 +489,9 @@ public static partial class InterfaceTextScanner
 
     [GeneratedRegex(@"\son[a-z]{3,}\s*=\s*(""[^""]*""|'[^']*'|\S+)", RegexOptions.IgnoreCase)]
     private static partial Regex HandlerRegex();
+
+    [GeneratedRegex(@"\s(?:href|action|formaction|src)\s*=\s*[""']\s*javascript:[^""']*", RegexOptions.IgnoreCase)]
+    private static partial Regex JavascriptUrlRegex();
 
     [GeneratedRegex(@"\sstyle\s*=", RegexOptions.IgnoreCase)]
     private static partial Regex StyleAttrRegex();

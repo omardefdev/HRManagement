@@ -175,3 +175,25 @@ Started (UTC): 2026-11-13T08:06:22.4518317Z
   - `Ux067UserNamesTests` 13/13: the upsert (once, then on a new name); a service account and a nameless user are never recorded; the policy for staff, `hr-employee`, a service account, no tenant, `platform-admin`; the agency filter and `platform-admin`; at most 50; the gateway endpoint carries the policy and no anonymous access; the page's three forms; the legal titles.
   - Architecture 298/298.
 - Finished (UTC): 2026-11-13T17:13:41Z
+
+## P5 — readable policies
+
+- **The renderer:** `PolicyRuleReadableRenderer` (SharedKernel/Policy) turns When and Then, with the domain's facts schema, into segments and one Arabic sentence.
+  - The groups: `all` «جميع الشروط التالية», `any` «أيٌّ مما يلي», `not` «ليس».
+  - The eight operators in Arabic (`PolicyVocabularyAr.Operators`).
+  - Values by type: a flag as نعم/لا, a number as it is, an action by its Arabic name, otherwise text in «».
+  - The eleven effects as verbs, with their parameters: the deny reason, the workflow by its Arabic name, `SetField`'s field and value, the code policy key.
+  - It never throws: an unreadable node says «شرط غير معروف — انظر العرض التقني» (or the effect form), and a field missing from the schema shows its key.
+- **The pages:**
+  - `_PolicyRuleReadable` (the sentence, segments styled, keys in `data-key`) and the shared `_TechnicalJson` (Web.Shared: `<details>` «عرض تقني», indented JSON). The guard allows a printed `…Json` only there.
+  - Details: rule table with fixed columns and wrapped text (`hr-policy-rules`); the JSON shows only to `hr-admin`, `Policy.Author` and `Policy.Approver` (D-67-4, `CanSeeTechnicalAsync`); the empty message «لا قواعد في هذا الإصدار».
+  - EditRules: the sentence above each rule's JSON fields (author) or instead of them (reviewer, with the technical view).
+  - Simulate: a form generated from the schema (bool → نعم/لا select, number → number input, `action` → the subject's actions in Arabic, otherwise text). The JSON input is folded as «إدخال متقدم»; the controller turns either into the same dictionary, so the evaluation is unchanged. The decision shows Arabic labels, effects as verbs and the version number.
+  - The establishment change payload, the service regime conflict and the shadow diff also go through `_TechnicalJson`.
+  - `PolicyFactsValidator`'s unknown-field message is now Arabic: «حقل غير معروف في مخطط الحقائق».
+- **The guard:** raw JSON 7→0, so every list is empty and the list files are gone. A `javascript:` URL counts as an inline handler (planted). `NationalScopeError`'s `javascript:history.back()`, which the CSP blocks, now links to the dashboard.
+- **Tests:**
+  - `Ux067PolicyRuleReadableTests` (unit) 30/30: the seeded branch rule's exact sentence with no Latin letter; the eight operators; any, not and in; the eleven effects; seven unreadable inputs; a field missing from the schema; 40-deep and 200 random inputs never throw.
+  - `Ux067PolicyPagesTests` (integration, SQLite with `PolicyEngineSeeder`) 7/7: every seeded and published rule names each field, operator, value and effect of its JSON, with no unknown node; the details page shows the sentences and the JSON to `hr-admin` and `policy-approver` only (not `hr-core-supervisory`); the form and the JSON give the same decision, both allowed and refused; an unknown fact is refused as before.
+  - All `Ux067` integration tests 30/30; architecture 299/299.
+- Finished (UTC): 2026-11-13T17:21:54Z

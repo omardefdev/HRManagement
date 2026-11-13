@@ -979,3 +979,16 @@ button:focus:not(:focus-visible) {
     direction: ltr;
     margin-inline-start: 0.35em;
 }
+
+/* PLAN-67 (§5, §7): a policy rule as an Arabic sentence, and the policy tables with fixed columns and wrapped text. */
+.hr-policy-rules { table-layout: fixed; width: 100%; }
+.hr-policy-rules td, .hr-policy-rules th { white-space: normal; overflow-wrap: anywhere; vertical-align: top; }
+.hr-policy-rules .hr-rule-col-key { width: 24%; }
+.hr-policy-rules .hr-rule-col-priority { width: 8%; }
+.hr-rule-sentence { line-height: 1.9; }
+.hr-rule-field { font-weight: 600; color: var(--sy-primary); }
+.hr-rule-operator { color: var(--sy-teal-dark); }
+.hr-rule-value { background: var(--sy-cream); border-radius: 0.25rem; padding: 0 0.25rem; }
+.hr-rule-effect { color: var(--sy-teal-dark); }
+.hr-technical-json pre { max-height: 18rem; overflow: auto; white-space: pre-wrap; }
+.hr-user-system { font-style: italic; color: var(--sy-gray); }

@@ -88,6 +88,8 @@ public class PolicyTemplatesController(
         ViewBag.Inherited = inherited;
         ViewBag.CanAuthor = !inherited && (await authorization.AuthorizeAsync(User, HrManagementPolicies.PolicyAuthor)).Succeeded;
         ViewBag.EffectiveVersionId = PolicyDraftService.EffectiveVersion(t, DateTime.UtcNow)?.Id;
+        ViewBag.FactsSchema = await FactsSchemaAsync(t.Domain);
+        ViewBag.CanSeeTechnical = await CanSeeTechnicalAsync();
         return View(t);
     }
 
@@ -101,24 +103,38 @@ public class PolicyTemplatesController(
         if (version is null) return NotFound();
         ViewBag.VersionId = versionId;
         ViewBag.Domain = version.PolicyTemplate.Domain;
+        await SimulationFormAsync(version.PolicyTemplate.Domain, version.PolicyTemplate.SubjectType);
         return View();
     }
 
     /// <summary>Evaluates the published policy of the version's domain, now or as of a date (PLAN-47 §6).</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Simulate(Guid versionId, string factsJson, string? asOfUtc = null)
+    public async Task<IActionResult> Simulate(Guid versionId, string? factsJson, string? asOfUtc = null, string? mode = null,
+        [FromForm(Name = "fact")] Dictionary<string, string>? formFacts = null)
     {
+        // PLAN-67 (§5, G-UX-06): the facts come from the form generated from the domain's schema, or, in the advanced tab, as JSON. The
+        // form builds the same dictionary the JSON gives; the evaluation below does not change.
         Dictionary<string, string>? facts;
-        try
+        if (string.Equals(mode, "form", StringComparison.Ordinal))
         {
-            facts = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(factsJson)
-                ?? new Dictionary<string, string>();
+            facts = (formFacts ?? new Dictionary<string, string>())
+                .Where(kv => !string.IsNullOrWhiteSpace(kv.Value))
+                .ToDictionary(kv => kv.Key, kv => kv.Value.Trim(), StringComparer.Ordinal);
+            factsJson = System.Text.Json.JsonSerializer.Serialize(facts);
         }
-        catch
+        else
         {
-            TempData["Error"] = "JSON غير صالح";
-            return RedirectToAction(nameof(Simulate), new { versionId });
+            try
+            {
+                facts = System.Text.Json.JsonSerializer.Deserialize<Dictionary<string, string>>(factsJson ?? "")
+                    ?? new Dictionary<string, string>();
+            }
+            catch
+            {
+                TempData["Error"] = "JSON غير صالح";
+                return RedirectToAction(nameof(Simulate), new { versionId });
+            }
         }
 
         DateTime? asOf = null;
@@ -151,6 +167,11 @@ public class PolicyTemplatesController(
         ViewBag.VersionId = versionId;
         ViewBag.FactsJson = factsJson;
         ViewBag.AsOfUtc = asOfUtc;
+        ViewBag.Mode = string.Equals(mode, "form", StringComparison.Ordinal) ? "form" : "json";
+        ViewBag.Facts = facts;
+        var simulated = await db.ReadablePolicyVersions().Include(v => v.PolicyTemplate).FirstAsync(v => v.Id == versionId);
+        ViewBag.Domain = simulated.PolicyTemplate.Domain;
+        await SimulationFormAsync(simulated.PolicyTemplate.Domain, simulated.PolicyTemplate.SubjectType);
         return View("Simulate");
     }
 
@@ -263,6 +284,8 @@ public class PolicyTemplatesController(
         ViewBag.CanAuthor = (await authorization.AuthorizeAsync(User, HrManagementPolicies.PolicyAuthor)).Succeeded;
         // The revision the reviewer sees is the one published: a change after this page answers a conflict.
         ViewBag.Revision = publishService.Revision(version);
+        ViewBag.FactsSchema = await FactsSchemaAsync(version.PolicyTemplate.Domain);
+        ViewBag.CanSeeTechnical = await CanSeeTechnicalAsync();
         return View(version);
     }
 
@@ -403,6 +426,32 @@ public class PolicyTemplatesController(
     {
         var v = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub");
         return Guid.TryParse(v, out var g) ? g : null;
+    }
+
+    /// <summary>PLAN-67 (§5): the facts schema the rule sentences and the simulation form read (the agency's own first, then the national one).</summary>
+    private async Task<PolicyFactsSchemaDefinition?> FactsSchemaAsync(string domain)
+    {
+        var entity = await db.PolicyFactsSchemas.OwnOrNational(db).AsNoTracking()
+            .Where(s => s.Domain == domain)
+            .OwnFirst(db.CurrentTenantId)
+            .FirstOrDefaultAsync();
+        return PolicyEntityMapper.ParseSchema(entity);
+    }
+
+    /// <summary>PLAN-67 (D-67-4): a rule's JSON is shown, under «عرض تقني», to policy authors, approvers and the admin only.</summary>
+    private async Task<bool> CanSeeTechnicalAsync() =>
+        User.IsInRole(HrManagementRoles.Admin)
+        || (await authorization.AuthorizeAsync(User, HrManagementPolicies.PolicyAuthor)).Succeeded
+        || (await authorization.AuthorizeAsync(User, HrManagementPolicies.PolicyApprover)).Succeeded;
+
+    /// <summary>PLAN-67 (§5): what the simulation form is generated from: the schema's fields, and the actions the domain's subject takes.</summary>
+    private async Task SimulationFormAsync(string domain, string subjectType)
+    {
+        var schema = await FactsSchemaAsync(domain);
+        ViewBag.FactsSchema = schema;
+        ViewBag.Actions = PolicyDomainCatalog.Find(domain)?.SubjectActions.GetValueOrDefault(subjectType)?.Order(StringComparer.Ordinal).ToList()
+            ?? (IReadOnlyList<string>)[];
+        ViewBag.CanSeeTechnical = await CanSeeTechnicalAsync();
     }
 }
 

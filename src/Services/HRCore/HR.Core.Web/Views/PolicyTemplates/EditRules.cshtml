@@ -6,6 +6,8 @@
     var canAuthor = ViewBag.CanAuthor is true;
     var revision = ViewBag.Revision as uint?;
     var inv = System.Globalization.CultureInfo.InvariantCulture;
+    var factsSchema = ViewBag.FactsSchema as HRManagement.SharedKernel.Policy.PolicyFactsSchemaDefinition;
+    var technical = ViewBag.CanSeeTechnical is true;
 }
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between">
@@ -28,7 +30,7 @@
     }
     <div class="card-body p-0">
         <table class="table table-sm mb-0 align-middle">
-            <thead><tr><th>المفتاح</th><th>الاسم</th><th>الأولوية</th><th>الشرط</th><th>الأثر</th><th></th></tr></thead>
+            <thead><tr><th>المفتاح</th><th>الاسم</th><th>الأولوية</th><th colspan="3">نص القاعدة</th></tr></thead>
             <tbody>
                 @foreach (var r in Model.Rules.OrderBy(x => x.Priority).ThenBy(x => x.RuleKey))
                 {
@@ -36,6 +38,8 @@
                     {
                         <tr>
                             <td colspan="6" class="p-1">
+                                @* PLAN-67 (§5): the sentence the rule reads as, beside its JSON fields (the writing stays JSON until POL-G). *@
+                                <div class="small mb-1" data-testid="rule-preview"><partial name="_PolicyRuleReadable" model="@HRManagement.SharedKernel.Policy.PolicyRuleReadableRenderer.Render(r.WhenJson, r.ThenJson, factsSchema)" /></div>
                                 <form asp-action="UpdateRule" method="post" class="row g-1 align-items-start">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="versionId" value="@Model.Id" />
@@ -62,9 +66,13 @@
                             <td><code>@r.RuleKey</code></td>
                             <td>@r.Name</td>
                             <td>@r.Priority</td>
-                            <td><code class="small" dir="ltr">@r.WhenJson</code></td>
-                            <td><code class="small" dir="ltr">@r.ThenJson</code></td>
-                            <td></td>
+                            <td colspan="3">
+                                <partial name="_PolicyRuleReadable" model="@HRManagement.SharedKernel.Policy.PolicyRuleReadableRenderer.Render(r.WhenJson, r.ThenJson, factsSchema)" />
+                                @if (technical)
+                                {
+                                    <partial name="_TechnicalJson" model="@(new HRManagement.Web.Shared.Models.TechnicalJsonModel([("الشرط", r.WhenJson), ("الأثر", r.ThenJson)]))" />
+                                }
+                            </td>
                         </tr>
                     }
                 }

@@ -10,6 +10,8 @@
     var effectiveId = ViewBag.EffectiveVersionId as Guid?;
     var hasDraft = Model.Versions.Any(v => v.Status == PolicyVersionStatus.Draft);
     var inv = System.Globalization.CultureInfo.InvariantCulture;
+    var factsSchema = ViewBag.FactsSchema as PolicyFactsSchemaDefinition;
+    var technical = ViewBag.CanSeeTechnical is true;
 }
 <div class="card mb-3">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -101,21 +103,28 @@
             <div class="card-body border-bottom small">السبب: @Html.HrTextWithCodes(v.ChangeReason)</div>
         }
         <div class="card-body p-0">
-            <table class="table table-sm mb-0">
-                <thead><tr><th>القاعدة</th><th>الأولوية</th><th>الشرط</th><th>الأثر</th></tr></thead>
+            @* PLAN-67 (§5, §7): each rule as an Arabic sentence; its JSON under «عرض تقني» for the policy roles (D-67-4). *@
+            <table class="table table-sm mb-0 hr-policy-rules" data-testid="policy-rules">
+                <colgroup><col class="hr-rule-col-key" /><col class="hr-rule-col-priority" /><col /></colgroup>
+                <thead><tr><th>القاعدة</th><th>الأولوية</th><th>نص القاعدة</th></tr></thead>
                 <tbody>
                     @foreach (var r in v.Rules.OrderBy(x => x.Priority).ThenBy(x => x.RuleKey))
                     {
-                        <tr>
-                            <td>@(r.Name ?? r.RuleKey) <small class="text-muted">@r.RuleKey</small></td>
+                        <tr data-rule-key="@r.RuleKey">
+                            <td>@(r.Name ?? r.RuleKey) <span class="hr-internal-code">@r.RuleKey</span></td>
                             <td>@r.Priority</td>
-                            <td><code class="small" dir="ltr">@r.WhenJson</code></td>
-                            <td><code class="small" dir="ltr">@r.ThenJson</code></td>
+                            <td>
+                                <partial name="_PolicyRuleReadable" model="@PolicyRuleReadableRenderer.Render(r.WhenJson, r.ThenJson, factsSchema)" />
+                                @if (technical)
+                                {
+                                    <partial name="_TechnicalJson" model="@(new HRManagement.Web.Shared.Models.TechnicalJsonModel([("الشرط", r.WhenJson), ("الأثر", r.ThenJson)]))" />
+                                }
+                            </td>
                         </tr>
                     }
-                @if (!(v.Rules.OrderBy(x => x.Priority).ThenBy(x => x.RuleKey)).Any())
+                    @if (!v.Rules.Any())
                     {
-                        <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا قواعد في هذا الإصدار.")" /></td></tr>
+                        <tr><td colspan="3"><partial name="_HrEmptyState" model="@("لا قواعد في هذا الإصدار.")" /></td></tr>
                     }
                 </tbody>
             </table>
