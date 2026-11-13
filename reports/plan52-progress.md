@@ -132,3 +132,8 @@ Started (UTC): 2026-11-12T20:25:49.8810839Z
 - The suites rewrote 37 committed evidence files under `acceptance-evidence/` and added four summaries and a replay report: copied to `artifacts/plan52/vps/acceptance-evidence-from-run/` and restored (P-2).
 - **At the end** (08:43:47Z): tag `92a69960c826` (previous `d0e446fe3280`), 21 containers running, every one with a health check healthy, 22 GB free; `smoke.ps1 -RequireIntegrationWiring` 50/0/1. The OPS doc records the user, the change table rows, the backup and the rollback note (PLAN-51's tag on a database HCM052 changed: it maps neither column and sees no pending migration; what it writes during a rollback stays without a unit, central after a roll-forward).
 - Finished (UTC): 2026-11-13T08:44:00.7824089Z
+
+## P9 — docs, report, gates, PR
+
+- Docs: `IAM_002_ORG_SCOPE.md` (the registry, the stances, the filter, the two answers, the transfer; no `OrgScopeRequirement`), `HIRE_RBAC_MATRIX.md` (the wizard's scope, workflow instances), `IAM_005_IDENTITY_LIFECYCLE.md` (a transfer is fail-closed, and the step that assigns the new scope), `CI_AND_TESTING.md` (`OrgScopeCoverageTests`, its lists, the generated HTTP test), `OPS_VPS_SINGLE_HOST.md` (in P8), the study's status lines for G-IAM-04 and the transfer part of G-IAM-11, the plan's Status and «ملاحظات التنفيذ والانحرافات». `reports/plan52-final-report.md`.
+- Next, exactly: `scripts/ci-local.ps1 -SkipTestcontainers` on HEAD (the VPN is on; the full Testcontainers step passed in P6 and nothing it builds or tests changed since), `scripts/plan035-prepush.ps1`, then in the same turn `release/plan-52` from `main` (`--no-ff`), `reports/plan52-pr.md`, push, `gh pr create`, wait for every check, merge only when green and AC-02/03/06/32 passed in the run.

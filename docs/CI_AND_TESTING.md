@@ -29,6 +29,14 @@ dotnet test src/Tests/HRManagement.ArchitectureTests/HRManagement.ArchitectureTe
 - قوائم السقف تحت `tests/architecture/`: صف لكل سطر `Key | reason`، والسبب يبدأ بالخطة المالكة (`PLAN-53:` أو `IAM-F:`)، والسقف
   مثبّت في الاختبار ولا يرتفع؛ صف لم يعد مخالفاً يُفشل الاختبار حتى يُحذف. بعد PLAN-51: `write-policy-allowlist/payroll.txt` (16، PLAN-53)
   و`entity-binding-allowlist/*.txt` خارج HR.Movements (113، IAM-F) فقط؛ PLAN-65 يراجعها.
+- منذ PLAN-52 (BOLA v2، بديل `BolaArchitectureTests`): `OrgScopeCoverageTests` يمسح بالانعكاس كل متحكم في التجميعات الخمس عشرة
+  والمتحكمات المشتركة: لكل متحكم موقف نطاق معلن (`[OrgScoped]`، `[OrgScopeCentralOnly]`، `[OrgScopeNotApplicable]`،
+  `[RecruitmentOrgScope]`) أو صف في `org-scope-allowlist/<service>.txt` موقّع `IAM-H:` مع سبب، ولا يكون الصف لمتحكم يصله مستخدم مقيّد
+  فعلاً (`OrgScopeReach`)؛ ولكل معرّف في إجراء `[OrgScoped]` (مسار، استعلام، نموذج، خصائص نموذج مربوط، قائمة) مفتاح في سجل الخدمة أو
+  `[NotOrgScopeKey("reason")]`؛ وسجل كل خدمة يُبنى من `Configure` الخاص بها. HR.Core وHR.Contracts وAdmin.Logistics بلا قائمة
+  (السقف 0)، وبقية الخدمات صفوف كامنة لـIAM-H (114). `GuardSelfTests` يزرع عيباً لكل حارس منها. واختبار التكامل
+  `Iam052*ScopeHttpTests` مولّد من السجلات: لكل إجراء معرّف أجنبي ← 404 أو الـ403 المحفوظ دون تغيير، وكل صفحة تُفتح بلا معرّف
+  (قائمة أو نموذج وقوائم اختياره) لا تعرض سجلاً لفرع آخر من أي نوع.
 - أول تشغيل بعد البناء يستغرق نحو دقيقتين ونصف على جهاز المالك (بدء المضيف على التجميعات المبنية حديثاً)، ثم نحو ثانية ونصف.
 
 ## اختبارات التكامل (MassTransit InMemory + SQLite)
