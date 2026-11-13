@@ -1,0 +1,18 @@
+# PLAN-67 (P-12): what InterfaceTextGuardTests found in IT.Infra.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
+src/Services/ITInfrastructure/IT.Infra.Web/Views/BackupJobs/Details.cshtml#unformatted-time#="col-sm-9">@(Model.LastRunAt?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/ITInfrastructure/IT.Infra.Web/Views/BackupJobs/Index.cshtml#unformatted-time#@x.LastRunAt</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/ITInfrastructure/IT.Infra.Web/Views/EnvironmentConfigurations/Details.cshtml#unformatted-time#="col-sm-9">@(Model.AppliedAt?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/ITInfrastructure/IT.Infra.Web/Views/EnvironmentConfigurations/Index.cshtml#unformatted-time#@x.AppliedAt</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/ITInfrastructure/IT.Infra.Web/Views/SecurityIncidents/Details.cshtml#printed-id#@Model.HandledBy</d | PLAN-67: P4 shows the name instead of the id
+src/Services/ITInfrastructure/IT.Infra.Web/Views/SecurityIncidents/Details.cshtml#unformatted-time#s="col-sm-9">@Model.ReportedAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/ITInfrastructure/IT.Infra.Web/Views/SecurityIncidents/Index.cshtml#unformatted-time#<td>@x.ReportedAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/ITInfrastructure/IT.Infra.Web/Views/SupportTickets/Details.cshtml#printed-id#@Model.ReportedBy</d | PLAN-67: P4 shows the name instead of the id
+src/Services/ITInfrastructure/IT.Infra.Web/Views/SupportTickets/Details.cshtml#raw-status#@Model.ProvisioningStatus @( | PLAN-67: P3 prints the value by its Arabic name
+src/Services/ITInfrastructure/IT.Infra.Web/Views/SupportTickets/Details.cshtml#unformatted-time#"col-sm-9">@(Model.ResolvedAt?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/ITInfrastructure/IT.Infra.Web/Views/SupportTickets/Index.cshtml#unformatted-time#<td>@x.CreatedAt.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/ITInfrastructure/IT.Infra.Web/Views/SystemPermissionRecords/Details.cshtml#printed-id#@Model.UserId</d | PLAN-67: P4 shows the name instead of the id
+src/Services/ITInfrastructure/IT.Infra.Web/Views/SystemPermissionRecords/Details.cshtml#unformatted-time#="col-sm-9">@(Model.RevokedAt?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/ITInfrastructure/IT.Infra.Web/Views/SystemPermissionRecords/Details.cshtml#unformatted-time#ss="col-sm-9">@Model.GrantedAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/ITInfrastructure/IT.Infra.Web/Views/SystemPermissionRecords/Index.cshtml#printed-id#@x.UserId</t | PLAN-67: P4 shows the name instead of the id
+src/Services/ITInfrastructure/IT.Infra.Web/Views/SystemPermissionRecords/Index.cshtml#unformatted-time#@x.GrantedAt</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/ITInfrastructure/IT.Infra.Web/Views/SystemPermissionRecords/Index.cshtml#unformatted-time#@x.RevokedAt</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone

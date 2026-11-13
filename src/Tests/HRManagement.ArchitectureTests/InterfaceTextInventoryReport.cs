@@ -49,5 +49,46 @@ public sealed class InterfaceTextInventoryReport
         foreach (var k in kinds)
             md.AppendLine($"- {k}: {findings.Where(f => f.Rule == k).Select(f => f.File).Distinct().Count()} files");
         global::System.IO.File.WriteAllText(Path.Combine(outDir, "ui-inventory.md"), md.ToString(), new UTF8Encoding(false));
+
+        if (string.Equals(Environment.GetEnvironmentVariable("UX067_SEED_LISTS"), "true", StringComparison.OrdinalIgnoreCase))
+            SeedLists(findings);
+    }
+
+    /// <summary>The phase of PLAN-67 that empties each kind of row (P2 seeds the lists once; the guard then only lets them shrink).</summary>
+    private static readonly IReadOnlyDictionary<string, string> RowReasons = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        [InterfaceTextScanner.EnglishLabel] = "PLAN-67: P3 gives the label its Arabic text",
+        [InterfaceTextScanner.RawStatus] = "PLAN-67: P3 prints the value by its Arabic name",
+        [InterfaceTextScanner.UnformattedTime] = "PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone",
+        [InterfaceTextScanner.PrintedId] = "PLAN-67: P4 shows the name instead of the id",
+        [InterfaceTextScanner.EmptyTable] = "PLAN-67: P4 adds the empty message",
+        [InterfaceTextScanner.RawJson] = "PLAN-67: P5 moves the JSON behind the technical view",
+        [InterfaceTextScanner.InlineHandler] = "PLAN-67: P1 moves it to data-hr-confirm or a static file",
+        [InterfaceTextScanner.StyleAttribute] = "PLAN-67: P1 makes it a class",
+    };
+
+    /// <summary>P2 (P-12): writes one ceiling list per project from the guard's findings, each row signed by PLAN-67.</summary>
+    private static void SeedLists(IReadOnlyList<UiFinding> findings)
+    {
+        var folder = Path.Combine(HRManagement.TestSupport.RepoPaths.Root, InterfaceTextGuardTests.ListFolder);
+        Directory.CreateDirectory(folder);
+        foreach (var project in InterfaceTextGuardTests.Projects)
+        {
+            var rows = findings
+                .Where(f => f.Project == project && InterfaceTextScanner.GuardedRules.Contains(f.Rule))
+                .OrderBy(f => f.Key, StringComparer.Ordinal)
+                .Select(f => $"{f.Key} | {RowReasons[f.Rule]}")
+                .ToList();
+            var path = Path.Combine(folder, $"{project}.txt");
+            if (rows.Count == 0)
+            {
+                if (global::System.IO.File.Exists(path))
+                    global::System.IO.File.Delete(path);
+                continue;
+            }
+
+            var header = $"# PLAN-67 (P-12): what InterfaceTextGuardTests found in {project} when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.\n";
+            global::System.IO.File.WriteAllText(path, header + string.Join("\n", rows) + "\n", new UTF8Encoding(false));
+        }
     }
 }

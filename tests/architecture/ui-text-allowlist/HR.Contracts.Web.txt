@@ -1,0 +1,33 @@
+# PLAN-67 (P-12): what InterfaceTextGuardTests found in HR.Contracts.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
+src/Services/HRContracts/HR.Contracts.Web/Views/AdministrativeDecisions/Index.cshtml#unformatted-time#<td>@(x.IssuedDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/AdministrativeDecisions/Index.cshtml#unformatted-time#e="issuedTo" value="@issuedTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/AdministrativeDecisions/Index.cshtml#unformatted-time#ssuedFrom" value="@issuedFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/CommencementRecords/Index.cshtml#printed-id#@(x.ContractId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/HRContracts/HR.Contracts.Web/Views/CommencementRecords/Index.cshtml#unformatted-time#"startFrom" value="@startFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/CommencementRecords/Index.cshtml#unformatted-time#<td>@x.StartDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/CommencementRecords/Index.cshtml#unformatted-time#ame="startTo" value="@startTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/ContractTypeRegimeMaps/Form.cshtml#printed-id#@r.Id — | PLAN-67: P4 shows the name instead of the id
+src/Services/HRContracts/HR.Contracts.Web/Views/Contracts/Details.cshtml#unformatted-time#<td>@s.SignedAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/Contracts/Details.cshtml#unformatted-time#h>إلى</th><td>@(Model.EndDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/Contracts/Details.cshtml#unformatted-time#th>من</th><td>@Model.StartDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/Contracts/Index.cshtml#unformatted-time#<td>@(c.EndDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/Contracts/Index.cshtml#unformatted-time#<td>@c.StartDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/HireWizard/Step2.cshtml#printed-id#@(Model.Contract.LegalRegimeId ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/HRContracts/HR.Contracts.Web/Views/HireWizard/Step2.cshtml#raw-status#@(Model.Contract.EmploymentType ?? "—") | PLAN-67: P3 prints the value by its Arabic name
+src/Services/HRContracts/HR.Contracts.Web/Views/HireWizard/Step2.cshtml#unformatted-time#(@(Model.Decision.IssuedDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/HireWizard/Step2.cshtml#unformatted-time#xn.CommencementOverdueAt.Value.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/LeaveRequests/Index.cshtml#unformatted-time#<td>@x.EndDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/LeaveRequests/Index.cshtml#unformatted-time#<td>@x.StartDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/ProbationRecords/Index.cshtml#unformatted-time#<td>@x.EndDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/ProbationRecords/Index.cshtml#unformatted-time#<td>@x.StartDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/SeparationRecords/Details.cshtml#raw-status#@Model.SeparationType</t | PLAN-67: P3 prints the value by its Arabic name
+src/Services/HRContracts/HR.Contracts.Web/Views/SeparationRecords/Details.cshtml#unformatted-time#ذ</th><td>@Model.EffectiveDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/SeparationRecords/Index.cshtml#unformatted-time#<td>@r.EffectiveDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/SeparationWizard/Step2.cshtml#raw-status#@Model.SeparationType</t | PLAN-67: P3 prints the value by its Arabic name
+src/Services/HRContracts/HR.Contracts.Web/Views/SeparationWizard/Step2.cshtml#unformatted-time#ذ</th><td>@Model.EffectiveDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/SeparationWizard/Step3.cshtml#unformatted-time#</strong> @Model.EffectiveDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/SeparationWizard/Step4.cshtml#empty-table#<table class="table table-bordered"> <thead> | PLAN-67: P4 adds the empty message
+src/Services/HRContracts/HR.Contracts.Web/Views/SeparationWizard/Step4.cshtml#unformatted-time#<td>@(item.CompletedAt?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/ServiceTransactions/Details.cshtml#printed-id#@Model.Id</t | PLAN-67: P4 shows the name instead of the id
+src/Services/HRContracts/HR.Contracts.Web/Views/ServiceTransactions/Details.cshtml#unformatted-time#<td>@h.CreatedAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRContracts/HR.Contracts.Web/Views/ServiceTransactions/Index.cshtml#unformatted-time#<td>@t.CreatedAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone

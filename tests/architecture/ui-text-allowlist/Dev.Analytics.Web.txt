@@ -1,0 +1,12 @@
+# PLAN-67 (P-12): what InterfaceTextGuardTests found in Dev.Analytics.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
+src/Services/DevAnalytics/Dev.Analytics.Web/Views/Dashboards/Details.cshtml#printed-id#@Model.OwnerId</d | PLAN-67: P4 shows the name instead of the id
+src/Services/DevAnalytics/Dev.Analytics.Web/Views/Dashboards/Index.cshtml#empty-table#<table class="table table-sm"> <caption> | PLAN-67: P4 adds the empty message
+src/Services/DevAnalytics/Dev.Analytics.Web/Views/DataRefreshSchedules/Details.cshtml#unformatted-time#@Model.LastRunAt</d | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/DevAnalytics/Dev.Analytics.Web/Views/DataRefreshSchedules/Details.cshtml#unformatted-time#@Model.NextRunAt</d | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/DevAnalytics/Dev.Analytics.Web/Views/DataRefreshSchedules/Index.cshtml#unformatted-time#@x.LastRunAt</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/DevAnalytics/Dev.Analytics.Web/Views/DataRefreshSchedules/Index.cshtml#unformatted-time#@x.NextRunAt</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/DevAnalytics/Dev.Analytics.Web/Views/Kpis/Details.cshtml#unformatted-time#@Model.MeasuredAt</d | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/DevAnalytics/Dev.Analytics.Web/Views/Kpis/Index.cshtml#unformatted-time#@x.MeasuredAt</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/DevAnalytics/Dev.Analytics.Web/Views/Reports/Details.cshtml#printed-id#@Model.GeneratedBy</d | PLAN-67: P4 shows the name instead of the id
+src/Services/DevAnalytics/Dev.Analytics.Web/Views/Reports/Details.cshtml#unformatted-time#col-sm-9">@(Model.GeneratedAt?.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/DevAnalytics/Dev.Analytics.Web/Views/Reports/Index.cshtml#unformatted-time#Type)</td><td>@(x.GeneratedAt?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone

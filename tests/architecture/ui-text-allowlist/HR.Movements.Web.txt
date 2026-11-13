@@ -1,0 +1,43 @@
+# PLAN-67 (P-12): what InterfaceTextGuardTests found in HR.Movements.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
+src/Services/HRMovements/HR.Movements.Web/Views/DelegationRequests/Details.cshtml#unformatted-time#@Model.EndDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/DelegationRequests/Details.cshtml#unformatted-time#@Model.StartDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/DelegationRequests/Index.cshtml#unformatted-time#@x.EndDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/DelegationRequests/Index.cshtml#unformatted-time#@x.StartDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/DistributionPlans/Details.cshtml#printed-id#@(Model.CreatedBy?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/HRMovements/HR.Movements.Web/Views/DistributionPlans/Details.cshtml#printed-id#@Model.OrgUnitId</t | PLAN-67: P4 shows the name instead of the id
+src/Services/HRMovements/HR.Movements.Web/Views/DistributionPlans/Details.cshtml#unformatted-time#@Model.EffectiveDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/DistributionPlans/GapAnalysis.cshtml#printed-id#@plan?.OrgUnitId</h | PLAN-67: P4 shows the name instead of the id
+src/Services/HRMovements/HR.Movements.Web/Views/DistributionPlans/Index.cshtml#printed-id#@x.OrgUnitId</t | PLAN-67: P4 shows the name instead of the id
+src/Services/HRMovements/HR.Movements.Web/Views/DistributionPlans/Index.cshtml#unformatted-time#@x.EffectiveDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/LoanAssignmentRequests/Details.cshtml#unformatted-time#@Model.EndDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/LoanAssignmentRequests/Details.cshtml#unformatted-time#@Model.StartDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/LoanAssignmentRequests/Index.cshtml#unformatted-time#@x.EndDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/LoanAssignmentRequests/Index.cshtml#unformatted-time#@x.StartDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/MovementExecutions/Details.cshtml#printed-id#@(Model.ExecutedBy?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/HRMovements/HR.Movements.Web/Views/MovementExecutions/Details.cshtml#printed-id#@Model.SecondmentRequestId</a | PLAN-67: P4 shows the name instead of the id
+src/Services/HRMovements/HR.Movements.Web/Views/MovementExecutions/Details.cshtml#printed-id#@Model.TransferRequestId</a | PLAN-67: P4 shows the name instead of the id
+src/Services/HRMovements/HR.Movements.Web/Views/MovementExecutions/Details.cshtml#unformatted-time#نفيذ</th><td>@Model.ExecutedAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/MovementExecutions/Index.cshtml#printed-id#@r.ExecutedBy</t | PLAN-67: P4 shows the name instead of the id
+src/Services/HRMovements/HR.Movements.Web/Views/MovementExecutions/Index.cshtml#unformatted-time#<td>@r.ExecutedAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/MovementNotices/Details.cshtml#empty-table#<table class="table table-sm table-striped"> | PLAN-67: P4 adds the empty message
+src/Services/HRMovements/HR.Movements.Web/Views/MovementNotices/Details.cshtml#printed-id#@(Model.IssuedBy?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/HRMovements/HR.Movements.Web/Views/PromotionRequests/Details.cshtml#printed-id#@Model.SourceLegalRegimeId</t | PLAN-67: P4 shows the name instead of the id
+src/Services/HRMovements/HR.Movements.Web/Views/PromotionRequests/Details.cshtml#unformatted-time#@Model.EffectiveDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/PromotionRequests/Index.cshtml#unformatted-time#@x.EffectiveDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/SecondmentRequests/Details.cshtml#printed-id#@r.ExecutedBy</t | PLAN-67: P4 shows the name instead of the id
+src/Services/HRMovements/HR.Movements.Web/Views/SecondmentRequests/Details.cshtml#unformatted-time#<tr><td>@r.ExecutedAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/SecondmentRequests/Details.cshtml#unformatted-time#@Model.EndDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/SecondmentRequests/Details.cshtml#unformatted-time#@Model.StartDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/SecondmentRequests/Index.cshtml#unformatted-time#@x.EndDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/SecondmentRequests/Index.cshtml#unformatted-time#@x.StartDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/Shared/_MovementApprovalRecord.cshtml#printed-id#@approved.CompletedBy | PLAN-67: P4 shows the name instead of the id
+src/Services/HRMovements/HR.Movements.Web/Views/Shared/_MovementApprovalRecord.cshtml#unformatted-time#تُمد في @approved.CompletedAt?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/TransferFinancialImpacts/Index.cshtml#printed-id#@x.TransferRequestId</t | PLAN-67: P4 shows the name instead of the id
+src/Services/HRMovements/HR.Movements.Web/Views/TransferFinancialImpacts/Index.cshtml#unformatted-time#Change</td><td>@x.CalculatedAt.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/TransferRequests/Details.cshtml#printed-id#@Model.SourceLegalRegimeId</t | PLAN-67: P4 shows the name instead of the id
+src/Services/HRMovements/HR.Movements.Web/Views/TransferRequests/Details.cshtml#printed-id#@Model.TargetLegalRegimeId</t | PLAN-67: P4 shows the name instead of the id
+src/Services/HRMovements/HR.Movements.Web/Views/TransferRequests/Details.cshtml#printed-id#@a.ApprovedBy | PLAN-67: P4 shows the name instead of the id
+src/Services/HRMovements/HR.Movements.Web/Views/TransferRequests/Details.cshtml#unformatted-time#.Notes</td><td>@f.CalculatedAt.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/TransferRequests/Details.cshtml#unformatted-time#@Model.RequestDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/TransferRequests/Details.cshtml#unformatted-time#class="fw-bold">@a.ApprovedAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRMovements/HR.Movements.Web/Views/TransferRequests/Details.cshtml#unformatted-time#s.FirstOrDefault()?.ExecutedAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone

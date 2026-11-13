@@ -1,0 +1,18 @@
+# PLAN-67 (P-12): what InterfaceTextGuardTests found in HR.Training.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
+src/Services/HRTraining/HR.Training.Web/Views/ELearningCourses/Index.cshtml#raw-status#@(x.Category ?? "—") | PLAN-67: P3 prints the value by its Arabic name
+src/Services/HRTraining/HR.Training.Web/Views/EssLearning/Certificate.cshtml#unformatted-time#الإكمال: @(Model.CompletedAt?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRTraining/HR.Training.Web/Views/EssLearning/Index.cshtml#raw-status#@(c.Category ?? "عام") | PLAN-67: P3 prints the value by its Arabic name
+src/Services/HRTraining/HR.Training.Web/Views/MissionFiles/Details.cshtml#unformatted-time#@Model.StartDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRTraining/HR.Training.Web/Views/MissionFiles/Index.cshtml#unformatted-time#@x.StartDate</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRTraining/HR.Training.Web/Views/QualificationCodes/GapAnalysis.cshtml#empty-table#<table class="table table-sm table-striped"> <th | PLAN-67: P4 adds the empty message
+src/Services/HRTraining/HR.Training.Web/Views/TrainingCourses/Details.cshtml#unformatted-time#.Status)</td><td>@e.EnrolledAt.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRTraining/HR.Training.Web/Views/TrainingEnrollments/Details.cshtml#unformatted-time#th><td>@Model.Result.GradedAt?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRTraining/HR.Training.Web/Views/TrainingEnrollments/Details.cshtml#unformatted-time#سجيل</th><td>@Model.EnrolledAt.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRTraining/HR.Training.Web/Views/TrainingNominations/Details.cshtml#unformatted-time#شيح</th><td>@Model.NominatedAt.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRTraining/HR.Training.Web/Views/TrainingNominations/Index.cshtml#unformatted-time#Status)</td><td>@x.NominatedAt.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRTraining/HR.Training.Web/Views/TrainingPlans/Details.cshtml#unformatted-time#t != null ? $"نعم — {Model.ApprovedAt:yyyy/MM/dd} | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRTraining/HR.Training.Web/Views/TrainingResults/Details.cshtml#printed-id#@(Model.GradedBy?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/HRTraining/HR.Training.Web/Views/TrainingResults/Details.cshtml#printed-id#@Model.Enrollment.EmployeeId</t | PLAN-67: P4 shows the name instead of the id
+src/Services/HRTraining/HR.Training.Web/Views/TrainingResults/Details.cshtml#unformatted-time#تقييم</th><td>@Model.GradedAt?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/HRTraining/HR.Training.Web/Views/TrainingResults/Index.cshtml#printed-id#@x.Enrollment.EmployeeId</t | PLAN-67: P4 shows the name instead of the id
+src/Services/HRTraining/HR.Training.Web/Views/TrainingResults/Index.cshtml#unformatted-time#<td>@x.GradedAt?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone

@@ -364,4 +364,129 @@ public sealed class GuardSelfTests
         // A row above the ceiling: the list holds two valid rows where its ceiling allows one.
         Assert.True(list.Rows.Count > 1);
     }
+
+    // --- PLAN-67: the interface text guard (one planted defect per rule, and the same view fixed) ---
+
+    private static IReadOnlyList<string> UiRules(string view, string path = "src/Services/HRCore/HR.Core.Web/Views/Planted/Index.cshtml") =>
+        InterfaceTextScanner.Scan(path, view).Select(f => f.Rule).ToList();
+
+    [Theory]
+    [InlineData("<table><thead><tr><th>Status</th></tr></thead></table>", "<table><thead><tr><th>الحالة</th></tr></thead></table>")]
+    [InlineData("<dl><dt>Domain</dt><dd>x</dd></dl>", "<dl><dt>المجال</dt><dd>x</dd></dl>")]
+    [InlineData("<button type=\"submit\">Save</button>", "<button type=\"submit\">حفظ</button>")]
+    [InlineData("<h3>مصالحة الموازنة vs المناصب</h3>", "<h3>مصالحة الموازنة مقابل المناصب</h3>")]
+    [InlineData("<label>رمز الصنف</label><label>Stock code</label>", "<label>رمز الصنف (SKU)</label>")]
+    public void An_english_label_is_found_and_its_arabic_form_passes(string planted, string fixedView)
+    {
+        Assert.Contains(InterfaceTextScanner.EnglishLabel, UiRules(planted));
+        Assert.DoesNotContain(InterfaceTextScanner.EnglishLabel, UiRules(fixedView));
+    }
+
+    [Fact]
+    public void An_internal_code_shown_as_secondary_text_is_not_part_of_the_label() =>
+        Assert.Empty(UiRules("<h3>المناصب الممولة <span class=\"hr-internal-code\">EST-001</span></h3>"));
+
+    [Theory]
+    [InlineData("<span class=\"badge\">@requisition.Status</span>")]
+    [InlineData("<td>@(x.Requisition?.Status.ToString() ?? \"—\")</td>")]
+    [InlineData("<td>@item.ChangeType</td>")]
+    [InlineData("<span title=\"@Model.Scope\">x</span>")]
+    public void A_raw_status_is_found(string planted) =>
+        Assert.Contains(InterfaceTextScanner.RawStatus, UiRules(planted));
+
+    [Theory]
+    [InlineData("<span class=\"badge\">@Html.HrEnumDisplay(requisition.Status)</span>")]
+    [InlineData("<span data-status=\"@requisition.Status\">x</span>")]
+    [InlineData("@if (Model.Status == X) { <span>نعم</span> }")]
+    public void A_status_through_the_helper_or_in_an_attribute_passes(string view) =>
+        Assert.DoesNotContain(InterfaceTextScanner.RawStatus, UiRules(view));
+
+    [Theory]
+    [InlineData("<code>@(publication.MakerUserId?.ToString() ?? publication.MakerRole ?? \"—\")</code>")]
+    [InlineData("<td>@x.CreatedBy</td>")]
+    [InlineData("<td>@c.Id.ToString()[..8]</td>")]
+    [InlineData("<dd>@Model.OrgUnitId</dd>")]
+    public void A_printed_id_is_found(string planted) =>
+        Assert.Contains(InterfaceTextScanner.PrintedId, UiRules(planted));
+
+    [Theory]
+    [InlineData("<span data-hr-user-id=\"@x.CreatedBy\"></span>")]
+    [InlineData("<a asp-action=\"Details\" asp-route-id=\"@x.Id\">عرض</a>")]
+    public void An_id_in_an_attribute_passes(string view) =>
+        Assert.DoesNotContain(InterfaceTextScanner.PrintedId, UiRules(view));
+
+    [Fact]
+    public void A_technical_id_is_named_in_the_guard_and_passes_only_in_its_file()
+    {
+        const string view = "<td><code>@row.CorrelationId</code></td>";
+        Assert.DoesNotContain(InterfaceTextScanner.PrintedId, UiRules(view, "src/Gateway/HRManagement.Gateway/Views/Home/Audit.cshtml"));
+        Assert.Contains(InterfaceTextScanner.PrintedId, UiRules(view));
+    }
+
+    [Fact]
+    public void Raw_json_is_found_outside_the_technical_partial()
+    {
+        const string view = "<code>@r.WhenJson</code>";
+        Assert.Contains(InterfaceTextScanner.RawJson, UiRules(view));
+        Assert.DoesNotContain(InterfaceTextScanner.RawJson, UiRules(view, "src/Services/HRCore/HR.Core.Web/Views/Shared/_TechnicalJson.cshtml"));
+    }
+
+    [Theory]
+    [InlineData("<form method=\"post\" onsubmit=\"return confirm('حذف؟');\"></form>")]
+    [InlineData("<button type=\"submit\" onclick=\"go()\">موافقة</button>")]
+    [InlineData("<form method=\"post\"\n      onsubmit=\"return confirm('x');\">\n</form>")]
+    public void An_inline_handler_is_found(string planted)
+    {
+        Assert.Contains(InterfaceTextScanner.InlineHandler, UiRules(planted));
+        Assert.DoesNotContain(InterfaceTextScanner.InlineHandler, UiRules("<form method=\"post\" data-hr-confirm=\"حذف؟\"></form>"));
+    }
+
+    [Fact]
+    public void A_style_attribute_is_found_and_a_class_passes()
+    {
+        Assert.Contains(InterfaceTextScanner.StyleAttribute, UiRules("<div class=\"progress-bar\" style=\"width:@(pct)%\"></div>"));
+        Assert.DoesNotContain(InterfaceTextScanner.StyleAttribute, UiRules("<div class=\"progress-bar\" data-hr-progress=\"@pct\"></div>"));
+    }
+
+    [Fact]
+    public void A_looped_table_without_an_empty_message_is_found_and_one_with_it_passes()
+    {
+        const string planted = "<table class=\"table\"><tbody>\n@foreach (var x in Model.Rows)\n{\n<tr><td>@x.Name</td></tr>\n}\n</tbody></table>";
+        Assert.Contains(InterfaceTextScanner.EmptyTable, UiRules(planted));
+        var fixedView = "@if (Model.Rows.Count == 0)\n{\n<partial name=\"_HrEmptyState\" />\n}\nelse\n{\n" + planted + "\n}";
+        Assert.DoesNotContain(InterfaceTextScanner.EmptyTable, UiRules(fixedView));
+    }
+
+    [Theory]
+    [InlineData("<td>@x.CreatedAt.ToString(\"yyyy/MM/dd HH:mm\")</td>")]
+    [InlineData("<td>@(x.ClosingDate?.ToString(\"dd-MM-yyyy\") ?? \"—\")</td>")]
+    [InlineData("<input type=\"date\" value=\"@x.Date.ToString(\"yyyy-MM-dd\")\" />")]
+    [InlineData("<span>@publication.PublishedAt.ToString(\"u\", inv)</span>")]
+    [InlineData("<td>@x.CreatedAtUtc</td>")]
+    [InlineData("<input type=\"datetime-local\" name=\"at\" value=\"@x.At.ToString(\"yyyy-MM-ddTHH:mm\")\" />")]
+    public void A_time_outside_the_helpers_is_found(string planted) =>
+        Assert.Contains(InterfaceTextScanner.UnformattedTime, UiRules(planted));
+
+    [Theory]
+    [InlineData("<td>@Html.HrDateTime(x.CreatedAt)</td>")]
+    [InlineData("<td>@Html.HrDate(x.ClosingDate)</td>")]
+    [InlineData("<input type=\"date\" value=\"@Html.HrDateInputValue(x.Date)\" />")]
+    [InlineData("<td>@x.Amount.ToString(\"N2\")</td>")]
+    public void A_time_through_the_helpers_or_a_number_passes(string view) =>
+        Assert.DoesNotContain(InterfaceTextScanner.UnformattedTime, UiRules(view));
+
+    [Fact]
+    public void An_interface_row_needs_its_owner_and_a_stale_row_is_caught()
+    {
+        var owner = CeilingList.Owners[0];
+        var list = CeilingList.Parse("ui-text-allowlist/HR.Core.Web.txt",
+        [
+            $"src/x.cshtml#raw-status#@x.Status | {owner}: the status gets its Arabic name",
+            $"src/y.cshtml#printed-id#@y.CreatedBy | {owner}: the user's name is shown",
+            "src/z.cshtml#style-attribute#style=\"x\" | no owner",
+        ]);
+        Assert.Single(list.Malformed);
+        Assert.Equal(["src/y.cshtml#printed-id#@y.CreatedBy"], CeilingChecks.Stale(["src/x.cshtml#raw-status#@x.Status"], list));
+        Assert.Equal(["src/w.cshtml#raw-json#@w.ThenJson"], CeilingChecks.Unlisted(["src/x.cshtml#raw-status#@x.Status", "src/w.cshtml#raw-json#@w.ThenJson"], list));
+    }
 }

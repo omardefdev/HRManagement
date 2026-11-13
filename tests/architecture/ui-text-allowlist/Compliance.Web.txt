@@ -1,0 +1,19 @@
+# PLAN-67 (P-12): what InterfaceTextGuardTests found in Compliance.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
+src/Services/Compliance/Compliance.Web/Views/AuditFindings/Details.cshtml#printed-id#@(Model.AuditId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/Compliance/Compliance.Web/Views/AuditFindings/Details.cshtml#unformatted-time#"col-sm-9">@(Model.ResolvedAt?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Compliance/Compliance.Web/Views/AuditFindings/Details.cshtml#unformatted-time#<td>@rec.DueDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Compliance/Compliance.Web/Views/Complaints/Details.cshtml#printed-id#@Model.FiledBy | PLAN-67: P4 shows the name instead of the id
+src/Services/Compliance/Compliance.Web/Views/Complaints/Details.cshtml#unformatted-time#lass="col-sm-9">@Model.FiledAt.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Compliance/Compliance.Web/Views/Complaints/Details.cshtml#unformatted-time#s="text-muted">@f.PerformedAt?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Compliance/Compliance.Web/Views/Complaints/Index.cshtml#unformatted-time#<td>@c.CreatedAt.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Compliance/Compliance.Web/Views/ComplianceRecommendations/Details.cshtml#printed-id#@(Model.ResponsibleUnitId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/Compliance/Compliance.Web/Views/ComplianceRecommendations/Details.cshtml#printed-id#@Model.FindingId</a | PLAN-67: P4 shows the name instead of the id
+src/Services/Compliance/Compliance.Web/Views/ComplianceRecommendations/Details.cshtml#unformatted-time#ss="col-sm-9">@(Model.DueDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Compliance/Compliance.Web/Views/ComplianceRecommendations/Index.cshtml#printed-id#@x.FindingId</t | PLAN-67: P4 shows the name instead of the id
+src/Services/Compliance/Compliance.Web/Views/ComplianceRecommendations/Index.cshtml#unformatted-time#<td>@x.DueDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Compliance/Compliance.Web/Views/DisciplinaryActions/Details.cshtml#printed-id#@(Model.IssuedBy?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/Compliance/Compliance.Web/Views/DisciplinaryActions/Details.cshtml#printed-id#@Model.ComplaintId</a | PLAN-67: P4 shows the name instead of the id
+src/Services/Compliance/Compliance.Web/Views/DisciplinaryActions/Details.cshtml#unformatted-time#ass="col-sm-9">@Model.IssuedAt.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Compliance/Compliance.Web/Views/DisciplinaryActions/Index.cshtml#unformatted-time#ctionType)</td><td>@x.IssuedAt.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Compliance/Compliance.Web/Views/LegalReferrals/Details.cshtml#unformatted-time#col-sm-9">@Model.ReferralDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Compliance/Compliance.Web/Views/LegalReferrals/Index.cshtml#unformatted-time#<td>@x.ReferralDate?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone

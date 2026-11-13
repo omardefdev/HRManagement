@@ -1,0 +1,11 @@
+# PLAN-67 (P-12): what InterfaceTextGuardTests found in Auth.Directory.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
+src/Services/AuthDirectory/Auth.Directory.Web/Views/AuthUsers/Details.cshtml#printed-id#@(Model.KeycloakUserId ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/AuthDirectory/Auth.Directory.Web/Views/AuthUsers/Details.cshtml#printed-id#@(ur.AssignedBy ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/AuthDirectory/Auth.Directory.Web/Views/AuthUsers/Details.cshtml#unformatted-time#<td>@t.ExpiresAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/AuthDirectory/Auth.Directory.Web/Views/AuthUsers/Details.cshtml#unformatted-time#<td>@t.IssuedAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/AuthDirectory/Auth.Directory.Web/Views/AuthUsers/Details.cshtml#unformatted-time#<td>@ur.AssignedAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/AuthDirectory/Auth.Directory.Web/Views/AuthUsers/Details.cshtml#unformatted-time#col-sm-8">@(Model.LastLoginAt?.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/AuthDirectory/Auth.Directory.Web/Views/AuthUsers/Details.cshtml#unformatted-time#ss="col-sm-8">@Model.CreatedAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/AuthDirectory/Auth.Directory.Web/Views/DirectoryEntries/Index.cshtml#unformatted-time#@x.LastSyncedAt</t | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/AuthDirectory/Auth.Directory.Web/Views/DirectorySyncRecords/Index.cshtml#unformatted-time#<td>@(r.CompletedAt?.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/AuthDirectory/Auth.Directory.Web/Views/DirectorySyncRecords/Index.cshtml#unformatted-time#<td>@r.StartedAt.ToString("yyyy-MM-dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone

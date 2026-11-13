@@ -78,3 +78,35 @@ Started (UTC): 2026-11-13T08:06:22.4518317Z
 - The browser test of the confirmation (the dialog shows, cancel changes nothing) is AC-UX-67a (P7), on the prod-like stack's browser.
 - `acceptance-up.ps1` stops at its live verification without PowerShell 7 (the stack itself is up): use `-SkipLiveVerification`.
 - Finished (UTC): 2026-11-13T16:29:33Z
+
+## P2 — the guard
+
+- **`InterfaceTextGuardTests`:** every view of `src/` through `InterfaceTextScanner`, the eight rules of P-12. Its tests:
+  - the scan reads every view (at least 600, every project known);
+  - every finding is a row of its project's list;
+  - no row outlives its finding;
+  - every list is well formed;
+  - no stray list;
+  - every technical exception names a view that exists, with its reason.
+- **The lists** (`tests/architecture/ui-text-allowlist/<project>.txt`, `CeilingList`) were seeded from the scan after P1 (`UX067_SEED_LISTS=true`). 649 rows in 14 lists, each signed `PLAN-67:` with the phase that empties it:
+
+  | Kind | Rows | Emptied by |
+  |---|---|---|
+  | English labels | 41 | P3 |
+  | Raw statuses | 61 | P3 |
+  | Times | 423 | P3 |
+  | Printed ids | 88 | P4 |
+  | Empty tables | 29 | P4 |
+  | Raw JSON | 7 | P5 |
+
+  - Inline handlers and `style` attributes: none (P1).
+  - The 52 `datetime-local` inputs bound with `asp-for` are not rows: the shared tag helper and model binder of P3 convert them all.
+  - `CeilingList.Owners` gains `PLAN-67`.
+- **Technical exceptions, in the test's code:** the gateway audit page's `CorrelationId`. More come with P4.
+- **Planted defects** (`GuardSelfTests`):
+  - each rule fails on a planted view and passes once it is fixed;
+  - an internal code shown as secondary text is not a label;
+  - a technical id passes only in its own file;
+  - a row needs an owner, and a stale or unlisted row is caught.
+- Architecture tests: 292/292.
+- Finished (UTC): 2026-11-13T16:30:47Z

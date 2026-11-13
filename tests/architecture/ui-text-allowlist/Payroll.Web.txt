@@ -1,0 +1,86 @@
+# PLAN-67 (P-12): what InterfaceTextGuardTests found in Payroll.Web when P2 seeded this list. Each row is emptied by the phase its reason names; the list only shrinks.
+src/Services/Payroll/Payroll.Web/Views/AllowanceRecords/Index.cshtml#unformatted-time#ectiveTo" value="@effectiveTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/AllowanceRecords/Index.cshtml#unformatted-time#mount</td><td>@x.EffectiveFrom.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/AllowanceRecords/Index.cshtml#unformatted-time#veFrom" value="@effectiveFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/Arrears/Details.cshtml#english-label#<th> المتأخرات (Arrears) | PLAN-67: P3 gives the label its Arabic text
+src/Services/Payroll/Payroll.Web/Views/Arrears/Details.cshtml#english-label#<th> المدفوع (Paid) | PLAN-67: P3 gives the label its Arabic text
+src/Services/Payroll/Payroll.Web/Views/Arrears/Details.cshtml#english-label#<th> المستحق (Entitled) | PLAN-67: P3 gives the label its Arabic text
+src/Services/Payroll/Payroll.Web/Views/Arrears/Details.cshtml#printed-id#@(Model.SettledByBatchId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/Arrears/Details.cshtml#printed-id#@Model.PayrollRunId</t | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/Arrears/Details.cshtml#unformatted-time#إنشاء</th><td>@Model.CreatedAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/Arrears/Index.cshtml#printed-id#@e.PayrollRunId</t | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/Arrears/Index.cshtml#unformatted-time#"createdTo" value="@createdTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/Arrears/Index.cshtml#unformatted-time#atedFrom" value="@createdFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/DeductionRecords/Index.cshtml#raw-status#@x.DeductionType</t | PLAN-67: P3 prints the value by its Arabic name
+src/Services/Payroll/Payroll.Web/Views/DeductionRecords/Index.cshtml#unformatted-time#ame="dueFrom" value="@dueFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/DeductionRecords/Index.cshtml#unformatted-time#e" name="dueTo" value="@dueTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/EmployeePayProfiles/History.cshtml#unformatted-time#<td>@(h.EffectiveTo?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/EmployeePayProfiles/History.cshtml#unformatted-time#<td>@h.EffectiveFrom.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/EmployeePayProfiles/Index.cshtml#unformatted-time#<td>@(p.EffectiveTo?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/EmployeePayProfiles/Index.cshtml#unformatted-time#<td>@p.EffectiveFrom.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/EmployeePayProfiles/Index.cshtml#unformatted-time#ectiveTo" value="@effectiveTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/EmployeePayProfiles/Index.cshtml#unformatted-time#veFrom" value="@effectiveFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/EndOfService/Details.cshtml#printed-id#@(Model.SeparationRecordId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/EndOfService/Details.cshtml#unformatted-time#اب</th><td>@Model.CalculatedAt.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/EndOfService/Index.cshtml#unformatted-time#dFrom" value="@calculatedFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/EndOfService/Index.cshtml#unformatted-time#latedTo" value="@calculatedTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/Ess/Payslips.cshtml#empty-table#<table class="table table-striped"> <thead><tr> | PLAN-67: P4 adds the empty message
+src/Services/Payroll/Payroll.Web/Views/Ess/Payslips.cshtml#unformatted-time#>@line.PayrollRun?.PeriodStart.ToString("yyyy-MM" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/FraudAlerts/Details.cshtml#printed-id#@(Model.OwnerId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/FraudAlerts/Details.cshtml#printed-id#@(Model.PaymentHoldId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/FraudAlerts/Details.cshtml#printed-id#@(Model.PayrollRunId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/FraudAlerts/Details.cshtml#printed-id#@Model.RuleId</h | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/FraudAlerts/Details.cshtml#printed-id#@Model.RuleId</t | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/FraudAlerts/Details.cshtml#raw-status#@Model.Category</t | PLAN-67: P3 prints the value by its Arabic name
+src/Services/Payroll/Payroll.Web/Views/FraudAlerts/Details.cshtml#unformatted-time#ف</th><td>@Model.DetectedAtUtc.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/FraudAlerts/Index.cshtml#printed-id#@x.RuleId</t | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/FraudAlerts/Index.cshtml#raw-status#@x.Category</t | PLAN-67: P3 prints the value by its Arabic name
+src/Services/Payroll/Payroll.Web/Views/FraudAlerts/Index.cshtml#unformatted-time#<td>@x.DetectedAtUtc.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/FraudAlerts/Index.cshtml#unformatted-time#etectedTo" value="@detectedTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/FraudAlerts/Index.cshtml#unformatted-time#tedFrom" value="@detectedFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PaymentBatches/Index.cshtml#printed-id#@x.PayrollRunId</t | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/PaymentBatches/Index.cshtml#unformatted-time#"—")</td><td>@(x.ProcessedAt?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PaymentBatches/Index.cshtml#unformatted-time#cessedTo" value="@processedTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PaymentBatches/Index.cshtml#unformatted-time#edFrom" value="@processedFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PaymentHolds/Details.cshtml#printed-id#@(Model.FraudAlertId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/PaymentHolds/Details.cshtml#printed-id#@(Model.PayrollRunId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/PaymentHolds/Details.cshtml#printed-id#@(Model.ReleaseApprovedBy?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/PaymentHolds/Details.cshtml#printed-id#@(Model.ReleasedBy?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/PaymentHolds/Details.cshtml#raw-status#@Model.HoldType</t | PLAN-67: P3 prints the value by its Arabic name
+src/Services/Payroll/Payroll.Web/Views/PaymentHolds/Details.cshtml#unformatted-time#الحجز</th><td>@Model.HeldAtUtc.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PaymentHolds/Index.cshtml#unformatted-time#<td>@x.HeldAtUtc.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PaymentHolds/Index.cshtml#unformatted-time#e="heldFrom" value="@heldFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PaymentHolds/Index.cshtml#unformatted-time#name="heldTo" value="@heldTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollAdjustments/Index.cshtml#unformatted-time#"createdTo" value="@createdTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollAdjustments/Index.cshtml#unformatted-time#atedFrom" value="@createdFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollAuditRecords/Index.cshtml#printed-id#@(x.AuditorId?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/PayrollAuditRecords/Index.cshtml#printed-id#@(x.ClosedBy?.ToString() ?? "—") | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/PayrollAuditRecords/Index.cshtml#printed-id#@x.PayrollRunId</t | PLAN-67: P4 shows the name instead of the id
+src/Services/Payroll/Payroll.Web/Views/PayrollAuditRecords/Index.cshtml#unformatted-time#"createdTo" value="@createdTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollAuditRecords/Index.cshtml#unformatted-time#atedFrom" value="@createdFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollConfigurations/Details.cshtml#raw-status#@Model.TaxableBaseMode</d | PLAN-67: P3 prints the value by its Arabic name
+src/Services/Payroll/Payroll.Web/Views/PayrollConfigurations/Details.cshtml#unformatted-time#<li>@h.NameAr (@h.Date.ToString("MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollConfigurations/Details.cshtml#unformatted-time#MM-dd") — @(Model.EffectiveTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollConfigurations/Details.cshtml#unformatted-time#col-sm-8">@Model.EffectiveFrom.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollConfigurations/Index.cshtml#empty-table#<table class="table table-hover mb-0"> <thead> | PLAN-67: P4 adds the empty message
+src/Services/Payroll/Payroll.Web/Views/PayrollConfigurations/Index.cshtml#english-label#<h3> الأطر القانونية للرواتب (إصدارات PAY-002) | PLAN-67: P3 gives the label its Arabic text
+src/Services/Payroll/Payroll.Web/Views/PayrollReports/MonthlySummary.cshtml#empty-table#<table class="table table-sm"> <thead><t | PLAN-67: P4 adds the empty message
+src/Services/Payroll/Payroll.Web/Views/PayrollReports/MonthlySummary.cshtml#unformatted-time#<td>@r.RunDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollReports/VarianceReport.cshtml#empty-table#<table class="table table-striped"> <thead><tr> | PLAN-67: P4 adds the empty message
+src/Services/Payroll/Payroll.Web/Views/PayrollRuns/Details.cshtml#raw-status#@Model.PayrollConfiguration.PublicationStatus</d | PLAN-67: P3 prints the value by its Arabic name
+src/Services/Payroll/Payroll.Web/Views/PayrollRuns/Details.cshtml#unformatted-time#ecision)</td><td>@a.DecidedAt?.ToString("yyyy/MM/dd HH:mm" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollRuns/Details.cshtml#unformatted-time#mpletionAt.Value.ToLocalTime().ToString("HH:mm:ss" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollRuns/Details.cshtml#unformatted-time#rollConfiguration.PublishedAt?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollRuns/Details.cshtml#unformatted-time#tle mb-0">تشغيل @Model.RunDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollRuns/Details.cshtml#unformatted-time#yrollConfiguration.ApprovedAt?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollRuns/Index.cshtml#unformatted-time#"yyyy/MM/dd") — @run.PeriodEnd.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollRuns/Index.cshtml#unformatted-time#<td>@run.PeriodStart.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollRuns/Index.cshtml#unformatted-time#<td>@run.RunDate.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollRuns/Index.cshtml#unformatted-time#asp-route-periodTo="@periodTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollRuns/Index.cshtml#unformatted-time#e="periodTo" value="@periodTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollRuns/Index.cshtml#unformatted-time#eriodFrom" value="@periodFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/PayrollRuns/Index.cshtml#unformatted-time#route-periodFrom="@periodFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/SalaryScales/Index.cshtml#unformatted-time#<td>@(s.EffectiveTo?.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/SalaryScales/Index.cshtml#unformatted-time#<td>@s.EffectiveFrom.ToString("yyyy/MM/dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/SalaryScales/Index.cshtml#unformatted-time#ectiveTo" value="@effectiveTo?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
+src/Services/Payroll/Payroll.Web/Views/SalaryScales/Index.cshtml#unformatted-time#veFrom" value="@effectiveFrom?.ToString("yyyy-MM-dd" | PLAN-67: P3 formats it with HrDate/HrDateTime in the configured zone
