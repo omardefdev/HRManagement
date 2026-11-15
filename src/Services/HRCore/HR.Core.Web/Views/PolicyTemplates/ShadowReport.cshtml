@@ -1,24 +1,45 @@
 @model IEnumerable<HR.Core.Domain.Entities.Policy.PolicyEnforcementLedger>
-@{ ViewData["Title"] = "تقرير Shadow — 7 أيام"; }
+@using HRManagement.SharedKernel.Policy
+@{
+    ViewData["Title"] = "تقرير الظل — 7 أيام";
+    // PLAN-67 (D-67-4): the differences' JSON for the policy roles only; a reader sees that a difference was recorded.
+    var technical = ViewBag.CanSeeTechnical is true;
+}
 <div class="card">
     <div class="card-header d-flex justify-content-between">
-        <h3 class="mb-0">Shadow diffs</h3>
+        <h3 class="mb-0">تقرير الظل: الفروق بين قرار المحرك والنتيجة الفعلية</h3>
         <a asp-action="Index" class="btn btn-sm btn-outline-secondary">العودة</a>
     </div>
     <div class="card-body p-0">
-        <table class="table table-sm mb-0">
-            <thead><tr><th>وقت</th><th>Domain</th><th>Action</th><th>Diffs</th></tr></thead>
-            <tbody>
-                @foreach (var l in Model)
-                {
-                    <tr>
-                        <td>@l.OccurredAt.ToLocalTime()</td>
-                        <td><code>@l.Domain</code></td>
-                        <td>@l.Action</td>
-                        <td><code class="small">@(l.ShadowDiffJson ?? "—")</code></td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+        @if (!Model.Any())
+        {
+            <partial name="_HrEmptyState" model="@("لا فروق مسجّلة في الأيام السبعة الماضية.")" />
+        }
+        else
+        {
+            <table class="table table-sm mb-0">
+                <thead><tr><th>الوقت</th><th>المجال</th><th>الإجراء</th><th>الفروق</th></tr></thead>
+                <tbody>
+                    @foreach (var l in Model)
+                    {
+                        <tr>
+                            <td>@Html.HrDateTime(l.OccurredAt)</td>
+                            <td>@PolicyVocabularyAr.DomainName(l.Domain) <span class="hr-internal-code">@l.Domain</span></td>
+                            <td>@PolicyVocabularyAr.Action(l.Action)</td>
+                            <td>
+                                @if (technical)
+                                {
+                                    <partial name="_TechnicalJson" model="@(new HRManagement.Web.Shared.Models.TechnicalJsonModel(l.ShadowDiffJson, "عرض تقني: الفروق"))" />
+                                }
+                                else
+                                {
+                                    <span class="text-muted small" data-testid="shadow-diff-recorded">فرق مسجّل؛ تفاصيله لمؤلفي السياسات ومدققيها</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
     </div>
 </div>

@@ -13,7 +13,7 @@
         <table class="table table-borderless table-sm w-auto">
             <tr><th>تاريخ الإصدار</th><td>@Model.IssueDate</td></tr>
             <tr><th>الفترة</th><td>@(Model.Period ?? "—")</td></tr>
-            <tr><th>صادر عن</th><td>@(Model.IssuedBy?.ToString() ?? "—")</td></tr>
+            <tr><th>صادر عن</th><td>@Html.HrUserName(Model.IssuedBy)</td></tr>
         </table>
 
         @if (!string.IsNullOrEmpty(Model.Items))
@@ -36,6 +36,10 @@
                                 <td>@(item.TryGetProperty("Date", out var d) ? d.ToString() : "—")</td>
                             </tr>
                         }
+                        @if (!(items.EnumerateArray()).Any())
+                            {
+                                <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                            }
                         </tbody>
                     </table>
                 }

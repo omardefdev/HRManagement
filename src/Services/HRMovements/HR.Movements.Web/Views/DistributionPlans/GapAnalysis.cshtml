@@ -5,7 +5,7 @@
     var actual = (int)ViewBag.ActualHeadcount;
 }
 <div class="card" dir="rtl">
-    <div class="card-header"><h3 class="card-title">تحليل عجز/فائض — @plan?.OrgUnitId</h3></div>
+    <div class="card-header"><h3 class="card-title">تحليل عجز/فائض — @Html.HrOrgUnitName(plan?.OrgUnitId)</h3></div>
     <div class="card-body">
         <form asp-action="GapAnalysis" asp-route-id="@plan?.Id" method="post" class="mb-3">
             @Html.AntiForgeryToken()

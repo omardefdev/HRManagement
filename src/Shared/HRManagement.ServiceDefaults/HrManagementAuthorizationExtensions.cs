@@ -241,6 +241,9 @@ public static class HrManagementAuthorizationExtensions
             // PLAN-50 (§4): the gateway's coarse layer for the named approval paths.
             options.AddPolicy(HrManagementPolicies.GatewayApprovalReach, p => p.AddRequirements(new GatewayApprovalReachRequirement()));
 
+            // PLAN-67 (D-67-3): the user-names lookup, for interactive staff only (PLAN-50's definition, never a second one).
+            options.AddPolicy(HrManagementPolicies.GatewayUserNames, p => p.AddRequirements(new GatewayApprovalReachRequirement()));
+
             options.AddPolicy(HrManagementPolicies.HrContractsHireView, p => p.RequireAssertion(c =>
                 c.User.IsInRole(HrManagementRoles.Admin)
                 || c.User.IsInRole(HrManagementRoles.HrContracts)

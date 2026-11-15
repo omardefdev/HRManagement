@@ -8,25 +8,25 @@
     <div class="card-header d-flex justify-content-between">
         <h3 class="mb-0">محرك السياسات</h3>
         <div>
-            <a asp-action="ShadowReport" class="btn btn-sm btn-outline-warning me-1">Shadow report</a>
+            <a asp-action="ShadowReport" class="btn btn-sm btn-outline-warning me-1">تقرير الظل</a>
             <a asp-action="Ledger" class="btn btn-sm btn-outline-secondary">سجل التطبيق</a>
         </div>
     </div>
     <div class="card-body p-0">
         <table class="table table-sm mb-0">
-            <thead><tr><th>Domain</th><th>الاسم</th><th>النطاق</th><th>إصدارات</th><th></th></tr></thead>
+            <thead><tr><th>المجال</th><th>الاسم</th><th>النطاق</th><th>إصدارات</th><th></th></tr></thead>
             <tbody>
                 @foreach (var t in Model)
                 {
                     var inherited = t.TenantId == NationalTenant.Id && t.Scope == PolicyTemplateScope.National && !sessionIsNational;
                     <tr data-domain="@t.Domain" data-origin="@(inherited ? "inherited" : t.Scope == PolicyTemplateScope.TenantOverride ? "override" : "national")" data-retired="@(t.RetiredAt is null ? "false" : "true")">
-                        <td><code>@t.Domain</code></td>
+                        <td>@PolicyVocabularyAr.DomainName(t.Domain) <span class="hr-internal-code">@t.Domain</span></td>
                         <td>
                             @t.Name
                             @if (t.RetiredAt is { } retiredAt)
                             {
                                 @* PLAN-49: the template of a domain out of the engine's scope, closed by its final version with no rules. *@
-                                <span class="badge bg-dark ms-1" data-testid="badge-retired" title="@t.RetiredReason">مسحوب @retiredAt.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)</span>
+                                <span class="badge bg-dark ms-1" data-testid="badge-retired" title="@t.RetiredReason">مسحوب @Html.HrDate(retiredAt)</span>
                             }
                         </td>
                         <td>
@@ -47,6 +47,10 @@
                         <td><a asp-action="Details" asp-route-id="@t.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
                     </tr>
                 }
+            @if (!(Model).Any())
+                {
+                    <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>
@@ -60,7 +64,7 @@
             <table class="table table-sm mb-0">
                 <thead>
                     <tr>
-                        <th>Domain</th>
+                        <th>المجال</th>
                         <th>الحالة</th>
                         <th>الخدمة المالكة</th>
                         <th>الوضع الفعّال</th>
@@ -74,7 +78,7 @@
                     {
                         var d = row.Descriptor;
                         <tr data-testid="policy-domain-row" data-domain="@d.Domain" data-status="@(d.IsGoverned ? "governed" : "out-of-scope")" data-mode="@row.Mode">
-                            <td><code>@d.Domain</code></td>
+                            <td>@d.NameAr <span class="hr-internal-code">@d.Domain</span></td>
                             <td>
                                 @if (d.IsGoverned)
                                 {
@@ -85,12 +89,12 @@
                                     <span class="badge bg-secondary" data-testid="domain-status">خارج النطاق</span>
                                 }
                             </td>
-                            <td>@d.OwnerService</td>
-                            <td><span class="badge @(row.Mode == PolicyEnforcementMode.Off ? "bg-light text-dark" : row.Mode == PolicyEnforcementMode.Shadow ? "bg-warning text-dark" : "bg-danger")" data-testid="domain-mode">@row.Mode</span></td>
+                            <td>@d.OwnerServiceAr</td>
+                            <td><span class="badge @(row.Mode == PolicyEnforcementMode.Off ? "bg-light text-dark" : row.Mode == PolicyEnforcementMode.Shadow ? "bg-warning text-dark" : "bg-danger")" data-testid="domain-mode">@Html.HrEnumDisplay(row.Mode)</span></td>
                             <td>
                                 @if (row.LastDecision is { } last)
                                 {
-                                    <span data-testid="domain-last-decision" dir="ltr">@last.OccurredAt.ToString("yyyy-MM-dd HH:mm", System.Globalization.CultureInfo.InvariantCulture) UTC · @last.Action · @last.Mode@(last.CallerClientId is null ? "" : " · " + last.CallerClientId)</span>
+                                    <span data-testid="domain-last-decision">@Html.HrDateTime(last.OccurredAt) · @PolicyVocabularyAr.Action(last.Action) · @Html.HrStoredEnumDisplay("PolicyEnforcementMode", last.Mode)</span>@if (last.CallerClientId is not null) { <span> · @(PolicyDomainCatalog.All.FirstOrDefault(x => x.OwnerClientId == last.CallerClientId)?.OwnerServiceAr ?? "خدمة أخرى")</span> }
                                 }
                                 else
                                 {
@@ -107,7 +111,7 @@
                                 }
                                 else
                                 {
-                                    <span data-testid="domain-out-of-scope-reason">@d.OutOfScopeReasonAr</span>
+                                    <span data-testid="domain-out-of-scope-reason">@Html.HrTextWithCodes(d.OutOfScopeReasonAr)</span>
                                 }
                             </td>
                             <td>
@@ -117,6 +121,10 @@
                                 }
                             </td>
                         </tr>
+                    }
+                @if (!(domains).Any())
+                    {
+                        <tr><td colspan="7"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
                     }
                 </tbody>
             </table>

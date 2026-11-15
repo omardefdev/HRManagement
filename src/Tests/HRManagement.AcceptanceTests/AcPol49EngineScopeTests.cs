@@ -23,7 +23,23 @@ internal static class PolicyScopeJourney
 {
     public const string Ac = "AC-POL-49";
     public const string OutOfScopeMessage = "المجال خارج نطاق المحرك";
-    public const string SchemaRefusal = "حقل غير مسموح";
+    public const string SchemaRefusal = HRManagement.SharedKernel.Policy.PolicyFactsValidator.UnknownFieldMessage;
+
+    // PLAN-67: the page prints a reason's codes readably (an effect as its Arabic verb, any other code as secondary text), so the
+    // Arabic text between the codes is what must appear, word for word. The pattern is the codes of HrTextWithCodes.
+    private static readonly Regex ReasonCode = new(
+        @"\b(?:[A-Z][A-Za-z0-9]*(?:[-.][A-Z0-9][A-Za-z0-9]*)+|[A-Z][a-z]+(?:[A-Z][a-z0-9]+)+|[A-Z]{2,}[0-9]*)\b", RegexOptions.CultureInvariant);
+
+    /// <summary>The parts of a reason's Arabic text that a page's row does not show.</summary>
+    public static IReadOnlyList<string> MissingReasonParts(string rowHtml, string reason)
+    {
+        var visible = Regex.Replace(WebUtility.HtmlDecode(Regex.Replace(rowHtml, "<[^>]+>", " ")), @"\s+", " ");
+        return ReasonCode.Split(reason)
+            .Select(part => Regex.Replace(part, @"\s+", " ").Trim(' ', '(', ')', ':', '؛', '،', '.'))
+            .Where(part => part.Length > 2 && !visible.Contains(part, StringComparison.Ordinal))
+            .ToList();
+    }
+
     public static readonly Guid TenantA = AcceptanceSeedIds.AgencyAId;
     public static readonly string[] Governed = ["Assets.Custody", "Contracts.Leave", "Core.Establishment", "Core.Recruitment", "IDCard.Lifecycle"];
 
@@ -285,7 +301,7 @@ public class AcPol49EngineScopeTests
         {
             Assert.Equal("Off", rows[domain].Mode);
             Assert.Contains("خارج النطاق", rows[domain].Html, StringComparison.Ordinal);
-            Assert.Contains(PolicyDomainCatalog.Find(domain)!.OutOfScopeReasonAr!, rows[domain].Html, StringComparison.Ordinal);
+            Assert.Empty(PolicyScopeJourney.MissingReasonParts(rows[domain].Html, PolicyDomainCatalog.Find(domain)!.OutOfScopeReasonAr!));
             Assert.DoesNotContain(@"data-testid=""domain-draft-link""", rows[domain].Html, StringComparison.Ordinal);
         }
 
@@ -557,7 +573,7 @@ public class AcPol49EngineScopeTests
             "1. a-contracts-maker records an annual leave of three working days for the employee of employee-a (the HR page).\n" +
             "2. employee-a asks for two days on the self-service portal (ui/hr-core/EssPortal/Leave): HR.Core publishes ILeaveRequested, HR.Contracts creates the request Pending with its working days.\n" +
             "3. a-contracts-maker edits the first leave down to two days. 4. a-contracts-checker approves it.\n" +
-            "5. psql (hr_core_db): four ledger rows, Mode Shadow, CallerClientId svc-hr-contracts, the agency's tenant, each an allow with no «حقل غير مسموح»; the facts hash of each equals the hash of the facts its builder sends (Create 3 days, Create 2 days from the portal, Update 2 days, Approve 2 days with isSelfApproval=false).\n" +
+            "5. psql (hr_core_db): four ledger rows, Mode Shadow, CallerClientId svc-hr-contracts, the agency's tenant, each an allow with no «حقل غير معروف في مخطط الحقائق»; the facts hash of each equals the hash of the facts its builder sends (Create 3 days, Create 2 days from the portal, Update 2 days, Approve 2 days with isSelfApproval=false).\n" +
             "6. Negative: sixty working days of maternity leave are recorded (Pending); the engine's own decision is an allow, and the effective Contracts.Leave version holds R-LEAVE-SELF and neither R-LEAVE-MAX nor R-LEAVE-LONG.\n" +
             "7. Negative: a portal request over the approved leave is created Rejected with «مرفوض آلياً: توجد إجازة معتمدة متداخلة مع هذه الفترة.» at the head of its notes; no ledger row for it (the local validation refused before the engine was asked).\n" +
             "8. hr-contracts-web's log: the duration of each Shadow call to HR.Core (policy_client_call ... elapsed_ms=).");

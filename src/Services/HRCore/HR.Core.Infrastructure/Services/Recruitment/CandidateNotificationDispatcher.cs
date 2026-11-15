@@ -1,4 +1,5 @@
 using System.Diagnostics.Metrics;
+using HRManagement.ServiceDefaults.Localization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -62,7 +63,7 @@ public sealed class CandidateNotificationDispatcher(
         JobActivitySource.Meter.CreateCounter<long>("candidate_notifications_total");
 
     /// <summary>Zone of the dates in the messages; <c>/careers/track</c> uses <see cref="TimeZoneInfo.Local"/> too.</summary>
-    public TimeZoneInfo DisplayZone { get; init; } = TimeZoneInfo.Local;
+    public TimeZoneInfo DisplayZone { get; init; } = HrLocalTime.Zone;
 
     /// <summary>The three passes in order (reminders, planning, sending).</summary>
     public async Task RunOnceAsync(DateTime nowUtc, CancellationToken ct)

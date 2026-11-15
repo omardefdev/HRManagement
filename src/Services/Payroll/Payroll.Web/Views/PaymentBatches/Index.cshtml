@@ -33,11 +33,11 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">معالجة من</label>
-                <input type="date" name="processedFrom" value="@processedFrom?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+                <input type="date" name="processedFrom" value="@Html.HrDateInputValue(processedFrom)" class="form-control form-control-sm" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">معالجة إلى</label>
-                <input type="date" name="processedTo" value="@processedTo?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+                <input type="date" name="processedTo" value="@Html.HrDateInputValue(processedTo)" class="form-control form-control-sm" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">مرجع بنكي</label>
@@ -57,7 +57,7 @@
         <table class="table table-striped mb-0">
             <thead><tr><th>تشغيل</th><th>المبلغ</th><th>مرجع بنكي</th><th>معالجة</th></tr></thead>
             <tbody>
-            @foreach (var x in Model) { <tr><td>@x.PayrollRunId</td><td>@x.TotalAmount</td><td>@(x.BankTransferReference ?? "—")</td><td>@(x.ProcessedAt?.ToString("yyyy/MM/dd") ?? "—")</td></tr> }
+            @foreach (var x in Model) { <tr><td><a asp-controller="PayrollRuns" asp-action="Details" asp-route-id="@x.PayrollRunId">عرض المسير</a></td><td>@x.TotalAmount</td><td>@(x.BankTransferReference ?? "—")</td><td>@Html.HrDate(x.ProcessedAt)</td></tr> }
             @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-3">لا توجد دفعات</td></tr> }
             </tbody>
         </table>

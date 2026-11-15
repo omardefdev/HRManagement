@@ -2,7 +2,7 @@
 @{ ViewData["Title"] = "تقرير فجوة الملاك"; }
 <div class="card">
     <div class="card-header d-flex justify-content-between">
-        <h3 class="mb-0">تقرير فجوة الملاك (FundedPosition)</h3>
+        <h3 class="mb-0">تقرير فجوة الملاك (المناصب الممولة)</h3>
         <a asp-controller="WorkforcePlans" asp-action="Index" class="btn btn-secondary btn-sm">خطط القوى العاملة</a>
     </div>
     <div class="card-body border-bottom">
@@ -16,8 +16,8 @@
                 <input type="number" name="fiscalYear" value="@Model.FiscalYear" class="form-control" />
             </div>
             <div class="col-md-2">
-                <label class="form-label">as-of (اختياري)</label>
-                <input type="date" name="asOf" value="@Model.AsOf?.ToString("yyyy-MM-dd")" class="form-control" />
+                <label class="form-label">في تاريخ (اختياري)</label>
+                <input type="date" name="asOf" value="@Html.HrDateInputValue(Model.AsOf)" class="form-control" />
             </div>
             <div class="col-auto">
                 <button type="submit" class="btn btn-primary">عرض</button>
@@ -54,6 +54,10 @@
                         <td>@line.DeficitCount</td>
                     </tr>
                 }
+                @if (!(g.Lines).Any())
+                    {
+                        <tr><td colspan="7"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
             </table>
         </div>

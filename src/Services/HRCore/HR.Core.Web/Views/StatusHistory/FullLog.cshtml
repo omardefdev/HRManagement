@@ -55,9 +55,13 @@
                             </td>
                             <td>@Html.HrStoredEnumDisplay("EmploymentStatus", h.OldStatus)</td>
                             <td><span class="badge text-bg-primary">@Html.HrStoredEnumDisplay("EmploymentStatus", h.NewStatus)</span></td>
-                            <td dir="ltr">@h.ChangedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td dir="ltr">@Html.HrDateTime(h.ChangedAt)</td>
                             <td>@(h.Reason ?? "—")</td>
                         </tr>
+                    }
+                @if (!(Model).Any())
+                    {
+                        <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
                     }
                 </tbody>
             </table>

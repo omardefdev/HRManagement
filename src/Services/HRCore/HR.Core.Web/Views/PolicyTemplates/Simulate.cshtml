@@ -1,34 +1,108 @@
+@using HRManagement.SharedKernel.Policy
 @{
     ViewData["Title"] = "محاكاة سياسة";
     var versionId = (Guid)ViewBag.VersionId;
     var domain = ViewBag.Domain as string;
-    var decision = ViewBag.Decision as HRManagement.SharedKernel.Policy.PolicyDecision;
-    var factsJson = ViewBag.FactsJson as string ?? "{\"isPrivileged\":\"true\",\"value\":\"15000\"}";
+    var decision = ViewBag.Decision as PolicyDecision;
+    var schema = ViewBag.FactsSchema as PolicyFactsSchemaDefinition;
+    var actions = ViewBag.Actions as IReadOnlyList<string> ?? [];
+    var facts = ViewBag.Facts as IReadOnlyDictionary<string, string> ?? new Dictionary<string, string>();
+    var factsJson = ViewBag.FactsJson as string ?? "{}";
+    var jsonMode = string.Equals(ViewBag.Mode as string, "json", StringComparison.Ordinal);
+    string Value(string field) => facts.TryGetValue(field, out var v) ? v : "";
 }
 <div class="card">
-    <div class="card-header">محاكاة — @domain</div>
+    <div class="card-header">محاكاة — @PolicyVocabularyAr.DomainName(domain) <span class="hr-internal-code">@domain</span></div>
     <div class="card-body">
-        <form asp-action="Simulate" method="post">
+        @* PLAN-67 (§5, G-UX-06): the facts are entered in a form generated from the domain's schema; the field's type picks the input.
+           The JSON input stays, as an advanced option, and gives the same decision (the simulation itself is unchanged). *@
+        <form asp-action="Simulate" method="post" data-testid="simulate-form">
             @Html.AntiForgeryToken()
             <input type="hidden" name="versionId" value="@versionId" />
-            <div class="mb-3">
-                <label class="form-label">Facts (JSON)</label>
-                <textarea name="factsJson" class="form-control font-monospace" rows="8">@factsJson</textarea>
+            <input type="hidden" name="mode" value="form" />
+            @if (schema is null || schema.Fields.Count == 0)
+            {
+                <partial name="_HrEmptyState" model="@("لا مخطط حقائق لهذا المجال: استعمل الإدخال المتقدم.")" />
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var field in schema.Fields)
+                    {
+                        var id = "fact-" + field.Name;
+                        var type = (field.Type ?? "string").ToLowerInvariant();
+                        <div class="col-md-4" data-testid="fact-field" data-field="@field.Name">
+                            <label class="form-label" for="@id">@(field.DisplayNameAr ?? field.Name) <span class="hr-internal-code">@field.Name</span>@(field.Required ? " *" : "")</label>
+                            @if (type is "bool" or "boolean")
+                            {
+                                <select id="@id" name="fact[@field.Name]" class="form-select">
+                                    <option value="">—</option>
+                                    <option value="true" selected="@(Value(field.Name) == "true")">نعم</option>
+                                    <option value="false" selected="@(Value(field.Name) == "false")">لا</option>
+                                </select>
+                            }
+                            else if (type is "int" or "integer" or "decimal" or "number" or "long" or "double")
+                            {
+                                <input id="@id" name="fact[@field.Name]" type="number" step="any" class="form-control" dir="ltr" value="@Value(field.Name)" />
+                            }
+                            else if (string.Equals(field.Name, "action", StringComparison.OrdinalIgnoreCase) && actions.Count > 0)
+                            {
+                                <select id="@id" name="fact[@field.Name]" class="form-select">
+                                    <option value="">—</option>
+                                    @foreach (var action in actions)
+                                    {
+                                        <option value="@action" selected="@(Value(field.Name) == action)">@PolicyVocabularyAr.Action(action)</option>
+                                    }
+                                </select>
+                            }
+                            else
+                            {
+                                <input id="@id" name="fact[@field.Name]" type="text" class="form-control" value="@Value(field.Name)" />
+                            }
+                        </div>
+                    }
+                </div>
+            }
+            <div class="row g-3 mt-1">
+                <div class="col-md-4">
+                    <label class="form-label" for="asOfForm">كما في تاريخ (بتوقيت دمشق، فارغ = الآن)</label>
+                    <input id="asOfForm" name="asOfUtc" type="datetime-local" class="form-control" dir="ltr" value="@(ViewBag.AsOfUtc as string)" />
+                </div>
             </div>
-            <div class="mb-3">
-                <label class="form-label">كما في تاريخ (UTC، فارغ = الآن)</label>
-                <input name="asOfUtc" class="form-control" dir="ltr" placeholder="2026-12-01T00:00:00Z" value="@(ViewBag.AsOfUtc as string)" />
-            </div>
-            <button type="submit" class="btn btn-primary">تشغيل</button>
+            <button type="submit" class="btn btn-primary mt-3">تشغيل المحاكاة</button>
         </form>
+
+        <details class="mt-4" open="@jsonMode" data-testid="simulate-json">
+            <summary class="text-muted">إدخال متقدم: الحقائق بصيغة JSON</summary>
+            <form asp-action="Simulate" method="post" class="mt-2">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="versionId" value="@versionId" />
+                <input type="hidden" name="mode" value="json" />
+                <div class="mb-3">
+                    <label class="form-label" for="factsJsonInput">الحقائق (JSON)</label>
+                    <textarea id="factsJsonInput" name="factsJson" class="form-control font-monospace" dir="ltr" rows="6">@factsJson</textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="asOfJson">كما في تاريخ (بتوقيت دمشق، فارغ = الآن)</label>
+                    <input id="asOfJson" name="asOfUtc" type="datetime-local" class="form-control" dir="ltr" value="@(ViewBag.AsOfUtc as string)" />
+                </div>
+                <button type="submit" class="btn btn-outline-primary">تشغيل بالـ JSON</button>
+            </form>
+        </details>
+
         @if (decision is not null)
         {
-            <div class="alert alert-info mt-3">
-                <strong>Allowed:</strong> @decision.Allowed<br />
-                <strong>Version:</strong> @decision.PolicyVersionId<br />
-                <strong>Effects:</strong> @string.Join(", ", decision.Effects)<br />
-                <strong>Explanations:</strong> @string.Join("؛ ", decision.Explanations)
+            <div class="alert @(decision.Allowed ? "alert-success" : "alert-danger") mt-3" data-testid="simulate-decision">
+                <strong>القرار:</strong> <span data-testid="decision-allowed" data-allowed="@(decision.Allowed ? "true" : "false")">@(decision.Allowed ? "مسموح" : "مرفوض")</span><br />
+                <strong>الإصدار المطبَّق:</strong> @(ViewBag.DecisionVersionNumber is int number ? $"الإصدار {number}" : "—")<br />
+                <strong>الآثار:</strong> <span data-testid="decision-effects" data-effects="@string.Join(",", decision.Effects)">@(decision.Effects.Count == 0 ? "لا أثر" : string.Join("، ", decision.Effects.Select(e => PolicyVocabularyAr.Effects.TryGetValue(e, out var verb) ? verb : e.ToString())))</span><br />
+                @if (!string.IsNullOrWhiteSpace(decision.DenyReason))
+                {
+                    <strong>سبب الرفض:</strong> @decision.DenyReason<br />
+                }
+                <strong>التفسيرات:</strong> @Html.HrTextWithCodes(string.Join("؛ ", decision.Explanations))
             </div>
         }
     </div>
 </div>
+<p><a asp-action="Index">العودة إلى السياسات</a></p>

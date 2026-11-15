@@ -34,11 +34,11 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">مسجّل من</label>
-                <input type="datetime-local" name="registeredFrom" value="@Model.RegisteredFrom?.ToString("yyyy-MM-ddTHH:mm")" class="form-control" />
+                <input type="datetime-local" name="registeredFrom" value="@Html.HrDateTimeLocalValue(Model.RegisteredFrom)" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">مسجّل إلى</label>
-                <input type="datetime-local" name="registeredTo" value="@Model.RegisteredTo?.ToString("yyyy-MM-ddTHH:mm")" class="form-control" />
+                <input type="datetime-local" name="registeredTo" value="@Html.HrDateTimeLocalValue(Model.RegisteredTo)" class="form-control" />
             </div>
             <div class="col-md-auto">
                 <button type="submit" class="btn btn-primary">تصفية</button>
@@ -48,7 +48,7 @@
     </div>
     <div class="card-body p-0">
         <table class="table mb-0"><thead><tr><th>المرجع</th><th>الموضوع</th><th>الاتجاه</th><th>التسجيل</th></tr></thead><tbody>
-        @foreach (var x in Model.Items){<tr><td>@x.ReferenceNumber</td><td>@x.Subject</td><td>@Html.HrEnumDisplay(x.Direction)</td><td>@x.RegisteredAt</td></tr>}
+        @foreach (var x in Model.Items){<tr><td>@x.ReferenceNumber</td><td>@x.Subject</td><td>@Html.HrEnumDisplay(x.Direction)</td><td>@Html.HrDateTime(x.RegisteredAt)</td></tr>}
         @if(!Model.Items.Any()){<tr><td colspan="4" class="text-center text-muted">لا توجد</td></tr>}</tbody></table>
     </div>
 </div>

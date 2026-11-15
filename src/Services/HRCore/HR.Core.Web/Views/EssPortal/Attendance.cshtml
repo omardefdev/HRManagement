@@ -8,11 +8,15 @@
     @foreach (var r in Model)
     {
         <tr>
-            <td>@r.AttendanceDate</td>
+            <td>@Html.HrDate(r.AttendanceDate)</td>
             <td>@Html.HrEnumDisplay(r.Status)</td>
             <td>@r.Notes</td>
         </tr>
     }
+    @if (!(Model).Any())
+        {
+            <tr><td colspan="3"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+        }
     </tbody>
 </table>
 <a asp-action="Index" class="btn btn-secondary">رجوع</a>

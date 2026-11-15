@@ -89,18 +89,18 @@
                 @if (offer.GradeMinSalary is decimal gMin && offer.GradeMaxSalary is decimal gMax)
                 {
                     @(HR.Core.Domain.Services.OfferTermsRules.FormatAmount(gMin) + "–" + HR.Core.Domain.Services.OfferTermsRules.FormatAmount(gMax))
-                    <span class="text-muted">(تحقق في @(offer.SalaryCheckedAt?.ToString("yyyy/MM/dd HH:mm") ?? "—"))</span>
+                    <span class="text-muted">(تحقق في @Html.HrDateTime(offer.SalaryCheckedAt))</span>
                 }
                 else
                 {
                     <span>—</span>
                 }
             </dd>
-            <dt class="col-sm-3">تاريخ المباشرة</dt><dd class="col-sm-9">@offer.ProposedStartDate.ToString("yyyy/MM/dd")</dd>
-            <dt class="col-sm-3">تاريخ الإصدار</dt><dd class="col-sm-9">@(offer.IssuedDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
-            <dt class="col-sm-3">تاريخ الانتهاء</dt><dd class="col-sm-9">@(offer.ExpiryDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ المباشرة</dt><dd class="col-sm-9">@Html.HrDate(offer.ProposedStartDate)</dd>
+            <dt class="col-sm-3">تاريخ الإصدار</dt><dd class="col-sm-9">@Html.HrDate(offer.IssuedDate)</dd>
+            <dt class="col-sm-3">تاريخ الانتهاء</dt><dd class="col-sm-9">@Html.HrDate(offer.ExpiryDate)</dd>
             <dt class="col-sm-3">مدة الصلاحية</dt><dd class="col-sm-9">@offer.ValidityDays يوماً (تُحسب من تاريخ الإصدار)</dd>
-            <dt class="col-sm-3">تاريخ القبول</dt><dd class="col-sm-9">@(offer.AcceptedDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ القبول</dt><dd class="col-sm-9">@Html.HrDate(offer.AcceptedDate)</dd>
             @if (offer.Status == OfferStatus.Accepted || offer.AcceptedBy is not null)
             {
                 @* HCM-030 (PLAN-30 J): who accepted — the candidate on /careers/my, or HR on behalf with reason and evidence. *@
@@ -127,7 +127,7 @@
             }
             @if (offer.Status == OfferStatus.Declined)
             {
-                <dt class="col-sm-3">تاريخ الرفض</dt><dd class="col-sm-9">@(offer.DeclinedAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
+                <dt class="col-sm-3">تاريخ الرفض</dt><dd class="col-sm-9">@Html.HrDate(offer.DeclinedAt)</dd>
                 <dt class="col-sm-3">رفض بواسطة</dt>
                 <dd class="col-sm-9">@(offer.DeclinedBy == HR.Core.Domain.Entities.OfferDeclinedBy.Candidate ? "المرشح" : "HR نيابة عن المرشح")</dd>
                 <dt class="col-sm-3">فئة سبب الرفض</dt><dd class="col-sm-9">@HR.Core.Domain.Enums.OfferDeclineReasonCategories.LabelAr(offer.DeclineReasonCategory)</dd>
@@ -145,12 +145,12 @@
             }
             @if (offer.Status == OfferStatus.Revoked)
             {
-                <dt class="col-sm-3">تاريخ الإلغاء</dt><dd class="col-sm-9">@(offer.RevokedAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
+                <dt class="col-sm-3">تاريخ الإلغاء</dt><dd class="col-sm-9">@Html.HrDate(offer.RevokedAt)</dd>
                 <dt class="col-sm-3">سبب الإلغاء</dt><dd class="col-sm-9">@(offer.RevokeReason ?? "—")</dd>
             }
             @if (offer.Status == OfferStatus.Expired)
             {
-                <dt class="col-sm-3">انتهت الصلاحية في</dt><dd class="col-sm-9">@(offer.ExpiredAt?.ToString("yyyy/MM/dd HH:mm") ?? "—")</dd>
+                <dt class="col-sm-3">انتهت الصلاحية في</dt><dd class="col-sm-9">@Html.HrDateTime(offer.ExpiredAt)</dd>
             }
             <dt class="col-sm-3">مرجع قانوني</dt>
             <dd class="col-sm-9">
@@ -165,7 +165,7 @@
                 <dt class="col-sm-3">رمز التحقق</dt>
                 <dd class="col-sm-9">
                     <code>@verificationCode</code>
-                    <span class="text-muted">(بصمة خطاب العرض عند الإصدار @(offer.DocumentGeneratedAt?.ToString("yyyy/MM/dd HH:mm") ?? ""))</span>
+                    <span class="text-muted">(بصمة خطاب العرض عند الإصدار @Html.HrDateTime(offer.DocumentGeneratedAt, ""))</span>
                 </dd>
             }
         </dl>
@@ -250,7 +250,7 @@
                     @if (Model.CanRevoke)
                     {
                         <div class="col-lg-4 col-md-6">
-                            <form asp-action="Revoke" method="post">
+                            <form asp-action="Revoke" method="post" data-hr-confirm="سحب عرض التوظيف؟" data-hr-confirm-variant="danger">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@offer.Id" />
                                 <h6>إلغاء العرض</h6>

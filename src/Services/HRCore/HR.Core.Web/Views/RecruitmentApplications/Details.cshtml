@@ -33,7 +33,7 @@
             @app.ApplicantFullName — @Html.HrEnumDisplay(app.Status)
             @if (app.Status == RecruitmentApplicationStatus.ReserveListed && app.ReserveUntil is DateOnly reserveUntil)
             {
-                <span class="badge bg-secondary fs-6 align-middle">حتى @reserveUntil.ToString("yyyy/MM/dd")</span>
+                <span class="badge bg-secondary fs-6 align-middle">حتى @Html.HrDate(reserveUntil)</span>
             }
         </h3>
         <div class="d-flex gap-1 flex-wrap">
@@ -65,7 +65,7 @@
                     <span class="badge bg-secondary">قديم</span>
                 }
             </dd>
-            <dt class="col-sm-3">تاريخ التقديم</dt><dd class="col-sm-9">@app.AppliedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</dd>
+            <dt class="col-sm-3">تاريخ التقديم</dt><dd class="col-sm-9">@Html.HrDateTime(app.AppliedAt)</dd>
             <dt class="col-sm-3">قناة التقديم</dt><dd class="col-sm-9"><span class="badge bg-light text-dark border">@Html.HrEnumDisplay(app.IntakeChannel)</span></dd>
             <dt class="col-sm-3">درجة التقييم</dt><dd class="col-sm-9">@(app.AssessmentScore?.ToString("N1") ?? "—")</dd>
             <dt class="col-sm-3">الترتيب</dt><dd class="col-sm-9">@(app.Rank?.ToString() ?? "—")</dd>
@@ -84,7 +84,7 @@
             <dt class="col-sm-3">التخصص</dt><dd class="col-sm-9">@(app.Specialization ?? "—")</dd>
             <dt class="col-sm-3">سنة التخرج</dt><dd class="col-sm-9">@(app.GraduationYear?.ToString() ?? "—")</dd>
             <dt class="col-sm-3">سنوات الخبرة</dt><dd class="col-sm-9">@(app.YearsOfExperience?.ToString("0.#") ?? "—")</dd>
-            <dt class="col-sm-3">تاريخ الميلاد</dt><dd class="col-sm-9">@(app.BirthDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الميلاد</dt><dd class="col-sm-9">@Html.HrDate(app.BirthDate)</dd>
             <dt class="col-sm-3">ملاحظات الأهلية</dt>
             <dd class="col-sm-9">
                 @if (eligibilityFlags.Count > 0)
@@ -158,7 +158,7 @@
                                     }
                                 </td>
                                 <td>@((doc.SizeBytes / 1024.0).ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)) ك.ب</td>
-                                <td>@doc.UploadedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</td>
+                                <td>@Html.HrDateTime(doc.UploadedAt)</td>
                                 <td>
                                     <span class="badge @(doc.CanDownload ? "bg-success" : doc.ScanLabel == CandidateDocumentScanStatus.QuarantinedLabelAr ? "bg-danger" : "bg-secondary")">@doc.ScanLabel</span>
                                 </td>
@@ -218,7 +218,7 @@
                                         }
                                     </td>
                                     <td dir="ltr">@note.RecipientMasked</td>
-                                    <td>@((note.SentAt ?? note.CreatedAt).ToLocalTime().ToString("yyyy/MM/dd HH:mm", System.Globalization.CultureInfo.InvariantCulture))</td>
+                                    <td>@Html.HrDateTime((note.SentAt ?? note.CreatedAt))</td>
                                 </tr>
                             }
                         </tbody>
@@ -241,7 +241,7 @@
             {
                 <p class="text-success mb-0">
                     <i class="fas fa-check-circle"></i>
-                    تم الإقرار @(app.ConflictOfInterestDeclaredAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm") ?? "")
+                    تم الإقرار @Html.HrDateTime(app.ConflictOfInterestDeclaredAt, "")
                 </p>
             }
             else
@@ -400,7 +400,7 @@
                         }
                     </dd>
                     <dt class="col-sm-3">تاريخ الرفض</dt>
-                    <dd class="col-sm-9">@((app.RejectedAt ?? app.ReviewedAt)?.ToLocalTime().ToString("yyyy/MM/dd HH:mm") ?? "—")</dd>
+                    <dd class="col-sm-9">@Html.HrDateTime((app.RejectedAt ?? app.ReviewedAt))</dd>
                     @if (!string.IsNullOrWhiteSpace(app.RejectionNote))
                     {
                         <dt class="col-sm-3">ملاحظة الرفض</dt>
@@ -502,8 +502,8 @@
                     <div class="col-md-2">
                         <label class="form-label" for="ProposedStartDate">تاريخ المباشرة</label>
                         <input type="date" name="ProposedStartDate" id="ProposedStartDate" class="form-control"
-                               min="@DateTime.UtcNow.Date.ToString("yyyy-MM-dd")"
-                               value="@Model.DefaultProposedStartDate.ToString("yyyy-MM-dd")" required />
+                               min="@Html.HrDateInputValue(DateTime.UtcNow.Date)"
+                               value="@Html.HrDateInputValue(Model.DefaultProposedStartDate)" required />
                     </div>
                     <div class="col-md-2">
                         <label class="form-label" for="ValidityDays">مدة صلاحية العرض (أيام)</label>
@@ -564,7 +564,7 @@
                 <dt class="col-sm-3">رقم العرض</dt><dd class="col-sm-9">@offer.OfferNumber</dd>
                 <dt class="col-sm-3">الحالة</dt><dd class="col-sm-9">@Html.HrEnumDisplay(offer.Status)</dd>
                 <dt class="col-sm-3">الراتب</dt><dd class="col-sm-9">@offer.OfferedSalary.ToString("N2")</dd>
-                <dt class="col-sm-3">تاريخ المباشرة</dt><dd class="col-sm-9">@offer.ProposedStartDate.ToString("yyyy/MM/dd")</dd>
+                <dt class="col-sm-3">تاريخ المباشرة</dt><dd class="col-sm-9">@Html.HrDate(offer.ProposedStartDate)</dd>
                 <dt class="col-sm-3">مرجع قانوني</dt><dd class="col-sm-9">@(ViewBag.RequisitionLegalSourceLabel ?? offer.LegalSourceId ?? "—")</dd>
             </dl>
         </div>
@@ -594,11 +594,15 @@
                             }
                         </td>
                         <td>@Html.HrEnumDisplay(past.Status)</td>
-                        <td>@(past.IssuedDate?.ToString("yyyy/MM/dd") ?? "—")</td>
-                        <td>@(past.ExpiryDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@Html.HrDate(past.IssuedDate)</td>
+                        <td>@Html.HrDate(past.ExpiryDate)</td>
                         <td>@(past.DeclineReason ?? past.RevokeReason ?? (past.Status == OfferStatus.Expired ? "انتهاء صلاحية العرض" : "—"))</td>
                     </tr>
                 }
+                @if (!(app.OfferLetters.OrderByDescending(o => o.CreatedAt)).Any())
+                    {
+                        <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
             </table>
         </div>
@@ -640,11 +644,15 @@
                             @Html.HrEnumDisplay(row.Status)
                             @if (row.Status == RecruitmentApplicationStatus.ReserveListed && row.ReserveUntil is DateOnly rowReserveUntil)
                             {
-                                <span class="text-muted small">حتى @rowReserveUntil.ToString("yyyy/MM/dd")</span>
+                                <span class="text-muted small">حتى @Html.HrDate(rowReserveUntil)</span>
                             }
                         </td>
                     </tr>
                 }
+                @if (!(Model.RankBoard).Any())
+                    {
+                        <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
             </table>
         </div>

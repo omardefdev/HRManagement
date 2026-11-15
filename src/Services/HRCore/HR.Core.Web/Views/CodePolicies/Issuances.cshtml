@@ -14,12 +14,16 @@
             @foreach (var i in Model)
             {
                 <tr>
-                    <td>@i.EntityKind</td>
+                    <td>@Html.HrEnumDisplay(i.EntityKind)</td>
                     <td><code>@i.Code</code></td>
                     <td>@i.SequenceScope</td>
-                    <td>@i.IssuedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                    <td>@Html.HrDateTime(i.IssuedAt)</td>
                 </tr>
             }
+            @if (!(Model).Any())
+                {
+                    <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

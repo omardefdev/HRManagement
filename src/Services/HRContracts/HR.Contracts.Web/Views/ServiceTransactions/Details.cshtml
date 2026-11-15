@@ -15,7 +15,7 @@
         @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
 
         <table class="table table-sm">
-            <tr><th>المعرّف</th><td>@Model.Id</td></tr>
+            <tr><th>الرقم المرجعي</th><td>@(Model.ReferenceNumber ?? "—")</td></tr>
             <tr><th>الرقم المرجعي</th><td>@(Model.ReferenceNumber ?? "—")</td></tr>
             <tr><th>الموظف</th><td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(Model.EmployeeId, ViewBag.EmployeeName as string))</td></tr>
             <tr><th>النوع</th><td>@Html.HrEnumDisplay(Model.TransactionType)</td></tr>
@@ -72,7 +72,7 @@
                         <td>@Html.HrEnumDisplay(h.ToState)</td>
                         <td>@ActorLabel(h.ChangedBy)</td>
                         <td>@(h.Reason ?? "—")</td>
-                        <td>@h.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                        <td>@Html.HrDateTime(h.CreatedAt)</td>
                     </tr>
                 }
                 @if (!Model.StateHistory.Any()) { <tr><td colspan="5" class="text-muted text-center py-3">لا يوجد سجل</td></tr> }

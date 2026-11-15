@@ -12,7 +12,7 @@ else
             @foreach (var row in Model.SummaryRows)
             {
                 <tr>
-                    <th style="width:30%">@row.Label</th>
+                    <th class="hr-col-30">@row.Label</th>
                     <td>
                         @row.Value
                         @if (!string.IsNullOrWhiteSpace(row.ReferenceLabel))

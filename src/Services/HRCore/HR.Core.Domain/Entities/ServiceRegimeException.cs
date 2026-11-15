@@ -55,9 +55,13 @@ public class ServiceRegimeException : AuditableEntity
 
 public enum ServiceRegimeExceptionType
 {
+    [Display(Name = "نظام غير مصنّف")]
     UnclassifiedRegime = 0,
+    [Display(Name = "ربط تشريعي مفقود")]
     MissingLegislationLink = 1,
+    [Display(Name = "مراجعة يدوية")]
     ManualReview = 2,
+    [Display(Name = "تعارض مع المادة 159")]
     Article159Conflict = 3
 }
 

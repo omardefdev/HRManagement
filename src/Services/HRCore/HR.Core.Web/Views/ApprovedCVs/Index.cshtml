@@ -27,7 +27,7 @@
                 {
                     <tr>
                         <td>@await Html.PartialAsync("_FileDisplayLink", (c.FileId, "عرض السيرة"))</td>
-                        <td>@(c.ApprovedAt?.ToString("yyyy/MM/dd HH:mm") ?? "—")</td>
+                        <td>@Html.HrDateTime(c.ApprovedAt)</td>
                         <td>
                             <a asp-action="Edit" asp-route-id="@c.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
                             <button type="button" class="btn btn-danger btn-xs" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="@Url.Action("Delete", new { id = c.Id })" aria-label="حذف">

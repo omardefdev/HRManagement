@@ -1,4 +1,5 @@
 using System.Globalization;
+using HRManagement.ServiceDefaults.Localization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -26,7 +27,7 @@ public sealed record ExamAdmissionCardData(
     string InstructionsAr)
 {
     public static string FormatDateTime(DateTime utc) =>
-        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.Local)
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), HrLocalTime.Zone)
             .ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture);
 }
 

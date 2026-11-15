@@ -28,7 +28,7 @@
         <div class="mb-3">
             <strong>الموظف:</strong> @await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(Model.EmployeeId, ViewBag.EmployeeName as string))<br />
             <strong>نوع الإنهاء:</strong> @Html.HrEnumDisplay(Model.SeparationType)<br />
-            <strong>تاريخ النفاذ:</strong> @Model.EffectiveDate.ToString("yyyy/MM/dd")
+            <strong>تاريخ النفاذ:</strong> @Html.HrDate(Model.EffectiveDate)
         </div>
 
         @if (Model.SeparationEventPublished)

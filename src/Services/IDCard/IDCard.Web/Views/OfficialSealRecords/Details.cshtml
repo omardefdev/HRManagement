@@ -5,7 +5,7 @@
     <div class="card-body">
         <dl class="row mb-0">
             <dt class="col-sm-3">صورة الختم</dt><dd class="col-sm-9">@await Html.PartialAsync("_FileImagePreview", Model.SealFileId)</dd>
-            <dt class="col-sm-3">صادر عن</dt><dd class="col-sm-9">@(Model.IssuedBy ?? "—")</dd>
+            <dt class="col-sm-3">صادر عن</dt><dd class="col-sm-9">@Html.HrUserName(Model.IssuedBy)</dd>
             <dt class="col-sm-3">ساري من</dt><dd class="col-sm-9">@Model.ValidFrom</dd>
             <dt class="col-sm-3">ساري إلى</dt><dd class="col-sm-9">@Model.ValidTo</dd>
         </dl>

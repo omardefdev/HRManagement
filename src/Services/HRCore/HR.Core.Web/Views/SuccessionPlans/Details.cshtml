@@ -75,6 +75,10 @@
                     </tr>
                 }
                 @if (!Model.Candidates.Any()) { <tr><td colspan="6" class="text-center text-muted py-4">لا مرشّحين</td></tr> }
+            @if (!(Model.Candidates.OrderByDescending(c => c.Readiness)).Any())
+                {
+                    <tr><td colspan="6"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

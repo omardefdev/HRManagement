@@ -35,7 +35,7 @@
                 <table class="table table-sm">
                     <thead>
                         <tr>
-                            <th>SKU</th>
+                            <th>رمز الصنف (SKU)</th>
                             <th>مطلوب</th>
                             <th>مستلم</th>
                             <th>رسملة</th>
@@ -60,6 +60,10 @@
                         }
                     </tbody>
                 </table>
+            }
+            else
+            {
+                <partial name="_HrEmptyState" model="@("لا توجد بنود في أمر التوريد هذا.")" />
             }
             <div class="mt-3">
                 <button type="submit" class="btn btn-primary">تسجيل الاستلام</button>

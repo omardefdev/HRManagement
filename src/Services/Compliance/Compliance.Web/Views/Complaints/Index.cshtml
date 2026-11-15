@@ -12,7 +12,7 @@
                     <tr>
                         <td><a asp-action="Details" asp-route-id="@c.Id">@c.Subject</a></td>
                         <td>@Html.HrEnumDisplay(c.Status)</td>
-                        <td>@c.CreatedAt.ToString("yyyy/MM/dd")</td>
+                        <td>@Html.HrDate(c.CreatedAt)</td>
                         <td><a asp-action="Details" asp-route-id="@c.Id" class="btn btn-sm btn-outline-secondary">تفاصيل</a></td>
                     </tr>
                 }

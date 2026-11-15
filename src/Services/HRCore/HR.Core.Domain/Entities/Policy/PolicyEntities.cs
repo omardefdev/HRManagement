@@ -6,14 +6,19 @@ namespace HR.Core.Domain.Entities.Policy;
 
 public enum PolicyTemplateScope
 {
+    [Display(Name = "وطني")]
     National,
+    [Display(Name = "تجاوز الجهة")]
     TenantOverride
 }
 
 public enum PolicyVersionStatus
 {
+    [Display(Name = "مسودة")]
     Draft,
+    [Display(Name = "منشور")]
     Published,
+    [Display(Name = "مؤرشف")]
     Archived
 }
 
@@ -76,20 +81,30 @@ public class PolicyTemplateVersion : AuditableEntity, INationalShared
 /// <summary>PLAN-47: how a version came to be published.</summary>
 public enum PolicyPublicationKind
 {
+    [Display(Name = "يدوي")]
     Manual,
+    [Display(Name = "بذرة النظام")]
     SystemSeed,
+    [Display(Name = "تراجع")]
     Rollback
 }
 
 /// <summary>PLAN-47: what was done to a draft.</summary>
 public enum PolicyVersionEditAction
 {
+    [Display(Name = "إنشاء")]
     Create,
+    [Display(Name = "نسخ")]
     Copy,
+    [Display(Name = "إضافة قاعدة")]
     AddRule,
+    [Display(Name = "تعديل قاعدة")]
     UpdateRule,
+    [Display(Name = "حذف قاعدة")]
     RemoveRule,
+    [Display(Name = "ضبط تاريخ النفاذ")]
     SetEffectiveFrom,
+    [Display(Name = "إهمال")]
     Discard
 }
 
@@ -255,8 +270,11 @@ public class PolicyEnforcementLedger : BaseEntity
 
 public enum PolicyEnforcementModeValue
 {
+    [Display(Name = "متوقف")]
     Off,
+    [Display(Name = "ظل (يسجّل ولا يغيّر)")]
     Shadow,
+    [Display(Name = "مفروض")]
     Enforce
 }
 

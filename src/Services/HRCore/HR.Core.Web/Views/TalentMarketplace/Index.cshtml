@@ -22,11 +22,11 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">إغلاق من</label>
-                <input type="date" name="closingFrom" value="@Model.ClosingFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="closingFrom" value="@Html.HrDateInputValue(Model.ClosingFrom)" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">إغلاق إلى</label>
-                <input type="date" name="closingTo" value="@Model.ClosingTo?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="closingTo" value="@Html.HrDateInputValue(Model.ClosingTo)" class="form-control" />
             </div>
             <div class="col-md-auto">
                 <button type="submit" class="btn btn-primary">تصفية</button>
@@ -51,6 +51,10 @@
                     </tr>
                 }
                 @if (!Model.Items.Any()) { <tr><td colspan="7" class="text-center text-muted py-4">لا شواغر</td></tr> }
+            @if (!(Model.Items).Any())
+                {
+                    <tr><td colspan="7"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

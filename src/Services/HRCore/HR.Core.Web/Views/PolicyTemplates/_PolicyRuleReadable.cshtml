@@ -1,0 +1,36 @@
+@model HRManagement.SharedKernel.Policy.PolicyRuleReadable
+@using HRManagement.SharedKernel.Policy
+@* PLAN-67 (§5, G-UX-06): a rule as one Arabic sentence. Field names, operators, values and effects are marked so the sentence reads at
+   a glance; a key behind an Arabic name stays in a data attribute (the technical view shows the JSON). *@
+@if (Model.IsInvalid)
+{
+    <span class="badge bg-warning text-dark" data-testid="rule-invalid">@PolicyRuleReadableRenderer.InvalidNote</span>
+}
+<span class="hr-rule-sentence@(Model.HasUnknown || Model.IsInvalid ? " text-warning" : "")" data-testid="rule-sentence">@Html.Raw(Sentence(Model))</span>
+@functions {
+    static string Sentence(PolicyRuleReadable rule)
+    {
+        var sb = new System.Text.StringBuilder("إذا ");
+        foreach (var s in rule.When)
+            sb.Append(Segment(s));
+        sb.Append("، ");
+        foreach (var s in rule.Then)
+            sb.Append(Segment(s));
+        sb.Append('.');
+        return sb.ToString();
+    }
+
+    static string Segment(PolicyReadableSegment s)
+    {
+        var text = System.Net.WebUtility.HtmlEncode(s.Text);
+        var key = s.Code is null ? "" : $" data-key=\"{System.Net.WebUtility.HtmlEncode(s.Code)}\"";
+        return s.Kind switch
+        {
+            PolicyReadableKind.Field => $"<span class=\"hr-rule-field\"{key}>{text}</span>",
+            PolicyReadableKind.Operator => $"<span class=\"hr-rule-operator\"{key}>{text}</span>",
+            PolicyReadableKind.Value => $"<span class=\"hr-rule-value\"{key}>{text}</span>",
+            PolicyReadableKind.Effect => $"<strong class=\"hr-rule-effect\"{key}>{text}</strong>",
+            _ => text
+        };
+    }
+}

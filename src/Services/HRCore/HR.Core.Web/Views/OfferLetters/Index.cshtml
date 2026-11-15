@@ -67,7 +67,7 @@
                     <td>@(offer.RecruitmentApplication?.ApplicantFullName ?? "—")</td>
                     <td>@offer.OfferedSalary.ToString("N2")</td>
                     <td>@Html.HrEnumDisplay(offer.Status)</td>
-                    <td>@offer.ProposedStartDate.ToString("yyyy/MM/dd")</td>
+                    <td>@Html.HrDate(offer.ProposedStartDate)</td>
                     <td>
                         <a asp-action="Details" asp-route-id="@offer.Id" class="btn btn-sm btn-outline-info">
                             <i class="fas fa-eye"></i> تفاصيل

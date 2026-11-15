@@ -27,7 +27,7 @@
                             @foreach (var r in runs)
                             {
                                 <tr>
-                                    <td>@r.RunDate.ToString("yyyy/MM/dd")</td>
+                                    <td>@Html.HrDate(r.RunDate)</td>
                                     <td>@Html.HrEnumDisplay(r.Status)</td>
                                     <td>@r.TotalNetPay.ToString("N2")</td>
                                     <td>
@@ -36,6 +36,10 @@
                                     </td>
                                 </tr>
                             }
+                        }
+                    @if (!(runs ?? []).Any())
+                        {
+                            <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
                         }
                     </tbody>
                 </table>

@@ -158,12 +158,12 @@
                         @foreach (var activity in Model.RecentActivities)
                         {
                             <div class="time-label">
-                                <span class="bg-@activity.CssClass">@activity.Date.ToString("yyyy/MM/dd")</span>
+                                <span class="bg-@activity.CssClass">@Html.HrDate(activity.Date)</span>
                             </div>
                             <div>
                                 <i class="@activity.Icon bg-@activity.CssClass"></i>
                                 <div class="timeline-item">
-                                    <span class="time"><i class="fas fa-clock"></i> @activity.Date.ToString("HH:mm")</span>
+                                    <span class="time"><i class="fas fa-clock"></i> @Html.HrDateTime(activity.Date)</span>
                                     <h3 class="timeline-header">@activity.Description</h3>
                                 </div>
                             </div>

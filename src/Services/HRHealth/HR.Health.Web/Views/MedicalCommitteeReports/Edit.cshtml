@@ -9,7 +9,7 @@
             <div class="mb-3"><label asp-for="CommitteeDate" class="form-label"></label><input asp-for="CommitteeDate" class="form-control" type="date" /><span asp-validation-for="CommitteeDate" class="text-danger"></span></div>
             <div class="mb-3"><label asp-for="Findings" class="form-label"></label><textarea asp-for="Findings" class="form-control" rows="2"></textarea><span asp-validation-for="Findings" class="text-danger"></span></div>
             <div class="mb-3"><label asp-for="Recommendation" class="form-label"></label><select asp-for="Recommendation" class="form-control" asp-items="Html.GetEnumSelectList<HR.Health.Domain.Enums.MedicalCommitteeRecommendation>()"></select><span asp-validation-for="Recommendation" class="text-danger"></span></div>
-            <div class="mb-3"><label class="form-label">صادر عن</label><input class="form-control" value="@Model.IssuedBy" readonly /></div>
+            <div class="mb-3"><label class="form-label">صادر عن</label><div class="form-control-plaintext">@Html.HrUserName(Model.IssuedBy)</div></div>
         </div>
         <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">إلغاء</a></div>
     </form>

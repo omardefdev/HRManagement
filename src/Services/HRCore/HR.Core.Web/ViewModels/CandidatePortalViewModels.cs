@@ -131,7 +131,7 @@ public sealed record CandidatePortalCompetitionCard(
 public sealed record CandidatePortalExamRow(string Type, string TypeLabel, string Title, string When, string Venue, int Seat, string ExamNumber, bool CardIssued);
 
 /// <summary>HCM-031: the candidate's own result — shown only once the results are published.</summary>
-public sealed record CandidatePortalCompetitionResult(string? FinalScore, int? Rank, string OutcomeLabel, string PublishedOn);
+public sealed record CandidatePortalCompetitionResult(string? FinalScore, int? Rank, string OutcomeLabel, DateTime? PublishedAtUtc);
 
 public sealed class CandidatePortalPostedValues
 {

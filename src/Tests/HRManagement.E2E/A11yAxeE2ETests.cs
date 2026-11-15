@@ -37,7 +37,23 @@ public sealed class A11yAxeE2ETests
     private static async Task AssertNoSeriousOrCriticalAsync(IPage page, string context)
     {
         var axeSource = await System.IO.File.ReadAllTextAsync(AxeScriptPath());
-        await page.AddScriptTagAsync(new() { Content = axeSource });
+        // PLAN-67: the stack enforces the Content-Security-Policy, which refuses an inline script without the page's nonce
+        // (AddScriptTagAsync's). On a page that carries a nonce, axe is added the way the page's own blocks run: a script element
+        // with that nonce (the same nonce stands in script-src and style-src). A page without one (the sign-in server's, when a
+        // module sends an anonymous visitor there) has no nonce rule to meet, and takes the script as before. Nothing is bypassed.
+        var added = await page.EvaluateAsync<string>(@"(source) => {
+            const doc = window.document;
+            const nonce = Array.from(doc.querySelectorAll('script[nonce], style[nonce]')).map(e => e.nonce).find(n => n);
+            if (!nonce) return 'no-nonce';
+            const script = doc.createElement('script');
+            script.nonce = nonce;
+            script.textContent = source;
+            doc.head.appendChild(script);
+            return typeof window.axe !== 'undefined' ? 'added' : 'refused';
+        }", axeSource);
+        Assert.True(added != "refused", $"{context}: the policy refused axe although it carried the page's nonce");
+        if (added == "no-nonce")
+            await page.AddScriptTagAsync(new() { Content = axeSource });
         var json = await page.EvaluateAsync<string>(@"async () => {
             const results = await axe.run(document, {
               runOnly: { type: 'tag', values: ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'] }

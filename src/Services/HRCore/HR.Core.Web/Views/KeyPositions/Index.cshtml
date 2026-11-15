@@ -39,6 +39,10 @@
                     </tr>
                 }
                 @if (!Model.Items.Any()) { <tr><td colspan="4" class="text-center text-muted py-4">لا مناصب</td></tr> }
+            @if (!(Model.Items).Any())
+                {
+                    <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

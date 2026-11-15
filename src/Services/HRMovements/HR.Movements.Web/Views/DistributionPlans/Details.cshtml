@@ -11,10 +11,10 @@
         @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
 
         <table class="table table-borderless table-sm w-auto">
-            <tr><th>الوحدة التنظيمية</th><td>@Model.OrgUnitId</td></tr>
-            <tr><th>تاريخ النفاذ</th><td>@Model.EffectiveDate</td></tr>
+            <tr><th>الوحدة التنظيمية</th><td>@Html.HrOrgUnitName(Model.OrgUnitId)</td></tr>
+            <tr><th>تاريخ النفاذ</th><td>@Html.HrDate(Model.EffectiveDate)</td></tr>
             <tr><th>الحالة</th><td><span class="badge bg-info">@Html.HrEnumDisplay(Model.Status)</span></td></tr>
-            <tr><th>أنشئ بواسطة</th><td>@(Model.CreatedBy?.ToString() ?? "—")</td></tr>
+            <tr><th>أنشئ بواسطة</th><td>@Html.HrUserName(Model.CreatedBy)</td></tr>
         </table>
 
         @if (!string.IsNullOrEmpty(Model.PlannedPositions))

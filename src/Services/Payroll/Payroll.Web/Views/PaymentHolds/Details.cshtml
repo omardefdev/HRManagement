@@ -14,14 +14,14 @@
 
         <table class="table table-bordered">
             <tr><th>الموظف</th><td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(Model.EmployeeId, ViewBag.EmployeeName as string))</td></tr>
-            <tr><th>تشغيل الرواتب</th><td>@(Model.PayrollRunId?.ToString() ?? "—")</td></tr>
-            <tr><th>تنبيه الاحتيال</th><td>@(Model.FraudAlertId?.ToString() ?? "—")</td></tr>
-            <tr><th>النوع</th><td>@Model.HoldType</td></tr>
+            <tr><th>تشغيل الرواتب</th><td>@if (Model.PayrollRunId is Guid runId) { <a asp-controller="PayrollRuns" asp-action="Details" asp-route-id="@runId">عرض مسير الرواتب</a> } else { <span>—</span> }</td></tr>
+            <tr><th>تنبيه الاحتيال</th><td>@if (Model.FraudAlertId is Guid alertId) { <a asp-controller="FraudAlerts" asp-action="Details" asp-route-id="@alertId">عرض تنبيه الاحتيال</a> } else { <span>—</span> }</td></tr>
+            <tr><th>النوع</th><td>@Html.HrStoredEnumDisplay("PaymentHoldType", Model.HoldType)</td></tr>
             <tr><th>الحالة</th><td>@Html.HrStoredEnumDisplay("Code", Model.Status)</td></tr>
             <tr><th>السبب</th><td>@Model.Reason</td></tr>
-            <tr><th>وقت الحجز</th><td>@Model.HeldAtUtc.ToString("yyyy/MM/dd HH:mm")</td></tr>
-            <tr><th>أُفرج بواسطة</th><td>@(Model.ReleasedBy?.ToString() ?? "—")</td></tr>
-            <tr><th>اعتمد الإفراج</th><td>@(Model.ReleaseApprovedBy?.ToString() ?? "—")</td></tr>
+            <tr><th>وقت الحجز</th><td>@Html.HrDateTime(Model.HeldAtUtc)</td></tr>
+            <tr><th>أُفرج بواسطة</th><td>@Html.HrUserName(Model.ReleasedBy)</td></tr>
+            <tr><th>اعتمد الإفراج</th><td>@Html.HrUserName(Model.ReleaseApprovedBy)</td></tr>
             <tr><th>سبب الإفراج</th><td>@(Model.ReleaseReason ?? "—")</td></tr>
         </table>
 

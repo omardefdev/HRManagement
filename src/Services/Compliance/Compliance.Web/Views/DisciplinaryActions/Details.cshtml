@@ -28,9 +28,9 @@
             <dt class="col-sm-3">نوع الإجراء</dt>
             <dd class="col-sm-9">@Html.HrEnumDisplay(Model.ActionType)</dd>
             <dt class="col-sm-3">صادر من</dt>
-            <dd class="col-sm-9">@(Model.IssuedBy?.ToString() ?? "—")</dd>
+            <dd class="col-sm-9">@Html.HrUserName(Model.IssuedBy)</dd>
             <dt class="col-sm-3">تاريخ الإصدار</dt>
-            <dd class="col-sm-9">@Model.IssuedAt.ToString("yyyy/MM/dd")</dd>
+            <dd class="col-sm-9">@Html.HrDate(Model.IssuedAt)</dd>
             <dt class="col-sm-3">ملاحظات</dt>
             <dd class="col-sm-9">@(Model.Notes ?? "—")</dd>
             <dt class="col-sm-3">حالة الاستئناف</dt>
@@ -50,7 +50,7 @@
             <dd class="col-sm-9">
                 @if (Model.ComplaintId.HasValue)
                 {
-                    <a asp-controller="Complaints" asp-action="Details" asp-route-id="@Model.ComplaintId">@Model.ComplaintId</a>
+                    <a asp-controller="Complaints" asp-action="Details" asp-route-id="@Model.ComplaintId">عرض الشكوى</a>
                     @if (Model.Complaint != null)
                     {
                         <text> — @Model.Complaint.Subject</text>
@@ -70,7 +70,7 @@
         }
         @if (DisciplinaryWorkflowRules.CanWithdraw(Model.ApprovalStatus))
         {
-            <form asp-action="Withdraw" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<input type="hidden" name="reason" value="سحب الإجراء التأديبي" /><button type="submit" class="btn btn-outline-secondary btn-sm">سحب من الاعتماد</button></form>
+            <form asp-action="Withdraw" asp-route-id="@Model.Id" method="post" class="d-inline" data-hr-confirm="سحب الإجراء التأديبي؟" data-hr-confirm-variant="danger">@Html.AntiForgeryToken()<input type="hidden" name="reason" value="سحب الإجراء التأديبي" /><button type="submit" class="btn btn-outline-secondary btn-sm">سحب من الاعتماد</button></form>
         }
         @if (Model.WorkflowInstanceId is Guid instanceId)
         {

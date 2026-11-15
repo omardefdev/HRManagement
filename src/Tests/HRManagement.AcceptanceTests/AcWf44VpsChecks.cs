@@ -7,7 +7,7 @@ namespace HRManagement.AcceptanceTests;
 /// <summary>
 /// PLAN-44 (P7) on the demo server (<c>VPS_SSH_HOST=hrm-vps</c>) after the deploy, with the AC-OPS-36 helpers. The demo users' password is read
 /// from the server's .env into memory only. Evidence goes under <c>artifacts/plan44/vps</c>: it is never committed. The approval check leaves one
-/// approved requisition named «PLAN-44 server check» on the demo server.
+/// approved requisition («أمين مستودع», marked «PLAN-44 server check» in its justification) on the demo server.
 /// </summary>
 public partial class AcOps36VpsBootTests
 {
@@ -125,7 +125,7 @@ public partial class AcOps36VpsBootTests
                     ["__RequestVerificationToken"] = await TokenAsync(creator, createPage),
                     ["ScopeOrgUnitId"] = orgUnit,
                     ["FundedPositionId"] = positionId,
-                    ["JobTitle"] = Wf44Marker,
+                    ["JobTitle"] = "أمين مستودع",
                     ["JustificationNotes"] = Wf44Marker,
                     ["LegalSourceId"] = "SYR-LAW-50-2004",
                     ["BudgetYear"] = DateTime.UtcNow.Year.ToString(CultureInfo.InvariantCulture),
@@ -141,7 +141,7 @@ public partial class AcOps36VpsBootTests
             {
                 ["__RequestVerificationToken"] = await TokenAsync(creator, page),
                 ["RequisitionId"] = requisition,
-                ["Title"] = Wf44Marker
+                ["Title"] = "معايير المفاضلة لوظيفة أمين مستودع"
             };
             (string Key, string Name, string Weight, string Stage)[] items =
                 [("interview", "المقابلة", "40", "Interview"), ("exam", "الاختبار", "30", "Exam"), ("experience", "الخبرة", "30", "Experience")];
@@ -180,7 +180,7 @@ public partial class AcOps36VpsBootTests
             {
                 ["__RequestVerificationToken"] = token,
                 ["RequisitionId"] = requisition,
-                ["Comments"] = Wf44Marker,
+                ["Comments"] = "مطابق للملاك المعتمد",
                 ["TargetStepLevel"] = "1"
             };
 
@@ -208,7 +208,7 @@ public partial class AcOps36VpsBootTests
             {
                 ["__RequestVerificationToken"] = await TokenAsync(checker, details),
                 ["RequisitionId"] = requisition,
-                ["Comments"] = $"{Wf44Marker} 2",
+                ["Comments"] = "مطابق للملاك المعتمد — الخطوة 2",
                 ["TargetStepLevel"] = "2"
             });
         }

@@ -7,7 +7,7 @@
             @Html.AntiForgeryToken()
             <div class="col-md-2"><label class="form-label">الموظف</label><select name="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..." required><option value="">— اختر موظف —</option></select></div>
             <div class="col-md-3"><label class="form-label">اسم الموظف</label><input name="EmployeeName" class="form-control" /></div>
-            <div class="col-md-2"><label class="form-label">تاريخ التدريب</label><input name="TrainingDate" type="date" class="form-control" value="@DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd")" required /></div>
+            <div class="col-md-2"><label class="form-label">تاريخ التدريب</label><input name="TrainingDate" type="date" class="form-control" value="@Html.HrDateInputValue(DateOnly.FromDateTime(DateTime.UtcNow))" required /></div>
             <div class="col-md-2"><label class="form-label">الجهة المدرِّبة</label><input name="Provider" class="form-control" /></div>
             <div class="col-md-2"><label class="form-label">رقم الشهادة</label><input name="CertificateNo" class="form-control" /></div>
             <div class="col-md-1 d-flex align-items-end"><button type="submit" class="btn btn-primary w-100">حفظ</button></div>
@@ -26,11 +26,11 @@
                 @foreach (var x in Model)
                 {
                     <tr>
-                        <td>@x.TrainingDate.ToString("yyyy-MM-dd")</td>
+                        <td>@Html.HrDate(x.TrainingDate)</td>
                         <td><span data-hr-employee-id="@x.EmployeeId">@(x.EmployeeName ?? "جاري التحميل...")</span></td>
                         <td>@(x.Provider ?? "—")</td>
                         <td>@(x.CertificateNo ?? "—")</td>
-                        <td>@(x.ExpiryDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                        <td>@Html.HrDate(x.ExpiryDate)</td>
                     </tr>
                 }
                 @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">لا سجلات تدريب</td></tr> }

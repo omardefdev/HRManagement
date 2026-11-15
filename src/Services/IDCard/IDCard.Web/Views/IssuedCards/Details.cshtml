@@ -6,8 +6,8 @@
         <dl class="row mb-0">
     <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9"><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></dd>
             <dt class="col-sm-3">التصميم</dt><dd class="col-sm-9">@Model.CardDesign?.Name</dd>
-            <dt class="col-sm-3">تاريخ الإصدار</dt><dd class="col-sm-9">@Model.IssuedAt.ToString("yyyy/MM/dd")</dd>
-            <dt class="col-sm-3">تاريخ الانتهاء</dt><dd class="col-sm-9">@(Model.ExpiresAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الإصدار</dt><dd class="col-sm-9">@Html.HrDate(Model.IssuedAt)</dd>
+            <dt class="col-sm-3">تاريخ الانتهاء</dt><dd class="col-sm-9">@Html.HrDate(Model.ExpiresAt)</dd>
         </dl>
     </div>
 </div>
@@ -17,8 +17,8 @@
     <div class="card-header">سجل التسليم</div>
     <div class="card-body">
         <dl class="row mb-0">
-            <dt class="col-sm-3">الطباعة</dt><dd class="col-sm-9">@(Model.DeliveryRecord.PrintedAt?.ToString("yyyy/MM/dd HH:mm") ?? "لم تتم")</dd>
-            <dt class="col-sm-3">التسليم</dt><dd class="col-sm-9">@(Model.DeliveryRecord.DeliveredAt?.ToString("yyyy/MM/dd HH:mm") ?? "لم يتم")</dd>
+            <dt class="col-sm-3">الطباعة</dt><dd class="col-sm-9">@Html.HrDateTime(Model.DeliveryRecord.PrintedAt, "لم تتم")</dd>
+            <dt class="col-sm-3">التسليم</dt><dd class="col-sm-9">@Html.HrDateTime(Model.DeliveryRecord.DeliveredAt, "لم يتم")</dd>
             <dt class="col-sm-3">الإيصال</dt><dd class="col-sm-9">@(Model.DeliveryRecord.SignatureOrReceipt ?? "—")</dd>
         </dl>
     </div>
@@ -35,6 +35,10 @@
                     <tr><td>@p.Resource</td><td>@p.AccessLevel</td><td>@p.ValidFrom</td><td>@p.ValidTo</td></tr>
                 }
                 @if (!Model.AccessPermissions.Any()) { <tr><td colspan="4" class="text-center text-muted py-3">لا صلاحيات</td></tr> }
+            @if (!(Model.AccessPermissions).Any())
+                {
+                    <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

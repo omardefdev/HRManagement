@@ -24,6 +24,7 @@ public class CommencementRecordViewModel
     public Guid? NotifiedBy { get; set; }
 
     [Display(Name = "تاريخ الإبلاغ")]
+    [DataType(DataType.Date)]
     public DateTime? NotificationDate { get; set; }
 
     public SelectList? Contracts { get; set; }

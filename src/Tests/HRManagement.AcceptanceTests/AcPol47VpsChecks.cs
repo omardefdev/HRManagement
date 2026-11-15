@@ -144,7 +144,7 @@ public partial class AcOps36VpsBootTests
                 Assert.Equal($"Manual|{authorId}|{approverId}", first);
 
                 // 3. The author makes a rollback draft to the version the tour started from; the approver publishes it.
-                await Wf45PostRenderedAsync(author, details, "CreateRollbackDraft", new Dictionary<string, string> { ["reason"] = "PLAN-47 server check: rollback" });
+                await Wf45PostRenderedAsync(author, details, "CreateRollbackDraft", new Dictionary<string, string> { ["reason"] = "تراجع إلى الإصدار السابق للتحقق من سلسلة النشر" });
                 var rollback = Draft();
                 Assert.NotNull(rollback);
                 await Wf45PostRenderedAsync(approver, $"/ui/hr-core/PolicyTemplates/EditRules?versionId={rollback}", "PublishFromUi",
@@ -157,8 +157,9 @@ public partial class AcOps36VpsBootTests
 
                 // The history shows both publications.
                 var history = await Wf45PageAsync(approver, details);
-                Assert.Contains("Rollback", history);
-                Assert.Contains("Manual", history);
+                // PLAN-67 (G-UX-03): the publication kinds print by their Arabic names.
+                Assert.Contains("<strong>تراجع</strong>", System.Net.WebUtility.HtmlDecode(history));
+                Assert.Contains("<strong>يدوي</strong>", System.Net.WebUtility.HtmlDecode(history));
 
                 recorder.WriteScenarioDbChecks(new { template, start, copy, rollback, first, second, selfPublish = selfStatus, rulesUnchanged = true });
                 recorder.WriteScenarioSteps(

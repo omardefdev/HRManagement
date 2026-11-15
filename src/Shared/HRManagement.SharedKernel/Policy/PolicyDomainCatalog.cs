@@ -1,12 +1,16 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace HRManagement.SharedKernel.Policy;
 
 /// <summary>PLAN-49 (D-POL-1): whether the policy engine governs a domain.</summary>
 public enum PolicyDomainStatus
 {
     /// <summary>The engine decides (or, in Shadow, records) at a proved call site.</summary>
+    [Display(Name = "محكوم")]
     Governed,
 
     /// <summary>No call site: retired from the seeds, the page and the configuration, and documented with its reason.</summary>
+    [Display(Name = "خارج النطاق")]
     OutOfScope
 }
 
@@ -43,6 +47,12 @@ public sealed class PolicyDomainDescriptor
         new Dictionary<string, IReadOnlyList<PolicyWorkflowTrigger>>(StringComparer.Ordinal);
 
     public required string Domain { get; init; }
+
+    /// <summary>PLAN-67 (§2): the domain's Arabic name, shown instead of its key (the key stays as secondary text).</summary>
+    public required string NameAr { get; init; }
+
+    /// <summary>PLAN-67 (§2): the Arabic name of the owning service.</summary>
+    public string OwnerServiceAr => PolicyVocabularyAr.ServiceName(OwnerService);
 
     public required PolicyDomainStatus Status { get; init; }
 
@@ -140,10 +150,11 @@ public static class PolicyDomainCatalog
     private static IReadOnlyList<PolicyWorkflowTrigger> Started(PolicyWorkflowStartPath by, string action, params string[] codes) =>
         codes.Select(code => new PolicyWorkflowTrigger(code, by, action)).ToList();
 
-    private static PolicyDomainDescriptor OutOfScope(string domain, string ownerService, string reasonAr) =>
+    private static PolicyDomainDescriptor OutOfScope(string domain, string nameAr, string ownerService, string reasonAr) =>
         new()
         {
             Domain = domain,
+            NameAr = nameAr,
             Status = PolicyDomainStatus.OutOfScope,
             OwnerService = ownerService,
             OutOfScopeReasonAr = reasonAr
@@ -154,6 +165,7 @@ public static class PolicyDomainCatalog
         new()
         {
             Domain = PolicyDomains.AssetsCustody,
+            NameAr = "العهدة",
             Status = PolicyDomainStatus.Governed,
             OwnerService = AdminLogisticsService,
             OwnerClientId = "svc-admin-logistics",
@@ -180,6 +192,7 @@ public static class PolicyDomainCatalog
         new()
         {
             Domain = PolicyDomains.IDCardLifecycle,
+            NameAr = "بطاقات التعريف",
             Status = PolicyDomainStatus.Governed,
             OwnerService = IdCardService,
             OwnerClientId = "svc-idcard",
@@ -194,6 +207,7 @@ public static class PolicyDomainCatalog
         new()
         {
             Domain = PolicyDomains.ContractsLeave,
+            NameAr = "الإجازات",
             Status = PolicyDomainStatus.Governed,
             OwnerService = HrContractsService,
             OwnerClientId = "svc-hr-contracts",
@@ -212,6 +226,7 @@ public static class PolicyDomainCatalog
         new()
         {
             Domain = PolicyDomains.CoreRecruitment,
+            NameAr = "التوظيف",
             Status = PolicyDomainStatus.Governed,
             OwnerService = HrCoreService,
             SubjectActions = new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal)
@@ -246,6 +261,7 @@ public static class PolicyDomainCatalog
         new()
         {
             Domain = PolicyDomains.CoreEstablishment,
+            NameAr = "الملاك",
             Status = PolicyDomainStatus.Governed,
             OwnerService = HrCoreService,
             SubjectActions = new Dictionary<string, IReadOnlySet<string>>(StringComparer.Ordinal)
@@ -261,35 +277,35 @@ public static class PolicyDomainCatalog
             CallSiteFiles = ["src/Services/HRCore/HR.Core.Infrastructure/Services/Establishment/EstablishmentChangeLifecycleService.cs"]
         },
 
-        OutOfScope(PolicyDomains.AssetsProcurement, AdminLogisticsService,
+        OutOfScope(PolicyDomains.AssetsProcurement, "المشتريات والتوريد", AdminLogisticsService,
             "لا نقطة استدعاء: استلام التوريد تحكمه قواعد Admin.Logistics المحلية."),
-        OutOfScope(PolicyDomains.ContractsAdvance, HrContractsService,
+        OutOfScope(PolicyDomains.ContractsAdvance, "السلف", HrContractsService,
             "لا نقطة استدعاء: السلف تحكمها قواعد HR.Contracts المحلية، وقاعدتها المبذورة كانت بأثر لا يستهلكه أحد (RequireDualApproval)."),
-        OutOfScope(PolicyDomains.ContractsHire, HrContractsService,
+        OutOfScope(PolicyDomains.ContractsHire, "التعيين في العقود", HrContractsService,
             "لا نقطة استدعاء: التعيين يحكمه اعتماد خطاب العرض، ومسار HIRE-WIZARD مسحوب (PLAN-46)."),
-        OutOfScope(PolicyDomains.ContractsSeparation, HrContractsService,
+        OutOfScope(PolicyDomains.ContractsSeparation, "إنهاء الخدمة", HrContractsService,
             "لا نقطة استدعاء: اعتماد الانفصال مسجَّل في العقد العابر للخدمات (PLAN-46، ويكمله PLAN-60)، ومسار SEPARATION-WIZARD مسحوب."),
-        OutOfScope(PolicyDomains.ContractsContract, HrContractsService,
+        OutOfScope(PolicyDomains.ContractsContract, "العقود", HrContractsService,
             "لا نقطة استدعاء: تجديد العقد تحكمه قواعد HR.Contracts المحلية، وقاعدته المبذورة كانت بأثر لا يستهلكه أحد (RequireApproval)."),
-        OutOfScope(PolicyDomains.MovementsTransfer, "HR.Movements",
+        OutOfScope(PolicyDomains.MovementsTransfer, "النقل", "HR.Movements",
             "لا نقطة استدعاء: مسار TRANSFER-APPROVAL مسحوب (PLAN-46)، والنقل تحكمه قواعد HR.Movements المحلية."),
-        OutOfScope(PolicyDomains.MovementsWorkforce, "HR.Movements",
+        OutOfScope(PolicyDomains.MovementsWorkforce, "توزيع القوى العاملة", "HR.Movements",
             "لا نقطة استدعاء ولا قواعد مبذورة."),
-        OutOfScope(PolicyDomains.CoreEmployment, HrCoreService,
+        OutOfScope(PolicyDomains.CoreEmployment, "شؤون الموظفين", HrCoreService,
             "لا نقطة استدعاء ولا قواعد مبذورة."),
-        OutOfScope(PolicyDomains.HealthInsurance, "HR.Health",
+        OutOfScope(PolicyDomains.HealthInsurance, "التأمين الصحي", "HR.Health",
             "لا نقطة استدعاء: قاعدته المبذورة كانت بأثر لا يستهلكه أحد (RequirePrivacyMask)."),
-        OutOfScope(PolicyDomains.ComplianceDisciplinary, "Compliance",
+        OutOfScope(PolicyDomains.ComplianceDisciplinary, "الإجراءات الانضباطية", "Compliance",
             "لا نقطة استدعاء: اعتماد الإجراء التأديبي يمر بالعقد العابر للخدمات (PLAN-46) لا بقاعدة سياسة."),
-        OutOfScope(PolicyDomains.PayrollPeriod, "Payroll",
+        OutOfScope(PolicyDomains.PayrollPeriod, "فترات الرواتب", "Payroll",
             "لا نقطة استدعاء: قاعدته المبذورة كانت بأثر لا يستهلكه أحد (RequireDualApproval)."),
-        OutOfScope(PolicyDomains.ITTickets, "IT.Infra",
+        OutOfScope(PolicyDomains.ITTickets, "طلبات الدعم التقني", "IT.Infra",
             "لا نقطة استدعاء: مسار IT-TICKET مسحوب (PLAN-46)."),
-        OutOfScope(PolicyDomains.ArchiveRetention, "Records.Archive",
+        OutOfScope(PolicyDomains.ArchiveRetention, "الاحتفاظ بالأرشيف", "Records.Archive",
             "لا نقطة استدعاء: الاحتفاظ والحجز القانوني تحكمهما قواعد Records.Archive المحلية."),
-        OutOfScope(PolicyDomains.TrainingLearning, "HR.Training",
+        OutOfScope(PolicyDomains.TrainingLearning, "التدريب والتعلم", "HR.Training",
             "لا نقطة استدعاء: قاعدته المبذورة كانت بأثر لا يستهلكه أحد (BlockUntilChecklist)."),
-        OutOfScope(PolicyDomains.AnalyticsEtl, "Dev.Analytics",
+        OutOfScope(PolicyDomains.AnalyticsEtl, "تحميل بيانات التحليلات (ETL)", "Dev.Analytics",
             "لا نقطة استدعاء: قاعدته المبذورة كانت بأثر لا يستهلكه أحد (RequireApproval).")
     ];
 

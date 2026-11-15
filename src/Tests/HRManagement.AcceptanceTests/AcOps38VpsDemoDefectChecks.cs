@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Text.RegularExpressions;
+using HRManagement.E2E;
 
 namespace HRManagement.AcceptanceTests;
 
@@ -178,7 +179,7 @@ public partial class AcOps36VpsBootTests
                 ["CardRequestId"] = cardRequest.ToString(),
                 ["EmployeeId"] = employeeId.ToString(),
                 ["CardDesignId"] = design,
-                ["IssuedAt"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture),
+                ["IssuedAt"] = DamascusClock.Input(DateTime.UtcNow),
                 ["ExpiresAt"] = today.AddYears(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture),
                 ["Status"] = "Active",
             });

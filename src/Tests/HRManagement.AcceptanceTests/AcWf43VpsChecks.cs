@@ -6,7 +6,7 @@ namespace HRManagement.AcceptanceTests;
 /// <summary>
 /// PLAN-43 (P7) on the demo server (<c>VPS_SSH_HOST=hrm-vps</c>) after the deploy, with the AC-OPS-36 helpers. The demo users' password
 /// is read from the server's .env into memory only. Evidence goes under <c>artifacts/plan43/vps</c>: it is never committed. The
-/// recruitment check leaves one approved requisition named «PLAN-43 server check» on the demo server.
+/// recruitment check leaves one approved requisition («محاسب أول», marked «PLAN-43 server check» in its justification) on the demo server.
 /// </summary>
 public partial class AcOps36VpsBootTests
 {
@@ -82,7 +82,7 @@ public partial class AcOps36VpsBootTests
                     ["__RequestVerificationToken"] = await TokenAsync(creator, createPage),
                     ["ScopeOrgUnitId"] = orgUnit,
                     ["FundedPositionId"] = positionId,
-                    ["JobTitle"] = Wf43Marker,
+                    ["JobTitle"] = "محاسب أول",
                     ["JustificationNotes"] = Wf43Marker,
                     ["LegalSourceId"] = "SYR-LAW-50-2004",
                     ["BudgetYear"] = DateTime.UtcNow.Year.ToString(System.Globalization.CultureInfo.InvariantCulture),
@@ -99,7 +99,7 @@ public partial class AcOps36VpsBootTests
             {
                 ["__RequestVerificationToken"] = await TokenAsync(creator, details),
                 ["RequisitionId"] = requisition,
-                ["Title"] = Wf43Marker
+                ["Title"] = "معايير المفاضلة لوظيفة محاسب أول"
             };
             (string Key, string Name, string Weight, string Stage)[] items =
                 [("interview", "المقابلة", "40", "Interview"), ("exam", "الاختبار", "30", "Exam"), ("experience", "الخبرة", "30", "Experience")];
@@ -136,7 +136,7 @@ public partial class AcOps36VpsBootTests
                 {
                     ["__RequestVerificationToken"] = await TokenAsync(checker, details),
                     ["RequisitionId"] = requisition,
-                    ["Comments"] = $"{Wf43Marker} {step}"
+                    ["Comments"] = $"مطابق للملاك المعتمد — الخطوة {step}"
                 });
             }
         }

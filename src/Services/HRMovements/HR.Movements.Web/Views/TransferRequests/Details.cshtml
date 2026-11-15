@@ -20,11 +20,11 @@
             <tr><th>الموظف</th><td><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></td></tr>
             <tr><th>من</th><td><span data-hr-org-unit-id="@Model.FromOrgUnitId">جاري التحميل...</span></td></tr>
             <tr><th>إلى</th><td><span data-hr-org-unit-id="@Model.ToOrgUnitId">جاري التحميل...</span></td></tr>
-            <tr><th>التاريخ</th><td>@Model.RequestDate</td></tr>
+            <tr><th>التاريخ</th><td>@Html.HrDate(Model.RequestDate)</td></tr>
             <tr><th>الحالة</th><td><span class="badge bg-info">@Html.HrEnumDisplay(Model.Status)</span></td></tr>
             @if (!string.IsNullOrEmpty(Model.Reason)) { <tr><th>السبب</th><td>@Model.Reason</td></tr> }
-            @if (!string.IsNullOrEmpty(Model.SourceLegalRegimeId)) { <tr><th>نظام الخدمة الحالي</th><td>@Model.SourceLegalRegimeId</td></tr> }
-            @if (!string.IsNullOrEmpty(Model.TargetLegalRegimeId)) { <tr><th>نظام الخدمة الهدف</th><td>@Model.TargetLegalRegimeId</td></tr> }
+            @if (!string.IsNullOrEmpty(Model.SourceLegalRegimeId)) { <tr><th>نظام الخدمة الحالي</th><td>@Html.HrLegalName(Model.SourceLegalRegimeId)</td></tr> }
+            @if (!string.IsNullOrEmpty(Model.TargetLegalRegimeId)) { <tr><th>نظام الخدمة الهدف</th><td>@Html.HrLegalName(Model.TargetLegalRegimeId)</td></tr> }
             @if (!string.IsNullOrEmpty(Model.TransitionDecisionRef)) { <tr><th>مرجع القرار</th><td>@Model.TransitionDecisionRef</td></tr> }
             @if (!string.IsNullOrEmpty(Model.ConditionCode)) { <tr><th>شرط الانتقال</th><td>@Model.ConditionCode</td></tr> }
             @if (!string.IsNullOrEmpty(Model.ConflictNotes)) { <tr><th>ملاحظات المادة 159</th><td>@Model.ConflictNotes</td></tr> }
@@ -39,7 +39,7 @@
                 <div class="d-flex align-items-start mb-2">
                     <i class="fas fa-check-circle text-success me-2 mt-1"></i>
                     <div>
-                        <span class="fw-bold">@a.ApprovedAt.ToString("yyyy/MM/dd HH:mm")</span> — المعتمد: @a.ApprovedBy
+                        <span class="fw-bold">@Html.HrDateTime(a.ApprovedAt)</span> — المعتمد: @Html.HrUserName(a.ApprovedBy)
                         @if (a.OnBehalfOfUserId is not null)
                         {
                             @* PLAN-50 (§7) *@
@@ -60,8 +60,12 @@
                 <tbody>
                 @foreach (var f in Model.FinancialImpacts)
                 {
-                    <tr><td>@f.SalaryChange</td><td>@f.AllowanceChange</td><td>@f.Notes</td><td>@f.CalculatedAt.ToString("yyyy/MM/dd")</td></tr>
+                    <tr><td>@f.SalaryChange</td><td>@f.AllowanceChange</td><td>@f.Notes</td><td>@Html.HrDate(f.CalculatedAt)</td></tr>
                 }
+                @if (!(Model.FinancialImpacts).Any())
+                    {
+                        <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
             </table>
         }
@@ -83,7 +87,7 @@
                 </form>
                 <form asp-action="Reject" asp-route-id="@Model.Id" method="post" class="d-flex flex-wrap gap-2 align-items-end">
                     @Html.AntiForgeryToken()
-                    <div class="flex-grow-1" style="min-width:12rem">
+                    <div class="flex-grow-1 hr-minw-12rem">
                         <label class="form-label small">سبب الرفض</label>
                         <input type="text" name="notes" class="form-control form-control-sm" />
                     </div>
@@ -106,7 +110,7 @@
                         <label class="form-label small">فرق البدلات (اختياري)</label>
                         <input type="number" step="0.01" name="allowanceChange" class="form-control form-control-sm" placeholder="0.00" />
                     </div>
-                    <div class="flex-grow-1" style="min-width:10rem">
+                    <div class="flex-grow-1 hr-minw-10rem">
                         <label class="form-label small">ملاحظات مالية</label>
                         <input type="text" name="financialNotes" class="form-control form-control-sm" />
                     </div>
@@ -117,7 +121,7 @@
 
         @if (Model.Status == ApprovalStatus.Executed)
         {
-            <p class="text-success mt-3"><i class="fas fa-check-double"></i> تم تنفيذ النقل في @Model.ExecutionRecords.FirstOrDefault()?.ExecutedAt.ToString("yyyy/MM/dd HH:mm")</p>
+            <p class="text-success mt-3"><i class="fas fa-check-double"></i> تم تنفيذ النقل في @Html.HrDateTime(Model.ExecutionRecords.FirstOrDefault()?.ExecutedAt)</p>
         }
     </div>
 </div>

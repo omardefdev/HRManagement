@@ -26,11 +26,11 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">إغلاق من</label>
-                <input type="date" name="closingFrom" value="@Model.ClosingFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="closingFrom" value="@Html.HrDateInputValue(Model.ClosingFrom)" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">إغلاق إلى</label>
-                <input type="date" name="closingTo" value="@Model.ClosingTo?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="closingTo" value="@Html.HrDateInputValue(Model.ClosingTo)" class="form-control" />
             </div>
             <div class="col-md-auto">
                 <button type="submit" class="btn btn-primary">تصفية</button>
@@ -47,15 +47,19 @@
                     <tr>
                         <td>@x.Title</td>
                         <td>@(x.Requisition?.RequisitionNumber ?? "—")</td>
-                        <td>@(x.Requisition?.Status.ToString() ?? "legacy")</td>
+                        <td>@Html.HrEnumDisplay(x.Requisition?.Status, "بلا طلب شاغر")</td>
                         <td>@(x.Entity ?? "—")</td>
-                        <td>@(x.ClosingDate?.ToString("yyyy-MM-dd") ?? "—")</td>
+                        <td>@Html.HrDate(x.ClosingDate)</td>
                         <td>@(x.IsPublished ? "منشور" : "مخفي")</td>
                         <td>@x.Applications.Count</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
                     </tr>
                 }
                 @if (!Model.Items.Any()) { <tr><td colspan="8" class="text-center text-muted py-4">لا إعلانات</td></tr> }
+            @if (!(Model.Items).Any())
+                {
+                    <tr><td colspan="8"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

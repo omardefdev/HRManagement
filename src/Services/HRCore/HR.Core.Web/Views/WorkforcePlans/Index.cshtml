@@ -31,7 +31,7 @@
     </div>
     <div class="card-body p-0">
         <table class="table mb-0"><thead><tr><th>العنوان</th><th>السنة</th><th>الوحدة</th><th>الحالة</th></tr></thead><tbody>
-        @foreach (var x in Model.Items){<tr><td><a asp-action="Details" asp-route-id="@x.Id">@x.Title</a></td><td>@x.FiscalYear</td><td>@x.OrgUnit?.NameAr</td><td>@x.Status</td></tr>}
+        @foreach (var x in Model.Items){<tr><td><a asp-action="Details" asp-route-id="@x.Id">@x.Title</a></td><td>@x.FiscalYear</td><td>@x.OrgUnit?.NameAr</td><td>@Html.HrStoredEnumDisplay("WorkforcePlanStatus", x.Status)</td></tr>}
         @if(!Model.Items.Any()){<tr><td colspan="4" class="text-center text-muted">لا توجد</td></tr>}</tbody></table>
     </div>
 </div>

@@ -21,11 +21,11 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">من تاريخ</label>
-                <input type="date" name="visitFrom" value="@Model.VisitFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="visitFrom" value="@Html.HrDateInputValue(Model.VisitFrom)" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">إلى تاريخ</label>
-                <input type="date" name="visitTo" value="@Model.VisitTo?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="visitTo" value="@Html.HrDateInputValue(Model.VisitTo)" class="form-control" />
             </div>
             <div class="col-md-auto">
                 <button type="submit" class="btn btn-primary">تصفية</button>
@@ -35,7 +35,7 @@
     </div>
     <div class="card-body p-0">
         <table class="table mb-0"><thead><tr><th>العنوان</th><th>الموقع</th><th>التاريخ</th><th>الحالة</th></tr></thead><tbody>
-        @foreach (var x in Model.Items){<tr><td>@x.Title</td><td>@x.Location</td><td>@x.VisitDate</td><td>@x.Status</td></tr>}
+        @foreach (var x in Model.Items){<tr><td>@x.Title</td><td>@x.Location</td><td>@Html.HrDate(x.VisitDate)</td><td>@Html.HrStoredEnumDisplay("FieldInspectionVisitStatus", x.Status)</td></tr>}
         @if(!Model.Items.Any()){<tr><td colspan="4" class="text-center text-muted">لا توجد</td></tr>}</tbody></table>
     </div>
 </div>

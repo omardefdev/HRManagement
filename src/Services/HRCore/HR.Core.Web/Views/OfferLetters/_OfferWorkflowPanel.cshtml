@@ -18,7 +18,7 @@
         @(Model.WorkflowName ?? Model.WorkflowCode ?? "—")
         @if (Model.WorkflowStatus is not null)
         {
-            <span class="badge bg-light text-dark ms-1">@Model.WorkflowStatus</span>
+            <span class="badge bg-light text-dark ms-1">@Html.HrEnumDisplay(Model.WorkflowStatus)</span>
         }
     </p>
     <partial name="_WorkflowProgressPanel" model="Model.Steps" />

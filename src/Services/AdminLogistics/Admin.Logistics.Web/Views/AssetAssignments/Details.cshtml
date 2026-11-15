@@ -27,14 +27,14 @@
                 }
             </dd>
             <dt class="col-sm-3">الحالة</dt><dd class="col-sm-9">@Html.HrEnumDisplay(Model.Status)</dd>
-            <dt class="col-sm-3">تاريخ التسليم</dt><dd class="col-sm-9">@Model.AssignedAt.ToString("yyyy/MM/dd")</dd>
-            <dt class="col-sm-3">تاريخ الإعادة المتوقع</dt><dd class="col-sm-9">@(Model.DueBackDate?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ التسليم</dt><dd class="col-sm-9">@Html.HrDate(Model.AssignedAt)</dd>
+            <dt class="col-sm-3">تاريخ الإعادة المتوقع</dt><dd class="col-sm-9">@Html.HrDate(Model.DueBackDate)</dd>
             <dt class="col-sm-3">الحالة عند التسليم</dt><dd class="col-sm-9">@AssetAssignmentDisplay.FormatHandoverCondition(Model)</dd>
             @if (!string.IsNullOrWhiteSpace(Model.ReturnNotes))
             {
                 <dt class="col-sm-3">ملاحظات الإعادة</dt><dd class="col-sm-9">@AssetAssignmentDisplay.FormatReturnNotesHtml(Model.ReturnNotes)</dd>
             }
-            <dt class="col-sm-3">تاريخ الإعادة</dt><dd class="col-sm-9">@(Model.ReturnedAt?.ToString("yyyy/MM/dd") ?? "لم تتم")</dd>
+            <dt class="col-sm-3">تاريخ الإعادة</dt><dd class="col-sm-9">@Html.HrDate(Model.ReturnedAt, "لم تتم")</dd>
             <dt class="col-sm-3">الدليل</dt>
             <dd class="col-sm-9">@await Html.PartialAsync("_AssignmentEvidenceDisplay", new AssignmentEvidenceViewModel { Assignment = Model, Asset = Model.Asset })</dd>
         </dl>

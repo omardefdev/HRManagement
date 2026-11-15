@@ -22,7 +22,7 @@
                 <tr>
                     <td>@(x.OriginatingUnit?.ToString() ?? "—")</td>
                     <td>@(x.ReferredTo ?? "—")</td>
-                    <td>@x.ReferralDate?.ToString("yyyy/MM/dd")</td>
+                    <td>@Html.HrDate(x.ReferralDate)</td>
                     <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-info">تفاصيل</a></td>
                 </tr>
             }

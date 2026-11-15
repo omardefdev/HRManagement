@@ -54,7 +54,7 @@
                   asp-route-id="@entityId"
                   method="post"
                   class="row g-2 align-items-end mt-2"
-                  onsubmit="return confirm('@confirmReject');">
+                  data-hr-confirm="@confirmReject" data-hr-confirm-variant="danger">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="@entityIdFieldName" value="@entityId" />
                 <input type="hidden" name="TargetStepLevel" value="@Model.CurrentStepLevel" />

@@ -1,4 +1,6 @@
 # Overlay for the E2E job of .github/workflows/ci.yml only (follow-up to PLAN-35).
+# PLAN-67 (G-UX-02): every app of the stack enforces its Content-Security-Policy, as appsettings.Production.json does, so a
+# blocked inline handler, style attribute or wrongly-nonced block fails the browser suite instead of the demo.
 # The runner sends every browser and API request of the suite from one client IP, so the suite does not fit the
 # gateway's per-IP limit (code default 120 per minute). With the old queue of 20 the limiter held requests until the
 # next one-minute window: up to ~41 s, past Playwright's 30 s timeout (SEP_F1 in run 41179057892, SEP_H1 in run
@@ -9,3 +11,48 @@ services:
   hr-gateway:
     environment:
       RateLimiting__PermitLimitPerMinute: "2000"
+      # PLAN-67 (G-UX-02, P-4): the CSP is enforced, as in every appsettings.Production.json, so the browser suite sees what the
+      # demo's browser blocks.
+      Security__CspMode: "Enforce"
+  hr-core-web:
+    environment:
+      Security__CspMode: "Enforce"
+  hr-contracts-web:
+    environment:
+      Security__CspMode: "Enforce"
+  hr-health-web:
+    environment:
+      Security__CspMode: "Enforce"
+  hr-movements-web:
+    environment:
+      Security__CspMode: "Enforce"
+  hr-training-web:
+    environment:
+      Security__CspMode: "Enforce"
+  payroll-web:
+    environment:
+      Security__CspMode: "Enforce"
+  idcard-web:
+    environment:
+      Security__CspMode: "Enforce"
+  records-archive-web:
+    environment:
+      Security__CspMode: "Enforce"
+  admin-logistics-web:
+    environment:
+      Security__CspMode: "Enforce"
+  it-infra-web:
+    environment:
+      Security__CspMode: "Enforce"
+  dev-analytics-web:
+    environment:
+      Security__CspMode: "Enforce"
+  compliance-web:
+    environment:
+      Security__CspMode: "Enforce"
+  auth-directory-web:
+    environment:
+      Security__CspMode: "Enforce"
+  file-storage-web:
+    environment:
+      Security__CspMode: "Enforce"

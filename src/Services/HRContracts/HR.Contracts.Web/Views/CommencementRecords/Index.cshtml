@@ -25,10 +25,10 @@
                 </select>
             </div>
             <div class="col-auto">
-                <input type="date" name="startFrom" value="@startFrom?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" placeholder="من تاريخ" title="من تاريخ" />
+                <input type="date" name="startFrom" value="@Html.HrDateInputValue(startFrom)" class="form-control form-control-sm" placeholder="من تاريخ" title="من تاريخ" />
             </div>
             <div class="col-auto">
-                <input type="date" name="startTo" value="@startTo?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" placeholder="إلى تاريخ" title="إلى تاريخ" />
+                <input type="date" name="startTo" value="@Html.HrDateInputValue(startTo)" class="form-control form-control-sm" placeholder="إلى تاريخ" title="إلى تاريخ" />
             </div>
             <div class="col-auto">
                 <input type="text" name="contractId" value="@contractId" class="form-control form-control-sm" placeholder="معرف العقد" />
@@ -44,8 +44,8 @@
                 {
                     <tr>
                         <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(x.EmployeeId, employeeNames.GetValueOrDefault(x.EmployeeId)))</td>
-                        <td>@x.StartDate.ToString("yyyy/MM/dd")</td>
-                        <td>@(x.ContractId?.ToString() ?? "—")</td>
+                        <td>@Html.HrDate(x.StartDate)</td>
+                        <td>@if (x.ContractId is Guid linkedContract) { <a asp-controller="Contracts" asp-action="Details" asp-route-id="@linkedContract">عرض العقد</a> } else { <span>—</span> }</td>
                         <td>
                             <a asp-action="Edit" asp-route-id="@x.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
                             <button type="button" class="btn btn-danger btn-xs" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="@Url.Action("Delete", new { id = x.Id })" aria-label="حذف"><i aria-hidden="true" class="fas fa-trash"></i></button>

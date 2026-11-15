@@ -85,11 +85,11 @@
 
                         <td>@DocTypeAr(d.DocType)</td>
 
-                        <td>@(d.IssuedBy ?? "—")</td>
+                        <td>@Html.HrUserName(d.IssuedBy)</td>
 
-                        <td>@(d.IssueDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@Html.HrDate(d.IssueDate)</td>
 
-                        <td>@(d.ExpiryDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@Html.HrDate(d.ExpiryDate)</td>
 
                         <td>@(d.Verified ? Html.Raw("<i class=\"fas fa-check text-success\"></i>") : Html.Raw("<i class=\"fas fa-times text-danger\"></i>"))</td>
 

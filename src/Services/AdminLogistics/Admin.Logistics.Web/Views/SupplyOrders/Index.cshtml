@@ -55,19 +55,19 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">من تاريخ الطلب</label>
-                <input type="date" name="orderedFrom" value="@Model.OrderedFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="orderedFrom" value="@Html.HrDateInputValue(Model.OrderedFrom)" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">إلى تاريخ الطلب</label>
-                <input type="date" name="orderedTo" value="@Model.OrderedTo?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="orderedTo" value="@Html.HrDateInputValue(Model.OrderedTo)" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">من تاريخ التنفيذ</label>
-                <input type="date" name="fulfilledFrom" value="@Model.FulfilledFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="fulfilledFrom" value="@Html.HrDateInputValue(Model.FulfilledFrom)" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">إلى تاريخ التنفيذ</label>
-                <input type="date" name="fulfilledTo" value="@Model.FulfilledTo?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="fulfilledTo" value="@Html.HrDateInputValue(Model.FulfilledTo)" class="form-control" />
             </div>
             <div class="col-md-3">
                 <div class="form-check">
@@ -133,7 +133,7 @@
                                 <span>—</span>
                             }
                         </td>
-                        <td>@(x.OrderedAt?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@Html.HrDate(x.OrderedAt)</td>
                         <td>@(it != null && it.Length > 50 ? it[..50] + "…" : it ?? "—")</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
                     </tr>

@@ -9,7 +9,7 @@
     <div class="card-body">
         <dl class="row">
             <dt class="col-sm-3">معرّف التدقيق</dt>
-            <dd class="col-sm-9">@(Model.AuditId?.ToString() ?? "—")</dd>
+            <dd class="col-sm-9">@(Model.AuditId is null ? "—" : "تدقيق مرتبط")</dd>
             <dt class="col-sm-3">الوصف</dt>
             <dd class="col-sm-9">@(Model.Description ?? "—")</dd>
             <dt class="col-sm-3">الخطورة</dt>
@@ -30,7 +30,7 @@
                 <span class="badge @findingBadge">@Html.HrEnumDisplay(Model.Status)</span>
             </dd>
             <dt class="col-sm-3">تاريخ الحل</dt>
-            <dd class="col-sm-9">@(Model.ResolvedAt?.ToString("yyyy/MM/dd") ?? "—")</dd>
+            <dd class="col-sm-9">@Html.HrDate(Model.ResolvedAt)</dd>
         </dl>
     </div>
 </div>
@@ -47,11 +47,15 @@
                 {
                     <tr>
                         <td>@rec.RecommendedAction</td>
-                        <td>@rec.DueDate?.ToString("yyyy/MM/dd")</td>
+                        <td>@Html.HrDate(rec.DueDate)</td>
                         <td>@Html.HrEnumDisplay(rec.Status)</td>
                         <td><a asp-controller="ComplianceRecommendations" asp-action="Details" asp-route-id="@rec.Id" class="btn btn-sm btn-outline-info">عرض</a></td>
                     </tr>
                 }
+                @if (!(Model.Recommendations).Any())
+                    {
+                        <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
             </table>
         </div>

@@ -28,9 +28,9 @@
                         <td>@plan.PlanCode</td>
                         <td>@plan.PlanName</td>
                         <td>@Html.HrEnumDisplay(plan.PlanType)</td>
-                        <td>@(plan.LegalRegimeId ?? "—")</td>
+                        <td>@Html.HrLegalName(plan.LegalRegimeId)</td>
                         <td>@(plan.LegalSourceId is null ? "—" : (legalLabels.TryGetValue(plan.LegalSourceId, out var label) ? label : plan.LegalSourceId))</td>
-                        <td>@plan.EffectiveFrom.ToString("yyyy/MM/dd")</td>
+                        <td>@Html.HrDate(plan.EffectiveFrom)</td>
                         <td>@(plan.IsActive ? "نشط" : "غير نشط")</td>
                     </tr>
                 }

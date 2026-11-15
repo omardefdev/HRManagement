@@ -50,7 +50,7 @@
                         <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(t.EmployeeId, employeeNames.GetValueOrDefault(t.EmployeeId)))</td>
                         <td>@Html.HrEnumDisplay(t.TransactionType)</td>
                         <td><span class="badge bg-info">@Html.HrEnumDisplay(t.State)</span></td>
-                        <td>@t.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                        <td>@Html.HrDateTime(t.CreatedAt)</td>
                         <td><a asp-action="Details" asp-route-id="@t.Id" class="btn btn-primary btn-xs" aria-label="تفاصيل"><i aria-hidden="true" class="fas fa-eye"></i></a></td>
                     </tr>
                 }

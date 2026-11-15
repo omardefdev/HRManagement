@@ -1,4 +1,5 @@
 using HR.Core.Domain.Enums;
+using HRManagement.ServiceDefaults.Localization;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Data;
 using HRManagement.ServiceDefaults;
@@ -70,7 +71,7 @@ public sealed class CandidatePublicStatusService(HRCoreDbContext db, IOptions<Re
                 AppealDeadlineUtc = appealDeadline,
                 Events = events[a.Id].ToList(),
                 NowUtc = now,
-                DisplayZone = TimeZoneInfo.Local,
+                DisplayZone = HrLocalTime.Zone,
                 Competition = competitionInputs.GetValueOrDefault(a.Id)
             });
         });

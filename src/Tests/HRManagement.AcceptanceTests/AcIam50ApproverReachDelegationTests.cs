@@ -48,7 +48,8 @@ public class AcIam50ApproverReachDelegationTests
         return response.StatusCode;
     }
 
-    private static string Utc(DateTime value) => value.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture);
+    // PLAN-67: the instant as a user in Damascus types it (the page stores UTC).
+    private static string Utc(DateTime value) => DamascusClock.Input(value);
 
     private static List<KeyValuePair<string, string>> DelegationForm(string delegateEmployee, string role, string? entityType, int days) =>
     [

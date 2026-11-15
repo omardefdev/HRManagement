@@ -9,7 +9,7 @@
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
             <div class="mb-3"><label asp-for="Subject" class="form-label"></label><input asp-for="Subject" class="form-control" /></div>
             <div class="mb-3"><label asp-for="DecisionNumber" class="form-label"></label><input asp-for="DecisionNumber" class="form-control" /></div>
-            <div class="mb-3"><label class="form-label">صادر عن</label><input class="form-control" value="@Model.IssuedBy" readonly /></div>
+            <div class="mb-3"><label class="form-label">صادر عن</label><div class="form-control-plaintext">@Html.HrUserName(Model.IssuedBy)</div></div>
             <div class="mb-3"><label asp-for="IssuedDate" class="form-label"></label><input asp-for="IssuedDate" class="form-control" type="date" /></div>
             <div class="mb-3">
                 <label asp-for="RelatedEmployeeId" class="form-label"></label>

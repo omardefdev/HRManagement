@@ -9,7 +9,7 @@
 }
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="card-title mb-0">سياسات الترميز (COD-001)</h3>
+        <h3 class="card-title mb-0">سياسات الترميز <span class="hr-internal-code">COD-001</span></h3>
         <a asp-action="Issuances" class="btn btn-outline-secondary btn-sm">سجل الإصدارات</a>
     </div>
     <div class="card-body">
@@ -43,7 +43,7 @@
                     .FirstOrDefault();
                 var inherited = t.TenantId == NationalTenant.Id && t.Scope == CodePolicyScope.National && !sessionIsNational;
                 <tr data-entity-kind="@t.EntityKind" data-policy-key="@t.PolicyKey" data-origin="@(inherited ? "inherited" : t.Scope == CodePolicyScope.TenantOverride ? "override" : "national")">
-                    <td>@t.EntityKind</td>
+                    <td>@Html.HrEnumDisplay(t.EntityKind)</td>
                     <td>@t.Name</td>
                     <td>@(t.PolicyKey ?? "افتراضي")</td>
                     <td>
@@ -79,6 +79,10 @@
                     </td>
                 </tr>
             }
+            @if (!(Model).Any())
+                {
+                    <tr><td colspan="6"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

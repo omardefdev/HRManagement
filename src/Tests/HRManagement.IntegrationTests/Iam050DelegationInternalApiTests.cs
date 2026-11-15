@@ -14,7 +14,8 @@ namespace HRManagement.IntegrationTests;
 /// <c>svc-hr-movements</c> with <c>hr-core.lookup</c> gets the delegations in force of the employee it names; another client, or the
 /// right client without the scope, is refused. Row security is proved on PostgreSQL in <see cref="Iam050DelegationPostgreSqlTests"/>.
 /// </summary>
-public sealed class Iam050DelegationInternalApiTests(Hcm025ScopeAndPolicyTestHost host) : IClassFixture<Hcm025ScopeAndPolicyTestHost>
+[Collection(SharedHrCoreHost.Name)]
+public sealed class Iam050DelegationInternalApiTests(Hcm025ScopeAndPolicyTestHost host)
 {
     private const string Path = "/api/internal/approval-delegations/active";
 

@@ -14,7 +14,7 @@
                 var c = view.Competition;
                 <div class="border rounded p-3 mb-2">
                     <h5 class="mb-1">@c.Number — @c.Title</h5>
-                    <div class="text-muted small mb-2">يُغلق في @c.ApplicationClosingDate.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture) • حتى @c.MaxLinesPerCandidate أسطر بالتفضيل</div>
+                    <div class="text-muted small mb-2">يُغلق في @Html.HrDate(c.ApplicationClosingDate) • حتى @c.MaxLinesPerCandidate أسطر بالتفضيل</div>
                     <ul class="small mb-2">
                         @foreach (var line in view.Lines)
                         {
@@ -70,12 +70,12 @@
                             @(req?.RequisitionNumber is string rn ? $"طلب {rn} • " : "")
                             @(v.OrgUnit?.NameAr ?? "—")
                             @(position?.GradeCode is string grade ? $" • درجة {grade}" : "")
-                            @(v.ClosingDate != null ? $" • يُغلق في {v.ClosingDate:yyyy-MM-dd}" : "")
+                            @(v.ClosingDate != null ? $" • يُغلق في {Html.HrDateText(v.ClosingDate)}" : "")
                         </div>
                         @if (!string.IsNullOrWhiteSpace(v.Description)) { <p class="mb-1 mt-2">@v.Description</p> }
                         @if (!string.IsNullOrWhiteSpace(v.RequiredQualifications)) { <p class="mb-0 small"><strong>المؤهلات:</strong> @v.RequiredQualifications</p> }
                     </div>
-                    <form asp-action="Apply" method="post" class="text-start" style="min-width:240px;">
+                    <form asp-action="Apply" method="post" class="text-start hr-minw-240px">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="vacancyId" value="@v.Id" />
                         <textarea name="motivation" class="form-control form-control-sm mb-2" rows="2" placeholder="مسوّغات الترشّح (اختياري)"></textarea>

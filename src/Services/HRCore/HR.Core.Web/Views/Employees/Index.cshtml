@@ -130,7 +130,7 @@
                                 <span class="badge @empStatusBadge">@Html.HrEnumDisplay(emp.CurrentStatus)</span>
                             </td>
                             <td>@Html.HrEnumDisplay(emp.Cadre)</td>
-                            <td>@(emp.HireDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                            <td>@Html.HrDate(emp.HireDate)</td>
                             <td>
                                 <a asp-action="Details" asp-route-id="@emp.Id" class="btn btn-info btn-xs" title="تفاصيل">
                                     <i aria-hidden="true" class="fas fa-eye"></i>

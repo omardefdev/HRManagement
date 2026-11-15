@@ -3,7 +3,7 @@
 <div class="card">
     <div class="card-header"><h3 class="mb-0">استيراد موازنة مالية — ملف CSV</h3></div>
     <div class="card-body">
-        <p class="text-muted">Stub file import — لا يوجد تكامل ERP حي. الصيغة: CostCenter,GradeCode,ApprovedCount,ApprovedFTE,BudgetAmount,ExternalReference</p>
+        <p class="text-muted">استيراد من ملف (لا ربط حياً بنظام تخطيط الموارد ERP). أعمدة الملف بالترتيب: <code dir="ltr">CostCenter,GradeCode,ApprovedCount,ApprovedFTE,BudgetAmount,ExternalReference</code></p>
         <form asp-action="Import" method="post" enctype="multipart/form-data">
             @Html.AntiForgeryToken()
             <div class="mb-3">

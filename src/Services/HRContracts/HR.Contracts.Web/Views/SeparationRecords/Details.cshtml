@@ -12,8 +12,8 @@
     </div>
     <div class="card-body">
         <table class="table table-sm">
-            <tr><th>نوع الإنهاء</th><td>@Model.SeparationType</td></tr>
-            <tr><th>تاريخ النفاذ</th><td>@Model.EffectiveDate.ToString("yyyy/MM/dd")</td></tr>
+            <tr><th>نوع الإنهاء</th><td>@Html.HrEnumDisplay(Model.SeparationType)</td></tr>
+            <tr><th>تاريخ النفاذ</th><td>@Html.HrDate(Model.EffectiveDate)</td></tr>
             <tr><th>السبب</th><td>@(Model.Reason ?? "—")</td></tr>
             <tr><th>العقد</th><td>@(Model.ContractId.HasValue ? "مرتبط بعقد" : "بدون عقد")</td></tr>
             <tr><th>نشر الحدث</th><td>@(Model.SeparationEventPublished ? "نعم" : "لا")</td></tr>

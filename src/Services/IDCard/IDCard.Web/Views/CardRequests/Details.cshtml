@@ -6,12 +6,12 @@
     <div class="card-body">
         <dl class="row mb-0">
             <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9"><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></dd>
-            <dt class="col-sm-3">طالب البطاقة</dt><dd class="col-sm-9">@Model.RequestedBy</dd>
-            <dt class="col-sm-3">تاريخ الطلب</dt><dd class="col-sm-9">@Model.RequestDate</dd>
+            <dt class="col-sm-3">طالب البطاقة</dt><dd class="col-sm-9">@Html.HrUserName(Model.RequestedBy)</dd>
+            <dt class="col-sm-3">تاريخ الطلب</dt><dd class="col-sm-9">@Html.HrDate(Model.RequestDate)</dd>
             <dt class="col-sm-3">الغرض</dt><dd class="col-sm-9">@Html.HrEnumDisplay(Model.Purpose)</dd>
             @if (Model.SubmittedAt is not null)
             {
-                <dt class="col-sm-3">تاريخ التقديم</dt><dd class="col-sm-9">@Model.SubmittedAt.Value.ToString("yyyy/MM/dd HH:mm")</dd>
+                <dt class="col-sm-3">تاريخ التقديم</dt><dd class="col-sm-9">@Html.HrDateTime(Model.SubmittedAt.Value)</dd>
             }
             @if (!string.IsNullOrWhiteSpace(Model.RejectionReason))
             {
@@ -32,7 +32,7 @@
     }
     @if (!Model.IsCancelled && CardIssuanceWorkflow.CanWithdraw(Model.Status))
     {
-        <form asp-action="Withdraw" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<input type="hidden" name="reason" value="سحب طلب البطاقة" /><button type="submit" class="btn btn-outline-secondary">سحب من الاعتماد</button></form>
+        <form asp-action="Withdraw" asp-route-id="@Model.Id" method="post" class="d-inline" data-hr-confirm="سحب طلب البطاقة؟" data-hr-confirm-variant="danger">@Html.AntiForgeryToken()<input type="hidden" name="reason" value="سحب طلب البطاقة" /><button type="submit" class="btn btn-outline-secondary">سحب من الاعتماد</button></form>
     }
     @if (!Model.IsCancelled && CardIssuanceWorkflow.CanProcess(Model.Status) && Model.IssuedCardId is null)
     {

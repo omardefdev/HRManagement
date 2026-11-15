@@ -13,7 +13,7 @@
         <table class="table table-borderless table-sm w-auto">
             <tr><th>الموظف</th><td><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></td></tr>
             <tr><th>الوجهة</th><td>@Model.Destination</td></tr>
-            <tr><th>من</th><td>@Model.StartDate</td></tr>
+            <tr><th>من</th><td>@Html.HrDate(Model.StartDate)</td></tr>
             <tr><th>إلى</th><td>@(Model.EndDate?.ToString() ?? "—")</td></tr>
             <tr><th>الغرض</th><td>@(Model.Purpose ?? "—")</td></tr>
             <tr><th>الجهة الراعية</th><td>@(Model.Sponsor ?? "—")</td></tr>

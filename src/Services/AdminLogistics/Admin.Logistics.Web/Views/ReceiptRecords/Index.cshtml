@@ -30,11 +30,11 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">من تاريخ</label>
-                <input type="date" name="receivedFrom" value="@Model.ReceivedFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="receivedFrom" value="@Html.HrDateInputValue(Model.ReceivedFrom)" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">إلى تاريخ</label>
-                <input type="date" name="receivedTo" value="@Model.ReceivedTo?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="receivedTo" value="@Html.HrDateInputValue(Model.ReceivedTo)" class="form-control" />
             </div>
             <div class="col-md-auto">
                 <button type="submit" class="btn btn-primary">تصفية</button>
@@ -74,7 +74,7 @@
                             }
                             else { <span>—</span> }
                         </td>
-                        <td>@x.ReceivedAt?.ToString("yyyy/MM/dd")</td>
+                        <td>@Html.HrDate(x.ReceivedAt)</td>
                         <td>@(x.ItemsReceived ?? "—")</td>
                         <td>@(count > 0 ? count.ToString() : "—")</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
