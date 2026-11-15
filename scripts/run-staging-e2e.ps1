@@ -22,7 +22,8 @@ $env:GATEWAY_BASE_URL = $GatewayBaseUrl
 
 dotnet build src/Tests/HRManagement.E2E/HRManagement.E2E.csproj -c Release
 $e2eBin = "src/Tests/HRManagement.E2E/bin/Release/net10.0"
-pwsh "$e2eBin/playwright.ps1" install --with-deps
+# Headless Chromium only, the one browser the tests launch: the WebKit and Firefox dependencies are most of the apt fetch.
+pwsh "$e2eBin/playwright.ps1" install --with-deps --only-shell chromium
 # Smoke + journeys
 dotnet test src/Tests/HRManagement.E2E/HRManagement.E2E.csproj -c Release --no-build
 
