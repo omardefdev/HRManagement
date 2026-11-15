@@ -23,8 +23,8 @@
                 {
                     <tr>
                         <td>@(r.SourceService ?? "—")</td>
-                        <td>@r.StartedAt.ToString("yyyy-MM-dd HH:mm")</td>
-                        <td>@(r.CompletedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</td>
+                        <td>@Html.HrDateTime(r.StartedAt)</td>
+                        <td>@Html.HrDateTime(r.CompletedAt)</td>
                         <td>@r.RecordsProcessed</td>
                         <td><span class="badge bg-success">@r.SuccessCount</span></td>
                         <td><span class="badge bg-danger">@r.FailureCount</span></td>

@@ -5,7 +5,7 @@
 }
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
-        <h3 class="card-title mb-0">تنبيه @Model.RuleId</h3>
+        <h3 class="card-title mb-0">تنبيه احتيال @Html.HrTextWithCodes(Model.RuleId)</h3>
         <a asp-action="Index" class="btn btn-secondary btn-sm">القائمة</a>
     </div>
     <div class="card-body">
@@ -13,16 +13,16 @@
         @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
 
         <table class="table table-bordered">
-            <tr><th>القاعدة</th><td>@Model.RuleId</td></tr>
-            <tr><th>الفئة</th><td>@Model.Category</td></tr>
+            <tr><th>القاعدة</th><td>@Html.HrTextWithCodes(Model.RuleId)</td></tr>
+            <tr><th>الفئة</th><td>@Html.HrStoredEnumDisplay("FraudAlertCategory", Model.Category)</td></tr>
             <tr><th>الخطورة</th><td>@Html.HrStoredEnumDisplay("Code", Model.Severity)</td></tr>
             <tr><th>الموظف</th><td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(Model.EmployeeId, ViewBag.EmployeeName as string))</td></tr>
-            <tr><th>تشغيل الرواتب</th><td>@(Model.PayrollRunId?.ToString() ?? "—")</td></tr>
+            <tr><th>تشغيل الرواتب</th><td>@if (Model.PayrollRunId is Guid runId) { <a asp-controller="PayrollRuns" asp-action="Details" asp-route-id="@runId">عرض مسير الرواتب</a> } else { <span>—</span> }</td></tr>
             <tr><th>الحالة</th><td>@Html.HrStoredEnumDisplay("Code", Model.Status)</td></tr>
-            <tr><th>المالك</th><td>@(Model.OwnerId?.ToString() ?? "—")</td></tr>
+            <tr><th>المالك</th><td>@Html.HrUserName(Model.OwnerId)</td></tr>
             <tr><th>التفاصيل</th><td>@(Model.Details ?? "—")</td></tr>
-            <tr><th>حجز الصرف</th><td>@(Model.PaymentHoldId?.ToString() ?? "—")</td></tr>
-            <tr><th>وقت الاكتشاف</th><td>@Model.DetectedAtUtc.ToString("yyyy/MM/dd HH:mm")</td></tr>
+            <tr><th>حجز الصرف</th><td>@if (Model.PaymentHoldId is Guid holdId) { <a asp-controller="PaymentHolds" asp-action="Details" asp-route-id="@holdId">عرض حجز الصرف</a> } else { <span>—</span> }</td></tr>
+            <tr><th>وقت الاكتشاف</th><td>@Html.HrDateTime(Model.DetectedAtUtc)</td></tr>
         </table>
 
         @if (Model.Status is FraudAlertStatus.Open or FraudAlertStatus.UnderReview)

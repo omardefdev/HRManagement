@@ -128,6 +128,7 @@ public sealed class AssetEditFormViewModel
     public string? Model { get; set; }
 
     [Display(Name = "تاريخ الشراء")]
+    [DataType(DataType.Date)]
     public DateTime? PurchaseDate { get; set; }
 
     [Display(Name = "القيمة")]
@@ -170,6 +171,7 @@ public sealed class AssetLegacyCreateFormViewModel
     public string? Model { get; set; }
 
     [Display(Name = "تاريخ الشراء")]
+    [DataType(DataType.Date)]
     public DateTime? PurchaseDate { get; set; }
 
     [Display(Name = "القيمة")]

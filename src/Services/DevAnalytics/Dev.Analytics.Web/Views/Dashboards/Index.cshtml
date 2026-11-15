@@ -80,6 +80,10 @@
                         {
                             <tr><th scope="row">@row.Label</th><td>@row.Value</td></tr>
                         }
+                    @if (!(Model.Recruitment.OfferOutcomes).Any())
+                        {
+                            <tr><td colspan="2"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                        }
                     </tbody>
                 </table>
             </div>

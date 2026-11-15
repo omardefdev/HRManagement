@@ -21,6 +21,7 @@ namespace HR.Core.Web.Controllers;
 /// </summary>
 [AllowAnonymous]
 [Route("my")]
+[PublicPortalOnly]
 [OrgScopeNotApplicable("self-service by ownership: a candidate's own applications")]
 public class CandidatePortalController(
     CandidateOtpService otp,

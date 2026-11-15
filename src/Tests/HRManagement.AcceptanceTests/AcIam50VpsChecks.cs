@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using HRManagement.E2E;
 
 namespace HRManagement.AcceptanceTests;
 
@@ -172,8 +173,8 @@ public partial class AcOps36VpsBootTests
                 ["DelegateEmployeeId"] = delegateEmployee,
                 ["RoleScope"] = "hr-management-approver",
                 ["EntityTypeScope"] = "TransferRequest",
-                ["ActiveFrom"] = now.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture),
-                ["ActiveUntil"] = now.AddDays(1).ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture),
+                ["ActiveFrom"] = DamascusClock.Input(now),
+                ["ActiveUntil"] = DamascusClock.Input(now.AddDays(1)),
                 ["Reason"] = $"{Iam50Marker} {Guid.NewGuid():N}"[..40]
             });
             Assert.True(created == 200, $"delegation create answered {created} at {createdPath}");
@@ -277,7 +278,7 @@ public partial class AcOps36VpsBootTests
                     ["__RequestVerificationToken"] = await TokenAsync(creator, createPage),
                     ["ScopeOrgUnitId"] = orgUnit,
                     ["FundedPositionId"] = positionId,
-                    ["JobTitle"] = Iam50Marker,
+                    ["JobTitle"] = "مدقق داخلي",
                     ["JustificationNotes"] = Iam50Marker,
                     ["LegalSourceId"] = "SYR-LAW-50-2004",
                     ["BudgetYear"] = DateTime.UtcNow.Year.ToString(CultureInfo.InvariantCulture),
@@ -293,7 +294,7 @@ public partial class AcOps36VpsBootTests
             {
                 ["__RequestVerificationToken"] = await TokenAsync(creator, details),
                 ["RequisitionId"] = requisition,
-                ["Title"] = Iam50Marker
+                ["Title"] = "معايير المفاضلة لوظيفة مدقق داخلي"
             };
             (string Key, string Name, string Weight, string Stage)[] items =
                 [("interview", "المقابلة", "40", "Interview"), ("exam", "الاختبار", "30", "Exam"), ("experience", "الخبرة", "30", "Experience")];
@@ -330,8 +331,8 @@ public partial class AcOps36VpsBootTests
                 ["DelegateEmployeeId"] = delegateEmployee,
                 ["RoleScope"] = "hr-management-approver",
                 ["EntityTypeScope"] = "RecruitmentRequisition",
-                ["ActiveFrom"] = now.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture),
-                ["ActiveUntil"] = now.AddDays(1).ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture),
+                ["ActiveFrom"] = DamascusClock.Input(now),
+                ["ActiveUntil"] = DamascusClock.Input(now.AddDays(1)),
                 ["Reason"] = $"{Iam50Marker} engine {Guid.NewGuid():N}"[..40]
             });
             Assert.True(created == 200, $"delegation create answered {created} at {createdPath}");
@@ -346,7 +347,7 @@ public partial class AcOps36VpsBootTests
                     {
                         ["__RequestVerificationToken"] = await TokenAsync(delegateUser, details),
                         ["RequisitionId"] = requisition,
-                        ["Comments"] = $"{Iam50Marker} {step}"
+                        ["Comments"] = $"مطابق للملاك المعتمد — الخطوة {step}"
                     });
                 }
 

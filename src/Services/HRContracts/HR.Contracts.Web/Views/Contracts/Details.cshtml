@@ -23,8 +23,8 @@
         <table class="table table-sm">
             <tr><th>الموظف</th><td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(Model.EmployeeId, ViewBag.EmployeeName as string))</td></tr>
             <tr><th>نوع العقد</th><td>@Model.ContractType.NameAr (@Model.ContractType.Code)</td></tr>
-            <tr><th>من</th><td>@Model.StartDate.ToString("yyyy/MM/dd")</td></tr>
-            <tr><th>إلى</th><td>@(Model.EndDate?.ToString("yyyy/MM/dd") ?? "—")</td></tr>
+            <tr><th>من</th><td>@Html.HrDate(Model.StartDate)</td></tr>
+            <tr><th>إلى</th><td>@Html.HrDate(Model.EndDate)</td></tr>
             <tr><th>البنود</th><td>@(Model.Terms ?? "—")</td></tr>
             <tr><th>فترة الاختبار (أشهر)</th><td>@(Model.ProbationMonths?.ToString() ?? "—")</td></tr>
         </table>
@@ -82,7 +82,7 @@
                 {
                     <tr>
                         <td>موقّع مسجل</td>
-                        <td>@s.SignedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                        <td>@Html.HrDateTime(s.SignedAt)</td>
                         <td>@Html.HrEnumDisplay(s.SignatureType)</td>
                         <td>
                             <form asp-controller="ContractSignatures" asp-action="Delete" asp-route-id="@s.Id" method="post" class="d-inline"

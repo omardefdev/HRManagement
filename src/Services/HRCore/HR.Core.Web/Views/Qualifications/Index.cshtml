@@ -52,7 +52,7 @@
 
                         <td>@(q.Provider ?? "—")</td>
 
-                        <td>@(q.CompletionDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@Html.HrDate(q.CompletionDate)</td>
 
                         <td>
 

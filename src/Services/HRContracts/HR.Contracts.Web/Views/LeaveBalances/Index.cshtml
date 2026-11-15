@@ -62,8 +62,8 @@
                         <td>@b.Used</td>
                         <td>
                             <strong>@b.Remaining</strong>
-                            <div class="progress progress-xs mt-1" style="width:80px">
-                                <div class="progress-bar @barColor" style="width:@(pct)%"></div>
+                            <div class="progress progress-xs mt-1 hr-w-80px">
+                                <div class="progress-bar @barColor" data-hr-progress="@pct.ToString(System.Globalization.CultureInfo.InvariantCulture)"></div>
                             </div>
                         </td>
                     </tr>

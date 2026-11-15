@@ -44,7 +44,7 @@
                             <tr>
                                 <td>@item.ApplicantFullName</td>
                                 <td>@(item.RequisitionNumber ?? "—")</td>
-                                <td>@appeal.CreatedAt.ToLocalTime().ToString("yyyy/MM/dd")</td>
+                                <td>@Html.HrDate(appeal.CreatedAt)</td>
                                 <td>
                                     @if (item.ReviewerName is not null)
                                     {

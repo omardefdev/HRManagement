@@ -22,7 +22,7 @@
                     <div class="text-muted small">@(c.Category ?? "عام") • @c.EstimatedHours ساعة</div>
                     @if (!string.IsNullOrWhiteSpace(c.Description)) { <p class="mb-0 mt-1">@c.Description</p> }
                 </div>
-                <div style="min-width:140px;" class="text-start">
+                <div class="text-start hr-minw-140px">
                     @if (isEnrolled)
                     {
                         <span class="badge bg-success">ملتحق</span>

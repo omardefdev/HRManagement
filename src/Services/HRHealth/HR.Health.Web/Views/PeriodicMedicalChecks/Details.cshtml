@@ -18,7 +18,7 @@
     <div class="card-body">
         <dl class="row mb-0">
             <dt class="col-sm-3">الموظف</dt><dd class="col-sm-9"><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></dd>
-            <dt class="col-sm-3">تاريخ الفحص</dt><dd class="col-sm-9">@Model.CheckDate</dd>
+            <dt class="col-sm-3">تاريخ الفحص</dt><dd class="col-sm-9">@Html.HrDate(Model.CheckDate)</dd>
             <dt class="col-sm-3">الملخص</dt><dd class="col-sm-9">@(Model.Summary ?? "—")</dd>
             <dt class="col-sm-3">القياسات</dt><dd class="col-sm-9">@(Model.Vitals ?? "—")</dd>
             <dt class="col-sm-3">الفحص التالي</dt><dd class="col-sm-9">@(Model.NextDue?.ToString() ?? "—")</dd>

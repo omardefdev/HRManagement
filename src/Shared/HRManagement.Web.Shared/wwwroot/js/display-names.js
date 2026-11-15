@@ -78,21 +78,38 @@
 
 
 
-    function fetchBatch(path, ids, groups) {
+    // PLAN-67 (D-67-3): user names come from the gateway (its own origin), not from HR.Core's lookup base.
+    function userNamesBase() {
+        return document.body.getAttribute('data-user-names-base') || '';
+    }
 
-        return fetch(lookupBase() + path, {
+    function applyUserName(item, elements) {
+        if (!item || !item.label) return;
+        elements.forEach(function (el) {
+            el.textContent = item.label;
+            el.removeAttribute('title');
+        });
+    }
+
+    function fetchBatch(path, ids, groups, base, apply, token) {
+
+        var headers = {
+
+            Accept: 'application/json',
+
+            'Content-Type': 'application/json'
+
+        };
+
+        if (token) headers.RequestVerificationToken = token;
+
+        return fetch((base === undefined ? lookupBase() : base) + path, {
 
             method: 'POST',
 
             credentials: 'same-origin',
 
-            headers: {
-
-                Accept: 'application/json',
-
-                'Content-Type': 'application/json'
-
-            },
+            headers: headers,
 
             body: JSON.stringify({ ids: ids })
 
@@ -110,7 +127,7 @@
 
                     var els = groups.get(key) || groups.get(String(item.id));
 
-                    if (els) applyLabel(item, els);
+                    if (els) (apply || applyLabel)(item, els);
 
                 });
 
@@ -129,7 +146,7 @@
 
 
 
-    function hydrateBatch(path, groups) {
+    function hydrateBatch(path, groups, base, apply, token) {
 
         var ids = Array.from(groups.keys());
 
@@ -139,10 +156,22 @@
 
         return Promise.all(chunks.map(function (chunk) {
 
-            return fetchBatch(path, chunk, groups);
+            return fetchBatch(path, chunk, groups, base, apply, token);
 
         }));
 
+    }
+
+    // PLAN-67: the gateway's lookup is a POST that takes its antiforgery token, fetched once per page (same policy).
+    function hydrateUserNames(groups) {
+        if (groups.size === 0) return Promise.resolve();
+        var base = userNamesBase();
+        return fetch(base + '/api/user-names/token', { credentials: 'same-origin', headers: { Accept: 'application/json' } })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .catch(function () { return null; })
+            .then(function (data) {
+                return hydrateBatch('/api/user-names/by-ids', groups, base, applyUserName, data && data.token);
+            });
     }
 
 
@@ -152,12 +181,15 @@
         var employeeGroups = groupElements('[data-hr-employee-id]', 'data-hr-employee-id');
 
         var orgUnitGroups = groupElements('[data-hr-org-unit-id]', 'data-hr-org-unit-id');
+        var userGroups = groupElements('[data-hr-user-id]', 'data-hr-user-id');
 
         Promise.all([
 
             hydrateBatch('/api/lookup/employees/by-ids', employeeGroups),
 
-            hydrateBatch('/api/lookup/org-units/by-ids', orgUnitGroups)
+            hydrateBatch('/api/lookup/org-units/by-ids', orgUnitGroups),
+            // An id the registry does not know keeps «مستخدم غير معروف» and its tooltip.
+            hydrateUserNames(userGroups)
 
         ]);
 

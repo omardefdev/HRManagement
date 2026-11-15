@@ -13,7 +13,7 @@
                 {
                     <tr>
                         <td><span data-hr-employee-id="@x.EmployeeId">جاري التحميل...</span></td>
-                        <td>@x.CheckDate</td>
+                        <td>@Html.HrDate(x.CheckDate)</td>
                         <td>@x.NextDue</td>
                         <td class="small">@x.Summary</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-info">تفاصيل</a></td>

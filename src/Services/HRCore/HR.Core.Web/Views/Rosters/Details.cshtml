@@ -12,7 +12,7 @@
     </div>
     <div class="card-body">
         <p><strong>الوحدة:</strong> @(Model.OrgUnit?.NameAr ?? "—")</p>
-        <p><strong>الفترة:</strong> @Model.PeriodStart.ToString("yyyy-MM-dd") ← @Model.PeriodEnd.ToString("yyyy-MM-dd")</p>
+        <p><strong>الفترة:</strong> @Html.HrDate(Model.PeriodStart) ← @Html.HrDate(Model.PeriodEnd)</p>
         @if (!string.IsNullOrWhiteSpace(Model.Notes)) { <p><strong>ملاحظات:</strong> @Model.Notes</p> }
         <p class="text-muted small">البدلات أدناه استرشادية بأجر ساعة @wage ل.س — الاحتساب الفعلي يتم في خدمة الرواتب.</p>
     </div>
@@ -26,7 +26,7 @@
             <input type="hidden" name="rosterId" value="@Model.Id" />
             <div class="col-md-3"><label class="form-label">الموظف</label><select name="employeeId" asp-items="ViewBag.Employees" class="form-control" required></select></div>
             <div class="col-md-3"><label class="form-label">الوردية</label><select name="shiftId" asp-items="ViewBag.Shifts" class="form-control" required></select></div>
-            <div class="col-md-2"><label class="form-label">التاريخ</label><input name="workDate" type="date" class="form-control" value="@Model.PeriodStart.ToString("yyyy-MM-dd")" required /></div>
+            <div class="col-md-2"><label class="form-label">التاريخ</label><input name="workDate" type="date" class="form-control" value="@Html.HrDateInputValue(Model.PeriodStart)" required /></div>
             <div class="col-md-2"><label class="form-label">ساعات إضافية</label><input name="overtimeHours" type="number" step="0.5" min="0" value="0" class="form-control" /></div>
             <div class="col-md-2 d-flex align-items-end"><button type="submit" class="btn btn-primary w-100">إسناد</button></div>
         </form>
@@ -48,7 +48,7 @@
                     <tr>
                         <td>@(a.Employee?.FullName ?? "—")</td>
                         <td>@(a.Shift?.NameAr ?? "—")</td>
-                        <td>@a.WorkDate.ToString("yyyy-MM-dd")</td>
+                        <td>@Html.HrDate(a.WorkDate)</td>
                         <td>@(b?.ShiftHours)</td>
                         <td>@(b?.ShiftPremiumAmount) ل.س</td>
                         <td>@a.OvertimeHours س / @(b?.OvertimeAmount) ل.س</td>
@@ -68,6 +68,10 @@
                     </tr>
                 }
                 @if (!Model.Assignments.Any()) { <tr><td colspan="8" class="text-center text-muted py-4">لا إسنادات</td></tr> }
+            @if (!(Model.Assignments.OrderBy(a => a.WorkDate)).Any())
+                {
+                    <tr><td colspan="8"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

@@ -24,13 +24,13 @@
                 <div class="col-md-6">
                     <div class="mb-3 mb-3">
                         <label class="form-label">المعتمد</label>
-                        <input class="form-control" value="@Model.ApprovedBy" disabled />
+                        <div class="form-control-plaintext">@Html.HrUserName(Model.ApprovedBy)</div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="mb-3 mb-3">
                         <label class="form-label">تاريخ الاعتماد</label>
-                        <input class="form-control" value="@Model.ApprovedAt" disabled />
+                        <div class="form-control-plaintext">@Html.HrDateTime(Model.ApprovedAt)</div>
                         <div class="form-text">يُسجَّلان عند المراجعة ولا يُعدَّلان هنا.</div>
                     </div>
                 </div>

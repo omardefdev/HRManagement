@@ -9,7 +9,7 @@
             <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select></div>
             <div class="mb-3">
                 <label class="form-label">مقدّم الطلب</label>
-                <input class="form-control" value="@Model.RequestedBy" disabled />
+                <div class="form-control-plaintext">@Html.HrUserName(Model.RequestedBy)</div>
                 <div class="form-text">يُسجَّل مقدّم الطلب من هوية الجلسة ولا يُعدَّل.</div>
             </div>
             <div class="mb-3"><label asp-for="RequestDate" class="form-label"></label><input asp-for="RequestDate" class="form-control" type="date" /></div>

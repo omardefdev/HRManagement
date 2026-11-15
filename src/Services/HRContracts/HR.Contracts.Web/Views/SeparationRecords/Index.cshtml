@@ -52,7 +52,7 @@
                     <tr>
                         <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(r.EmployeeId, employeeNames.GetValueOrDefault(r.EmployeeId)))</td>
                         <td>@Html.HrEnumDisplay(r.SeparationType)</td>
-                        <td>@r.EffectiveDate.ToString("yyyy/MM/dd")</td>
+                        <td>@Html.HrDate(r.EffectiveDate)</td>
                         <td>
                             @if (r.SeparationEventPublished) { <span class="badge bg-success">تم النشر</span> }
                             else { <span class="badge bg-secondary">لم يُنشر</span> }

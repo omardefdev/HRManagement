@@ -198,7 +198,9 @@ public class EssPortalController(HRCoreDbContext db, IPublishEndpoint publish) :
 public class EssLeaveRequestModel
 {
     public string LeaveType { get; set; } = "Annual";
+    [System.ComponentModel.DataAnnotations.Display(Name = "تاريخ البداية")]
     public DateOnly StartDate { get; set; }
+    [System.ComponentModel.DataAnnotations.Display(Name = "تاريخ النهاية")]
     public DateOnly EndDate { get; set; }
     public string? Notes { get; set; }
 }

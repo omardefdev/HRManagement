@@ -110,7 +110,7 @@ public sealed class Pol049ShadowLedgerRlsPostgresTests(PostgreSqlFixture fixture
             Assert.Equal(PolicyEnforcementMode.Shadow, response.EffectiveMode);
             Assert.NotNull(response.LedgerId);
             Assert.Null(response.WorkflowInstanceId);
-            Assert.DoesNotContain(response.Decision.Explanations, e => e.Contains("حقل غير مسموح", StringComparison.Ordinal));
+            Assert.DoesNotContain(response.Decision.Explanations, e => e.Contains(HRManagement.SharedKernel.Policy.PolicyFactsValidator.UnknownFieldMessage, StringComparison.Ordinal));
         }
 
         // As the superuser, past row security: three rows, each in tenant A, in Shadow, with its owner's client.

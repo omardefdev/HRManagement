@@ -80,6 +80,47 @@ Operational checklist for `HRManagement.Gateway` as the single system entry poin
 - Keep rate limiting enabled at gateway edge.
 - Keep HSTS and security headers enabled in production.
 
+### Security headers: one policy per response (PLAN-67, D-67-1)
+
+- `UseHrSecurityHeaders` writes every security header in `Response.OnStarting`, each **only if the response does not already carry
+  it**; a Content-Security-Policy in either mode (enforced or Report-Only) counts. The gateway's middleware runs before
+  `MapReverseProxy`, so a forwarded page keeps its service's policy and nonce, and only a gateway page, or a forwarded answer without
+  headers, gets the gateway's. Before PLAN-67 the gateway wrote its own policy first and YARP added the service's: two policies, whose
+  nonces matched neither page, blocked every inline style and script that was not from the origin.
+- One exception keeps a page protected: if the gateway enforces and a forwarded answer carries only a Report-Only policy (a service
+  left in `ReportOnly`), the gateway sends that same policy as enforced, nonce and all.
+- `Security:CspMode` is `Enforce` in every Production file. Check a live answer with
+  `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ux067-validate.ps1 -Headers <url>[,<url>…]`: exactly one policy, no
+  Report-Only, nothing unsafe.
+
+### The public portal at `/careers` (PLAN-67, D-67-5)
+
+- The route `/careers/{**catch-all}` goes to HR.Core with `/careers` as its path base, anonymous. HR.Core's `[PublicPortalOnly]`
+  constraint (on `PublicCareersController` and `CandidatePortalController`) answers only through `/careers` (or with no path base, the
+  service reached directly), so `/ui/hr-core/` opens the staff dashboard and `/ui/hr-core/track` or `/ui/hr-core/my` answer 404.
+- Every public link keeps its address: `/careers`, a posting, `/careers/track`, `/careers/my`, competition results and their PDF.
+- `HEAD /careers` answers 302 to sign-in while `GET` is public (seen in P0, unchanged here).
+
+### The user-name registry (PLAN-67, D-67-3)
+
+- `GatewayUserNameRegistryMiddleware` (after authorization) queues each signed-in **interactive** user's `sub`, display name and
+  agency; `GatewayUserNameWriter` (a background service) writes them to `gateway_user_names` (database `gateway_audit_db`, migration
+  `UX067_UserNameRegistry`), at most once an hour per user (memory cache), and a changed name at once. A request never waits for the
+  database: if it is unreachable, the writer logs a warning and tries again a minute later. A service account or a user without a
+  name is never recorded. The agency column is `AgencyId`, not `TenantId`: the bootstrap's TEN-002C hardening forces tenant row
+  security on every `TenantId` column, and the gateway sets no tenant, so the production role would read and write nothing; the
+  lookup filters by agency in its own query.
+- `GET api/user-names/token` hands out the gateway's antiforgery token (and its cookie); `POST api/user-names/by-ids` (at most 50 ids,
+  with the token in `RequestVerificationToken`) answers `{ items: [{ id, label }] }`. Both need `Gateway.UserNames` (interactive staff,
+  PLAN-50's definition): an employee-only user or a service is refused (403). The answer holds names of the caller's agency only
+  (every agency for `platform-admin`), the name only, and leaves out an id it does not know.
+- `display-names.js` fills each `[data-hr-user-id]` (`_UserDisplayName`) from it; an automated actor shows «النظام», and an id the
+  registry does not know stays «مستخدم غير معروف» with the id in a tooltip. A name appears after its owner's first sign-in following
+  the deploy.
+- **The gateway's own API answers its status as it is.** `UseStatusCodePagesWithReExecute` stays for pages and proxied routes, but
+  a middleware after routing turns it off for the gateway's `[ApiController]` endpoints: before PLAN-67 an empty 403 there was re-run
+  as `POST /Home/ErrorStatus/403`, a GET-only action, and answered 405.
+
 ## Rate Limiting
 
 - One fixed one-minute window per client IP: `RateLimiting:PermitLimitPerMinute` (default 120, clamped to 30-2000;

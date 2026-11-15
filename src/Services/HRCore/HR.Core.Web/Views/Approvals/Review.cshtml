@@ -12,7 +12,7 @@
             <div class="card-body">
                 <dl class="row">
                     <dt class="col-sm-4">نوع الكيان</dt>
-                    <dd class="col-sm-8">@Model.EntityType</dd>
+                    <dd class="col-sm-8">@Html.HrEntityTypeDisplay(Model.EntityType)</dd>
 
                     <dt class="col-sm-4">الوصف</dt>
                     <dd class="col-sm-8">@(Model.Description ?? "—")</dd>
@@ -21,7 +21,7 @@
                     <dd class="col-sm-8">@(Model.RequestedByName ?? "—")</dd>
 
                     <dt class="col-sm-4">تاريخ الطلب</dt>
-                    <dd class="col-sm-8" dir="ltr">@Model.RequestedAt.ToString("yyyy-MM-dd HH:mm")</dd>
+                    <dd class="col-sm-8" dir="ltr">@Html.HrDateTime(Model.RequestedAt)</dd>
 
                     <dt class="col-sm-4">الحالة</dt>
                     <dd class="col-sm-8">
@@ -74,9 +74,13 @@
                                     <span class="badge @stepBadge">@Html.HrEnumDisplay(step.Status)</span>
                                 </td>
                                 <td>@(step.ReviewedByName ?? "—")</td>
-                                <td dir="ltr">@(step.ReviewedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</td>
+                                <td dir="ltr">@Html.HrDateTime(step.ReviewedAt)</td>
                                 <td>@(step.Comments ?? "—")</td>
                             </tr>
+                        }
+                    @if (!(Model.Steps).Any())
+                        {
+                            <tr><td colspan="6"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
                         }
                     </tbody>
                 </table>
@@ -84,29 +88,27 @@
                 @if (Model.Status == HRManagement.SharedKernel.Enums.ApprovalStatus.Pending)
                 {
                     <hr />
-                    <div class="mb-3">
-                        <label for="reviewComments">ملاحظات المراجعة</label>
-                        <textarea id="reviewComments" name="reviewComments" class="form-control" rows="3" 
-                                  placeholder="أضف ملاحظاتك هنا (اختياري)..."></textarea>
-                    </div>
-                    <div class="d-flex gap-2 mt-3">
-                        <form asp-action="Approve" method="post" class="d-inline">
-                            <input type="hidden" name="id" value="@Model.Id" />
-                            <input type="hidden" name="reviewComments" value="" id="approveComments" />
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-success" onclick="document.getElementById('approveComments').value=document.getElementById('reviewComments').value">
+                    @* PLAN-67 (G-UX-01): one form holds the comments and both decisions, so the comments reach the record with no
+                       inline code (an enforced CSP blocked the old onclick copies). The reject button posts the same fields to Reject. *@
+                    <form asp-action="Approve" method="post" data-testid="approval-review-form">
+                        <input type="hidden" name="id" value="@Model.Id" />
+                        @Html.AntiForgeryToken()
+                        <div class="mb-3">
+                            <label for="reviewComments">ملاحظات المراجعة</label>
+                            <textarea id="reviewComments" name="reviewComments" class="form-control" rows="3"
+                                      placeholder="أضف ملاحظاتك هنا (اختياري)..."></textarea>
+                        </div>
+                        <div class="d-flex gap-2 mt-3">
+                            <button type="submit" class="btn btn-success" data-testid="approval-approve">
                                 <i class="fas fa-check"></i> موافقة
                             </button>
-                        </form>
-                        <form asp-action="Reject" method="post" class="d-inline ms-2">
-                            <input type="hidden" name="id" value="@Model.Id" />
-                            <input type="hidden" name="reviewComments" value="" id="rejectComments" />
-                            @Html.AntiForgeryToken()
-                            <button type="submit" class="btn btn-danger" onclick="document.getElementById('rejectComments').value=document.getElementById('reviewComments').value">
+                            <button type="submit" class="btn btn-danger ms-2" asp-action="Reject" data-testid="approval-reject">
                                 <i class="fas fa-times"></i> رفض
                             </button>
-                        </form>
-                        <form asp-action="Cancel" method="post" class="d-inline ms-2">
+                        </div>
+                    </form>
+                    <div class="d-flex gap-2 mt-2">
+                        <form asp-action="Cancel" method="post" class="d-inline" data-hr-confirm="إلغاء طلب الاعتماد؟" data-hr-confirm-variant="danger">
                             <input type="hidden" name="id" value="@Model.Id" />
                             @Html.AntiForgeryToken()
                             <button type="submit" class="btn btn-secondary">

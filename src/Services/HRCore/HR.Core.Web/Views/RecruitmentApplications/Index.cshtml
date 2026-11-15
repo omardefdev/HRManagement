@@ -105,7 +105,7 @@
                         @Html.HrEnumDisplay(application.Status)
                         @if (application.Status == RecruitmentApplicationStatus.ReserveListed && application.ReserveUntil is DateOnly reserveUntil)
                         {
-                            <span class="text-muted small">حتى @reserveUntil.ToString("yyyy/MM/dd")</span>
+                            <span class="text-muted small">حتى @Html.HrDate(reserveUntil)</span>
                         }
                         @foreach (var flag in RecruitmentEligibilityRules.Parse(application.EligibilityFlags))
                         {
@@ -140,7 +140,7 @@
                             <span class="text-muted">—</span>
                         }
                     </td>
-                    <td>@application.AppliedAt.ToLocalTime().ToString("yyyy/MM/dd")</td>
+                    <td>@Html.HrDate(application.AppliedAt)</td>
                     <td>
                         <div class="d-flex flex-wrap gap-1 align-items-center">
                             <a asp-action="Details" asp-route-id="@application.Id" class="btn btn-sm btn-outline-info" title="تفاصيل الطلب ومسار الاختيار">

@@ -45,11 +45,11 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">من تاريخ التسليم</label>
-                <input type="date" name="assignedFrom" value="@Model.AssignedFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="assignedFrom" value="@Html.HrDateInputValue(Model.AssignedFrom)" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">إلى تاريخ التسليم</label>
-                <input type="date" name="assignedTo" value="@Model.AssignedTo?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="assignedTo" value="@Html.HrDateInputValue(Model.AssignedTo)" class="form-control" />
             </div>
             <div class="col-md-3">
                 <div class="form-check">
@@ -104,8 +104,8 @@
                             }
                         </td>
                         <td>@Html.HrEnumDisplay(x.Status)</td>
-                        <td>@x.AssignedAt.ToString("yyyy/MM/dd")</td>
-                        <td>@(x.ReturnedAt?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@Html.HrDate(x.AssignedAt)</td>
+                        <td>@Html.HrDate(x.ReturnedAt)</td>
                         <td>@await Html.PartialAsync("_AssignmentEvidenceDisplay", new AssignmentEvidenceViewModel { Assignment = x, Asset = x.Asset })</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-info">تفاصيل</a></td>
                     </tr>

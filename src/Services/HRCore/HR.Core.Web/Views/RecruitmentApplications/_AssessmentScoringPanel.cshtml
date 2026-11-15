@@ -134,8 +134,12 @@
                                             <span class="badge bg-warning text-dark">لا</span>
                                         }
                                     </td>
-                                    <td>@assessor.LastSubmittedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm")</td>
+                                    <td>@Html.HrDateTime(assessor.LastSubmittedAt)</td>
                                 </tr>
+                            }
+                        @if (!(summary.Items).Any())
+                            {
+                                <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
                             }
                         </tbody>
                     </table>

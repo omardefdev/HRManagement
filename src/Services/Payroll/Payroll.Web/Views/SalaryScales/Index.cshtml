@@ -25,10 +25,10 @@
                 </select>
             </div>
             <div class="col-auto">
-                <input type="date" name="effectiveFrom" value="@effectiveFrom?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" title="ساري من" />
+                <input type="date" name="effectiveFrom" value="@Html.HrDateInputValue(effectiveFrom)" class="form-control form-control-sm" title="ساري من" />
             </div>
             <div class="col-auto">
-                <input type="date" name="effectiveTo" value="@effectiveTo?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" title="ساري إلى" />
+                <input type="date" name="effectiveTo" value="@Html.HrDateInputValue(effectiveTo)" class="form-control form-control-sm" title="ساري إلى" />
             </div>
             <div class="col-auto">
                 <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-search"></i> بحث</button>
@@ -44,8 +44,8 @@
                 {
                     <tr>
                         <td>@s.Code</td><td>@s.NameAr</td>
-                        <td>@s.EffectiveFrom.ToString("yyyy/MM/dd")</td>
-                        <td>@(s.EffectiveTo?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@Html.HrDate(s.EffectiveFrom)</td>
+                        <td>@Html.HrDate(s.EffectiveTo)</td>
                         <td>@(s.IsActive ? "✓" : "✗")</td>
                         <td><a asp-controller="PayGrades" asp-action="Index" asp-route-scaleId="@s.Id" class="badge bg-info">@s.PayGrades.Count</a></td>
                         <td>

@@ -11,14 +11,14 @@
             <dd class="col-sm-9">@Model.CronExpression</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.LastRunAt)</dt>
-            <dd class="col-sm-9">@Model.LastRunAt</dd>
+            <dd class="col-sm-9">@Html.HrDateTime(Model.LastRunAt)</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.NextRunAt)</dt>
-            <dd class="col-sm-9">@Model.NextRunAt</dd>
+            <dd class="col-sm-9">@Html.HrDateTime(Model.NextRunAt)</dd>
         </dl>
     </div>
     <div class="card-footer">
-        <form asp-action="Trigger" asp-route-id="@Model.Id" method="post" style="display:inline">
+        <form asp-action="Trigger" asp-route-id="@Model.Id" method="post" class="d-inline">
             @Html.AntiForgeryToken()
             <button type="submit" class="btn btn-success">تشغيل الآن</button>
         </form>

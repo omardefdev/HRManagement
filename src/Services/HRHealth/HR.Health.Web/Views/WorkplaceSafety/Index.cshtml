@@ -16,7 +16,7 @@
                 @foreach (var x in Model)
                 {
                     <tr>
-                        <td>@x.AccidentDate.ToString("yyyy-MM-dd")</td>
+                        <td>@Html.HrDate(x.AccidentDate)</td>
                         <td><span data-hr-employee-id="@x.EmployeeId">@(x.EmployeeName ?? "جاري التحميل...")</span></td>
                         <td>@x.Location</td>
                         <td>@Html.DisplayFor(_ => x.Severity)</td>
@@ -25,6 +25,10 @@
                     </tr>
                 }
                 @if (!Model.Any()) { <tr><td colspan="6" class="text-center text-muted py-4">لا حوادث مسجّلة</td></tr> }
+            @if (!(Model).Any())
+                {
+                    <tr><td colspan="6"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

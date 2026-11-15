@@ -33,11 +33,11 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">ساري من</label>
-                <input type="date" name="effectiveFrom" value="@effectiveFrom?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+                <input type="date" name="effectiveFrom" value="@Html.HrDateInputValue(effectiveFrom)" class="form-control form-control-sm" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">ساري إلى</label>
-                <input type="date" name="effectiveTo" value="@effectiveTo?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+                <input type="date" name="effectiveTo" value="@Html.HrDateInputValue(effectiveTo)" class="form-control form-control-sm" />
             </div>
             <div class="col-md-2 d-flex align-items-end gap-1">
                 <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button>
@@ -49,7 +49,7 @@
         <table class="table table-striped mb-0">
             <thead><tr><th>موظف</th><th>النوع</th><th>المبلغ</th><th>من</th></tr></thead>
             <tbody>
-            @foreach (var x in Model) { <tr><td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(x.EmployeeId, employeeNames.GetValueOrDefault(x.EmployeeId)))</td><td>@(x.AllowanceType?.NameAr ?? "—")</td><td>@x.Amount</td><td>@x.EffectiveFrom.ToString("yyyy/MM/dd")</td></tr> }
+            @foreach (var x in Model) { <tr><td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(x.EmployeeId, employeeNames.GetValueOrDefault(x.EmployeeId)))</td><td>@(x.AllowanceType?.NameAr ?? "—")</td><td>@x.Amount</td><td>@Html.HrDate(x.EffectiveFrom)</td></tr> }
             @if (!Model.Any()) { <tr><td colspan="4" class="text-center text-muted py-3">لا توجد سجلات</td></tr> }
             </tbody>
         </table>

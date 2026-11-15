@@ -21,7 +21,7 @@
                 <div class="alert alert-secondary py-2">
                     <strong>مصدر التوريد (سجل الاستلام):</strong>
                     <a asp-controller="ReceiptRecords" asp-action="Details" asp-route-id="@receiptId">
-                        استلام @Model.OriginReceiptReceivedAt?.ToString("yyyy/MM/dd") — @(Model.OriginReceiptItemsReceived ?? "—")
+                        استلام @Html.HrDate(Model.OriginReceiptReceivedAt) — @(Model.OriginReceiptItemsReceived ?? "—")
                     </a>
                     <span class="text-muted small">(للقراءة فقط)</span>
                 </div>
@@ -35,7 +35,7 @@
             <div class="mb-3"><label asp-for="Category" class="form-label"></label><input asp-for="Category" class="form-control" /></div>
             <div class="mb-3"><label asp-for="Brand" class="form-label"></label><input asp-for="Brand" class="form-control" /></div>
             <div class="mb-3"><label asp-for="Model" class="form-label"></label><input asp-for="Model" class="form-control" /></div>
-            <div class="mb-3"><label asp-for="PurchaseDate" class="form-label"></label><input asp-for="PurchaseDate" class="form-control" type="datetime-local" /></div>
+            <div class="mb-3"><label asp-for="PurchaseDate" class="form-label"></label><input asp-for="PurchaseDate" class="form-control" type="date" /></div>
             <div class="mb-3"><label asp-for="Value" class="form-label"></label><input asp-for="Value" class="form-control" type="number" step="0.01" /></div>
             <div class="mb-3"><label asp-for="Status" class="form-label"></label><select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<AssetStatus>()"></select></div>
             <div class="alert alert-info py-2 mb-3">

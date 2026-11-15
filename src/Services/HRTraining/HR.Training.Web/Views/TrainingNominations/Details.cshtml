@@ -14,7 +14,7 @@
             <tr><th>الموظف</th><td><span data-hr-employee-id="@Model.EmployeeId">جاري التحميل...</span></td></tr>
             <tr><th>الدورة</th><td>@(Model.Course?.TitleAr ?? Model.CourseId.ToString())</td></tr>
             <tr><th>رشّح بواسطة</th><td>@(Model.NominatedBy.HasValue ? "مستخدم النظام" : "—")</td></tr>
-            <tr><th>تاريخ الترشيح</th><td>@Model.NominatedAt.ToString("yyyy/MM/dd")</td></tr>
+            <tr><th>تاريخ الترشيح</th><td>@Html.HrDate(Model.NominatedAt)</td></tr>
             <tr><th>الحالة</th><td><span class="badge bg-info">@Html.HrEnumDisplay(Model.Status)</span></td></tr>
         </table>
 

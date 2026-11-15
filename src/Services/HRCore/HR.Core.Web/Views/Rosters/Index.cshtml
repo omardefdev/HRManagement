@@ -17,11 +17,11 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">الفترة من</label>
-                <input type="date" name="periodFrom" value="@Model.PeriodFrom?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="periodFrom" value="@Html.HrDateInputValue(Model.PeriodFrom)" class="form-control" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">الفترة إلى</label>
-                <input type="date" name="periodTo" value="@Model.PeriodTo?.ToString("yyyy-MM-dd")" class="form-control" />
+                <input type="date" name="periodTo" value="@Html.HrDateInputValue(Model.PeriodTo)" class="form-control" />
             </div>
             <div class="col-md-auto">
                 <button type="submit" class="btn btn-primary">تصفية</button>
@@ -38,8 +38,8 @@
                     <tr>
                         <td>@x.Title</td>
                         <td>@(x.OrgUnit?.NameAr ?? "—")</td>
-                        <td>@x.PeriodStart.ToString("yyyy-MM-dd")</td>
-                        <td>@x.PeriodEnd.ToString("yyyy-MM-dd")</td>
+                        <td>@Html.HrDate(x.PeriodStart)</td>
+                        <td>@Html.HrDate(x.PeriodEnd)</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
                     </tr>
                 }

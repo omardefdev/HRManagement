@@ -16,7 +16,7 @@
             }
             @if (Model.LegacyCount > 0)
             {
-                <span class="badge text-bg-secondary">@Model.LegacyCount legacy</span>
+                <span class="badge text-bg-secondary">@Model.LegacyCount من النظام القديم</span>
             }
         </div>
     </div>
@@ -28,8 +28,8 @@
             <div class="col-md-3">
                 <select name="source" class="form-select form-select-sm">
                     <option value="">كل المصادر</option>
-                    <option value="hr-core" selected="@(Model.SourceFilter == "hr-core")">مسارات workflow</option>
-                    <option value="legacy-approval" selected="@(Model.SourceFilter == "legacy-approval")">اعتمادات legacy</option>
+                    <option value="hr-core" selected="@(Model.SourceFilter == "hr-core")">مسارات العمل</option>
+                    <option value="legacy-approval" selected="@(Model.SourceFilter == "legacy-approval")">اعتمادات النظام السابق</option>
                 </select>
             </div>
             <div class="col-md-2">
@@ -74,16 +74,16 @@
                                 <td>
                                     @if (item.SourceSystem == "legacy-approval")
                                     {
-                                        <span class="badge text-bg-secondary">legacy</span>
+                                        <span class="badge text-bg-secondary">النظام القديم</span>
                                     }
                                     else
                                     {
-                                        <span class="badge text-bg-info">workflow</span>
+                                        <span class="badge text-bg-info">مسار</span>
                                     }
                                 </td>
                                 <td><span class="badge text-bg-light">@item.Priority</span></td>
                                 <td>@item.AgingDays</td>
-                                <td dir="ltr">@item.CreatedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                                <td dir="ltr">@Html.HrDateTime(item.CreatedAt)</td>
                                 <td>
                                     @if (!string.IsNullOrWhiteSpace(item.DeepLink))
                                     {
@@ -100,7 +100,7 @@
         }
     </div>
     <div class="card-footer text-muted small">
-        <a asp-controller="Approvals" asp-action="Pending"><i class="fas fa-gavel"></i> اعتمادات legacy (قائمة منفصلة)</a>
+        <a asp-controller="Approvals" asp-action="Pending"><i class="fas fa-gavel"></i> اعتمادات النظام السابق (قائمة منفصلة)</a>
         · افتح العنصر من «فتح» لاعتماد/رفض من صفحة التفاصيل (PLAN-21/22).
     </div>
 </div>

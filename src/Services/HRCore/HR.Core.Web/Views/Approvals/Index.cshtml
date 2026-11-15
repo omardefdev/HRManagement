@@ -57,10 +57,10 @@
                     @foreach (var req in Model.Requests.Items)
                     {
                         <tr>
-                            <td>@req.EntityType</td>
+                            <td>@Html.HrEntityTypeDisplay(req.EntityType)</td>
                             <td>@(req.Description ?? "—")</td>
                             <td>@(req.RequestedByName ?? "—")</td>
-                            <td dir="ltr">@req.RequestedAt.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td dir="ltr">@Html.HrDateTime(req.RequestedAt)</td>
                             <td>
                                 @{
                                     var reqBadge = req.Status switch
@@ -81,6 +81,10 @@
                                 </a>
                             </td>
                         </tr>
+                    }
+                @if (!(Model.Requests.Items).Any())
+                    {
+                        <tr><td colspan="7"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
                     }
                 </tbody>
             </table>

@@ -1,4 +1,5 @@
 using System.Globalization;
+using HRManagement.ServiceDefaults.Localization;
 using System.Text;
 using System.Text.Json;
 using HR.Core.Domain.Entities;
@@ -237,7 +238,7 @@ public sealed class CandidatePortalService(
                     row.FinalScore?.ToString("0.##", CultureInfo.InvariantCulture),
                     row.OverallRank,
                     CompetitionResultsDocument.OutcomeAr(row.Outcome),
-                    row.PublishedAt is DateTime published ? FormatDate(published) : "—");
+                    row.PublishedAt);
         }
 
         var deadline = CompetitionWorkflowRules.ObjectionDeadlineUtc(competition.ResultsFirstPublishedAt, competition.ObjectionWindowDays);
@@ -764,7 +765,7 @@ public sealed class CandidatePortalService(
     };
 
     private static DateTime Local(DateTime utc) =>
-        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.Local);
+        TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), HrLocalTime.Zone);
 
     /// <summary>Invariant culture: the dev/host locale may be Hijri (ar-SA).</summary>
     public static string FormatDate(DateTime utc) => Local(utc).ToString("yyyy/MM/dd", CultureInfo.InvariantCulture);

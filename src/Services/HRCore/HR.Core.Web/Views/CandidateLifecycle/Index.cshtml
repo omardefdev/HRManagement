@@ -2,7 +2,7 @@
 @using System.Globalization
 @{
     ViewData["Title"] = "الاحتفاظ ببيانات المرشحين";
-    static string Date(DateTime? value) => value?.ToString("yyyy/MM/dd HH:mm", CultureInfo.InvariantCulture) ?? "—";
+    string Date(DateTime? value) => Html.HrDateTimeText(value);
 }
 
 <div class="card">
@@ -70,7 +70,7 @@
                         <tr>
                             <td dir="ltr" class="text-end">@item.Reference</td>
                             <td>@(item.RequisitionNumber ?? "—")</td>
-                            <td dir="ltr" class="text-end">@item.TriggerDate.ToString("yyyy/MM/dd", CultureInfo.InvariantCulture)</td>
+                            <td dir="ltr" class="text-end">@Html.HrDate(item.TriggerDate)</td>
                             <td>@HR.Core.Web.ViewModels.CandidateLifecycleIndexViewModel.ReasonLabel(item, Model.RetentionMonths)</td>
                         </tr>
                     }

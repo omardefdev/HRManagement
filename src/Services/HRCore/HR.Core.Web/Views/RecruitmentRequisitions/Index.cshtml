@@ -75,19 +75,23 @@
                         <td>@(x.FundedPosition?.PositionCode ?? "—")</td>
                         <td>@(x.FundedPosition?.OrgUnit?.NameAr ?? "—")</td>
                         <td>
-                            <span class="badge @StatusBadgeClass(x.Status)">@x.Status</span>
+                            <span class="badge @StatusBadgeClass(x.Status)">@Html.HrEnumDisplay(x.Status)</span>
                             @if (x.Status == RequisitionStatus.Published && x.IntakeClosedAt is not null)
                             {
                                 <span class="badge bg-secondary">التقديم مغلق</span>
                             }
                         </td>
-                        <td>@x.RequestedDate.ToString("yyyy-MM-dd")</td>
+                        <td>@Html.HrDate(x.RequestedDate)</td>
                         <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
                     </tr>
                 }
                 @if (!Model.Items.Any())
                 {
                     <tr><td colspan="7" class="text-center text-muted py-4">لا طلبات شاغر</td></tr>
+                }
+            @if (!(Model.Items).Any())
+                {
+                    <tr><td colspan="7"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
                 }
             </tbody>
         </table>

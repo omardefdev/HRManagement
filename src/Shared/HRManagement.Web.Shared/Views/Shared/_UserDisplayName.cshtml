@@ -1,0 +1,4 @@
+@model object?
+@* PLAN-67 (D-67-3, P-6): a user by name. The id becomes a [data-hr-user-id] span that display-names.js fills from the gateway's registry;
+   «النظام» for an automatic actor; «مستخدم غير معروف», with the id in a tooltip, for a user the registry does not know. *@
+@Html.HrUserName(Model, ViewData["Missing"] as string ?? "—")

@@ -31,9 +31,9 @@
 
                         <td>@h.BaseSalary.ToString("N2")</td>
 
-                        <td>@h.EffectiveFrom.ToString("yyyy/MM/dd")</td>
+                        <td>@Html.HrDate(h.EffectiveFrom)</td>
 
-                        <td>@(h.EffectiveTo?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@Html.HrDate(h.EffectiveTo)</td>
 
                         <td>@h.ChangeReason</td>
 
@@ -43,6 +43,10 @@
 
                 @if (!Model.Any()) { <tr><td colspan="4" class="text-muted text-center py-3">لا سجل</td></tr> }
 
+            @if (!(Model).Any())
+                {
+                    <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
 
         </table>

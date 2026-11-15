@@ -55,11 +55,11 @@
             </div>
             <div class="col-md-2">
                 <label class="form-label">اكتُشف من</label>
-                <input type="date" name="detectedFrom" value="@detectedFrom?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+                <input type="date" name="detectedFrom" value="@Html.HrDateInputValue(detectedFrom)" class="form-control form-control-sm" />
             </div>
             <div class="col-md-2">
                 <label class="form-label">اكتُشف إلى</label>
-                <input type="date" name="detectedTo" value="@detectedTo?.ToString("yyyy-MM-dd")" class="form-control form-control-sm" />
+                <input type="date" name="detectedTo" value="@Html.HrDateInputValue(detectedTo)" class="form-control form-control-sm" />
             </div>
             <div class="col-12 d-flex gap-1">
                 <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button>
@@ -84,12 +84,12 @@
             @foreach (var x in Model)
             {
                 <tr>
-                    <td>@x.RuleId</td>
-                    <td>@x.Category</td>
+                    <td>@Html.HrTextWithCodes(x.RuleId)</td>
+                    <td>@Html.HrStoredEnumDisplay("FraudAlertCategory", x.Category)</td>
                     <td>@Html.HrStoredEnumDisplay("Code", x.Severity)</td>
                     <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(x.EmployeeId, employeeNames.GetValueOrDefault(x.EmployeeId)))</td>
                     <td>@Html.HrStoredEnumDisplay("Code", x.Status)</td>
-                    <td>@x.DetectedAtUtc.ToString("yyyy/MM/dd HH:mm")</td>
+                    <td>@Html.HrDateTime(x.DetectedAtUtc)</td>
                     <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-primary">تفاصيل</a></td>
                 </tr>
             }

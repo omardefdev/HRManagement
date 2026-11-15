@@ -198,7 +198,7 @@ internal static class RecruitmentJourney
         const string panel = "a0000001-0000-4000-8000-000000000201"; // br1-mgr's employee (AcceptanceSeedIds.EmpBr1Id), as in AC-HCM-26
         await central.PostAsync("4-schedule", "ui/hr-core/RecruitmentApplications/ScheduleInterview", appPage,
         [
-            new("ApplicationId", app), new("ScheduledAt", DateTime.UtcNow.AddMinutes(30).ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture)),
+            new("ApplicationId", app), new("ScheduledAt", DamascusClock.Input(DateTime.UtcNow.AddMinutes(30))),
             new("Mode", "InPerson"), new("Location", "قاعة المقابلات"), new("PanelEmployeeIds", panel), new("PanelNotes", "E2E")
         ]);
         Assert.Equal($"{AppInterview}", await AppStatusAsync(app));

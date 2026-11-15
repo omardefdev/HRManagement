@@ -22,7 +22,7 @@
                         <td>@(a.InternalVacancy?.Title ?? "—")</td>
                         <td>@(req?.RequisitionNumber ?? "—")</td>
                         <td>@(req?.FundedPosition?.GradeCode ?? "—")</td>
-                        <td>@a.AppliedAt.ToString("yyyy-MM-dd")</td>
+                        <td>@Html.HrDate(a.AppliedAt)</td>
                         <td>
                             @if (a.PromotedRecruitmentApplicationId is Guid linkedId && publicStatuses.TryGetValue(linkedId, out var publicView))
                             {
@@ -40,6 +40,10 @@
                     </tr>
                 }
                 @if (!Model.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">لم تترشّح بعد</td></tr> }
+            @if (!(Model).Any())
+                {
+                    <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

@@ -9,10 +9,10 @@
             @foreach (var x in Model)
             {
                 <tr>
-                    <td>@x.Enrollment.EmployeeId</td>
+                    <td>@Html.HrEmployeeName(x.Enrollment.EmployeeId)</td>
                     <td>@(x.Enrollment.Course?.TitleAr ?? "—")</td>
                     <td>@x.Score</td>
-                    <td>@x.GradedAt?.ToString("yyyy/MM/dd")</td>
+                    <td>@Html.HrDate(x.GradedAt)</td>
                     <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-info btn-xs">تفاصيل</a></td>
                 </tr>
             }

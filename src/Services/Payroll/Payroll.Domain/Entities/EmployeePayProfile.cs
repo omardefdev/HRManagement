@@ -21,6 +21,7 @@ public class EmployeePayProfile : BaseEntity
     public decimal BaseSalary { get; set; }
 
     [Display(Name = "ساري من")]
+    [DataType(DataType.Date)]
     public DateTime EffectiveFrom { get; set; }
 
     [Display(Name = "ساري إلى")]

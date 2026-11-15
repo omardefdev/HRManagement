@@ -13,10 +13,10 @@
         <form method="get" class="row g-2 align-items-end mb-3">
             <div class="col-md-4">
                 <label class="form-label">عرض كما في تاريخ</label>
-                <input type="datetime-local" name="asOf" value="@(ViewBag.AsOfDate is DateTime d ? d.ToString("yyyy-MM-ddTHH:mm") : "")" class="form-control" />
+                <input type="datetime-local" name="asOf" value="@(ViewBag.AsOfDate is DateTime d ? Html.HrDateTimeLocalValue(d) : "")" class="form-control" />
             </div>
             <div class="col-md-auto">
-                <button type="submit" class="btn btn-outline-primary">استعلام as-of</button>
+                <button type="submit" class="btn btn-outline-primary">استعلام في تاريخ</button>
                 <a asp-action="Details" asp-route-id="@p.Id" class="btn btn-outline-secondary">الحالة الحالية</a>
             </div>
         </form>
@@ -24,14 +24,14 @@
         @if (asOfSnapshot is not null)
         {
             <div class="alert alert-info">
-                <strong>كما في @(((DateTime)ViewBag.AsOfDate!).ToString("yyyy-MM-dd HH:mm")):</strong>
-                @asOfSnapshot.PositionCode — @asOfSnapshot.Status
+                <strong>كما في @Html.HrDateTime(((DateTime)ViewBag.AsOfDate!)):</strong>
+                @asOfSnapshot.PositionCode — @Html.HrEnumDisplay(asOfSnapshot.Status)
                 @(asOfSnapshot.OccupantEmployeeId is Guid oid ? $" (مشغّل: {oid})" : "")
             </div>
         }
 
         <table class="table table-sm">
-            <tr><th style="width:30%">رمز المنصب</th><td>@p.PositionCode</td></tr>
+            <tr><th class="hr-col-30">رمز المنصب</th><td>@p.PositionCode</td></tr>
             <tr><th>المسمى من الدليل</th><td>@(p.JobCatalogEntry?.TitleAr ?? "—")</td></tr>
             <tr><th>رمز الدليل</th><td>@(p.JobCatalogEntry?.JobCode ?? "—")</td></tr>
             <tr><th>رمز الدرجة</th><td>@p.GradeCode</td></tr>
@@ -39,7 +39,7 @@
             <tr><th>مكافئ الدوام الكامل</th><td>@p.FTE</td></tr>
             <tr><th>الوحدة التنظيمية</th><td>@(p.OrgUnit?.NameAr ?? "—")</td></tr>
             <tr><th>مركز التكلفة</th><td>@(p.CostCenter ?? "—")</td></tr>
-            <tr><th>الحالة</th><td>@p.Status</td></tr>
+            <tr><th>الحالة</th><td>@Html.HrEnumDisplay(p.Status)</td></tr>
             <tr><th>المشغّل</th><td>
                 @if (p.OccupantEmployeeId is Guid empId)
                 {
@@ -50,7 +50,7 @@
             @if (p.Status == FundedPositionStatus.Frozen)
             {
                 <tr><th>سبب التجميد</th><td>@(p.FreezeReason ?? "—")</td></tr>
-                <tr><th>تاريخ التجميد</th><td>@(p.FreezeDate?.ToString("yyyy-MM-dd") ?? "—")</td></tr>
+                <tr><th>تاريخ التجميد</th><td>@Html.HrDate(p.FreezeDate)</td></tr>
             }
         </table>
 
@@ -60,7 +60,7 @@
             <ul>
                 @foreach (var r in Model.ActiveRequisitions)
                 {
-                    <li><a asp-controller="RecruitmentRequisitions" asp-action="Details" asp-route-id="@r.Id">@r.RequisitionNumber — @r.JobTitle (@r.Status)</a></li>
+                    <li><a asp-controller="RecruitmentRequisitions" asp-action="Details" asp-route-id="@r.Id">@r.RequisitionNumber — @r.JobTitle (@Html.HrEnumDisplay(r.Status))</a></li>
                 }
             </ul>
         }
@@ -70,22 +70,24 @@
             <hr />
             @if (p.Status == FundedPositionStatus.Vacant)
             {
-                <form asp-action="Freeze" asp-route-id="@p.Id" method="post" class="row g-2 align-items-end">
+                <form asp-action="Freeze" asp-route-id="@p.Id" method="post" class="row g-2 align-items-end"
+                      data-hr-confirm="إنشاء طلب تجميد لهذا المنصب؟">
                     @Html.AntiForgeryToken()
                     <div class="col-md-8">
                         <label asp-for="FreezeReason" class="form-label"></label>
                         <input asp-for="FreezeReason" class="form-control" />
                     </div>
                     <div class="col-md-auto">
-                        <button type="submit" class="btn btn-warning" onclick="return confirm('إنشاء طلب تجميد لهذا المنصب؟');">طلب تجميد</button>
+                        <button type="submit" class="btn btn-warning">طلب تجميد</button>
                     </div>
                 </form>
             }
             else if (p.Status == FundedPositionStatus.Frozen)
             {
-                <form asp-action="Unfreeze" asp-route-id="@p.Id" method="post" class="d-inline">
+                <form asp-action="Unfreeze" asp-route-id="@p.Id" method="post" class="d-inline"
+                      data-hr-confirm="إنشاء طلب إلغاء تجميد؟">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-success" onclick="return confirm('إنشاء طلب إلغاء تجميد؟');">طلب إلغاء التجميد</button>
+                    <button type="submit" class="btn btn-success">طلب إلغاء التجميد</button>
                 </form>
             }
         }
@@ -99,11 +101,15 @@
                     @foreach (var v in timeline)
                     {
                         <tr>
-                            <td>@v.ValidFrom.ToString("yyyy-MM-dd HH:mm")</td>
-                            <td>@(v.ValidTo?.ToString("yyyy-MM-dd HH:mm") ?? "—")</td>
-                            <td>@v.OperationType</td>
-                            <td>@(v.LegalSourceId ?? "—")</td>
+                            <td>@Html.HrDateTime(v.ValidFrom)</td>
+                            <td>@Html.HrDateTime(v.ValidTo)</td>
+                            <td>@Html.HrEnumDisplay(v.OperationType)</td>
+                            <td>@Html.HrLegalName(v.LegalSourceId)</td>
                         </tr>
+                    }
+                @if (!(timeline).Any())
+                    {
+                        <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
                     }
                 </tbody>
             </table>

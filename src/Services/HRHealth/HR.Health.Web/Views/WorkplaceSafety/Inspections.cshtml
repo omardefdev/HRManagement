@@ -6,7 +6,7 @@
         <form asp-action="CreateInspection" method="post" class="row g-2">
             @Html.AntiForgeryToken()
             <div class="col-md-3"><label class="form-label">الموقع</label><input name="Location" class="form-control" required /></div>
-            <div class="col-md-2"><label class="form-label">التاريخ</label><input name="InspectionDate" type="date" class="form-control" value="@DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd")" required /></div>
+            <div class="col-md-2"><label class="form-label">التاريخ</label><input name="InspectionDate" type="date" class="form-control" value="@Html.HrDateInputValue(DateOnly.FromDateTime(DateTime.UtcNow))" required /></div>
             <div class="col-md-2"><label class="form-label">المُفتِّش</label><input name="Inspector" class="form-control" /></div>
             <div class="col-md-3"><label class="form-label">الملاحظات</label><input name="Findings" class="form-control" /></div>
             <div class="col-md-1 d-flex align-items-end"><div class="form-check"><input name="Passed" value="true" type="checkbox" class="form-check-input" checked /><label class="form-check-label">مطابِق</label></div></div>
@@ -26,15 +26,19 @@
                 @foreach (var x in Model)
                 {
                     <tr>
-                        <td>@x.InspectionDate.ToString("yyyy-MM-dd")</td>
+                        <td>@Html.HrDate(x.InspectionDate)</td>
                         <td>@x.Location</td>
                         <td>@(x.Inspector ?? "—")</td>
                         <td>@(x.Passed ? "مطابِق" : "مخالفات")</td>
                         <td>@(x.Findings ?? "—")</td>
-                        <td>@(x.NextDue?.ToString("yyyy-MM-dd") ?? "—")</td>
+                        <td>@Html.HrDate(x.NextDue)</td>
                     </tr>
                 }
                 @if (!Model.Any()) { <tr><td colspan="6" class="text-center text-muted py-4">لا عمليات تفتيش</td></tr> }
+            @if (!(Model).Any())
+                {
+                    <tr><td colspan="6"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

@@ -24,7 +24,7 @@
                     }
                 </td>
             </tr>
-            <tr><th>معتمدة؟</th><td>@(Model.ApprovedAt != null ? $"نعم — {Model.ApprovedAt:yyyy/MM/dd}" : "لا")</td></tr>
+            <tr><th>معتمدة؟</th><td>@(Model.ApprovedAt != null ? $"نعم — {Html.HrDateText(Model.ApprovedAt)}" : "لا")</td></tr>
         </table>
 
         @if (!string.IsNullOrEmpty(Model.PlannedCourses))

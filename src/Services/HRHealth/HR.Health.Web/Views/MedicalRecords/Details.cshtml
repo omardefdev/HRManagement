@@ -37,11 +37,15 @@
             @foreach (var r in Model.CommitteeReports)
             {
                 <tr>
-                    <td>@r.CommitteeDate</td>
+                    <td>@Html.HrDate(r.CommitteeDate)</td>
                     <td>@Html.HrEnumDisplay(r.Recommendation)</td>
                     <td><a asp-controller="MedicalCommitteeReports" asp-action="Details" asp-route-id="@r.Id" class="btn btn-sm btn-outline-info">عرض</a></td>
                 </tr>
             }
+            @if (!(Model.CommitteeReports).Any())
+                {
+                    <tr><td colspan="3"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

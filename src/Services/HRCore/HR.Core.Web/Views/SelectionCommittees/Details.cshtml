@@ -20,12 +20,12 @@
         <span>
             @if (session.ApprovedAt is not null)
             {
-                <strong>الجلسة معتمدة</strong> <span>منذ @session.ApprovedAt.Value.ToLocalTime().ToString("yyyy/MM/dd HH:mm") — البيانات مقفلة.</span>
+                <strong>الجلسة معتمدة</strong> <span>منذ @Html.HrDateTime(session.ApprovedAt.Value) — البيانات مقفلة.</span>
             }
             else
             {
                 <strong>@SelectionCommitteeRules.LockedMessage</strong>
-                <span>قُدّمت في @session.SubmittedAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm").</span>
+                <span>قُدّمت في @Html.HrDateTime(session.SubmittedAt).</span>
             }
         </span>
         @if (session.SubmittedAt is not null)
@@ -51,7 +51,7 @@
             <dt class="col-sm-3">المسمى الوظيفي</dt>
             <dd class="col-sm-9">@(requisition?.JobTitle ?? "—")</dd>
             <dt class="col-sm-3">تاريخ الجلسة</dt>
-            <dd class="col-sm-9">@session.CommitteeDate.ToLocalTime().ToString("yyyy/MM/dd")</dd>
+            <dd class="col-sm-9">@Html.HrDate(session.CommitteeDate)</dd>
             <dt class="col-sm-3">غرض الجلسة</dt>
             <dd class="col-sm-9">@EnumDisplayExtensions.GetDisplayName(session.Purpose)</dd>
             <dt class="col-sm-3">التوصية العامة</dt>
@@ -59,7 +59,7 @@
             <dt class="col-sm-3">النتائج</dt>
             <dd class="col-sm-9">@(session.Findings ?? "—")</dd>
             <dt class="col-sm-3">تاريخ الاعتماد</dt>
-            <dd class="col-sm-9">@(session.ApprovedAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm") ?? "—")</dd>
+            <dd class="col-sm-9">@Html.HrDateTime(session.ApprovedAt)</dd>
         </dl>
 
         @{ ViewData["SessionId"] = session.Id; }
@@ -128,6 +128,10 @@
                         }
                     </tr>
                 }
+                @if (!(ws.Members).Any())
+                    {
+                        <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
             </table>
         }

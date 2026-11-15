@@ -14,7 +14,8 @@ namespace HRManagement.IntegrationTests;
 /// reach (generated from that list), while <c>hr-core</c> passes their policy; and no interactive user, whatever his roles, reaches an
 /// <c>api/internal</c> route.
 /// </summary>
-public sealed class Iam051DirectServiceWriteTests(Hcm025ScopeAndPolicyTestHost host) : IClassFixture<Hcm025ScopeAndPolicyTestHost>
+[Collection(SharedHrCoreHost.Name)]
+public sealed class Iam051DirectServiceWriteTests(Hcm025ScopeAndPolicyTestHost host)
 {
     /// <summary>The 42 rows of the deleted <c>tests/architecture/hrcore-post-policy-allowlist.txt</c> (PLAN-25), as they stood at P0.</summary>
     public static readonly string[] FormerActions =

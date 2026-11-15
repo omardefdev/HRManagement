@@ -14,10 +14,10 @@
             <dd class="col-sm-9">@Model.Parameters</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.GeneratedAt)</dt>
-            <dd class="col-sm-9">@(Model.GeneratedAt?.ToString("yyyy-MM-dd HH:mm") ?? "—")</dd>
+            <dd class="col-sm-9">@Html.HrDateTime(Model.GeneratedAt)</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.GeneratedBy)</dt>
-            <dd class="col-sm-9">@Model.GeneratedBy</dd>
+            <dd class="col-sm-9">@Html.HrUserName(Model.GeneratedBy)</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.Url)</dt>
             <dd class="col-sm-9">@Model.Url</dd>

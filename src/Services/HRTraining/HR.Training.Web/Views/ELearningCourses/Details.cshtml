@@ -43,7 +43,7 @@
                     @foreach (var l in m.Lessons.OrderBy(l => l.Order))
                     {
                         <tr>
-                            <td style="width:60px;">@l.Order</td>
+                            <td class="hr-w-60px">@l.Order</td>
                             <td>@l.Title</td>
                             <td>
                                 @if (l.ContentFileId.HasValue)
@@ -59,6 +59,10 @@
                         </tr>
                     }
                     @if (!m.Lessons.Any()) { <tr><td colspan="3" class="text-muted text-center py-2">لا دروس</td></tr> }
+                @if (!(m.Lessons.OrderBy(l => l.Order)).Any())
+                    {
+                        <tr><td colspan="1"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
             </table>
         </div>

@@ -7,7 +7,7 @@
     var publicationStatus = ViewBag.PublicationStatus as PayrollConfigPublicationStatus?;
 }
 <div class="card">
-    <div class="card-header"><h3 class="card-title">الأطر القانونية للرواتب (إصدارات PAY-002)</h3></div>
+    <div class="card-header"><h3 class="card-title">الأطر القانونية للرواتب (الإصدارات) <span class="hr-internal-code">PAY-002</span></h3></div>
     <div class="card-body">
         <form method="get" class="row g-2 mb-3">
             <div class="col-auto">
@@ -79,6 +79,10 @@
                     </td>
                 </tr>
             }
+            @if (!(Model).Any())
+                {
+                    <tr><td colspan="7"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

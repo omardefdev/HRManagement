@@ -17,7 +17,7 @@
             <dd class="col-sm-9">@Model.Version</dd>
 
             <dt class="col-sm-3">@Html.DisplayNameFor(m => m.AppliedAt)</dt>
-            <dd class="col-sm-9">@(Model.AppliedAt?.ToString("yyyy/MM/dd HH:mm") ?? "—")</dd>
+            <dd class="col-sm-9">@Html.HrDateTime(Model.AppliedAt)</dd>
         </dl>
     </div>
     <div class="card-footer">

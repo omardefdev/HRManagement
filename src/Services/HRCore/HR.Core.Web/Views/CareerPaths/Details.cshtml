@@ -64,6 +64,10 @@
                     </tr>
                 }
                 @if (!Model.Steps.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">لا مراحل</td></tr> }
+            @if (!(Model.Steps.OrderBy(s => s.Order)).Any())
+                {
+                    <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

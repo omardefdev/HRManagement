@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using HR.Core.Domain.Services;
 using HR.Core.Infrastructure.Services.Establishment;
 
@@ -8,12 +9,15 @@ public sealed class WorkforcePlanLineEditViewModel
     [HRManagement.ServiceDefaults.OrgScopeId(typeof(HR.Core.Domain.Entities.WorkforcePlan))]
     public Guid PlanId { get; set; }
 
+    [Display(Name = "رمز الدرجة")]
     public string? GradeCode { get; set; }
 
     public Guid? JobCatalogEntryId { get; set; }
 
+    [Display(Name = "العدد المخطط")]
     public int PlannedCount { get; set; } = 1;
 
+    [Display(Name = "مكافئ الدوام الكامل المخطط (FTE)")]
     public decimal PlannedFTE { get; set; } = 1m;
 
     public string? Notes { get; set; }
@@ -59,6 +63,7 @@ public sealed class EstablishmentGapReportViewModel
 
 public sealed class FinanceImportViewModel
 {
+    [Display(Name = "السنة المالية")]
     public int FiscalYear { get; set; } = DateTime.UtcNow.Year;
 
     public IFormFile? File { get; set; }

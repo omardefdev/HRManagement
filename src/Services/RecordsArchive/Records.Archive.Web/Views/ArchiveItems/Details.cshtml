@@ -67,18 +67,18 @@
             <ul class="small">
                 @foreach (var d in disposals)
                 {
-                    <li>@d.DisposalDate.ToString("yyyy/MM/dd") — @(d.Method ?? "—") — معتمد: @(d.ApprovedBy?.ToString() ?? "—")</li>
+                    <li>@Html.HrDate(d.DisposalDate) — @(d.Method ?? "—") — معتمد: @Html.HrUserName(d.ApprovedBy)</li>
                 }
             </ul>
         }
         else if (Model.DisposeRequestedAt.HasValue && !Model.IsDisposeCancelled)
         {
-            <p class="small">طلب إتلاف في @Model.DisposeRequestedAt?.ToString("yyyy/MM/dd HH:mm") بواسطة @(Model.DisposeRequestedBy?.ToString() ?? "—")</p>
+            <p class="small">طلب إتلاف في @Html.HrDateTime(Model.DisposeRequestedAt) بواسطة @Html.HrUserName(Model.DisposeRequestedBy)</p>
             <form asp-action="ApproveDisposal" method="post" class="row g-2 mb-2">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" value="@Model.Id" />
                 <div class="col-md-3">
-                    <input type="datetime-local" name="disposalDate" class="form-control" value="@DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm")" />
+                    <input type="datetime-local" name="disposalDate" class="form-control" value="@Html.HrDateTimeLocalValue(DateTime.UtcNow)" />
                 </div>
                 <div class="col-md-4">
                     <input type="text" name="method" class="form-control" placeholder="طريقة الإتلاف" />
@@ -87,7 +87,7 @@
                     <button type="submit" class="btn btn-danger w-100">اعتماد SoD</button>
                 </div>
             </form>
-            <form asp-action="CancelDisposalRequest" method="post" class="d-inline">
+            <form asp-action="CancelDisposalRequest" method="post" class="d-inline" data-hr-confirm="إلغاء طلب الإتلاف؟" data-hr-confirm-variant="danger">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" value="@Model.Id" />
                 <input type="text" name="reason" class="form-control form-control-sm d-inline-block w-auto" placeholder="سبب الإلغاء" />
@@ -122,11 +122,11 @@
             </div>
             <div class="col-md-3">
                 <label class="form-label">تاريخ الإعارة</label>
-                <input type="date" name="loanDate" class="form-control" value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" />
+                <input type="date" name="loanDate" class="form-control" value="@Html.HrDateInputValue(DateTime.UtcNow)" />
             </div>
             <div class="col-md-3">
                 <label class="form-label">تاريخ الاستحقاق</label>
-                <input type="date" name="dueDate" class="form-control" value="@DateTime.UtcNow.AddDays(14).ToString("yyyy-MM-dd")" />
+                <input type="date" name="dueDate" class="form-control" value="@Html.HrDateInputValue(DateTime.UtcNow.AddDays(14))" />
             </div>
             <div class="col-md-2 d-flex align-items-end">
                 <button type="submit" class="btn btn-primary w-100">إعارة</button>
@@ -147,8 +147,8 @@
                 {
                     <tr>
                         <td>@loan.Borrower</td>
-                        <td>@loan.LoanDate.ToString("yyyy/MM/dd")</td>
-                        <td>@(loan.ReturnedDate?.ToString("yyyy/MM/dd") ?? loan.DueDate.ToString("yyyy/MM/dd"))</td>
+                        <td>@Html.HrDate(loan.LoanDate)</td>
+                        <td>@(Html.HrDateText(loan.ReturnedDate) ?? Html.HrDateText(loan.DueDate))</td>
                         <td>
                             @if (loan.ReturnedDate is null)
                             {
@@ -162,6 +162,10 @@
                         </td>
                     </tr>
                 }
+                @if (!(Model.LoanRecords.OrderByDescending(l => l.LoanDate)).Any())
+                    {
+                        <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
             </table>
         </div>

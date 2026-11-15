@@ -1,24 +1,32 @@
 @model IEnumerable<HR.Core.Domain.Entities.Policy.PolicyEnforcementLedger>
+@using HRManagement.SharedKernel.Policy
 @{ ViewData["Title"] = "سجل تطبيق السياسات"; }
 <div class="card">
-    <div class="card-header"><h3 class="mb-0">Enforcement Ledger</h3></div>
+    <div class="card-header"><h3 class="mb-0">سجل تطبيق السياسات</h3></div>
     <div class="card-body p-0">
-        <table class="table table-sm mb-0">
-            <thead><tr><th>وقت</th><th>Domain</th><th>Action</th><th>Mode</th><th>Workflow</th><th>Hash</th></tr></thead>
-            <tbody>
-                @foreach (var x in Model)
-                {
-                    <tr>
-                        <td>@x.OccurredAt.ToString("yyyy/MM/dd HH:mm")</td>
-                        <td>@x.Domain</td>
-                        <td>@x.Action</td>
-                        <td>@x.Mode</td>
-                        <td>@(x.WorkflowInstanceId?.ToString() ?? "—")</td>
-                        <td><code>@x.FactsHash</code></td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+        @if (!Model.Any())
+        {
+            <partial name="_HrEmptyState" model="@("لا قرارات مسجّلة في سجل التطبيق بعد.")" />
+        }
+        else
+        {
+            <table class="table table-sm mb-0">
+                <thead><tr><th>الوقت</th><th>المجال</th><th>الإجراء</th><th>الوضع</th><th>المسار</th><th>بصمة الحقائق</th></tr></thead>
+                <tbody>
+                    @foreach (var x in Model)
+                    {
+                        <tr>
+                            <td>@Html.HrDateTime(x.OccurredAt)</td>
+                            <td>@PolicyVocabularyAr.DomainName(x.Domain) <span class="hr-internal-code">@x.Domain</span></td>
+                            <td>@PolicyVocabularyAr.Action(x.Action)</td>
+                            <td>@Html.HrEnumDisplay(x.Mode)</td>
+                            <td>@if (x.WorkflowInstanceId is Guid wf) { <span data-workflow-instance-id="@wf">بدأ مساراً</span> } else { <span>—</span> }</td>
+                            <td><code class="small" dir="ltr" title="بصمة تقنية للحقائق التي قُرّر عليها">@x.FactsHash</code></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
     </div>
 </div>
 <p><a asp-action="Index">العودة</a></p>

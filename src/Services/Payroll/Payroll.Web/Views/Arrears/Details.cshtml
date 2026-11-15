@@ -17,10 +17,10 @@
 
         <table class="table table-bordered">
             <tr><th>الموظف</th><td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(Model.EmployeeId, ViewBag.EmployeeName as string))</td></tr>
-            <tr><th>تشغيل الرواتب</th><td>@Model.PayrollRunId</td></tr>
-            <tr class="table-light"><th>المستحق (Entitled)</th><td><strong>@entitled.ToString("N2")</strong></td></tr>
-            <tr><th>المدفوع (Paid)</th><td>@paid.ToString("N2")</td></tr>
-            <tr class="table-warning"><th>المتأخرات (Arrears)</th><td><strong>@arrears.ToString("N2")</strong></td></tr>
+            <tr><th>تشغيل الرواتب</th><td><a asp-controller="PayrollRuns" asp-action="Details" asp-route-id="@Model.PayrollRunId">عرض مسير الرواتب</a></td></tr>
+            <tr class="table-light"><th>المستحق</th><td><strong>@entitled.ToString("N2")</strong></td></tr>
+            <tr><th>المدفوع</th><td>@paid.ToString("N2")</td></tr>
+            <tr class="table-warning"><th>المتأخرات</th><td><strong>@arrears.ToString("N2")</strong></td></tr>
             <tr><th>عصر العملة</th><td>@Model.CurrencyEra</td></tr>
             <tr><th>السبب</th><td>@(Model.Reason ?? "—")</td></tr>
             <tr><th>الحالة</th>
@@ -30,8 +30,8 @@
                     </span>
                 </td>
             </tr>
-            <tr><th>دفعة التسوية</th><td>@(Model.SettledByBatchId?.ToString() ?? "—")</td></tr>
-            <tr><th>تاريخ الإنشاء</th><td>@Model.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td></tr>
+            <tr><th>دفعة التسوية</th><td>@if (Model.SettledByBatchId is Guid batchId) { <a asp-controller="PaymentBatches" asp-action="Details" asp-route-id="@batchId">عرض دفعة الصرف</a> } else { <span>—</span> }</td></tr>
+            <tr><th>تاريخ الإنشاء</th><td>@Html.HrDateTime(Model.CreatedAt)</td></tr>
         </table>
     </div>
 </div>

@@ -9,10 +9,8 @@
     string? Err(string key) => ViewData.ModelState[key]?.Errors.FirstOrDefault()?.ErrorMessage;
     string? FormErr(string form, string field) => Err($"{form}.{field}") ?? (field == "" ? Err(form) : null);
     string Invalid(string? error) => error is null ? "" : " is-invalid";
-    string Date(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.Local)
-        .ToString("yyyy/MM/dd", CultureInfo.InvariantCulture);
-    string Time(DateTime utc) => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), TimeZoneInfo.Local)
-        .ToString("HH:mm", CultureInfo.InvariantCulture);
+    string Date(DateTime utc) => Html.HrDateText(utc);
+    string Time(DateTime utc) => Html.HrDateTimeText(utc);
     // Any withdraw error, for the section shown without the confirm panel (the application can no longer be withdrawn).
     string? WithdrawErr() => FormErr("Withdraw", "Reason") ?? FormErr("Withdraw", "Confirm") ?? FormErr("Withdraw", "");
     string Target(string key) => key switch
@@ -166,6 +164,10 @@ else if (!string.IsNullOrEmpty(Model.Notice))
                                 <td>@interview.StatusLabel</td>
                             </tr>
                         }
+                    @if (!(Model.Interviews).Any())
+                        {
+                            <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                        }
                     </tbody>
                 </table>
             </div>
@@ -311,7 +313,7 @@ else if (!string.IsNullOrEmpty(Model.Notice))
             }
             @if (competition.Result is { } result)
             {
-                <h3 class="h6">نتيجتك (منشورة في <bdi dir="ltr">@result.PublishedOn</bdi>)</h3>
+                <h3 class="h6">نتيجتك (منشورة في <bdi dir="ltr">@Html.HrDate(result.PublishedAtUtc)</bdi>)</h3>
                 <dl class="row">
                     <dt class="col-sm-3">الدرجة النهائية</dt><dd class="col-sm-9">@(result.FinalScore ?? "—")</dd>
                     <dt class="col-sm-3">الترتيب العام</dt><dd class="col-sm-9">@(result.Rank?.ToString(CultureInfo.InvariantCulture) ?? "—")</dd>
@@ -445,6 +447,10 @@ else if (!string.IsNullOrEmpty(Model.Notice))
                                     <td>@document.ScanLabel</td>
                                 </tr>
                             }
+                        @if (!(Model.Documents).Any())
+                            {
+                                <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                            }
                         </tbody>
                     </table>
                 </div>
@@ -509,7 +515,7 @@ else if (!string.IsNullOrEmpty(Model.Notice))
                 <div class="border border-danger rounded p-3" role="region" aria-labelledby="portal-withdraw-confirm-title">
                     <h3 class="h6 fw-bold text-danger" id="portal-withdraw-confirm-title" tabindex="-1">تأكيد الانسحاب</h3>
                     <p>لا يمكن التراجع عن الانسحاب بعد تأكيده.</p>
-                    <form asp-action="Withdraw" method="post" class="careers-form" novalidate>
+                    <form asp-action="Withdraw" method="post" class="careers-form" novalidate data-hr-confirm="سحب طلب التوظيف؟ لا يمكن التراجع عنه." data-hr-confirm-variant="danger">
                         @Html.AntiForgeryToken()
                         <div class="mb-3">
                             <label class="form-label" for="portal-withdraw-reason">سبب الانسحاب</label>

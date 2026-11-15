@@ -177,6 +177,10 @@
                         {
                             <tr><th scope="row">@F.StageLabel(stage.Stage)</th><td>@F.Number(stage.Count)</td><td>@F.Percent(HR.Core.Domain.Services.RecruitmentKpi.KpiStatistics.Rate(stage.Count, Model.Funnel.CohortCount))</td></tr>
                         }
+                    @if (!(Model.Funnel.Stages).Any())
+                        {
+                            <tr><td colspan="3"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                        }
                     </tbody>
                 </table>
             </div>

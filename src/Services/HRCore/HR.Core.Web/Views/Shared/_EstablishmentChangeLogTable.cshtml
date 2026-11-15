@@ -13,12 +13,16 @@
         @foreach (var log in Model)
         {
             <tr>
-                <td>@log.OccurredAt.ToString("yyyy-MM-dd HH:mm")</td>
-                <td>@log.ChangeType</td>
-                <td>@(log.LegalSourceId ?? "—")</td>
+                <td>@Html.HrDateTime(log.OccurredAt)</td>
+                <td>@Html.HrEnumDisplay(log.ChangeType)</td>
+                <td>@Html.HrLegalName(log.LegalSourceId)</td>
                 <td>@(log.DecisionReference ?? "—")</td>
-                <td>@(log.ActorUserId?.ToString() ?? "—")</td>
+                <td>@Html.HrUserName(log.ActorUserId)</td>
             </tr>
+        }
+    @if (!(Model).Any())
+        {
+            <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
         }
     </tbody>
 </table>

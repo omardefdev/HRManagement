@@ -194,7 +194,7 @@ public class AcInt37ProductionWiringTests
             """);
         await s["a-idcard"].PostAsync("card", "ui/idcard/IssuedCards/Create", "ui/idcard/IssuedCards/Create",
             [new("CardRequestId", approved.ToString("D")), new("EmployeeId", cardEmployee.ToString("D")), new("CardDesignId", design),
-             new("IssuedAt", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm")), new("Status", "Active")]);
+             new("IssuedAt", DamascusClock.Input(DateTime.UtcNow)), new("Status", "Active")]);
         var serial = await Db("idcard_db", $"SELECT \"SerialNumber\" FROM \"IssuedCards\" WHERE \"EmployeeId\"='{cardEmployee:D}' ORDER BY \"CreatedAt\" DESC LIMIT 1;");
         await AssertIssuedAsync("37c-card", serial, "IdCardSerial");
         checks.Add(new { idCardSerial = serial });

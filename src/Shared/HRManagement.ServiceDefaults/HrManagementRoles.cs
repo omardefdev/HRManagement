@@ -226,6 +226,12 @@ public static class HrManagementPolicies
     /// </summary>
     public const string GatewayApprovalReach = "Gateway.ApprovalReach";
 
+    /// <summary>
+    /// PLAN-67 (D-67-3, P-6): the gateway's lookup of user names (<c>POST api/user-names/by-ids</c>): an interactive staff user, by PLAN-50's one
+    /// definition (the same requirement as <see cref="GatewayApprovalReach"/>). No service account, no new scope.
+    /// </summary>
+    public const string GatewayUserNames = "Gateway.UserNames";
+
     public const string HrContractsHireView = "HrContracts.HireView";
     public const string HrContractsHireExecute = "HrContracts.HireExecute";
 

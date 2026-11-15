@@ -8,7 +8,7 @@
 <div class="gateway-page-header d-flex justify-content-between align-items-center">
     <div>
         <h1 class="gateway-page-title">لوحة التشغيل المركزية</h1>
-        <small class="gateway-muted">آخر تحديث: @Model.GeneratedAtUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</small>
+        <small class="gateway-muted">آخر تحديث: @Html.HrDateTime(Model.GeneratedAtUtc)</small>
     </div>
     <div>
         <a class="btn btn-sm gateway-btn-secondary" href="/health">صحة البوابة</a>

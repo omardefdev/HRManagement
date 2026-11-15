@@ -20,9 +20,11 @@ public class AllowanceRecord : AuditableEntity
 
     [Required(ErrorMessage = "تاريخ السريان مطلوب")]
     [Display(Name = "ساري من")]
+    [DataType(DataType.Date)]
     public DateTime EffectiveFrom { get; set; }
 
     [Display(Name = "ساري إلى")]
+    [DataType(DataType.Date)]
     public DateTime? EffectiveTo { get; set; }
 
     public CompensationType AllowanceType { get; set; } = null!;

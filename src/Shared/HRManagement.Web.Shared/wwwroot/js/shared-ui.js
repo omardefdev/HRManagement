@@ -737,8 +737,25 @@ window.hrSharedUi = window.hrSharedUi || {};
         });
     }
 
+    /**
+     * PLAN-67 (G-UX-01): a computed width (a progress bar) is written as data-hr-progress="0..100" and applied here through the
+     * CSSOM, which an enforced CSP allows; a style="width:…" attribute is blocked.
+     */
+    function applyProgressWidths() {
+        document.querySelectorAll('[data-hr-progress]').forEach(function (el) {
+            var value = parseFloat(el.getAttribute('data-hr-progress'));
+            if (isNaN(value)) return;
+            value = Math.max(0, Math.min(100, value));
+            el.style.width = value + '%';
+            if (el.getAttribute('role') === 'progressbar') el.setAttribute('aria-valuenow', String(value));
+        });
+    }
+
+    ui.applyProgressWidths = applyProgressWidths;
+
     document.addEventListener('DOMContentLoaded', function () {
         ui.installFetchConflictHandler();
+        applyProgressWidths();
         bindConfirmForms();
         bindConfirmDeleteElements();
         bindLegacyDeleteModal();

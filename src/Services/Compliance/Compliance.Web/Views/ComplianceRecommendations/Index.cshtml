@@ -21,9 +21,9 @@
             @foreach (var x in Model)
             {
                 <tr>
-                    <td>@x.FindingId</td>
+                    <td><a asp-controller="AuditFindings" asp-action="Details" asp-route-id="@x.FindingId">عرض الملاحظة</a></td>
                     <td>@(x.RecommendedAction?.Length > 40 ? x.RecommendedAction[..40] + "…" : x.RecommendedAction)</td>
-                    <td>@x.DueDate?.ToString("yyyy/MM/dd")</td>
+                    <td>@Html.HrDate(x.DueDate)</td>
                     <td>@Html.HrEnumDisplay(x.Status)</td>
                     <td><a asp-action="Details" asp-route-id="@x.Id" class="btn btn-sm btn-outline-info">تفاصيل</a></td>
                 </tr>

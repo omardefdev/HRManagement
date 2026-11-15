@@ -34,8 +34,8 @@
                     <tr>
                         <td>@r.PositionTitle</td>
                         <td>@(r.OrgUnit?.NameAr ?? "—")</td>
-                        <td>@r.StartDate.ToString("yyyy/MM/dd")</td>
-                        <td>@(r.EndDate?.ToString("yyyy/MM/dd") ?? "—")</td>
+                        <td>@Html.HrDate(r.StartDate)</td>
+                        <td>@Html.HrDate(r.EndDate)</td>
                         <td>@Html.HrEnumDisplay(r.EmploymentType)</td>
                         <td>@(r.LegalRegimeId is null ? "—" : (regimeLabels.TryGetValue(r.LegalRegimeId, out var label) ? label : r.LegalRegimeId))</td>
                         <td>@EnumDisplayExtensions.GetStoredEnumDisplayName("EmploymentStatus", r.Status) @(r.ApprovedBy != null ? "✓ معتمد" : "")</td>

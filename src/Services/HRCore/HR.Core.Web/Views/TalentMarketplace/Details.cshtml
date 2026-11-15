@@ -29,7 +29,7 @@
             <dt class="col-sm-3">طلب الشاغر</dt><dd class="col-sm-9">@(Model.Requisition?.RequisitionNumber ?? "—")</dd>
             <dt class="col-sm-3">الوحدة</dt><dd class="col-sm-9">@(Model.OrgUnit?.NameAr ?? "—")</dd>
             <dt class="col-sm-3">الحالة</dt><dd class="col-sm-9">@(Model.IsOpen ? "مفتوح" : "مغلق")</dd>
-            <dt class="col-sm-3">تاريخ الإغلاق</dt><dd class="col-sm-9">@(Model.ClosingDate?.ToString("yyyy-MM-dd") ?? "—")</dd>
+            <dt class="col-sm-3">تاريخ الإغلاق</dt><dd class="col-sm-9">@Html.HrDate(Model.ClosingDate)</dd>
             <dt class="col-sm-3">الوصف</dt><dd class="col-sm-9">@(Model.Description ?? "—")</dd>
             <dt class="col-sm-3">المؤهلات المطلوبة</dt><dd class="col-sm-9">@(Model.RequiredQualifications ?? "—")</dd>
         </dl>
@@ -46,7 +46,7 @@
                 {
                     <tr>
                         <td><span data-hr-employee-id="@a.EmployeeId">@(a.Employee?.FullName ?? "جاري التحميل...")</span></td>
-                        <td>@a.AppliedAt.ToString("yyyy-MM-dd")</td>
+                        <td>@Html.HrDate(a.AppliedAt)</td>
                         <td>@(a.Motivation ?? "—")</td>
                         @if (a.RequisitionId.HasValue)
                         {
@@ -97,6 +97,10 @@
                     </tr>
                 }
                 @if (!Model.Applications.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">لا مترشّحين</td></tr> }
+            @if (!(Model.Applications.OrderByDescending(a => a.AppliedAt)).Any())
+                {
+                    <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

@@ -501,6 +501,30 @@ try {
         if ($LASTEXITCODE -ne 0) { throw "The acceptance project did not build." }
     }
 
+    # PLAN-67: a class marked "browser": true in the scope drives a real Chromium (AC-UX-67); the job installs it once, before the
+    # stages. playwright.ps1 loads a .NET 10 assembly, so it runs under pwsh; Windows PowerShell 5.1 without pwsh only says so.
+    $browserClasses = @(foreach ($stageEntry in $selection) {
+            if ($ran -ne "both" -and [string]$stageEntry.part -ne $ran) { continue }
+            @(Get-AcceptanceProperty $scopeFile ([string]$stageEntry.part)) |
+                Where-Object { [string]$_.group -eq [string]$stageEntry.group -and [bool](Get-AcceptanceProperty $_ "browser") } |
+                Where-Object { $limit.Count -eq 0 -or [string]$_.class -in $limit } |
+                ForEach-Object { [string]$_.class }
+        })
+    if ($browserClasses.Count -gt 0) {
+        Measure-Step "Install Chromium" {
+            $playwrightScript = "src/Tests/HRManagement.AcceptanceTests/bin/Release/net10.0/playwright.ps1"
+            $installArgs = @("install", "chromium")
+            if (-not $onWindows) { $installArgs += "--with-deps" }
+            if ($hasPwsh7 -or (Get-Command pwsh -ErrorAction SilentlyContinue)) {
+                & pwsh -NoProfile -File $playwrightScript @installArgs
+                if ($LASTEXITCODE -ne 0) { throw "Chromium did not install (playwright.ps1 exit code $LASTEXITCODE)." }
+            }
+            else {
+                Write-Host "No pwsh here: $($browserClasses -join ', ') need Chromium already installed (pwsh $playwrightScript install chromium)."
+            }
+        }
+    }
+
     foreach ($stageEntry in $selection) {
         if ($ran -ne "both" -and [string]$stageEntry.part -ne $ran) { continue }
         $entries = @(Get-AcceptanceProperty $scopeFile ([string]$stageEntry.part)) | Where-Object { [string]$_.group -eq [string]$stageEntry.group }

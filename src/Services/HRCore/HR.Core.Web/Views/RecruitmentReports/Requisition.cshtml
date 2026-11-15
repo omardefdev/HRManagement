@@ -75,7 +75,7 @@
                         <td>@F.Date(o.CreatedAt)</td>
                         <td>@F.Date(o.IssuedDate)</td>
                         <td>@F.Date(o.OutcomeAt)</td>
-                        <td>@(o.DeclineCategory ?? "—")</td>
+                        <td>@Html.HrStoredEnumDisplay("OfferDeclineReasonCategory", o.DeclineCategory)</td>
                         <td>@(o.IsMeritOverride ? "تجاوز جدارة" : o.IsExceptionOffer ? "عرض استثنائي" : "—")</td>
                     </tr>
                 }

@@ -36,14 +36,14 @@
             <dt class="col-sm-4">حالة النشر</dt><dd class="col-sm-8">@Html.HrEnumDisplay(Model.PublicationStatus) @(Model.IsActive ? "(نشط للتشغيلات الجديدة)" : "")</dd>
             <dt class="col-sm-4">بصمة المحتوى</dt><dd class="col-sm-8"><code>@(Model.ContentHash ?? "—")</code></dd>
             <dt class="col-sm-4">ساري من / إلى</dt>
-            <dd class="col-sm-8">@Model.EffectiveFrom.ToString("yyyy-MM-dd") — @(Model.EffectiveTo?.ToString("yyyy-MM-dd") ?? "مفتوح")</dd>
+            <dd class="col-sm-8">@Html.HrDate(Model.EffectiveFrom) — @Html.HrDate(Model.EffectiveTo, "مفتوح")</dd>
             <dt class="col-sm-4">العملة / التقريب</dt>
             <dd class="col-sm-8">@Model.CurrencyCode — @Html.HrEnumDisplay(Model.RoundingMode) (@Model.DecimalPlaces منازل)</dd>
             <dt class="col-sm-4">أساس التناسب</dt><dd class="col-sm-8">@Html.HrEnumDisplay(Model.ProrationDaysBasis)</dd>
             <dt class="col-sm-4">أيام العطلة</dt><dd class="col-sm-8">@Model.NonWorkingDays</dd>
             <dt class="col-sm-4">تعويض نهاية الخدمة</dt>
             <dd class="col-sm-8">@Model.EosGratuityRateFirstPeriod × @Model.EosGratuityFirstYearsThreshold سنوات، ثم @Model.EosGratuityRateAfterThreshold</dd>
-            <dt class="col-sm-4">أساس الضريبة</dt><dd class="col-sm-8">@Model.TaxableBaseMode</dd>
+            <dt class="col-sm-4">أساس الضريبة</dt><dd class="col-sm-8">@Html.HrStoredEnumDisplay("TaxableBaseMode", Model.TaxableBaseMode)</dd>
             <dt class="col-sm-4">إعفاء ضريبي</dt><dd class="col-sm-8">@Model.TaxExemptionAmount</dd>
         </dl>
         <h5>شرائح الضريبة</h5>
@@ -57,7 +57,7 @@
         <ul>
             @foreach (var h in holidays)
             {
-                <li>@h.NameAr (@h.Date.ToString("MM-dd"))</li>
+                <li>@h.NameAr (@Html.HrDate(h.Date))</li>
             }
         </ul>
         <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">@(Model.IsImmutable ? "إصدار جديد من هذه النسخة" : "تعديل المسودة")</a>

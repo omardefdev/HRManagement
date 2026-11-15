@@ -6,7 +6,7 @@
 <div class="card mb-4">
     <div class="card-header d-flex justify-content-between align-items-center">
         <h3 class="card-title mb-0"><i class="fas fa-user-circle ms-2"></i> مرحباً، @Model.FullName</h3>
-        <span class="badge bg-success px-3 py-2">@Model.CurrentStatus</span>
+        <span class="badge bg-success px-3 py-2">@Html.HrEnumDisplay(Model.CurrentStatus)</span>
     </div>
     <div class="card-body">
         <div class="row g-3">
@@ -24,7 +24,7 @@
                     <i class="fas fa-clock"></i>
                     <div>
                         <small class="text-muted">نمط الدوام</small>
-                        <div class="fw-bold">@Model.WorkScheduleMode</div>
+                        <div class="fw-bold">@Html.HrEnumDisplay(Model.WorkScheduleMode)</div>
                     </div>
                 </div>
             </div>
@@ -54,7 +54,7 @@
     <div class="col-md-4">
         <a asp-action="Attendance" class="card ess-action-card h-100 text-decoration-none">
             <div class="card-body text-center py-4">
-                <i class="fas fa-fingerprint fa-2x mb-2" style="color: var(--sy-teal);"></i>
+                <i class="fas fa-fingerprint fa-2x mb-2 hr-text-teal"></i>
                 <h6 class="mb-0">الحضور والانصراف</h6>
             </div>
         </a>
@@ -62,7 +62,7 @@
     <div class="col-md-4">
         <a asp-action="Leave" class="card ess-action-card h-100 text-decoration-none">
             <div class="card-body text-center py-4">
-                <i class="fas fa-plane-departure fa-2x mb-2" style="color: var(--sy-primary);"></i>
+                <i class="fas fa-plane-departure fa-2x mb-2 hr-text-primary"></i>
                 <h6 class="mb-0">طلب إجازة</h6>
             </div>
         </a>
@@ -70,7 +70,7 @@
     <div class="col-md-4">
         <a asp-action="Advance" class="card ess-action-card h-100 text-decoration-none">
             <div class="card-body text-center py-4">
-                <i class="fas fa-hand-holding-usd fa-2x mb-2" style="color: var(--sy-gold-dark);"></i>
+                <i class="fas fa-hand-holding-usd fa-2x mb-2 hr-text-gold-dark"></i>
                 <h6 class="mb-0">طلب سلفة</h6>
             </div>
         </a>
@@ -78,7 +78,7 @@
     <div class="col-md-4">
         <a href="/ui/payroll/Ess/Payslips" class="card ess-action-card h-100 text-decoration-none">
             <div class="card-body text-center py-4">
-                <i class="fas fa-file-invoice-dollar fa-2x mb-2" style="color: var(--sy-teal-dark);"></i>
+                <i class="fas fa-file-invoice-dollar fa-2x mb-2 hr-text-teal-dark"></i>
                 <h6 class="mb-0">كشوف الراتب</h6>
             </div>
         </a>
@@ -86,7 +86,7 @@
     <div class="col-md-4">
         <a asp-action="Documents" class="card ess-action-card h-100 text-decoration-none">
             <div class="card-body text-center py-4">
-                <i class="fas fa-file-alt fa-2x mb-2" style="color: var(--sy-gray);"></i>
+                <i class="fas fa-file-alt fa-2x mb-2 hr-text-gray"></i>
                 <h6 class="mb-0">المستندات</h6>
             </div>
         </a>
@@ -94,7 +94,7 @@
     <div class="col-md-4">
         <a asp-action="IdCard" class="card ess-action-card h-100 text-decoration-none">
             <div class="card-body text-center py-4">
-                <i class="fas fa-id-card fa-2x mb-2" style="color: var(--sy-primary-dark);"></i>
+                <i class="fas fa-id-card fa-2x mb-2 hr-text-primary-dark"></i>
                 <h6 class="mb-0">طلب بطاقة</h6>
             </div>
         </a>

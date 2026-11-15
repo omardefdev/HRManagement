@@ -4,6 +4,7 @@ using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
 using MassTransit;
 using Microsoft.Extensions.DependencyInjection;
+using HRManagement.E2E;
 
 namespace HRManagement.AcceptanceTests;
 
@@ -85,7 +86,7 @@ internal static class CrossServiceJourney
         {
             ["EmployeeId"] = employee.ToString("D"),
             ["ActionType"] = "0",
-            ["IssuedAt"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm"),
+            ["IssuedAt"] = DamascusClock.Input(DateTime.UtcNow),
             ["Notes"] = Proof
         });
         var id = await CustodyJourney.ScalarAsync("compliance_db",
@@ -239,7 +240,7 @@ public class AcWf46CrossServiceApprovalTests
         {
             ["EmployeeId"] = Guid.NewGuid().ToString("D"),
             ["CardDesignId"] = design,
-            ["IssuedAt"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm"),
+            ["IssuedAt"] = DamascusClock.Input(DateTime.UtcNow),
             ["Status"] = "0"
         });
         Assert.Equal(cardsBefore, await CustodyJourney.CountAsync("idcard_db", "SELECT count(*) FROM \"IssuedCards\";"));
