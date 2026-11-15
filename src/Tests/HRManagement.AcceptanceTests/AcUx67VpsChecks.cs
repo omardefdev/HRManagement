@@ -67,10 +67,43 @@ public partial class AcOps36VpsBootTests
     {
         var recorder = StartUx67("csp", "Demo server: the key pages, one CSP policy each and no securitypolicyviolation, with screenshots at two sizes");
         var chromium = await Ux67BrowserAsync();
+        var pages = Ux067PageProbe.KeyPages;
+        string? request = null;
+        string? draft = null;
+        string? tenant = null;
+        (HttpClient Client, System.Net.CookieContainer Cookies)? admin = null;
         try
         {
+            // The demo holds no pending approval and no policy draft, so two key pages have nothing to open (P0). Outside the before
+            // run, the check makes them for the pages' read and removes them after: a pending approval as a stated test-only
+            // precondition (as the confirmation check's), and a draft through the template's own page, discarded through the editor's.
+            if (!string.Equals(Ux67Label, "before", StringComparison.OrdinalIgnoreCase))
+            {
+                var template = Sql("hr_core_db",
+                    "select t.\"Id\" || '|' || t.\"TenantId\" from \"PolicyTemplates\" t where t.\"RetiredAt\" is null and t.\"Domain\" <> 'Contracts.Leave' " +
+                    "and not exists (select 1 from \"PolicyTemplateVersions\" v where v.\"PolicyTemplateId\" = t.\"Id\" and v.\"Status\" = 'Draft') " +
+                    "order by t.\"Domain\" desc limit 1").Single().Split('|');
+                tenant = template[1];
+                request = Guid.NewGuid().ToString("D");
+                Ux67Sql(tenant,
+                    "insert into \"ApprovalRequests\" (\"Id\",\"TenantId\",\"EntityType\",\"EntityId\",\"Description\",\"RequestedByName\",\"RequestedAt\",\"Status\",\"CurrentLevel\",\"CreatedAt\",\"UpdatedAt\") " +
+                    $"values ('{request}','{tenant}','Employee',gen_random_uuid(),'{Ux67Marker}','النظام',now(),0,1,now(),now()); " +
+                    "insert into \"ApprovalSteps\" (\"Id\",\"TenantId\",\"ApprovalRequestId\",\"Level\",\"RoleRequired\",\"Status\",\"CreatedAt\",\"UpdatedAt\") " +
+                    $"values (gen_random_uuid(),'{tenant}','{request}',1,'',0,now(),now());");
+                admin = await SignInAsync("hradmin", DemoPassword(), "/ui/hr-core/PolicyTemplates");
+                await Wf45PostRenderedAsync(admin.Value.Client, $"/ui/hr-core/PolicyTemplates/Details/{template[0]}", "CreateTemplateDraft");
+                draft = Sql("hr_core_db", $"select \"Id\" from \"PolicyTemplateVersions\" where \"PolicyTemplateId\" = '{template[0]}' and \"Status\" = 'Draft'").SingleOrDefault();
+                Assert.True(draft is not null, "The policy draft was not made through the template's page.");
+                pages = pages.Select(p => p.Name switch
+                {
+                    "approval-review" => new Ux067KeyPage(p.Name, $"/ui/hr-core/Approvals/Review/{request}"),
+                    "policy-rules" => new Ux067KeyPage(p.Name, $"/ui/hr-core/PolicyTemplates/EditRules?versionId={draft}"),
+                    _ => p
+                }).ToList();
+            }
+
             var results = await Ux067PageProbe.ProbeAsync(
-                chromium.Browser, $"https://{AppDomain}", chromium.State, Ux067PageProbe.KeyPages, [(1366, 768), (390, 844)], Path.Combine(Ux67Out, "screenshots"));
+                chromium.Browser, $"https://{AppDomain}", chromium.State, pages, [(1366, 768), (390, 844)], Path.Combine(Ux67Out, "screenshots"));
             await File.WriteAllTextAsync(Path.Combine(Ux67Out, "csp-pages.json"), Ux067PageProbe.ToJson(results));
 
             recorder.WriteScenarioSteps(string.Join("\n", results.Select(r =>
@@ -92,6 +125,15 @@ public partial class AcOps36VpsBootTests
         }
         finally
         {
+            if (request is not null && tenant is not null)
+                Ux67Sql(tenant, $"delete from \"ApprovalSteps\" where \"ApprovalRequestId\" = '{request}'; delete from \"ApprovalRequests\" where \"Id\" = '{request}';");
+            if (draft is not null && admin is not null)
+            {
+                await Wf45PostRenderedAsync(admin.Value.Client, $"/ui/hr-core/PolicyTemplates/EditRules?versionId={draft}", "DiscardDraft");
+                Assert.Empty(Sql("hr_core_db", $"select \"Id\" from \"PolicyTemplateVersions\" where \"Id\" = '{draft}' and \"Status\" = 'Draft'"));
+            }
+
+            admin?.Client.Dispose();
             await Ux67CloseAsync(chromium);
         }
     }
@@ -290,6 +332,50 @@ public partial class AcOps36VpsBootTests
             creator.Dispose();
             await Ux67CloseAsync(chromium);
         }
+    }
+
+    /// <summary>
+    /// D-67-6 (P9 step 4), run once on purpose (<c>UX067_CLOSE_RESIDUE=true</c>, skipped otherwise): every public posting the portal
+    /// shows whose posting or requisition carries a server check's marker is closed as <c>hradmin</c> through the requisition's own
+    /// «إغلاق» action (the same POST its form sends), which hides the posting. Nothing is deleted. The application has no reopen
+    /// action, so each close's undo is the backup taken before the deploy; the ids are recorded.
+    /// </summary>
+    [SkippableFact]
+    public async Task AC_UX_67_vps_close_the_public_postings_of_the_server_checks()
+    {
+        Skip.IfNot(string.Equals(Environment.GetEnvironmentVariable("UX067_CLOSE_RESIDUE"), "true", StringComparison.OrdinalIgnoreCase),
+            "Closes demo data: run once on purpose with UX067_CLOSE_RESIDUE=true.");
+        var recorder = StartUx67("residue", "Demo server: the server checks' public postings closed through the requisition's own action");
+        const string marked =
+            "select r.\"Id\" || '|' || p.\"Id\" || '|' || r.\"RequisitionNumber\" from \"PublicJobPostings\" p join \"RecruitmentRequisitions\" r on r.\"Id\" = p.\"RequisitionId\" " +
+            "where p.\"IsPublished\" and r.\"Status\" = 'Published' and (p.\"Description\" ilike '%server check%' or r.\"JustificationNotes\" ilike '%server check%')";
+        var rows = Sql("hr_core_db", marked);
+        var (admin, _) = await SignInAsync("hradmin", DemoPassword());
+        var closed = new List<object>();
+        try
+        {
+            foreach (var row in rows)
+            {
+                var parts = row.Split('|');
+                var details = $"/ui/hr-core/RecruitmentRequisitions/Details/{parts[0]}";
+                var (status, _, _) = await PostFormAsync(admin, $"/ui/hr-core/RecruitmentRequisitions/Close/{parts[0]}", new Dictionary<string, string>
+                {
+                    ["__RequestVerificationToken"] = await TokenAsync(admin, details)
+                });
+                var after = Sql("hr_core_db",
+                    $"select r.\"Status\" || '|' || p.\"IsPublished\" from \"RecruitmentRequisitions\" r join \"PublicJobPostings\" p on p.\"RequisitionId\" = r.\"Id\" where r.\"Id\" = '{parts[0]}'");
+                Assert.Equal("Closed|false", Assert.Single(after));
+                closed.Add(new { requisition = parts[0], number = parts[2], posting = parts[1], status, undo = "the backup taken before the deploy (no reopen action)" });
+            }
+        }
+        finally
+        {
+            admin.Dispose();
+        }
+
+        recorder.WriteScenarioDbChecks(new { found = rows.Length, closed });
+        Assert.Empty(Sql("hr_core_db", marked));
+        recorder.WriteResult("Pass");
     }
 
     /// <summary>
