@@ -340,3 +340,12 @@ Started (UTC): 2026-11-13T08:06:22.4518317Z
 - **After the suites** (`AC_UX_67_vps_after_the_suites_…`, 08:42Z): **Pass**. The registry knows **14 users** (`hradmin` and the `e2e-*` users the suites signed in as). Of the people the policy, approval, requisition and establishment pages print (3 distinct ids in those columns on the demo), **0 stay «مستخدم غير معروف»**; no published posting carries a server check's marker.
 - **At the end** (08:44:33Z): tag `1ee455bf1a6f` (previous `92a69960c826`), 22 containers running, every one with a health check healthy, 51 GB free; `smoke.ps1 -RequireIntegrationWiring` 50 pass, 0 fail, 1 warn. No committed evidence left rewritten.
 - **The demo for the owner:** the portal styled at `/careers` with three postings and no test posting; Arabic labels and statuses, names, times in Damascus time; confirmations before destructive actions; the policy rules as sentences.
+- Finished (UTC): 2026-11-15T08:45:36Z — P9 committed (3579161f).
+
+## P10 — docs, local gates, final report, the merge
+
+- Started (UTC): 2026-11-15T08:45:36Z.
+- The server suites also wrote `reports/msg040-replay-server-20261115T080927Z.json` (AC-MSG-40's replay report): moved to `artifacts/plan67/vps/`, not committed.
+- **Docs** (P10.1): `UX_001_VERIFICATION`, `UX_003_CONFIRM_DIALOGS` (also the fourteen forms P7 found), `L10N_001_LOCALIZATION`, `GATEWAY_RUNBOOK` (also the gateway API's status codes), `CI_AND_TESTING` (the ten rules), `OPS_VPS_SINGLE_HOST` (what the demo users see, the closed posting and its undo, the backup, the change table, the rollback note, the deploy), the study's ten status lines, `PROGRAM_COMPLETION_ROADMAP`, the plan's Status and «ملاحظات التنفيذ والانحرافات».
+- **Checked on the demo, read-only, for the report:** the gateway's audit tables carry forced tenant row security; in demo mode the gateway connects as the administrator (bypasses it), so the production-role risk stays unverified (§13).
+- Final report written: `reports/plan67-final-report.md` (2026-11-15T08:47:58Z).

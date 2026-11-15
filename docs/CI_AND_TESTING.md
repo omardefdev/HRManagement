@@ -37,6 +37,15 @@ dotnet test src/Tests/HRManagement.ArchitectureTests/HRManagement.ArchitectureTe
   (السقف 0)، وبقية الخدمات صفوف كامنة لـIAM-H (114). `GuardSelfTests` يزرع عيباً لكل حارس منها. واختبار التكامل
   `Iam052*ScopeHttpTests` مولّد من السجلات: لكل إجراء معرّف أجنبي ← 404 أو الـ403 المحفوظ دون تغيير، وكل صفحة تُفتح بلا معرّف
   (قائمة أو نموذج وقوائم اختياره) لا تعرض سجلاً لفرع آخر من أي نوع.
+- منذ PLAN-67: `InterfaceTextGuardTests` يمسح كل عرض `.cshtml` في الخدمات والبوابة والمشترك (`InterfaceTextScanner`) بقواعد:
+  تسمية إنجليزية (`english-label`، ومعها `asp-for`/`DisplayNameFor` بلا اسم عربي بالانعكاس)، حالة خام (`raw-status`)، معرّف مطبوع
+  (`printed-id`، ومعه قيمة حقل معطّل أو للقراءة فقط و`@ViewBag.X`)، JSON خام (`raw-json`)، معالج مضمّن أو رابط `javascript:`
+  (`inline-handler`)، سمة `style` (`style-attribute`)، جدول بحلقة بلا رسالة فراغ (`empty-table`: `_HrEmptyState` أو نص فراغ عربي، لا
+  شرط `.Any()` وحده)، ووقت خارج مساعدات الوقت (`unformatted-time`)، وتاريخ تقويمي يُدخل حقلَ `datetime-local` (`date-as-time`، بالانعكاس:
+  خاصية `[DataType(DataType.Date)]` أو اسمها `…Date`)، ونموذج هدّام (حذف، إهمال، إلغاء، إزالة، إبطال، سحب) بلا `data-hr-confirm`
+  (`unconfirmed-destructive`). قوائمه تحت `tests/architecture/ui-text-allowlist/` فارغة
+  ومحذوفة، و`PLAN-67` خارج `CeilingList.Owners`، فأي صف جديد يُرفض. والاستثناءات التقنية مسمّاة في الشيفرة (`TechnicalIds`).
+  و`GuardSelfTests` يزرع عيباً لكل قاعدة.
 - أول تشغيل بعد البناء يستغرق نحو دقيقتين ونصف على جهاز المالك (بدء المضيف على التجميعات المبنية حديثاً)، ثم نحو ثانية ونصف.
 
 ## اختبارات التكامل (MassTransit InMemory + SQLite)
@@ -137,6 +146,10 @@ Nightly / pre-release على صور الإصدار: `.github/workflows/e2e-journ
 
 **قواعد مضاد الصمت:** `RUN_PLAYWRIGHT_E2E` غير مفعّل → `Skipped`؛ مفعّل بلا مكدس → `Failed`؛ **503/5xx ≠ نجاح** (`E2eHttp`).
 
+**سياسة CSP نافذة (PLAN-67):** تطبيقات مكدّس E2E في CI (`docker-compose.ci-e2e.yml`) ومكدّس القبول الشبيه بالإنتاج
+(`docker-compose.acceptance-prodlike.yml`) تعمل بـ`Security__CspMode: "Enforce"` كالإنتاج، فصفحة يحجب المتصفح شيئاً منها تظهر في
+الاختبارات قبل خادم العرض.
+
 ## تشغيل فئة اختبار واحدة
 
 ```powershell
@@ -236,6 +249,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -SkipTe
 - **الترتيب:** الأصناف التي توقف الحاويات أو تعيد إنشاءها في المجموعة `isolated`: كل صنف وحده في `dotnet test` خاص به (P-7). وبين الملفين يُعاد المكدّس من مجلدات فارغة لأن بذور القبول تُستهلك.
 - **طبقة لمرحلة (PLAN-42):** مرحلة في `order[]` تحمل `composeFiles` و`recreate` تُطبَّق ملفاتها على المكدّس الجاري قبل تشغيلها، فتُعاد الخدمات المسمّاة في `recreate` وحدها. وأصنافها تعمل كل صنف وحده كالمجموعة `isolated`، ويُهدم المكدّس قبل استعماله التالي. لذلك تأتي هذه المرحلة آخر مراحل مكدّسها: المجموعة `s2s42` بعد `final` على prod-like.
 - **طبقة ثانية على المكدّس نفسه (PLAN-49):** المجموعة `pol49` (`docker-compose.acceptance-pol49.yml`: `Core.Recruitment` بوضع Enforce مع قاعدة القبول `ACC-POL49-WEAK-OFFER`، لسيناريو AC-POL-49f وحده) لها وظيفة مرحلة خاصة بها، `prodlike-policy`، على مكدّس يبدأ لها. فتبقى كل مرحلة بطبقة آخر مراحل مكدّسها في وظيفتها (`Qa066WorkflowTests`). وتسبق `s2s42` في `order[]`، لتبقى في وظائف المراحل آخر مرحلة حيّة، وهي التي يقرأ فحص PII مكدّسها، هي التي حملت المجموعتين `main` و`isolated`. أما التشغيل بلا `-Stage` فيبدأ مكدّساً جديداً بعد كل مرحلة بطبقة، ولذلك يفحص `acceptance-job.ps1` فيه المكدّس الذي عُلّم بطبقة قبل أن يُهدم، ثم المكدّس الأخير. محلياً: `acceptance-job.ps1 -Stage prodLike:pol49`.
+- **المتصفح (PLAN-67):** مدخل في `ci-scope.json` يحمل `"browser": true` يقود Chromium حقيقياً (`AcUx67ReadableInterfaceTests`).
+  تثبّت وظيفة المرحلة Chromium مرة واحدة بعد بناء مشاريع الاختبار حين يحمل أحد أصنافها المختارة هذه العلامة
+  (`playwright.ps1 install chromium`، و`--with-deps` على Linux)، عبر `pwsh` لأن Windows PowerShell 5.1 لا يحمّل Playwright؛ وبلا `pwsh`
+  تكتفي بأن تقول إن Chromium يجب أن يكون مثبتاً. ورحلة prod-like لا تستعمل متصفحاً (نماذج HTTP).
 - **الحارس:** `scripts/ci/acceptance-guard.ps1` يسقط الوظيفة إن كان في صنف مطلوب نتيجة غير `Passed`، أو سيناريو `Fail`/`Blocked` في مجلده، أو لم يعمل أصلاً، أو ظهر في trx صنف غير مدرج، أو قال trx إن التشغيل أُجهض، أو تعذرت قراءة `result.json`. والأصناف غير المطلوبة تظهر في ملخص الوظيفة فقط.
 - **السلبي اليدوي:** `gh workflow run ci.yml --ref main -f simulate_missing=<Class.Method>` يحجب سيناريو مطلوباً، فتحمر الوظيفة وتسمّيه. و`-f classes=<A,B>` يعيد تشغيل أصناف بعينها، للتشخيص فقط: خارج `main` تنتهي الوظيفة حمراء وإن نجحت أصنافها، حتى لا تقف فحصاً أخضر لالتزام فرع. واسم صنف خارج النطاق خطأ.
 - **محلياً (المالك):** `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci/acceptance-job.ps1 -Profile Both`، ويكتب كله في `artifacts/acceptance/run/`، ولا يمس `acceptance-evidence/` المودَع. والمرحلة `meta` (AC-QA-34/35) في CI فقط لأنها تقرأ نتائج وظيفة `CI` للالتزام نفسه. وPowerShell 5.1 لا يكفي لبعض سكربتات AC-01..37 (`??`، وتمرير علامات الاقتباس إلى `docker exec`)، وهي غير مطلوبة.
