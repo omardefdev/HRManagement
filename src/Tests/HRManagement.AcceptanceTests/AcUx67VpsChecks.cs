@@ -335,16 +335,15 @@ public partial class AcOps36VpsBootTests
     }
 
     /// <summary>
-    /// D-67-6 (P9 step 4), run once on purpose (<c>UX067_CLOSE_RESIDUE=true</c>, skipped otherwise): every public posting the portal
-    /// shows whose posting or requisition carries a server check's marker is closed as <c>hradmin</c> through the requisition's own
-    /// «إغلاق» action (the same POST its form sends), which hides the posting. Nothing is deleted. The application has no reopen
-    /// action, so each close's undo is the backup taken before the deploy; the ids are recorded.
+    /// D-67-6 (P9 step 4): every public posting the portal shows whose posting or requisition carries a server check's marker is
+    /// closed as <c>hradmin</c> through the requisition's own «إغلاق» action (the same POST its form sends), which hides the posting.
+    /// It acts on the server checks' own residue only, and normally finds none (no check publishes a requisition since PLAN-67);
+    /// on 2026-11-15 it closed REQ-2026-00004. Nothing is deleted. The application has no reopen action, so a close's undo is the
+    /// backup taken before the deploy; the ids are recorded.
     /// </summary>
     [SkippableFact]
     public async Task AC_UX_67_vps_close_the_public_postings_of_the_server_checks()
     {
-        Skip.IfNot(string.Equals(Environment.GetEnvironmentVariable("UX067_CLOSE_RESIDUE"), "true", StringComparison.OrdinalIgnoreCase),
-            "Closes demo data: run once on purpose with UX067_CLOSE_RESIDUE=true.");
         var recorder = StartUx67("residue", "Demo server: the server checks' public postings closed through the requisition's own action");
         const string marked =
             "select r.\"Id\" || '|' || p.\"Id\" || '|' || r.\"RequisitionNumber\" from \"PublicJobPostings\" p join \"RecruitmentRequisitions\" r on r.\"Id\" = p.\"RequisitionId\" " +

@@ -195,10 +195,17 @@ public sealed class Ux067TimeAndVocabularyTests
     public void A_time_in_an_hour_the_clocks_skipped_is_read_after_the_change_and_never_fails_the_request()
     {
         var zone = HrLocalTime.DefaultZone;
-        var gap = Enumerable.Range(0, 366 * 24).Select(h => new DateTime(2021, 1, 1, 0, 30, 0).AddHours(h)).FirstOrDefault(zone.IsInvalidTime);
-        Assert.NotEqual(default, gap);
-        Assert.Equal(HrLocalTime.ToUtc(gap.AddHours(1), zone), HrLocalTime.ToUtc(gap, zone));
-        Assert.True(HrLocalTime.TryParseUserTime(gap.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture), zone, out _));
+        var hours = Enumerable.Range(0, 366 * 24).Select(h => new DateTime(2021, 1, 1, 0, 30, 0).AddHours(h)).ToList();
+        // Every hour of 2021, the night Damascus moved its clocks (26 March) included, converts without failing the request.
+        Assert.All(hours, h => Assert.Equal(DateTimeKind.Utc, HrLocalTime.ToUtc(h, zone).Kind));
+        Assert.True(HrLocalTime.TryParseUserTime("2021-03-26T00:30", zone, out _));
+
+        // Windows' zone data marks 00:00-01:00 that night as skipped: such a time is read as the same time after the change. The
+        // tz database as .NET reads it on Linux marks no hour skipped (the offset changes, IsInvalidTime stays false), so there the
+        // conversion above is the whole check.
+        var gap = hours.FirstOrDefault(zone.IsInvalidTime);
+        if (gap != default)
+            Assert.Equal(HrLocalTime.ToUtc(gap.AddHours(1), zone), HrLocalTime.ToUtc(gap, zone));
     }
 
     // ------------------------------------------------------------------ vocabulary
