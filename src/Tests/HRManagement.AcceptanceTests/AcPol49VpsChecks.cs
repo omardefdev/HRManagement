@@ -20,7 +20,7 @@ public partial class AcOps36VpsBootTests
     private const string Pol49LeaveMaker = "e2e-maker-contracts";
     private const string Pol49Operator = "hradmin";
     private const string Pol49Reader = "e2e-policy-author";
-    private const string Pol49SchemaRefusal = "حقل غير مسموح";
+    private const string Pol49SchemaRefusal = HRManagement.SharedKernel.Policy.PolicyFactsValidator.UnknownFieldMessage;
 
     /// <summary>The rules this plan (and PLAN-47) withdrew: none may be in an effective version.</summary>
     private static readonly string[] Pol49WithdrawnRules = ["R-ID-PROCESS", "R-LEAVE-MAX", "R-LEAVE-LONG", "R-REC-HIRE"];
@@ -376,6 +376,9 @@ public partial class AcOps36VpsBootTests
         string changeAfterSubmit;
         string changeAfterCancel;
         List<string> leftFromEarlierRuns;
+        // PLAN-67 moved the marker from the freeze reason to the decision reference, which only Submit sets: a draft this run made is
+        // remembered by its id, so the clean-up cancels it even when the run stopped before Submit.
+        string? draftedChange = null;
         var (operatorClient, _) = await SignInAsync(Pol49Operator, password);
         using (operatorClient)
         {
@@ -437,6 +440,7 @@ public partial class AcOps36VpsBootTests
                     "order by \"CreatedAt\" desc limit 1");
                 Assert.True(draft.Length == 1, "The freeze request was not drafted.");
                 changeId = draft[0];
+                draftedChange = changeId;
                 Assert.Empty(Pol49Ledger($"l.\"EntityId\" = '{changeId}'"));
 
                 var details = $"/ui/hr-core/EstablishmentChanges/Details/{changeId}";
@@ -468,6 +472,9 @@ public partial class AcOps36VpsBootTests
                 // brought us here is the one to report, so a clean-up that fails too only says where to look.
                 try
                 {
+                    if (draftedChange is not null
+                        && Sql("hr_core_db", $"select \"Id\" from \"EstablishmentChangeRequests\" where \"Id\" = '{draftedChange}' and \"Status\" in ('Draft', 'PendingApproval')").Length == 1)
+                        await Wf45PostRenderedAsync(operatorClient, $"/ui/hr-core/EstablishmentChanges/Details/{draftedChange}", "Cancel");
                     await Pol49CancelOpenAsync(operatorClient);
                 }
                 catch (Exception cleanUp) when (cleanUp is not OperationCanceledException)
@@ -551,7 +558,7 @@ public partial class AcOps36VpsBootTests
         });
         recorder.WriteScenarioSteps(
             "1. e2e-maker-contracts records an annual leave of three working days (Sunday to Tuesday, five weeks ahead) on the HR page; hradmin approves it (the balance is debited) and cancels it (the balance is back).\n" +
-            "2. psql (hr_core_db): two ledger rows for the leave, Create and Approve, Mode Shadow, CallerClientId svc-hr-contracts, the server's tenant, each an allow with no «حقل غير مسموح»; the facts hash of each equals the hash of what the builder sends (the approval with isSelfApproval=false); the actors are the maker and the approver.\n" +
+            "2. psql (hr_core_db): two ledger rows for the leave, Create and Approve, Mode Shadow, CallerClientId svc-hr-contracts, the server's tenant, each an allow with no «حقل غير معروف في مخطط الحقائق»; the facts hash of each equals the hash of what the builder sends (the approval with isSelfApproval=false); the actors are the maker and the approver.\n" +
             "3. hradmin drafts a freeze of a vacant funded position, submits it with a legal source: PendingApproval with an ESTABLISHMENT-CHANGE-APPROVAL instance in progress (Shadow changes nothing); then cancels it: the request and its instance are Cancelled, the position is still Vacant.\n" +
             "4. psql: one ledger row for the change, SubmitForApproval, Mode Shadow, no caller client (the domain runs inside HR.Core), the actor hradmin, R-EST-SUBMIT matched and R-EST-DENY-BRANCH not; the facts hash is the builder's with hasOrgScope=false.\n" +
             "5. docker logs (hr-contracts-web): the duration of each of the leave's Shadow calls to HR.Core (policy_client_call ... elapsed_ms=).");
@@ -609,7 +616,7 @@ public partial class AcOps36VpsBootTests
         {
             Assert.Equal("out-of-scope", rows[domain].Status);
             Assert.Equal("Off", rows[domain].Mode);
-            Assert.Contains(PolicyDomainCatalog.Find(domain)!.OutOfScopeReasonAr!, rows[domain].Html, StringComparison.Ordinal);
+            Assert.Empty(PolicyScopeJourney.MissingReasonParts(rows[domain].Html, PolicyDomainCatalog.Find(domain)!.OutOfScopeReasonAr!));
             Assert.DoesNotContain(@"data-testid=""domain-draft-link""", rows[domain].Html, StringComparison.Ordinal);
         }
 

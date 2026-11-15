@@ -62,7 +62,7 @@
                     <td>
                         @if (Model.CanEdit)
                         {
-                            <form asp-action="RemoveLine" method="post" class="d-inline">
+                            <form asp-action="RemoveLine" method="post" class="d-inline" data-hr-confirm="حذف هذا البند من الخطة؟" data-hr-confirm-variant="danger">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="planId" value="@p.Id" />
                                 <input type="hidden" name="lineId" value="@line.Id" />

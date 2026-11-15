@@ -112,7 +112,7 @@ public sealed class Pol049FactsBuildersMatchSchemasTests
     [Fact]
     public async Task The_engine_takes_every_request_without_a_schema_refusal()
     {
-        // The same, through the orchestrator on the seeded database: no decision carries the schema's «حقل غير مسموح».
+        // The same, through the orchestrator on the seeded database: no decision carries the schema's «حقل غير معروف في مخطط الحقائق».
         await using var h = await SeededAsync();
         var orchestrator = Ten048PolicyHarness.Orchestrator(h.Db);
 
@@ -122,7 +122,7 @@ public sealed class Pol049FactsBuildersMatchSchemasTests
             request.TenantId = Pol047Harness.Tenant;
             var decision = await orchestrator.EvaluateAsync(request);
 
-            Assert.DoesNotContain(decision.Explanations, e => e.Contains("حقل غير مسموح", StringComparison.Ordinal));
+            Assert.DoesNotContain(decision.Explanations, e => e.Contains(HRManagement.SharedKernel.Policy.PolicyFactsValidator.UnknownFieldMessage, StringComparison.Ordinal));
             Assert.DoesNotContain(decision.Explanations, e => e.Contains("حقل مطلوب", StringComparison.Ordinal));
             Assert.True(decision.Allowed || decision.MatchedRuleIds.Count > 0, $"{key}: refused with no rule: {string.Join("; ", decision.Explanations)}");
         }

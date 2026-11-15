@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Net;
+using HRManagement.E2E;
 
 namespace HRManagement.AcceptanceTests;
 
@@ -172,8 +173,8 @@ public partial class AcOps36VpsBootTests
                 ["DelegateEmployeeId"] = delegateEmployee,
                 ["RoleScope"] = "hr-management-approver",
                 ["EntityTypeScope"] = "TransferRequest",
-                ["ActiveFrom"] = now.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture),
-                ["ActiveUntil"] = now.AddDays(1).ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture),
+                ["ActiveFrom"] = DamascusClock.Input(now),
+                ["ActiveUntil"] = DamascusClock.Input(now.AddDays(1)),
                 ["Reason"] = $"{Iam50Marker} {Guid.NewGuid():N}"[..40]
             });
             Assert.True(created == 200, $"delegation create answered {created} at {createdPath}");
@@ -330,8 +331,8 @@ public partial class AcOps36VpsBootTests
                 ["DelegateEmployeeId"] = delegateEmployee,
                 ["RoleScope"] = "hr-management-approver",
                 ["EntityTypeScope"] = "RecruitmentRequisition",
-                ["ActiveFrom"] = now.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture),
-                ["ActiveUntil"] = now.AddDays(1).ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture),
+                ["ActiveFrom"] = DamascusClock.Input(now),
+                ["ActiveUntil"] = DamascusClock.Input(now.AddDays(1)),
                 ["Reason"] = $"{Iam50Marker} engine {Guid.NewGuid():N}"[..40]
             });
             Assert.True(created == 200, $"delegation create answered {created} at {createdPath}");

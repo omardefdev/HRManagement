@@ -250,7 +250,7 @@
                     @if (Model.CanRevoke)
                     {
                         <div class="col-lg-4 col-md-6">
-                            <form asp-action="Revoke" method="post">
+                            <form asp-action="Revoke" method="post" data-hr-confirm="سحب عرض التوظيف؟" data-hr-confirm-variant="danger">
                                 @Html.AntiForgeryToken()
                                 <input type="hidden" name="id" value="@offer.Id" />
                                 <h6>إلغاء العرض</h6>

@@ -10,7 +10,8 @@ public static class PolicyVocabularyAr
     public static readonly IReadOnlyDictionary<string, string> Operators = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
     {
         ["Equals"] = "يساوي",
-        ["NotEquals"] = "لا يساوي",
+        // The engine compares only a fact that is there: a missing fact matches no operator, so «لا يساوي» says the fact is set.
+        ["NotEquals"] = "محدد ولا يساوي",
         ["GreaterThan"] = "أكبر من",
         ["LessThan"] = "أصغر من",
         ["GreaterThanOrEqual"] = "أكبر من أو يساوي",
@@ -95,6 +96,15 @@ public static class PolicyVocabularyAr
     public static string Action(string? action) => action is not null && Actions.TryGetValue(action, out var ar) ? ar : action ?? "—";
 
     public static string SubjectType(string? subjectType) => HRManagement.SharedKernel.Localization.EntityTypeNamesAr.Get(subjectType);
+
+    /// <summary>
+    /// PLAN-67 (§5): a rule's name as the page shows it. Older seeds end a name with «→ workflow»; a published version is never
+    /// rewritten, so the page reads that suffix in Arabic. A rule without a name shows its key.
+    /// </summary>
+    public static string RuleName(string? name, string? ruleKey) =>
+        string.IsNullOrWhiteSpace(name)
+            ? ruleKey ?? "—"
+            : System.Text.RegularExpressions.Regex.Replace(name, @"\s*→\s*workflow\s*$", " — يُطلق مسار الاعتماد", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
 
     public static string Workflow(string? code) => code is not null && WorkflowCodes.TryGetValue(code, out var ar) ? ar : code ?? "—";
 }

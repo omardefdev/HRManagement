@@ -107,7 +107,7 @@
                                                 </form>
                                             </div>
                                             <div class="col-lg-4">
-                                                <form asp-action="CancelInterview" method="post" class="d-flex flex-wrap gap-1 align-items-end">
+                                                <form asp-action="CancelInterview" method="post" class="d-flex flex-wrap gap-1 align-items-end" data-hr-confirm="إلغاء المقابلة؟" data-hr-confirm-variant="danger">
                                                     @Html.AntiForgeryToken()
                                                     <input type="hidden" name="applicationId" value="@app.Id" />
                                                     <input type="hidden" name="slotId" value="@slot.Id" />

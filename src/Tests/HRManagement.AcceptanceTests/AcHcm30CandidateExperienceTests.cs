@@ -7,6 +7,7 @@ using System.Text.RegularExpressions;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel;
 using HRManagement.SharedKernel.Legal;
+using HRManagement.E2E;
 
 namespace HRManagement.AcceptanceTests;
 
@@ -950,8 +951,8 @@ public class AcHcm30CandidateExperienceTests
     private static List<KeyValuePair<string, string>> ScheduleForm(string appId, DateTime utc) =>
     [
         new("ApplicationId", appId),
-        // datetime-local is interpreted in the server's local time; the acceptance containers run in UTC.
-        new("ScheduledAt", utc.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture)),
+        // PLAN-67: a datetime-local value is read on the user's clock (Damascus) and stored in UTC.
+        new("ScheduledAt", DamascusClock.Input(utc)),
         new("Mode", "InPerson"),
         new("Location", "قاعة المقابلات"),
         new("PanelEmployeeIds", AcceptanceSeedIds.EmpBr1Id.ToString("D")),

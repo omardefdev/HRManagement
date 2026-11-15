@@ -11,6 +11,7 @@ public class HealthStatusEntry : BaseEntity
     public Guid EmployeeId { get; set; }
 
     [Display(Name = "تاريخ التسجيل")]
+    [DataType(DataType.Date)]
     public DateTime EntryDate { get; set; }
 
     [Display(Name = "كود الحالة")]

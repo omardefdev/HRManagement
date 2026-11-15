@@ -41,11 +41,16 @@ public sealed class Ux067UserNamesTests
         return new ClaimsPrincipal(new ClaimsIdentity(claims, "test", "name", ClaimTypes.Role));
     }
 
+    // EF builds an internal service provider for each new configuration it meets and throws past twenty in one process (the rest of
+    // the suite then fails). These tests build many containers, so each database kind gets one internal provider, built once.
+    private static readonly IServiceProvider InMemoryEf = new ServiceCollection().AddEntityFrameworkInMemoryDatabase().BuildServiceProvider();
+    private static readonly IServiceProvider NpgsqlEf = new ServiceCollection().AddEntityFrameworkNpgsql().BuildServiceProvider();
+
     private static (ServiceProvider Services, string Database) Provider()
     {
         var database = "ux067-names-" + Guid.NewGuid().ToString("N");
         var services = new ServiceCollection()
-            .AddDbContext<GatewayAuditDbContext>(o => o.UseInMemoryDatabase(database))
+            .AddDbContext<GatewayAuditDbContext>(o => o.UseInMemoryDatabase(database).UseInternalServiceProvider(InMemoryEf))
             .AddMemoryCache()
             .AddLogging()
             .AddSingleton<GatewayUserNameRegistry>()
@@ -66,12 +71,42 @@ public sealed class Ux067UserNamesTests
         {
             var rows = await scope.ServiceProvider.GetRequiredService<GatewayAuditDbContext>().UserNames.ToListAsync();
             var row = Assert.Single(rows);
-            Assert.Equal(("سارة الحلبي", AgencyA), (row.DisplayName, row.TenantId));
+            Assert.Equal(("سارة الحلبي", AgencyA), (row.DisplayName, row.AgencyId));
         }
 
         await registry.RecordAsync(User(SubA, "سارة الحلبي العلي", AgencyA, "hr-core"), default);
         using (var scope = sp.CreateScope())
             Assert.Equal("سارة الحلبي العلي", (await scope.ServiceProvider.GetRequiredService<GatewayAuditDbContext>().UserNames.SingleAsync()).DisplayName);
+    }
+
+    [Fact]
+    public void The_names_table_has_no_tenant_column_so_the_tenant_hardening_leaves_it_to_the_lookup_filter() =>
+        // Review (second pass): TEN-002C forces tenant row security on every "TenantId" column; the gateway sets no tenant, so under the
+        // production role a "TenantId" here would let the registry read and write nothing.
+        Assert.Null(typeof(GatewayUserName).GetProperty("TenantId"));
+
+    [Fact]
+    public async Task A_request_never_waits_for_the_registry_and_a_failed_write_is_tried_again_not_taken_as_written()
+    {
+        // Review finding 2: the audit database unreachable (nothing listens on port 1).
+        var services = new ServiceCollection()
+            .AddDbContext<GatewayAuditDbContext>(o => o.UseNpgsql("Host=127.0.0.1;Port=1;Database=ux067;Username=x;Password=x;Timeout=2").UseInternalServiceProvider(NpgsqlEf))
+            .AddMemoryCache()
+            .AddLogging()
+            .AddSingleton<GatewayUserNameRegistry>();
+        await using var sp = services.BuildServiceProvider();
+        var registry = sp.GetRequiredService<GatewayUserNameRegistry>();
+        var user = User(SubA, "سارة الحلبي", AgencyA, "hr-core");
+
+        // The request path only queues, once a minute at most for the same sighting.
+        registry.Queue(user);
+        registry.Queue(user);
+        Assert.Equal(1, registry.Pending.Count);
+        Assert.True(registry.Pending.TryRead(out var who));
+
+        // The writer reports the failure and does not take it as written: the next write tries the database again.
+        Assert.False(await registry.WriteAsync(who!, default));
+        Assert.False(await registry.WriteAsync(who!, default));
     }
 
     [Fact]
@@ -139,8 +174,8 @@ public sealed class Ux067UserNamesTests
         {
             var db = scope.ServiceProvider.GetRequiredService<GatewayAuditDbContext>();
             db.UserNames.AddRange(
-                new GatewayUserName { Sub = SubA, DisplayName = "سارة الحلبي", TenantId = AgencyA },
-                new GatewayUserName { Sub = SubB, DisplayName = "موظف جهة أخرى", TenantId = AgencyB });
+                new GatewayUserName { Sub = SubA, DisplayName = "سارة الحلبي", AgencyId = AgencyA },
+                new GatewayUserName { Sub = SubB, DisplayName = "موظف جهة أخرى", AgencyId = AgencyB });
             await db.SaveChangesAsync();
         }
 
@@ -167,6 +202,17 @@ public sealed class Ux067UserNamesTests
         Assert.Contains(endpoint.Metadata.GetOrderedMetadata<IAuthorizeData>(), a => a.Policy == HrManagementPolicies.GatewayUserNames);
         Assert.DoesNotContain(endpoint.Metadata, m => m is IAllowAnonymous);
         Assert.Equal(["POST"], endpoint.Metadata.GetMetadata<Microsoft.AspNetCore.Routing.HttpMethodMetadata>()!.HttpMethods);
+        // A POST takes the antiforgery token (the CodeQL gate's cs/web/missing-token-validation), from a GET under the same policy.
+        Assert.Contains(endpoint.Metadata, m => m is ValidateAntiForgeryTokenAttribute);
+        Assert.NotNull(typeof(UserNamesController).GetMethod(nameof(UserNamesController.ByIds))!
+            .GetCustomAttributes(typeof(ValidateAntiForgeryTokenAttribute), inherit: true).SingleOrDefault());
+
+        var token = factory.Services.GetRequiredService<Microsoft.AspNetCore.Routing.EndpointDataSource>().Endpoints
+            .OfType<Microsoft.AspNetCore.Routing.RouteEndpoint>()
+            .Single(e => e.RoutePattern.RawText == "api/user-names/token");
+        Assert.Contains(token.Metadata.GetOrderedMetadata<IAuthorizeData>(), a => a.Policy == HrManagementPolicies.GatewayUserNames);
+        Assert.DoesNotContain(token.Metadata, m => m is IAllowAnonymous);
+        Assert.Equal(["GET"], token.Metadata.GetMetadata<Microsoft.AspNetCore.Routing.HttpMethodMetadata>()!.HttpMethods);
     }
 
     [Theory]

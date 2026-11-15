@@ -124,6 +124,7 @@ builder.Services.AddScoped<IGatewayHealthProbeService, GatewayHealthProbeService
 builder.Services.AddScoped<IGatewayAuditQueryService, GatewayAuditQueryService>();
 // PLAN-67 (D-67-3): the names of signed-in users, for the pages that show a person instead of an id.
 builder.Services.AddSingleton<GatewayUserNameRegistry>();
+builder.Services.AddHostedService<GatewayUserNameWriter>();
 builder.Services.AddScoped<IJourneyRebuildService, JourneyRebuildService>();
 // PLAN-37: required URLs (start-up error naming the key outside Development; no localhost fallback in a container).
 var gatewayEndpoints = GatewayIntegrationEndpoints.Resolve(builder.Configuration, builder.Environment);
@@ -202,6 +203,15 @@ if (!app.Environment.IsDevelopment())
 app.UseStatusCodePagesWithReExecute("/Home/ErrorStatus/{0}");
 app.UseStaticFiles();
 app.UseRouting();
+// PLAN-67: the gateway's own API ([ApiController], e.g. api/user-names) answers its status as it is. Re-executed as the GET-only
+// error page, a refused POST answered 405 instead of 403. Proxied routes and pages keep the error pages.
+app.Use(async (context, next) =>
+{
+    if (context.GetEndpoint()?.Metadata.GetMetadata<Microsoft.AspNetCore.Mvc.ApiControllerAttribute>() is not null
+        && context.Features.Get<Microsoft.AspNetCore.Diagnostics.IStatusCodePagesFeature>() is { } statusPages)
+        statusPages.Enabled = false;
+    await next();
+});
 app.UseHrLocalization();
 app.UseHrCorrelationId();
 app.Use(async (context, next) =>

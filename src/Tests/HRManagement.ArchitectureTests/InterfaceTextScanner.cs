@@ -23,6 +23,10 @@ public sealed record UiFinding(string Project, string File, int Line, string Rul
 /// <item><c>style-attribute</c>: a <c>style=</c> attribute;</item>
 /// <item><c>empty-table</c>: a table filled by a loop with no empty message near it;</item>
 /// <item><c>unformatted-time</c>: a date or time formatted or printed outside <c>HrDate</c>/<c>HrDateTime</c> and their input helpers.</item>
+/// <item><c>date-as-time</c> (by reflection): a <c>datetime-local</c> input bound to a calendar date (a property marked
+/// <c>[DataType(DataType.Date)]</c> or named <c>…Date</c>): the shared binder would read it as Damascus time and store the day before.</item>
+/// <item><c>unconfirmed-destructive</c>: a form whose action deletes, discards, cancels, removes, revokes or withdraws, without
+/// <c>data-hr-confirm</c> (UX-003): every destructive action asks first.</item>
 /// </list>
 /// The inventory kinds <c>inline-script</c>, <c>inline-style</c> and <c>datetime-local</c> are counted, not guarded: a block that carries the
 /// page's nonce is allowed once a page carries one policy (P-4). The rules are text heuristics over Razor; <c>GuardSelfTests</c> plants a
@@ -41,10 +45,15 @@ public static partial class InterfaceTextScanner
     public const string InlineScript = "inline-script";
     public const string InlineStyle = "inline-style";
     public const string DateTimeLocal = "datetime-local";
+    public const string DateAsTime = "date-as-time";
+    public const string UnconfirmedDestructive = "unconfirmed-destructive";
 
-    /// <summary>The eight guarded rules (P-12), in the plan's order.</summary>
+    /// <summary>
+    /// The eight guarded rules (P-12), in the plan's order, and two from the review: a calendar date entered as a time, and a destructive
+    /// form that does not ask first.
+    /// </summary>
     public static readonly IReadOnlyList<string> GuardedRules =
-        [EnglishLabel, RawStatus, PrintedId, RawJson, InlineHandler, StyleAttribute, EmptyTable, UnformattedTime];
+        [EnglishLabel, RawStatus, PrintedId, RawJson, InlineHandler, StyleAttribute, EmptyTable, UnformattedTime, DateAsTime, UnconfirmedDestructive];
 
     /// <summary>
     /// D-67-7: abbreviations a label may carry after its Arabic name, in brackets («رمز الصنف (SKU)»). File formats and standard codes
@@ -126,6 +135,9 @@ public static partial class InterfaceTextScanner
             // (HrDateTimeLocalTagHelper, HrLocalDateTimeModelBinder); one written by hand formats its value, which the format rule finds.
             if (DateTimeLocalRegex().IsMatch(tag.Value))
                 raw.Add((tag.Index, DateTimeLocal, Excerpt(tag.Value, 0, 80)));
+            // A destructive form asks first (UX-003, PLAN-67): the shared dialog opens on data-hr-confirm.
+            if (DestructiveFormRegex().IsMatch(tag.Value) && !tag.Value.Contains("data-hr-confirm", StringComparison.Ordinal))
+                raw.Add((tag.Index, UnconfirmedDestructive, Excerpt(tag.Value, 0, 80)));
         }
 
         // Inventory: inline blocks.
@@ -139,6 +151,8 @@ public static partial class InterfaceTextScanner
         {
             foreach (var (index, snippet) in EnglishModelLabels(relativePath, clean, modelType))
                 raw.Add((index, EnglishLabel, snippet));
+            foreach (var (index, snippet) in DatesEnteredAsTimes(clean, modelType))
+                raw.Add((index, DateAsTime, snippet));
         }
 
         foreach (Match m in LabelElementRegex().Matches(clean))
@@ -149,6 +163,17 @@ public static partial class InterfaceTextScanner
             var words = EnglishWordRegex().Matches(visible).Select(w => w.Value).Where(w => !Abbreviations.Contains(w)).ToList();
             if (words.Count > 0)
                 raw.Add((m.Index, EnglishLabel, $"<{m.Groups["tag"].Value.ToLowerInvariant()}> {Collapse(visible)}"));
+        }
+
+        // A badge is a label too (P7: the work inbox's «legacy» and «workflow» badges).
+        foreach (Match m in BadgeElementRegex().Matches(clean))
+        {
+            if (InBlocks(blocks.Scripts, m.Index))
+                continue;
+            var visible = VisibleText(m.Groups["body"].Value);
+            var words = EnglishWordRegex().Matches(visible).Select(w => w.Value).Where(w => !Abbreviations.Contains(w)).ToList();
+            if (words.Count > 0)
+                raw.Add((m.Index, EnglishLabel, $"<span.badge> {Collapse(visible)}"));
         }
 
         // 2, 3, 4, 8: what Razor prints.
@@ -246,7 +271,7 @@ public static partial class InterfaceTextScanner
                 continue;
             var chain = m.Groups["chain"].Value;
             var segments = chain.Split('.', StringSplitOptions.RemoveEmptyEntries).Select(s => s.TrimEnd('?', '!')).ToArray();
-            if (segments.Length < 2 || RazorKeywords.Contains(segments[0]))
+            if (segments.Length < 2 || SkippedRoot(segments))
                 continue;
             var after = m.Index + m.Length < text.Length ? text[m.Index + m.Length] : ' ';
             var methodCall = after == '(';
@@ -274,7 +299,7 @@ public static partial class InterfaceTextScanner
             if (simple.Success)
             {
                 var segments = simple.Groups["chain"].Value.Split('.', StringSplitOptions.RemoveEmptyEntries).Select(s => s.TrimEnd('?', '!')).ToArray();
-                if (segments.Length >= 2 && !RazorKeywords.Contains(segments[0]))
+                if (segments.Length >= 2 && !SkippedRoot(segments))
                 {
                     var toString = simple.Groups["tostring"].Success;
                     yield return new Print(m.Index, segments[^1], Excerpt(text, m.Index, Math.Min(80, body.Length + 3)), false, toString, textarea);
@@ -295,6 +320,10 @@ public static partial class InterfaceTextScanner
         }
     }
 
+    /// <summary>A Razor keyword or helper root prints nothing of the model; <c>ViewBag.X</c> is a value the controller hands the page, and is read.</summary>
+    private static bool SkippedRoot(string[] segments) =>
+        RazorKeywords.Contains(segments[0]) && !(segments[0] == "ViewBag" && segments.Length == 2);
+
     /// <summary>False inside a tag, except in the value of an attribute the user sees (title, placeholder, aria-label, alt).</summary>
     private static bool IsVisiblePosition(string text, int index)
     {
@@ -306,8 +335,21 @@ public static partial class InterfaceTextScanner
             return true; // "<" in text or code ("a < b"), not a tag
         var inside = text[lastOpen..index];
         var attr = AttributeBeforeRegex().Match(inside);
-        return attr.Success && VisibleAttributes.Contains(attr.Groups["name"].Value.ToLowerInvariant());
+        if (!attr.Success)
+            return false;
+        var name = attr.Groups["name"].Value.ToLowerInvariant();
+        if (VisibleAttributes.Contains(name))
+            return true;
+        // Review (second pass): the value of a disabled or read-only field is text the user reads, like a label.
+        if (name != "value")
+            return false;
+        var tagEnd = text.IndexOf('>', index);
+        var tag = tagEnd < 0 ? text[lastOpen..] : text[lastOpen..tagEnd];
+        return DisplayOnlyInputRegex().IsMatch(tag) && !tag.Contains("type=\"hidden\"", StringComparison.OrdinalIgnoreCase);
     }
+
+    [GeneratedRegex(@"^<input\b[^>]*\b(?:disabled|readonly)\b", RegexOptions.IgnoreCase)]
+    private static partial Regex DisplayOnlyInputRegex();
 
     private static readonly HashSet<string> VisibleAttributes = new(StringComparer.Ordinal) { "title", "placeholder", "aria-label", "alt", "data-bs-title" };
 
@@ -514,6 +556,13 @@ public static partial class InterfaceTextScanner
     [GeneratedRegex(@"<(?<tag>th|dt|label|button|legend|option|h[1-6])\b(?<attrs>(?:[^<>""']|""[^""]*""|'[^']*')*)>(?<body>.*?)</\k<tag>\s*>", RegexOptions.Singleline | RegexOptions.IgnoreCase)]
     private static partial Regex LabelElementRegex();
 
+    [GeneratedRegex(@"^<form\b[^>]*\basp-action=""(?:Delete|Discard\w*|Cancel\w*|Remove\w*|Revoke|Withdraw\w*|Purge)""", RegexOptions.IgnoreCase)]
+    private static partial Regex DestructiveFormRegex();
+
+    // A badge whose tag holds Razor code (a computed class) is left out: only its literal text is a label.
+    [GeneratedRegex(@"<span\b(?=[^>@]*\bclass=""[^""@]*\bbadge\b)[^>@]*>(?<body>[^<]*)</span\s*>", RegexOptions.IgnoreCase)]
+    private static partial Regex BadgeElementRegex();
+
     [GeneratedRegex(@"<[^>]*>", RegexOptions.Singleline)]
     private static partial Regex InnerTagRegex();
 
@@ -585,7 +634,8 @@ public static partial class InterfaceTextScanner
     [GeneratedRegex(@"@foreach\s*\(|@for\s*\(")]
     private static partial Regex LoopRegex();
 
-    [GeneratedRegex(@"_HrEmptyState|HrEmptyState|\.Any\(\)|Count\s*(?:==|<=|<|>|!=)\s*0|Count\(\)\s*(?:==|>|!=)\s*0|Length\s*(?:==|>|!=)\s*0|\{\s*Count\s*:\s*0\s*\}|IsEmpty|لا توجد|لا يوجد|لا تتوفر|لا يتوفر|لا سجلات|لا نتائج|لا عناصر|لا بيانات")]
+    // Review (second pass): a condition alone (.Any(), Count > 0) is not a message; the table needs the empty state or an Arabic empty text.
+    [GeneratedRegex(@"_HrEmptyState|HrEmptyState|لا توجد|لا يوجد|لا تتوفر|لا يتوفر|لا سجلات|لا نتائج|لا عناصر|لا بيانات")]
     private static partial Regex EmptyMarkerRegex();
 
     [GeneratedRegex(@"\s+")]

@@ -1,15 +1,15 @@
 using System.Net;
+using HRManagement.E2E;
 
 namespace HRManagement.AcceptanceTests;
 
 /// <summary>
 /// PLAN-46 (P7) on the demo server (<c>VPS_SSH_HOST=hrm-vps</c>) after the deploy, with the AC-OPS-36 helpers. The demo users' password is read
 /// from the server's .env into memory only. Evidence goes under <c>artifacts/plan46/vps</c>: it is never committed. The checks leave, on the
-/// demo server, a processed card request and a withdrawn one, and an approved warning whose notes say «PLAN-46 server check».
+/// demo server, a processed card request and a withdrawn one, and an approved warning whose notes read as a real note with a short token the check finds it by (PLAN-67, P-11).
 /// </summary>
 public partial class AcOps36VpsBootTests
 {
-    private const string Wf46Marker = "PLAN-46 server check";
     private const string Wf46CardMaker = "e2e-idcard-maker";
     private const string Wf46CardChecker = "e2e-idcard-checker";
     private const string Wf46ComplianceMaker = "e2e-compliance";
@@ -103,7 +103,7 @@ public partial class AcOps36VpsBootTests
             using (var employees = await checker.GetAsync($"https://{AppDomain}/ui/hr-core/Employees"))
                 Assert.Equal(HttpStatusCode.Forbidden, employees.StatusCode);
             Assert.Contains($"/ui/hr-core/WorkflowApprovals/Details/{instance}", await Wf45PageAsync(checker, "/ui/hr-core/WorkInbox"), StringComparison.OrdinalIgnoreCase);
-            await Wf45PostRenderedAsync(checker, $"/ui/hr-core/WorkflowApprovals/Details/{instance}", "ApproveWorkflow", new Dictionary<string, string> { ["Comments"] = Wf46Marker });
+            await Wf45PostRenderedAsync(checker, $"/ui/hr-core/WorkflowApprovals/Details/{instance}", "ApproveWorkflow", new Dictionary<string, string> { ["Comments"] = "موافق، المستندات مكتملة" });
 
             var approved = await Wf45PollAsync(() => Sql("idcard_db", $"select \"Status\" from \"CardRequests\" where \"Id\" = '{request}'").Single(), s => s == "4");
             Assert.Equal("4", approved);
@@ -145,16 +145,18 @@ public partial class AcOps36VpsBootTests
         using (authority)
         {
             const string create = "/ui/compliance/DisciplinaryActions/Create";
+            // PLAN-67 (P-11): the notes are shown to staff, so they read as a real note; a short token finds the row.
+            var token = Guid.NewGuid().ToString("N")[..8];
             await PostFormAsync(maker, create, new Dictionary<string, string>
             {
                 ["__RequestVerificationToken"] = await TokenAsync(maker, create),
                 ["EmployeeId"] = employee,
                 ["ActionType"] = "0",
-                ["IssuedAt"] = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm", System.Globalization.CultureInfo.InvariantCulture),
-                ["Notes"] = $"{Wf46Marker} {Guid.NewGuid():N}"
+                ["IssuedAt"] = DamascusClock.Input(DateTime.UtcNow),
+                ["Notes"] = $"إنذار خطي لتكرار التأخر عن الدوام — {token}"
             });
             var row = Sql("compliance_db",
-                $"select \"Id\", \"ApprovalStatus\", \"WorkflowInstanceId\" from \"DisciplinaryActions\" where \"Notes\" like '{Wf46Marker}%' order by \"CreatedAt\" desc limit 1").Single().Split('|');
+                $"select \"Id\", \"ApprovalStatus\", \"WorkflowInstanceId\" from \"DisciplinaryActions\" where \"Notes\" like '%{token}' order by \"CreatedAt\" desc limit 1").Single().Split('|');
             Assert.Equal("1", row[1]);
             var (action, instance) = (row[0], row[2]);
             int Payroll() => int.Parse(Sql("payroll_db", $"select count(*) from \"PayrollAdjustments\" where \"AdjustmentReason\" like '%DisciplinaryAction-{action}%'").Single(), System.Globalization.CultureInfo.InvariantCulture);
@@ -162,9 +164,9 @@ public partial class AcOps36VpsBootTests
 
             Assert.DoesNotContain("/ApproveWorkflow", await Wf45PageAsync(maker, $"/ui/hr-core/WorkflowApprovals/Details/{instance}"), StringComparison.Ordinal);
             Assert.Contains($"/ui/hr-core/WorkflowApprovals/Details/{instance}", await Wf45PageAsync(checker, "/ui/hr-core/WorkInbox"), StringComparison.OrdinalIgnoreCase);
-            await Wf45PostRenderedAsync(checker, $"/ui/hr-core/WorkflowApprovals/Details/{instance}", "ApproveWorkflow", new Dictionary<string, string> { ["Comments"] = Wf46Marker });
+            await Wf45PostRenderedAsync(checker, $"/ui/hr-core/WorkflowApprovals/Details/{instance}", "ApproveWorkflow", new Dictionary<string, string> { ["Comments"] = "موافق، المستندات مكتملة" });
             Assert.Equal(0, Payroll());
-            await Wf45PostRenderedAsync(authority, $"/ui/hr-core/WorkflowApprovals/Details/{instance}", "ApproveWorkflow", new Dictionary<string, string> { ["Comments"] = Wf46Marker });
+            await Wf45PostRenderedAsync(authority, $"/ui/hr-core/WorkflowApprovals/Details/{instance}", "ApproveWorkflow", new Dictionary<string, string> { ["Comments"] = "موافق، المستندات مكتملة" });
 
             var status = await Wf45PollAsync(() => Sql("compliance_db", $"select \"ApprovalStatus\" from \"DisciplinaryActions\" where \"Id\" = '{action}'").Single(), s => s == "2");
             Assert.Equal("2", status);

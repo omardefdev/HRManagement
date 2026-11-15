@@ -139,6 +139,68 @@ public sealed class Ux067TimeAndVocabularyTests
         Assert.Equal(new DateTime(2026, 11, 13), (DateTime)date.Model!);
     }
 
+    // Review finding 1: a calendar date entered through a datetime-local field (a payroll period) must not move back a day.
+    public sealed class DatedForm
+    {
+        [System.ComponentModel.DataAnnotations.DataType(System.ComponentModel.DataAnnotations.DataType.Date)]
+        public DateTime PeriodStart { get; set; }
+
+        public DateTime ScheduledAt { get; set; }
+    }
+
+    private sealed class ProviderContext(ModelMetadata metadata, IServiceProvider services) : ModelBinderProviderContext
+    {
+        public override BindingInfo BindingInfo { get; } = new();
+
+        public override ModelMetadata Metadata => metadata;
+
+        public override IModelMetadataProvider MetadataProvider => throw new NotSupportedException();
+
+        public override IServiceProvider Services => services;
+
+        public override IModelBinder CreateBinder(ModelMetadata metadata) => throw new NotSupportedException();
+    }
+
+    [Fact]
+    public void A_property_marked_as_a_date_is_bound_as_posted_and_a_time_is_read_on_the_damascus_clock()
+    {
+        var services = new ServiceCollection().AddLogging();
+        services.AddMvcCore().AddDataAnnotations();
+        using var provider = services.BuildServiceProvider();
+        var metadata = provider.GetRequiredService<IModelMetadataProvider>();
+        var binderProvider = new HrLocalDateTimeModelBinderProvider();
+
+        Assert.Null(binderProvider.GetBinder(new ProviderContext(metadata.GetMetadataForProperty(typeof(DatedForm), nameof(DatedForm.PeriodStart)), provider)));
+        Assert.IsType<HrLocalDateTimeModelBinder>(binderProvider.GetBinder(new ProviderContext(metadata.GetMetadataForProperty(typeof(DatedForm), nameof(DatedForm.ScheduledAt)), provider)));
+    }
+
+    [Fact]
+    public void Every_payroll_period_and_effective_date_is_a_date()
+    {
+        foreach (var (type, name) in new[]
+                 {
+                     (typeof(Payroll.Domain.Entities.AllowanceRecord), "EffectiveFrom"),
+                     (typeof(Payroll.Domain.Entities.AllowanceRecord), "EffectiveTo"),
+                     (typeof(Payroll.Domain.Entities.EmployeePayProfile), "EffectiveFrom"),
+                     (typeof(HR.Health.Domain.Entities.HealthStatusEntry), "EntryDate"),
+                 })
+        {
+            var attribute = type.GetProperty(name)!.GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.DataTypeAttribute), true)
+                .Cast<System.ComponentModel.DataAnnotations.DataTypeAttribute>().SingleOrDefault();
+            Assert.True(attribute?.DataType == System.ComponentModel.DataAnnotations.DataType.Date, $"{type.Name}.{name} is not marked as a date");
+        }
+    }
+
+    [Fact]
+    public void A_time_in_an_hour_the_clocks_skipped_is_read_after_the_change_and_never_fails_the_request()
+    {
+        var zone = HrLocalTime.DefaultZone;
+        var gap = Enumerable.Range(0, 366 * 24).Select(h => new DateTime(2021, 1, 1, 0, 30, 0).AddHours(h)).FirstOrDefault(zone.IsInvalidTime);
+        Assert.NotEqual(default, gap);
+        Assert.Equal(HrLocalTime.ToUtc(gap.AddHours(1), zone), HrLocalTime.ToUtc(gap, zone));
+        Assert.True(HrLocalTime.TryParseUserTime(gap.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture), zone, out _));
+    }
+
     // ------------------------------------------------------------------ vocabulary
 
     [Fact]
@@ -185,4 +247,25 @@ public sealed class Ux067TimeAndVocabularyTests
     [InlineData("Permanent", "دائم")]
     public void A_stored_lowercase_status_prints_in_arabic(string stored, string shown) =>
         Assert.Equal(shown, EnumDisplayExtensions.GetStoredEnumDisplayName("NoSuchEnum", stored));
+
+    [Fact]
+    public async Task An_unknown_zone_stops_the_service_at_start_up_and_leaves_the_zone_as_it_was()
+    {
+        var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder();
+        builder.Configuration[HrLocalTime.TimeZoneKey] = "Mars/Olympus_Mons";
+        builder.Services.AddHrLocalization();
+        await using var app = builder.Build();
+        var before = HrLocalTime.Zone;
+
+        var error = Assert.Throws<InvalidOperationException>(() => app.UseHrLocalization());
+        Assert.Contains(HrLocalTime.TimeZoneKey, error.Message, StringComparison.Ordinal);
+        Assert.Same(before, HrLocalTime.Zone);
+    }
+
+    [Theory]
+    [InlineData("تقديم تغيير ملاك → workflow", "R-EST-SUBMIT", "تقديم تغيير ملاك — يُطلق مسار الاعتماد")]
+    [InlineData("رفض تغيير من نطاق فرع", "R-EST-DENY-BRANCH", "رفض تغيير من نطاق فرع")]
+    [InlineData(null, "R-X", "R-X")]
+    public void A_seeded_rule_name_reads_in_arabic_without_rewriting_the_version(string? stored, string key, string shown) =>
+        Assert.Equal(shown, PolicyVocabularyAr.RuleName(stored, key));
 }

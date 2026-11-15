@@ -414,6 +414,10 @@
                                 <td>@Html.HrEnumDisplay(row.Session.Status)</td>
                             </tr>
                         }
+                    @if (!(Model.ExamSessions).Any())
+                        {
+                            <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                        }
                     </tbody>
                 </table>
             </div>
@@ -457,6 +461,10 @@
                                 <td><bdi dir="ltr">@(string.IsNullOrWhiteSpace(v.Version.Sha256) ? "—" : v.Version.Sha256.Trim()[..12].ToUpperInvariant())</bdi></td>
                                 <td class="small">@(v.Version.Reason ?? "—")@(v.Version.ReturnReason is null ? "" : $" — أُعيدت: {v.Version.ReturnReason}")</td>
                             </tr>
+                        }
+                    @if (!(Model.ResultVersions).Any())
+                        {
+                            <tr><td colspan="10"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
                         }
                     </tbody>
                 </table>
@@ -600,6 +608,10 @@
                                 <td>@(o.HasReviewer ? "معيّن" : "لم يُعيّن")</td>
                             </tr>
                         }
+                    @if (!(Model.Objections).Any())
+                        {
+                            <tr><td colspan="7"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                        }
                     </tbody>
                 </table>
             </div>
@@ -683,6 +695,10 @@
                                 <td>@if (a.OfferStatus is { } os) { @Html.HrEnumDisplay(os) } else { <text>—</text> }</td>
                             </tr>
                         }
+                    @if (!(Model.Allocations).Any())
+                        {
+                            <tr><td colspan="7"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                        }
                     </tbody>
                 </table>
             </div>
@@ -697,6 +713,10 @@
                         @foreach (var r in Model.Reserves)
                         {
                             <tr><td>@r.LineNo</td><td>@r.LineRank</td><td>@r.ApplicantFullName</td><td>@Html.HrDate(r.ReserveUntil)</td><td>@Html.HrEnumDisplay(r.Status)</td></tr>
+                        }
+                    @if (!(Model.Reserves).Any())
+                        {
+                            <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
                         }
                     </tbody>
                 </table>

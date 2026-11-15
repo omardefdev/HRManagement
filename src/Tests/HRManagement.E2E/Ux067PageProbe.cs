@@ -18,13 +18,19 @@ public sealed record Ux067PageResult(
     int ReportOnlyPolicies,
     IReadOnlyList<Ux067Violation> Violations,
     IReadOnlyList<string> Screenshots,
-    string? Note);
+    string? Note,
+    bool Resolved = true,
+    bool Optional = false)
+{
+    /// <summary>A page that resolved and carried one policy with no violation, or an optional page this stack has no record for.</summary>
+    public bool Passes => Resolved ? Note is null && CspPolicies == 1 && Violations.Count == 0 : Optional;
+}
 
 /// <summary>
 /// A key page of PLAN-67 (P-12): a fixed path, or a page found by following the first link of a list page whose href matches
 /// <see cref="LinkPattern"/>; <see cref="Anonymous"/> pages are opened without a session (the public portal).
 /// </summary>
-public sealed record Ux067KeyPage(string Name, string Path, string? LinkPattern = null, bool Anonymous = false, string? DetailsPattern = null);
+public sealed record Ux067KeyPage(string Name, string Path, string? LinkPattern = null, bool Anonymous = false, string? DetailsPattern = null, bool Optional = false);
 
 /// <summary>
 /// PLAN-67 (G-UX-01, G-UX-02): opens pages in Chromium and records, per page, how many Content-Security-Policy policies the
@@ -55,8 +61,9 @@ public static class Ux067PageProbe
         new("work-inbox", "/ui/hr-core/WorkInbox"),
         new("approval-review", "/ui/hr-core/Approvals", @"/Approvals/Review/[0-9a-fA-F-]{36}"),
         new("requisition-details", "/ui/hr-core/RecruitmentRequisitions", @"/RecruitmentRequisitions/Details/[0-9a-fA-F-]{36}"),
+        // Optional: neither the prod-like seed nor the demo holds an application with an accepted offer, the only one the page opens for.
         new("hire", "/ui/hr-core/RecruitmentApplications", @"/RecruitmentApplications/Hire/[0-9a-fA-F-]{36}",
-            DetailsPattern: @"/RecruitmentApplications/Details/[0-9a-fA-F-]{36}"),
+            DetailsPattern: @"/RecruitmentApplications/Details/[0-9a-fA-F-]{36}", Optional: true),
         new("policy-index", "/ui/hr-core/PolicyTemplates"),
         new("policy-details", "/ui/hr-core/PolicyTemplates", @"/PolicyTemplates/Details/[0-9a-fA-F-]{36}"),
         new("policy-rules", "/ui/hr-core/PolicyTemplates", @"/PolicyTemplates/EditRules\?versionId=[0-9a-fA-F-]{36}",
@@ -232,7 +239,8 @@ public static class Ux067PageProbe
                 }
             }
 
-            results.Add(new Ux067PageResult(key.Name, resolved[key.Name].Url ?? key.Path, finalUrl, status, headers, policies, reportOnly, violations, shots, note));
+            results.Add(new Ux067PageResult(key.Name, resolved[key.Name].Url ?? key.Path, finalUrl, status, headers, policies, reportOnly, violations, shots, note,
+                Resolved: resolved[key.Name].Url is not null, Optional: key.Optional));
         }
 
         return results;

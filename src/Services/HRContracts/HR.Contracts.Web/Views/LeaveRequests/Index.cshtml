@@ -69,7 +69,7 @@
                             }
                             @if (x.Status == ApprovalStatus.Approved)
                             {
-                                <form asp-action="Cancel" asp-route-id="@x.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<button type="submit" class="btn btn-outline-warning btn-xs">إلغاء</button></form>
+                                <form asp-action="Cancel" asp-route-id="@x.Id" method="post" class="d-inline" data-hr-confirm="إلغاء طلب الإجازة؟" data-hr-confirm-variant="danger">@Html.AntiForgeryToken()<button type="submit" class="btn btn-outline-warning btn-xs">إلغاء</button></form>
                             }
                             @if (x.Status == ApprovalStatus.Pending)
                             {

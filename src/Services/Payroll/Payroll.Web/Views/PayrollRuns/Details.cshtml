@@ -99,7 +99,7 @@
                 @if (canProcess && job.Status is not (PayrollRunJobStatus.Completed or PayrollRunJobStatus.Cancelled)
                      && Model.Status is not (PayrollRunStatus.Posted or PayrollRunStatus.Reversed))
                 {
-                    <form asp-action="CancelJob" method="post" class="d-inline me-1">
+                    <form asp-action="CancelJob" method="post" class="d-inline me-1" data-hr-confirm="إلغاء مهمة الرواتب الجارية؟" data-hr-confirm-variant="danger">
                         @Html.AntiForgeryToken()
                         <input type="hidden" name="jobId" value="@job.Id" />
                         <input type="hidden" name="runId" value="@Model.Id" />
@@ -282,6 +282,10 @@
 
                 }
 
+                @if (!(Model.Approvals.OrderByDescending(x => x.DecidedAt)).Any())
+                    {
+                        <tr><td colspan="3"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
 
             </table>
@@ -454,6 +458,10 @@
 
                                     }
 
+                                    @if (!(Model.SalaryLines).Any())
+                                        {
+                                            <tr><td colspan="6"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                                        }
                                     </tbody>
 
                                 </table>

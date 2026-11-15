@@ -13,7 +13,8 @@ namespace HRManagement.IntegrationTests;
 /// <c>onclick</c> handlers copied the comments into hidden fields, and an enforced CSP blocked them, so every decision was saved without
 /// its comments. The test reads the page as a browser would: the form's own action, its buttons' targets and its token.
 /// </summary>
-public sealed class Ux067ApprovalReviewCommentsTests(Hcm025ScopeAndPolicyTestHost host) : IClassFixture<Hcm025ScopeAndPolicyTestHost>
+[Collection(SharedHrCoreHost.Name)]
+public sealed class Ux067ApprovalReviewCommentsTests(Hcm025ScopeAndPolicyTestHost host)
 {
     private static readonly Regex Form = new("<form[^>]*data-testid=\"approval-review-form\"[^>]*>(?<body>.*?)</form>", RegexOptions.Singleline | RegexOptions.CultureInvariant);
     private static readonly Regex Action = new("action=\"(?<a>[^\"]+)\"", RegexOptions.CultureInvariant);

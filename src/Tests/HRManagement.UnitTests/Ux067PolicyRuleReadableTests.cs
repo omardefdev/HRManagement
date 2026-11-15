@@ -38,7 +38,7 @@ public sealed class Ux067PolicyRuleReadableTests
 
     [Theory]
     [InlineData("Equals", "يساوي")]
-    [InlineData("NotEquals", "لا يساوي")]
+    [InlineData("NotEquals", "محدد ولا يساوي")]
     [InlineData("GreaterThan", "أكبر من")]
     [InlineData("LessThan", "أصغر من")]
     [InlineData("GreaterThanOrEqual", "أكبر من أو يساوي")]
@@ -126,5 +126,16 @@ public sealed class Ux067PolicyRuleReadableTests
                 bytes[j] = alphabet[random.Next(0, alphabet.Length)];
             _ = PolicyRuleReadableRenderer.Render(new string(bytes), new string(bytes), Schema);
         }
+    }
+
+    [Theory]
+    [InlineData("""{"all":[{"field":"action","operator":"Equals","value":"SubmitForApproval"}]}""", false)]
+    [InlineData("""{"all":[{"field":"action","operator":"equals","value":"SubmitForApproval"}]}""", true)]
+    [InlineData("""{"all":[{"field":"durationDays","operator":"GreaterThan","value":"many"}]}""", true)]
+    public void A_rule_the_engine_refuses_is_marked_invalid_beside_its_sentence(string when, bool invalid)
+    {
+        // Review (second pass): the engine's strict reading turns such a stored rule into one that never matches.
+        var readable = PolicyRuleReadableRenderer.Render(when, """[{"effect":"Deny","params":{"reason":"x"}}]""", Schema);
+        Assert.Equal(invalid, readable.IsInvalid);
     }
 }

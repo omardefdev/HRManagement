@@ -35,6 +35,10 @@
                     </tr>
                 }
                 @if (!Model.Any()) { <tr><td colspan="6" class="text-center text-muted py-4">لا عمليات تفتيش</td></tr> }
+            @if (!(Model).Any())
+                {
+                    <tr><td colspan="6"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

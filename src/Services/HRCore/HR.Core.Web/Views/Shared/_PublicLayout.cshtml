@@ -159,5 +159,8 @@
         <strong>شعبة التنظيم والموارد البشرية</strong> — بوابة الخدمة المدنية للمواطن &copy; @DateTime.Now.Year
     </footer>
     <script src="~/lib/bootstrap/js/bootstrap.bundle.min.js" asp-append-version="true"></script>
+    @* PLAN-67: the shared confirmation (UX-003) asks before a destructive form here too (the candidate's withdrawal). *@
+    @await Html.PartialAsync("_HrConfirmModal")
+    <script src="~/js/shared-ui.js" asp-append-version="true"></script>
 </body>
 </html>

@@ -70,7 +70,7 @@
         }
         @if (DisciplinaryWorkflowRules.CanWithdraw(Model.ApprovalStatus))
         {
-            <form asp-action="Withdraw" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<input type="hidden" name="reason" value="سحب الإجراء التأديبي" /><button type="submit" class="btn btn-outline-secondary btn-sm">سحب من الاعتماد</button></form>
+            <form asp-action="Withdraw" asp-route-id="@Model.Id" method="post" class="d-inline" data-hr-confirm="سحب الإجراء التأديبي؟" data-hr-confirm-variant="danger">@Html.AntiForgeryToken()<input type="hidden" name="reason" value="سحب الإجراء التأديبي" /><button type="submit" class="btn btn-outline-secondary btn-sm">سحب من الاعتماد</button></form>
         }
         @if (Model.WorkflowInstanceId is Guid instanceId)
         {

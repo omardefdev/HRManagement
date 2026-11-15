@@ -106,6 +106,10 @@
                                     <td>@(string.IsNullOrWhiteSpace(t.ConflictNotes) ? "—" : t.ConflictNotes)</td>
                                 </tr>
                             }
+                        @if (!(Model.RegimeTransitions).Any())
+                            {
+                                <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                            }
                         </tbody>
                     </table>
                 </div>

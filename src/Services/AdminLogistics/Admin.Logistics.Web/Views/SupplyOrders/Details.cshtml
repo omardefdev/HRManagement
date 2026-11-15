@@ -77,6 +77,10 @@
                     </tr>
                 }
                 @if (!Model.Lines.Any()) { <tr><td colspan="5" class="text-center text-muted py-3">لا بنود</td></tr> }
+            @if (!(Model.Lines).Any())
+                {
+                    <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>
@@ -111,6 +115,10 @@
                             <td>@(rr.ItemsReceived ?? "—")</td>
                             <td><a asp-controller="ReceiptRecords" asp-action="Details" asp-route-id="@rr.Id" class="btn btn-sm btn-outline-secondary">تفاصيل</a></td>
                         </tr>
+                    }
+                @if (!(receipts).Any())
+                    {
+                        <tr><td colspan="3"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
                     }
                 </tbody>
             </table>

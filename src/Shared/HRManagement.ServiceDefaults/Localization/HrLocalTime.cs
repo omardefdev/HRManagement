@@ -91,6 +91,14 @@ public static class HrLocalTime
         if (local.Kind == DateTimeKind.Utc)
             return local;
         var unspecified = DateTime.SpecifyKind(local, DateTimeKind.Unspecified);
+        // A time inside an hour the clocks skipped (Damascus kept summer time until 2022) never existed: it is read as the same time
+        // after the change, as a calendar would, instead of failing the request.
+        if (zone.IsInvalidTime(unspecified))
+        {
+            var rule = zone.GetAdjustmentRules().FirstOrDefault(r => r.DateStart <= unspecified.Date && unspecified.Date <= r.DateEnd);
+            unspecified = unspecified.Add(rule?.DaylightDelta is { } delta && delta > TimeSpan.Zero ? delta : TimeSpan.FromHours(1));
+        }
+
         return TimeZoneInfo.ConvertTimeToUtc(unspecified, zone);
     }
 

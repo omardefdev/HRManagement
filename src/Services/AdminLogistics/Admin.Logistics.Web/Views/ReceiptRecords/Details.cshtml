@@ -87,6 +87,10 @@
                             </td>
                         </tr>
                     }
+                @if (!(Model.CapitalizableLines).Any())
+                    {
+                        <tr><td colspan="6"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
             </table>
         </div>
@@ -122,6 +126,10 @@ else
                             <td>@Html.HrEnumDisplay(a.Status)</td>
                             <td><a asp-controller="Assets" asp-action="Details" asp-route-id="@a.Id" class="btn btn-sm btn-outline-secondary">تفاصيل</a></td>
                         </tr>
+                    }
+                @if (!(Model.LinkedAssets).Any())
+                    {
+                        <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
                     }
                 </tbody>
             </table>

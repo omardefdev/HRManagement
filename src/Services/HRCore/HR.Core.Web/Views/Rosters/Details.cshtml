@@ -68,6 +68,10 @@
                     </tr>
                 }
                 @if (!Model.Assignments.Any()) { <tr><td colspan="8" class="text-center text-muted py-4">لا إسنادات</td></tr> }
+            @if (!(Model.Assignments.OrderBy(a => a.WorkDate)).Any())
+                {
+                    <tr><td colspan="8"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

@@ -48,6 +48,9 @@ public static class HrLocalizationExtensions
 
     public static WebApplication UseHrLocalization(this WebApplication app)
     {
+        // PLAN-67 (D-67-2): the zone is read once, at start-up, so HrLocalTime.Zone is the configured one before the first request
+        // (the candidate portal and its messages read it outside a view), and an unknown Localization:TimeZone stops the service.
+        _ = app.Services.GetRequiredService<ICalendarService>();
         app.UseRequestLocalization();
         return app;
     }

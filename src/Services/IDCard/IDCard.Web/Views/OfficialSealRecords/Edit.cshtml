@@ -14,7 +14,7 @@
                 ViewData["FileUploadLabel"] = "صورة الختم";
             }
             @await Html.PartialAsync("_FileUploadWidget", Model.SealFileId)
-            <div class="mb-3"><label class="form-label">صادر عن</label><input class="form-control" value="@Model.IssuedBy" readonly /></div>
+            <div class="mb-3"><label class="form-label">صادر عن</label><div class="form-control-plaintext">@Html.HrUserName(Model.IssuedBy)</div></div>
             <div class="mb-3"><label asp-for="ValidFrom" class="form-label"></label><input asp-for="ValidFrom" class="form-control" type="date" /></div>
             <div class="mb-3"><label asp-for="ValidTo" class="form-label"></label><input asp-for="ValidTo" class="form-control" type="date" /></div>
         </div>

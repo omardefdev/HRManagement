@@ -51,7 +51,7 @@
                                     <div class="col-md-2"><textarea name="thenJson" class="form-control form-control-sm font-monospace" rows="2" dir="ltr" required>@r.ThenJson</textarea></div>
                                     <div class="col-md-1"><button type="submit" class="btn btn-sm btn-outline-primary w-100">حفظ</button></div>
                                 </form>
-                                <form asp-action="RemoveRule" method="post" class="d-inline">
+                                <form asp-action="RemoveRule" method="post" class="d-inline" data-hr-confirm="حذف هذه القاعدة من المسودة؟" data-hr-confirm-variant="danger">
                                     @Html.AntiForgeryToken()
                                     <input type="hidden" name="versionId" value="@Model.Id" />
                                     <input type="hidden" name="ruleId" value="@r.Id" />
@@ -182,7 +182,7 @@
         }
         @if (canAuthor)
         {
-            <form asp-action="DiscardDraft" method="post" class="mt-2">
+            <form asp-action="DiscardDraft" method="post" class="mt-2" data-hr-confirm="إهمال هذه المسودة؟ لا يمكن التراجع." data-hr-confirm-variant="danger">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="versionId" value="@Model.Id" />
                 <button type="submit" class="btn btn-sm btn-outline-danger">إهمال المسودة</button>

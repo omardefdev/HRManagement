@@ -52,6 +52,10 @@
                         <td><a asp-controller="ComplianceRecommendations" asp-action="Details" asp-route-id="@rec.Id" class="btn btn-sm btn-outline-info">عرض</a></td>
                     </tr>
                 }
+                @if (!(Model.Recommendations).Any())
+                    {
+                        <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
             </table>
         </div>

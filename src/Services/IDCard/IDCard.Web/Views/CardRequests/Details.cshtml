@@ -32,7 +32,7 @@
     }
     @if (!Model.IsCancelled && CardIssuanceWorkflow.CanWithdraw(Model.Status))
     {
-        <form asp-action="Withdraw" asp-route-id="@Model.Id" method="post" class="d-inline">@Html.AntiForgeryToken()<input type="hidden" name="reason" value="سحب طلب البطاقة" /><button type="submit" class="btn btn-outline-secondary">سحب من الاعتماد</button></form>
+        <form asp-action="Withdraw" asp-route-id="@Model.Id" method="post" class="d-inline" data-hr-confirm="سحب طلب البطاقة؟" data-hr-confirm-variant="danger">@Html.AntiForgeryToken()<input type="hidden" name="reason" value="سحب طلب البطاقة" /><button type="submit" class="btn btn-outline-secondary">سحب من الاعتماد</button></form>
     }
     @if (!Model.IsCancelled && CardIssuanceWorkflow.CanProcess(Model.Status) && Model.IssuedCardId is null)
     {

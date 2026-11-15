@@ -6,9 +6,9 @@
         @Html.AntiForgeryToken()
         <div class="card-body">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
-            <div class="mb-3"><label asp-for="PeriodStart" class="form-label"></label><input asp-for="PeriodStart" class="form-control" type="datetime-local" /></div>
-            <div class="mb-3"><label asp-for="PeriodEnd" class="form-label"></label><input asp-for="PeriodEnd" class="form-control" type="datetime-local" /></div>
-            <div class="mb-3"><label asp-for="RunDate" class="form-label"></label><input asp-for="RunDate" class="form-control" type="datetime-local" /></div>
+            <div class="mb-3"><label asp-for="PeriodStart" class="form-label"></label><input asp-for="PeriodStart" class="form-control" type="date" /></div>
+            <div class="mb-3"><label asp-for="PeriodEnd" class="form-label"></label><input asp-for="PeriodEnd" class="form-control" type="date" /></div>
+            <div class="mb-3"><label asp-for="RunDate" class="form-label"></label><input asp-for="RunDate" class="form-control" type="date" /></div>
             <div class="mb-3">
                 <label class="form-label">الحالة</label>
                 <input class="form-control" value="مسودة" disabled />

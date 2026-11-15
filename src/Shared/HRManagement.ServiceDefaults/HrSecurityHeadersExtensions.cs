@@ -104,8 +104,9 @@ public static class HrSecurityHeadersExtensions
     }
 
     /// <summary>
-    /// Writes each security header that <paramref name="headers"/> does not carry yet (D-67-1). A response that already has a policy, in
-    /// either mode, keeps it alone.
+    /// Writes each security header that <paramref name="headers"/> does not carry yet (D-67-1). A response that already has a policy keeps
+    /// it alone, with its nonce. One exception: where this host enforces its policy and the response carries only a report-only one (a
+    /// service left in <c>ReportOnly</c> behind an enforcing gateway), that policy is enforced as it is, so no page goes unprotected.
     /// </summary>
     public static void ApplySecurityHeaders(IHeaderDictionary headers, string cspHeaderName, string csp)
     {
@@ -115,8 +116,20 @@ public static class HrSecurityHeadersExtensions
         SetIfAbsent(headers, "X-XSS-Protection", "0");
         SetIfAbsent(headers, "Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()");
 
-        if (!headers.ContainsKey(CspHeader) && !headers.ContainsKey(CspReportOnlyHeader))
-            headers[cspHeaderName] = csp;
+        if (headers.ContainsKey(CspHeader))
+            return;
+        if (headers.TryGetValue(CspReportOnlyHeader, out var reportOnly))
+        {
+            if (cspHeaderName == CspHeader)
+            {
+                headers[CspHeader] = reportOnly;
+                headers.Remove(CspReportOnlyHeader);
+            }
+
+            return;
+        }
+
+        headers[cspHeaderName] = csp;
     }
 
     private static void SetIfAbsent(IHeaderDictionary headers, string name, string value)

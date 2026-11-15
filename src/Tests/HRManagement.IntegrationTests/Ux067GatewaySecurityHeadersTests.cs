@@ -96,6 +96,27 @@ public sealed class Ux067GatewaySecurityHeadersTests : IAsyncLifetime
     }
 
     [Fact]
+    public void A_report_only_policy_behind_an_enforcing_host_is_enforced_as_it_is_and_otherwise_left_alone()
+    {
+        // Review finding 3: a service left in ReportOnly behind an enforcing gateway would serve no enforced policy.
+        var forwarded = new HeaderDictionary { [HrSecurityHeadersExtensions.CspReportOnlyHeader] = DestinationPolicy };
+        HrSecurityHeadersExtensions.ApplySecurityHeaders(forwarded, HrSecurityHeadersExtensions.CspHeader, "default-src 'self'; script-src 'self' 'nonce-GATEWAY'");
+        Assert.Equal(DestinationPolicy, forwarded[HrSecurityHeadersExtensions.CspHeader].ToString());
+        Assert.False(forwarded.ContainsKey(HrSecurityHeadersExtensions.CspReportOnlyHeader));
+
+        // A host that itself only reports leaves a report-only answer as it is.
+        var reporting = new HeaderDictionary { [HrSecurityHeadersExtensions.CspReportOnlyHeader] = DestinationPolicy };
+        HrSecurityHeadersExtensions.ApplySecurityHeaders(reporting, HrSecurityHeadersExtensions.CspReportOnlyHeader, "default-src 'self'");
+        Assert.Equal(DestinationPolicy, reporting[HrSecurityHeadersExtensions.CspReportOnlyHeader].ToString());
+        Assert.False(reporting.ContainsKey(HrSecurityHeadersExtensions.CspHeader));
+
+        // An enforced policy is never touched.
+        var enforced = new HeaderDictionary { [HrSecurityHeadersExtensions.CspHeader] = DestinationPolicy };
+        HrSecurityHeadersExtensions.ApplySecurityHeaders(enforced, HrSecurityHeadersExtensions.CspHeader, "default-src 'self'");
+        Assert.Equal(DestinationPolicy, enforced[HrSecurityHeadersExtensions.CspHeader].ToString());
+    }
+
+    [Fact]
     public async Task A_forwarded_response_without_headers_gets_the_gateway_headers_once()
     {
         await using var gateway = await GatewayAsync();

@@ -376,6 +376,7 @@ public sealed class GuardSelfTests
     [InlineData("<button type=\"submit\">Save</button>", "<button type=\"submit\">حفظ</button>")]
     [InlineData("<h3>مصالحة الموازنة vs المناصب</h3>", "<h3>مصالحة الموازنة مقابل المناصب</h3>")]
     [InlineData("<label>رمز الصنف</label><label>Stock code</label>", "<label>رمز الصنف (SKU)</label>")]
+    [InlineData("<span class=\"badge text-bg-secondary\">legacy</span>", "<span class=\"badge text-bg-secondary\">النظام القديم</span>")]
     public void An_english_label_is_found_and_its_arabic_form_passes(string planted, string fixedView)
     {
         Assert.Contains(InterfaceTextScanner.EnglishLabel, UiRules(planted));
@@ -406,6 +407,36 @@ public sealed class GuardSelfTests
         Assert.Equal(flagged, rules.Contains(InterfaceTextScanner.EnglishLabel));
     }
 
+    [Theory]
+    [InlineData("<form asp-action=\"Delete\" asp-route-id=\"@x.Id\" method=\"post\" class=\"d-inline\">", true)]
+    [InlineData("<form asp-action=\"DiscardDraft\" method=\"post\" class=\"mt-2\">", true)]
+    [InlineData("<form asp-action=\"Delete\" method=\"post\" data-hr-confirm=\"حذف السجل؟\" data-hr-confirm-variant=\"danger\">", false)]
+    [InlineData("<form asp-action=\"Approve\" method=\"post\">", false)]
+    public void A_destructive_form_that_does_not_ask_first_is_found(string form, bool flagged) =>
+        Assert.Equal(flagged, UiRules(form + "<button type=\"submit\">تنفيذ</button></form>").Contains(InterfaceTextScanner.UnconfirmedDestructive));
+
+    public sealed class PlantedDateModel
+    {
+        [System.ComponentModel.DataAnnotations.DataType(System.ComponentModel.DataAnnotations.DataType.Date)]
+        public DateTime PeriodStart { get; set; }
+
+        public DateTime? LoanDate { get; set; }
+
+        public DateTime ScheduledAt { get; set; }
+    }
+
+    [Theory]
+    [InlineData("<input asp-for=\"PeriodStart\" class=\"form-control\" type=\"datetime-local\" />", true)]
+    [InlineData("<input type=\"datetime-local\" asp-for=\"LoanDate\" />", true)]
+    [InlineData("<input asp-for=\"PeriodStart\" class=\"form-control\" type=\"date\" />", false)]
+    [InlineData("<input asp-for=\"ScheduledAt\" type=\"datetime-local\" />", false)]
+    public void A_calendar_date_entered_as_a_time_is_found(string view, bool flagged)
+    {
+        var rules = InterfaceTextScanner.Scan("src/Services/Payroll/Payroll.Web/Views/Planted/Create.cshtml", "@model PlantedDateModel\n" + view, modelType: typeof(PlantedDateModel))
+            .Select(f => f.Rule).ToList();
+        Assert.Equal(flagged, rules.Contains(InterfaceTextScanner.DateAsTime));
+    }
+
     [Fact]
     public void An_internal_code_shown_as_secondary_text_is_not_part_of_the_label() =>
         Assert.Empty(UiRules("<h3>المناصب الممولة <span class=\"hr-internal-code\">EST-001</span></h3>"));
@@ -430,12 +461,17 @@ public sealed class GuardSelfTests
     [InlineData("<td>@x.CreatedBy</td>")]
     [InlineData("<td>@c.Id.ToString()[..8]</td>")]
     [InlineData("<dd>@Model.OrgUnitId</dd>")]
+    [InlineData("<input class=\"form-control\" value=\"@Model.RequestedBy\" disabled />")]
+    [InlineData("<input class=\"form-control\" value=\"@Model.IssuedBy\" readonly />")]
+    [InlineData("<dd>@ViewBag.ApprovedBy</dd>")]
     public void A_printed_id_is_found(string planted) =>
         Assert.Contains(InterfaceTextScanner.PrintedId, UiRules(planted));
 
     [Theory]
     [InlineData("<span data-hr-user-id=\"@x.CreatedBy\"></span>")]
     [InlineData("<a asp-action=\"Details\" asp-route-id=\"@x.Id\">عرض</a>")]
+    [InlineData("<input type=\"hidden\" value=\"@Model.RequestedBy\" readonly />")]
+    [InlineData("<input class=\"form-control\" name=\"RequestedBy\" value=\"@Model.RequestedBy\" />")]
     public void An_id_in_an_attribute_passes(string view) =>
         Assert.DoesNotContain(InterfaceTextScanner.PrintedId, UiRules(view));
 
@@ -480,6 +516,9 @@ public sealed class GuardSelfTests
         Assert.Contains(InterfaceTextScanner.EmptyTable, UiRules(planted));
         var fixedView = "@if (Model.Rows.Count == 0)\n{\n<partial name=\"_HrEmptyState\" />\n}\nelse\n{\n" + planted + "\n}";
         Assert.DoesNotContain(InterfaceTextScanner.EmptyTable, UiRules(fixedView));
+        // Review (second pass): a condition alone hides the table and says nothing; it is not an empty message.
+        var hiddenOnly = "@if (Model.Rows.Any())\n{\n" + planted + "\n}";
+        Assert.Contains(InterfaceTextScanner.EmptyTable, UiRules(hiddenOnly));
     }
 
     [Theory]

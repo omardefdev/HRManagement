@@ -87,7 +87,7 @@
                     <td>
                         @if (!d.IsRevoked && (IsMine(d) || Model.SeesAll))
                         {
-                            <form asp-action="Revoke" asp-route-id="@d.Id" method="post" class="d-inline-flex gap-1">
+                            <form asp-action="Revoke" asp-route-id="@d.Id" method="post" class="d-inline-flex gap-1" data-hr-confirm="إلغاء هذا التفويض؟" data-hr-confirm-variant="danger">
                                 @Html.AntiForgeryToken()
                                 <input type="text" name="reason" class="form-control form-control-sm" placeholder="سبب الإلغاء" maxlength="500" />
                                 <button type="submit" class="btn btn-outline-danger btn-sm">إلغاء</button>

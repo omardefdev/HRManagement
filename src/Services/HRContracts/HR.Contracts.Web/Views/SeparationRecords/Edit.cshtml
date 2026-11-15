@@ -18,7 +18,7 @@
             <div class="mb-3"><label asp-for="Reason" class="form-label"></label><textarea asp-for="Reason" class="form-control" rows="2"></textarea></div>
             <div class="mb-3">
                 <label class="form-label">المعتمد</label>
-                <input class="form-control" value="@ViewBag.ApprovedBy" disabled />
+                <div class="form-control-plaintext">@Html.HrUserName((object?)ViewBag.ApprovedBy)</div>
                 <div class="form-text">يُسجَّل المعتمد من هوية الجلسة عند الاعتماد.</div>
             </div>
             <div class="mb-3"><label asp-for="Documents" class="form-label"></label><textarea asp-for="Documents" class="form-control" rows="2"></textarea></div>

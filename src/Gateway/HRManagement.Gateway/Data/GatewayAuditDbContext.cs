@@ -80,7 +80,7 @@ public sealed class GatewayAuditDbContext(DbContextOptions<GatewayAuditDbContext
             entity.HasKey(x => x.Sub);
             entity.Property(x => x.Sub).HasMaxLength(128);
             entity.Property(x => x.DisplayName).HasMaxLength(256);
-            entity.HasIndex(x => x.TenantId);
+            entity.HasIndex(x => x.AgencyId);
         });
 
         modelBuilder.Entity<GatewayAuditChainState>(entity =>

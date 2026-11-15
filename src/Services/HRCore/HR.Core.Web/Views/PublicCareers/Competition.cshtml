@@ -67,6 +67,10 @@
                     {
                         <tr><td>@line.LineNo</td><td>@line.Title</td><td>@line.GradeCode</td><td>@(line.OrgUnitName ?? "—")</td><td>@line.Vacancies</td></tr>
                     }
+                @if (!(Model.Lines).Any())
+                    {
+                        <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
             </table>
         </div>

@@ -27,6 +27,12 @@ public sealed class PolicyRuleReadable
     /// <summary>True when a node or an effect could not be read: the sentence says so and points to the technical view.</summary>
     public bool HasUnknown { get; init; }
 
+    /// <summary>
+    /// True when the engine's strict reading refuses the rule (<see cref="PolicyRuleJson.ParseWhenStrict"/>, <see cref="PolicyRuleJson.ParseThenStrict"/>):
+    /// a stored rule written before the validator, which the engine never applies. The page says so beside the sentence.
+    /// </summary>
+    public bool IsInvalid { get; init; }
+
     public string WhenText => Plain(When);
 
     public string ThenText => Plain(Then);
@@ -54,6 +60,7 @@ public static class PolicyRuleReadableRenderer
     public const string NotWord = "ليس";
     public const string Yes = "نعم";
     public const string No = "لا";
+    public const string InvalidNote = "قاعدة غير صالحة — لا تُطبَّق";
 
     private const int MaxDepth = 12;
 
@@ -89,7 +96,19 @@ public static class PolicyRuleReadableRenderer
             unknown = true;
         }
 
-        return new PolicyRuleReadable { When = when, Then = then, HasUnknown = unknown };
+        // PLAN-67 (review): the sentence of a rule the engine refuses must not read as a rule in force.
+        bool invalid;
+        try
+        {
+            var issues = new List<PolicyRuleIssue>();
+            invalid = PolicyRuleJson.ParseWhenStrict(whenJson, issues) is null | PolicyRuleJson.ParseThenStrict(thenJson, issues) is null;
+        }
+        catch (Exception ex) when (ex is JsonException or ArgumentException or InvalidOperationException)
+        {
+            invalid = true;
+        }
+
+        return new PolicyRuleReadable { When = when, Then = then, HasUnknown = unknown, IsInvalid = invalid };
     }
 
     // ------------------------------------------------------------------ condition

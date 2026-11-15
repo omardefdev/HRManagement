@@ -128,6 +128,10 @@
                         }
                     </tr>
                 }
+                @if (!(ws.Members).Any())
+                    {
+                        <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
             </table>
         }

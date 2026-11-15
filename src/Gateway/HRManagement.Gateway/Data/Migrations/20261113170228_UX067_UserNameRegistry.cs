@@ -17,7 +17,7 @@ namespace HRManagement.Gateway.Data.Migrations
                 {
                     Sub = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: false),
                     DisplayName = table.Column<string>(type: "character varying(256)", maxLength: 256, nullable: false),
-                    TenantId = table.Column<Guid>(type: "uuid", nullable: true),
+                    AgencyId = table.Column<Guid>(type: "uuid", nullable: true),
                     FirstSeenAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     LastSeenAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
                 },
@@ -27,9 +27,9 @@ namespace HRManagement.Gateway.Data.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_gateway_user_names_TenantId",
+                name: "IX_gateway_user_names_AgencyId",
                 table: "gateway_user_names",
-                column: "TenantId");
+                column: "AgencyId");
         }
 
         /// <inheritdoc />

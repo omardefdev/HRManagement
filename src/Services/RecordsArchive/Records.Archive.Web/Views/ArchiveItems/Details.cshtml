@@ -87,7 +87,7 @@
                     <button type="submit" class="btn btn-danger w-100">اعتماد SoD</button>
                 </div>
             </form>
-            <form asp-action="CancelDisposalRequest" method="post" class="d-inline">
+            <form asp-action="CancelDisposalRequest" method="post" class="d-inline" data-hr-confirm="إلغاء طلب الإتلاف؟" data-hr-confirm-variant="danger">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="id" value="@Model.Id" />
                 <input type="text" name="reason" class="form-control form-control-sm d-inline-block w-auto" placeholder="سبب الإلغاء" />
@@ -162,6 +162,10 @@
                         </td>
                     </tr>
                 }
+                @if (!(Model.LoanRecords.OrderByDescending(l => l.LoanDate)).Any())
+                    {
+                        <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
             </table>
         </div>

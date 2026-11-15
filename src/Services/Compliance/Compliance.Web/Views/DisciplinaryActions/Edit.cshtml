@@ -17,7 +17,7 @@
             </div>
             <div class="mb-3 mb-3">
                 <label class="form-label">صادر عن</label>
-                <input class="form-control" value="@Model.IssuedBy" readonly />
+                <div class="form-control-plaintext">@Html.HrUserName(Model.IssuedBy)</div>
             </div>
             <div class="mb-3 mb-3">
                 <label asp-for="IssuedAt" class="form-label"></label>

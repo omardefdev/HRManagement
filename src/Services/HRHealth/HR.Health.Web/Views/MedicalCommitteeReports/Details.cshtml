@@ -38,6 +38,10 @@
                     <td><a asp-controller="MedicalRecommendations" asp-action="Details" asp-route-id="@rec.Id" class="btn btn-sm btn-outline-info">عرض</a></td>
                 </tr>
             }
+            @if (!(Model.Recommendations).Any())
+                {
+                    <tr><td colspan="3"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

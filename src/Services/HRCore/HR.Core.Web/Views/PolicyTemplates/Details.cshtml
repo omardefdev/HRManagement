@@ -54,7 +54,7 @@
         @if (inherited)
         {
             <p class="text-muted small mt-2 mb-0" data-testid="inherited-note">
-                سياسة وطنية تسري على الجهة كما هي. تضيف الجهة قيوداً أشد فقط بمسودة «تجاوز الجهة» للمجال نفسه (D-POL-4).
+                سياسة وطنية تسري على الجهة كما هي. تضيف الجهة قيوداً أشد فقط بمسودة «تجاوز الجهة» للمجال نفسه.
             </p>
         }
     </div>
@@ -89,7 +89,14 @@
                 النوع: <strong>@Html.HrEnumDisplay(publication.Kind)</strong>
                 · المحرّر: @(publication.MakerUserId is null ? Html.HrUserName(publication.Kind == PolicyPublicationKind.SystemSeed ? "system" : publication.MakerRole) : Html.HrUserName(publication.MakerUserId))
                 · الناشر: @(publication.CheckerUserId is null ? Html.HrUserName(publication.Kind == PolicyPublicationKind.SystemSeed ? "system" : publication.CheckerRole) : Html.HrUserName(publication.CheckerUserId))
-                · الدليل: @Html.HrTextWithCodes(publication.EvidenceRef)
+                @if (publication.Kind == PolicyPublicationKind.SystemSeed)
+                {
+                    @:· الدليل: بذرة النظام <span class="hr-internal-code">@publication.EvidenceRef</span>
+                }
+                else
+                {
+                    @:· الدليل: @Html.HrTextWithCodes(publication.EvidenceRef)
+                }
                 · النشر: @Html.HrDateTime(publication.PublishedAt)
                 @if (publication.RolledBackFromVersionId is Guid rolledBack)
                 {
@@ -111,7 +118,7 @@
                     @foreach (var r in v.Rules.OrderBy(x => x.Priority).ThenBy(x => x.RuleKey))
                     {
                         <tr data-rule-key="@r.RuleKey">
-                            <td>@(r.Name ?? r.RuleKey) <span class="hr-internal-code">@r.RuleKey</span></td>
+                            <td>@PolicyVocabularyAr.RuleName(r.Name, r.RuleKey) <span class="hr-internal-code">@r.RuleKey</span></td>
                             <td>@r.Priority</td>
                             <td>
                                 <partial name="_PolicyRuleReadable" model="@PolicyRuleReadableRenderer.Render(r.WhenJson, r.ThenJson, factsSchema)" />

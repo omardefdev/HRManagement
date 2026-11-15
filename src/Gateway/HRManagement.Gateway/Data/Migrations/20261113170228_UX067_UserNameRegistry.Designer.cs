@@ -215,12 +215,12 @@ namespace HRManagement.Gateway.Data.Migrations
                     b.Property<DateTime>("LastSeenAtUtc")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid?>("TenantId")
+                    b.Property<Guid?>("AgencyId")
                         .HasColumnType("uuid");
 
                     b.HasKey("Sub");
 
-                    b.HasIndex("TenantId");
+                    b.HasIndex("AgencyId");
 
                     b.ToTable("gateway_user_names", (string)null);
                 });

@@ -13,8 +13,12 @@ public sealed class GatewayUserName
     /// <summary>The token's <c>name</c>, else its <c>preferred_username</c>.</summary>
     public string DisplayName { get; set; } = "";
 
-    /// <summary>The user's agency (<c>tenant_id</c>); a lookup answers only the caller's agency (D-67-3).</summary>
-    public Guid? TenantId { get; set; }
+    /// <summary>
+    /// The user's agency (<c>tenant_id</c>); a lookup answers only the caller's agency (D-67-3). Not named <c>TenantId</c>: the bootstrap's
+    /// TEN-002C hardening forces tenant row security on every such column, and the gateway sets no tenant for its writer or lookup, so the
+    /// production role would read and write nothing. The lookup filters by agency in its query.
+    /// </summary>
+    public Guid? AgencyId { get; set; }
 
     public DateTime FirstSeenAtUtc { get; set; }
 

@@ -54,6 +54,10 @@
                 {
                     <tr><td>@Html.HrDateTime(r.ExecutedAt)</td><td>@Html.HrUserName(r.ExecutedBy)</td><td>@r.Notes</td></tr>
                 }
+                @if (!(Model.ExecutionRecords.OrderByDescending(r => r.ExecutedAt)).Any())
+                    {
+                        <tr><td colspan="3"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
             </table>
         }

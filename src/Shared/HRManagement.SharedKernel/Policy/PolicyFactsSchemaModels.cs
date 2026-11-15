@@ -17,6 +17,9 @@ public sealed class PolicyFactsSchemaDefinition
 
 public static class PolicyFactsValidator
 {
+    /// <summary>The start of the refusal of a fact the schema does not declare (PLAN-67 wording); the PLAN-49 checks look for it.</summary>
+    public const string UnknownFieldMessage = "حقل غير معروف في مخطط الحقائق";
+
     public static IReadOnlyList<string> Validate(
         PolicyFactsSchemaDefinition schema,
         IReadOnlyDictionary<string, string> facts)
@@ -27,7 +30,7 @@ public static class PolicyFactsValidator
         foreach (var key in facts.Keys)
         {
             if (!allowed.Contains(key))
-                errors.Add($"حقل غير معروف في مخطط الحقائق: {key}");
+                errors.Add($"{UnknownFieldMessage}: {key}");
         }
 
         foreach (var field in schema.Fields.Where(f => f.Required))

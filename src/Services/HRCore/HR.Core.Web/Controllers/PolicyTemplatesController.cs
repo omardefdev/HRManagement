@@ -394,6 +394,8 @@ public class PolicyTemplatesController(
             q = q.Where(l => l.Domain == domain);
         var items = await q.OrderByDescending(l => l.OccurredAt).Take(200).ToListAsync();
         ViewBag.Domain = domain;
+        // PLAN-67 (D-67-4, review finding 5): the differences' JSON for the policy roles only.
+        ViewBag.CanSeeTechnical = await CanSeeTechnicalAsync();
         return View(items);
     }
 

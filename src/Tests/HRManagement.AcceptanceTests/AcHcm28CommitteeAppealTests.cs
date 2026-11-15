@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Seeding;
 using HRManagement.SharedKernel.Legal;
+using HRManagement.E2E;
 
 namespace HRManagement.AcceptanceTests;
 
@@ -159,7 +160,7 @@ public class AcHcm28CommitteeAppealTests
 
         await s.Central.PostAsync("28b-create-session", "ui/hr-core/SelectionCommittees/CreateSession",
             $"ui/hr-core/SelectionCommittees?requisitionId={CommitteeRequisition}",
-            [new("requisitionId", CommitteeRequisition), new("committeeDate", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture)), new("purpose", "Ranking")]);
+            [new("requisitionId", CommitteeRequisition), new("committeeDate", DamascusClock.Input(DateTime.UtcNow)), new("purpose", "Ranking")]);
         var session = await Sql(
             $"SELECT \"Id\" FROM \"SelectionCommitteeSessions\" WHERE \"RequisitionId\"='{CommitteeRequisition}' AND \"SubmittedAt\" IS NULL AND \"CreatedBy\" IS NOT NULL ORDER BY \"CreatedAt\" DESC LIMIT 1;");
         Assert.True(Guid.TryParse(session, out _), "Session was not created.");
@@ -237,7 +238,7 @@ public class AcHcm28CommitteeAppealTests
         // Committee member E on this requisition (for the independence negative).
         await s.Central.PostAsync("28e-create-session", "ui/hr-core/SelectionCommittees/CreateSession",
             $"ui/hr-core/SelectionCommittees?requisitionId={req.Id}",
-            [new("requisitionId", req.Id), new("committeeDate", DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm", CultureInfo.InvariantCulture)), new("purpose", "Ranking")]);
+            [new("requisitionId", req.Id), new("committeeDate", DamascusClock.Input(DateTime.UtcNow)), new("purpose", "Ranking")]);
         var session = await Sql($"SELECT \"Id\" FROM \"SelectionCommitteeSessions\" WHERE \"RequisitionId\"='{req.Id}' LIMIT 1;");
         var memberEmployee = await FreeEmployeeAsync([complianceEmployee, compliance2Employee]);
         await s.Central.PostAsync("28e-add-member", "ui/hr-core/SelectionCommittees/AddMember", $"ui/hr-core/SelectionCommittees/Details/{session}",

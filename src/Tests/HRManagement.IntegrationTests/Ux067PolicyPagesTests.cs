@@ -14,7 +14,8 @@ namespace HRManagement.IntegrationTests;
 /// the policy page shows the sentences, and the JSON under «عرض تقني» to the policy roles only (D-67-4); the simulation form gives the
 /// decision the JSON input gives, and an unknown fact is refused as before.
 /// </summary>
-public sealed class Ux067PolicyPagesTests : IClassFixture<Hcm025ScopeAndPolicyTestHost>, IAsyncLifetime
+[Collection(SharedHrCoreHost.Name)]
+public sealed class Ux067PolicyPagesTests : IAsyncLifetime
 {
     private readonly Hcm025ScopeAndPolicyTestHost _host;
     private static readonly Regex Token = new("name=\"__RequestVerificationToken\"[^>]*value=\"(?<t>[^\"]+)\"", RegexOptions.CultureInvariant);
@@ -118,6 +119,41 @@ public sealed class Ux067PolicyPagesTests : IClassFixture<Hcm025ScopeAndPolicyTe
         Assert.Contains("يُرفض الإجراء", page, StringComparison.Ordinal);
         Assert.Equal(seesJson, page.Contains("data-testid=\"technical-json\"", StringComparison.Ordinal));
         Assert.Equal(seesJson, page.Contains("\"field\"", StringComparison.Ordinal));
+    }
+
+    [Theory]
+    [InlineData("hr-admin", true)]
+    [InlineData("policy-approver", true)]
+    [InlineData("hr-core-supervisory", false)]
+    public async Task The_shadow_report_shows_the_differences_json_only_to_the_policy_roles(string role, bool seesJson)
+    {
+        // Review finding 5: the shadow report printed the differences' JSON to every policy reader.
+        var (_, versionId) = await EstablishmentPolicyAsync();
+        await _host.WithDbAsync(async db =>
+        {
+            db.PolicyEnforcementLedgers.Add(new PolicyEnforcementLedger
+            {
+                TenantId = HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId,
+                Domain = PolicyDomains.CoreEstablishment,
+                Action = "SubmitForApproval",
+                PolicyVersionId = versionId,
+                FactsHash = "ux067",
+                DecisionJson = "{}",
+                ShadowDiffJson = "{\"engineAllowed\":false,\"actualAllowed\":true}",
+                Mode = PolicyEnforcementModeValue.Shadow,
+                OccurredAt = DateTime.UtcNow,
+            });
+            await db.SaveChangesAsync();
+            return true;
+        });
+
+        using var client = _host.Client(Guid.NewGuid(), role);
+        var response = await client.GetAsync("/PolicyTemplates/ShadowReport");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var page = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
+        Assert.Equal(seesJson, page.Contains("data-testid=\"technical-json\"", StringComparison.Ordinal));
+        Assert.Equal(seesJson, page.Contains("engineAllowed", StringComparison.Ordinal));
+        Assert.Equal(!seesJson, page.Contains("data-testid=\"shadow-diff-recorded\"", StringComparison.Ordinal));
     }
 
     private static async Task<(bool Allowed, string Effects, string Page)> DecisionAsync(HttpResponseMessage response)

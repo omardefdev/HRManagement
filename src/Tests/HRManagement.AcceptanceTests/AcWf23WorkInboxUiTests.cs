@@ -162,9 +162,10 @@ public class AcWf23WorkInboxUiTests
 
         var inbox = await InboxAsync(s["br1-mgr"], "23f-inbox");
         Assert.True(inbox.Has(Legacy(st.LegacyApprovalRequest.Id)), "The legacy request should be listed.");
-        Assert.Contains(">legacy<", inbox.Html, StringComparison.Ordinal);
+        // PLAN-67: the badge and the record type read in Arabic.
+        Assert.Contains(">النظام القديم<", System.Net.WebUtility.HtmlDecode(inbox.Html), StringComparison.Ordinal);
         var review = await s["br1-mgr"].GetAsync("23f-review", $"ui/hr-core/Approvals/Review/{st.LegacyApprovalRequest.Id:D}");
-        Assert.Contains("ApprovedCV", review, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(HRManagement.SharedKernel.Localization.EntityTypeNamesAr.Get("ApprovedCV"), System.Net.WebUtility.HtmlDecode(review), StringComparison.Ordinal);
 
         s.Checks(new { legacyId = st.LegacyApprovalRequest.Id, listed = true });
         s.Recorder.WriteResult("Pass");

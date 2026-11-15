@@ -17,13 +17,16 @@ public class LoanRecord : BaseEntity
 
     [Required]
     [Display(Name = "تاريخ الإعارة")]
+    [DataType(DataType.Date)]
     public DateTime LoanDate { get; set; }
 
     [Required]
     [Display(Name = "تاريخ الاستحقاق")]
+    [DataType(DataType.Date)]
     public DateTime DueDate { get; set; }
 
     [Display(Name = "تاريخ الإعادة")]
+    [DataType(DataType.Date)]
     public DateTime? ReturnedDate { get; set; }
 
     [Display(Name = "الحالة")]

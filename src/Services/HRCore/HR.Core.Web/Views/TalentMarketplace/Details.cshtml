@@ -97,6 +97,10 @@
                     </tr>
                 }
                 @if (!Model.Applications.Any()) { <tr><td colspan="5" class="text-center text-muted py-4">لا مترشّحين</td></tr> }
+            @if (!(Model.Applications.OrderByDescending(a => a.AppliedAt)).Any())
+                {
+                    <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
     </div>

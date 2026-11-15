@@ -19,7 +19,47 @@ namespace HRManagement.IntegrationTests;
 /// arriving through <c>/careers</c>. The portal answers at <c>/careers</c> alone; <c>/ui/hr-core/</c> opens the dashboard; the portal's
 /// pages are no longer reachable under the module's path.
 /// </summary>
-public sealed class Ux067PortalRoutingTests : IAsyncLifetime
+public sealed class Ux067PortalRoutingTests(Ux067PortalHost portal) : IClassFixture<Ux067PortalHost>
+{
+    private HttpClient Client(bool signedIn) => portal.Client(signedIn);
+
+    [Fact]
+    public async Task The_portal_answers_at_careers_and_its_tracking_page_too()
+    {
+        using var client = Client(signedIn: false);
+        var portal = await client.GetAsync("/careers");
+        Assert.Equal(HttpStatusCode.OK, portal.StatusCode);
+        Assert.Contains("careers-navbar", await portal.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/careers/track")).StatusCode);
+    }
+
+    [Fact]
+    public async Task The_module_root_opens_the_dashboard_not_the_portal()
+    {
+        using var client = Client(signedIn: true);
+        var root = await client.GetAsync("/ui/hr-core/");
+        var body = await root.Content.ReadAsStringAsync();
+        Assert.Equal(HttpStatusCode.OK, root.StatusCode);
+        Assert.DoesNotContain("careers-navbar", body, StringComparison.Ordinal);
+        Assert.Contains("app-sidebar", body, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("/ui/hr-core/track")]
+    [InlineData("/ui/hr-core/my")]
+    public async Task The_portal_pages_are_not_reachable_under_the_module_path(string path)
+    {
+        using var client = Client(signedIn: true);
+        var response = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+}
+
+/// <summary>
+/// One HR.Core host for the class (xUnit runs <see cref="IAsyncLifetime"/> of a test class once per test): each host hands EF its own
+/// logger factory, so each adds an internal service provider, and EF throws past twenty in one test process.
+/// </summary>
+public sealed class Ux067PortalHost : IAsyncLifetime
 {
     private readonly string _dbPath = Path.Combine(Path.GetTempPath(), $"hr-ux067-portal-{Guid.NewGuid():N}.db");
     private WebApplicationFactory<HRCoreWebProgram> _host = null!;
@@ -65,7 +105,7 @@ public sealed class Ux067PortalRoutingTests : IAsyncLifetime
         try { global::System.IO.File.Delete(_dbPath); } catch (IOException) { }
     }
 
-    private HttpClient Client(bool signedIn)
+    public HttpClient Client(bool signedIn)
     {
         var client = _host.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
         if (signedIn)
@@ -77,36 +117,5 @@ public sealed class Ux067PortalRoutingTests : IAsyncLifetime
         }
 
         return client;
-    }
-
-    [Fact]
-    public async Task The_portal_answers_at_careers_and_its_tracking_page_too()
-    {
-        using var client = Client(signedIn: false);
-        var portal = await client.GetAsync("/careers");
-        Assert.Equal(HttpStatusCode.OK, portal.StatusCode);
-        Assert.Contains("careers-navbar", await portal.Content.ReadAsStringAsync(), StringComparison.Ordinal);
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/careers/track")).StatusCode);
-    }
-
-    [Fact]
-    public async Task The_module_root_opens_the_dashboard_not_the_portal()
-    {
-        using var client = Client(signedIn: true);
-        var root = await client.GetAsync("/ui/hr-core/");
-        var body = await root.Content.ReadAsStringAsync();
-        Assert.Equal(HttpStatusCode.OK, root.StatusCode);
-        Assert.DoesNotContain("careers-navbar", body, StringComparison.Ordinal);
-        Assert.Contains("app-sidebar", body, StringComparison.Ordinal);
-    }
-
-    [Theory]
-    [InlineData("/ui/hr-core/track")]
-    [InlineData("/ui/hr-core/my")]
-    public async Task The_portal_pages_are_not_reachable_under_the_module_path(string path)
-    {
-        using var client = Client(signedIn: true);
-        var response = await client.GetAsync(path);
-        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 }

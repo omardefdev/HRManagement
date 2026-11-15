@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc.Infrastructure;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.ModelBinding.Binders;
@@ -37,6 +38,10 @@ public sealed class HrLocalDateTimeModelBinderProvider : IModelBinderProvider
     public IModelBinder? GetBinder(ModelBinderProviderContext context)
     {
         if (context.Metadata.UnderlyingOrModelType != typeof(DateTime))
+            return null;
+        // A calendar date ([DataType(DataType.Date)]: a payroll period, an effective date, a loan's due date) is bound as it is posted:
+        // read as a Damascus time it would be stored as the evening before in UTC, and its date would move back a day.
+        if (context.Metadata.DataTypeName == nameof(DataType.Date))
             return null;
         var loggerFactory = context.Services.GetRequiredService<ILoggerFactory>();
         return new HrLocalDateTimeModelBinder(new SimpleTypeModelBinder(context.Metadata.ModelType, loggerFactory));

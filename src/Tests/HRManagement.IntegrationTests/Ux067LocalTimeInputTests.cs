@@ -10,7 +10,8 @@ namespace HRManagement.IntegrationTests;
 /// (the shared tag helper), with no change to the view. The delegation form fills <c>ActiveFrom</c> with the current UTC time; the
 /// page must show it three hours later, as the user's clock reads.
 /// </summary>
-public sealed class Ux067LocalTimeInputTests(Hcm025ScopeAndPolicyTestHost host) : IClassFixture<Hcm025ScopeAndPolicyTestHost>
+[Collection(SharedHrCoreHost.Name)]
+public sealed class Ux067LocalTimeInputTests(Hcm025ScopeAndPolicyTestHost host)
 {
     private static readonly Regex ActiveFrom = new("<input[^>]*name=\"ActiveFrom\"[^>]*>", RegexOptions.CultureInvariant);
     private static readonly Regex Value = new("value=\"(?<v>[^\"]*)\"", RegexOptions.CultureInvariant);
@@ -34,3 +35,4 @@ public sealed class Ux067LocalTimeInputTests(Hcm025ScopeAndPolicyTestHost host) 
         Assert.True(shown - before > TimeSpan.FromHours(2.9), "The input shows the stored UTC value, not the Damascus clock.");
     }
 }
+

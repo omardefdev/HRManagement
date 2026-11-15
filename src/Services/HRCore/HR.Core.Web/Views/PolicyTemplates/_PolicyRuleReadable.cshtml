@@ -2,7 +2,11 @@
 @using HRManagement.SharedKernel.Policy
 @* PLAN-67 (§5, G-UX-06): a rule as one Arabic sentence. Field names, operators, values and effects are marked so the sentence reads at
    a glance; a key behind an Arabic name stays in a data attribute (the technical view shows the JSON). *@
-<span class="hr-rule-sentence@(Model.HasUnknown ? " text-warning" : "")" data-testid="rule-sentence">@Html.Raw(Sentence(Model))</span>
+@if (Model.IsInvalid)
+{
+    <span class="badge bg-warning text-dark" data-testid="rule-invalid">@PolicyRuleReadableRenderer.InvalidNote</span>
+}
+<span class="hr-rule-sentence@(Model.HasUnknown || Model.IsInvalid ? " text-warning" : "")" data-testid="rule-sentence">@Html.Raw(Sentence(Model))</span>
 @functions {
     static string Sentence(PolicyRuleReadable rule)
     {

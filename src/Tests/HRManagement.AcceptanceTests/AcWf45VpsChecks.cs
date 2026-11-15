@@ -153,7 +153,7 @@ public partial class AcOps36VpsBootTests
             {
                 var inbox = await Wf45PageAsync(who, "/ui/hr-core/WorkInbox");
                 Assert.Contains($"/ui/hr-core/WorkflowApprovals/Details/{instance}", inbox, StringComparison.OrdinalIgnoreCase);
-                await Wf45PostRenderedAsync(who, $"/ui/hr-core/WorkflowApprovals/Details/{instance}", "ApproveWorkflow", new Dictionary<string, string> { ["Comments"] = Wf45Marker });
+                await Wf45PostRenderedAsync(who, $"/ui/hr-core/WorkflowApprovals/Details/{instance}", "ApproveWorkflow", new Dictionary<string, string> { ["Comments"] = "موافق، المستندات مكتملة" });
             }
 
             // Custody.
@@ -187,7 +187,7 @@ public partial class AcOps36VpsBootTests
             {
                 ["reason"] = "Theft",
                 ["context"] = "InStorage",
-                ["notes"] = Wf45Marker,
+                ["notes"] = "فُقد من المستودع أثناء الجرد الدوري",
                 ["evidenceRef"] = Wf45Proof
             });
             var report = Sql("admin_db", $"select \"Id\", \"Status\", \"WorkflowInstanceId\" from \"AssetLossReports\" where \"AssetId\" = '{lostAsset}'").Single().Split('|');

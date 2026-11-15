@@ -193,6 +193,10 @@
                     </tr>
                 }
                 @if (!Model.Items.Items.Any()) { <tr><td colspan="7" class="text-center text-muted py-4">لا أصول</td></tr> }
+            @if (!(Model.Items.Items).Any())
+                {
+                    <tr><td colspan="7"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                }
             </tbody>
         </table>
         @await Html.PartialAsync("_HrPagination", HrPaginationModel.From(Model.Items))

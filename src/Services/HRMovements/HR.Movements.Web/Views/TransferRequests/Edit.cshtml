@@ -10,7 +10,7 @@
             <div class="mb-3"><label asp-for="ToOrgUnitId" class="form-label"></label><select asp-for="ToOrgUnitId" class="form-control form-select" data-hr-picker="org-unit" data-placeholder="ابحث عن وحدة تنظيمية..."><option value="">— اختر وحدة —</option></select><span asp-validation-for="ToOrgUnitId" class="text-danger"></span></div>
             <div class="mb-3">
                 <label class="form-label">مقدّم الطلب</label>
-                <input class="form-control" value="@Model.RequestedBy" disabled />
+                <div class="form-control-plaintext">@Html.HrUserName(Model.RequestedBy)</div>
                 <div class="form-text">يُسجَّل مقدّم الطلب من هوية الجلسة ولا يُعدَّل.</div>
             </div>
             <div class="mb-3"><label asp-for="Reason" class="form-label"></label><textarea asp-for="Reason" class="form-control" rows="2"></textarea><span asp-validation-for="Reason" class="text-danger"></span></div>

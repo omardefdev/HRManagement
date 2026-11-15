@@ -74,6 +74,28 @@ public static partial class InterfaceTextScanner
         }
     }
 
+    /// <summary>
+    /// The datetime-local inputs of one view bound to a calendar date: a property marked <c>[DataType(DataType.Date)]</c> or named
+    /// <c>…Date</c>. Such a field is a date input; the shared binder leaves a date-typed property as it is posted.
+    /// </summary>
+    public static IEnumerable<(int Index, string Snippet)> DatesEnteredAsTimes(string text, Type? modelType = null)
+    {
+        var inputs = DateTimeLocalAspForRegex().Matches(text).Select(m => (m.Index, Expr: m.Groups["expr"].Value)).ToList();
+        if (inputs.Count == 0)
+            yield break;
+        modelType ??= ResolveModelType(text);
+        if (modelType is null)
+            yield break;
+        foreach (var (index, expr) in inputs)
+        {
+            var property = WalkProperty(modelType, expr);
+            if (property is null)
+                continue;
+            if (property.GetCustomAttribute<DataTypeAttribute>()?.DataType == DataType.Date || property.Name.EndsWith("Date", StringComparison.Ordinal))
+                yield return (index, $"datetime-local asp-for {expr} ({property.DeclaringType?.Name}.{property.Name} is a calendar date)");
+        }
+    }
+
     private static Type? ResolveModelType(string text)
     {
         var m = ModelDirectiveRegex().Match(text);
@@ -131,6 +153,9 @@ public static partial class InterfaceTextScanner
 
     [GeneratedRegex(@"\[[^\]]*\]")]
     private static partial Regex IndexerRegex();
+
+    [GeneratedRegex(@"<input\b(?=[^>]*\btype=""datetime-local"")[^>]*\basp-for=""(?<expr>[^""@]+)""[^>]*>", RegexOptions.IgnoreCase)]
+    private static partial Regex DateTimeLocalAspForRegex();
 
     [GeneratedRegex(@"\p{IsArabic}")]
     private static partial Regex ArabicLetterRegex();

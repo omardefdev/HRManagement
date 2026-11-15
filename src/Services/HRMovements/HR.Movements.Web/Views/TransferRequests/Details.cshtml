@@ -62,6 +62,10 @@
                 {
                     <tr><td>@f.SalaryChange</td><td>@f.AllowanceChange</td><td>@f.Notes</td><td>@Html.HrDate(f.CalculatedAt)</td></tr>
                 }
+                @if (!(Model.FinancialImpacts).Any())
+                    {
+                        <tr><td colspan="4"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
                 </tbody>
             </table>
         }
