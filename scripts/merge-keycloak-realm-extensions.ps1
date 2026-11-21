@@ -12,5 +12,8 @@ if (-not (Test-Path $importPath)) {
 }
 
 $py = Join-Path $PSScriptRoot "merge-keycloak-realm-extensions.py"
-python $py $RepoRoot
+# `python` on Windows / CI images; many Linux distributions ship only `python3`.
+$python = @('python', 'python3') | Where-Object { Get-Command $_ -ErrorAction SilentlyContinue } | Select-Object -First 1
+if (-not $python) { throw "Python not found (tried python, python3). Install Python 3 to merge the realm extensions." }
+& $python $py $RepoRoot
 if ($LASTEXITCODE -ne 0) { throw "merge-keycloak-realm-extensions.py failed with exit code $LASTEXITCODE" }
