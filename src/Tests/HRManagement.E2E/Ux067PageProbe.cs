@@ -74,6 +74,10 @@ public static class Ux067PageProbe
         new("funded-position", "/ui/hr-core/FundedPositions", @"/FundedPositions/Details/[0-9a-fA-F-]{36}"),
         new("contracts-hire-wizard", "/ui/hr-contracts/HireWizard"),
         new("payroll-dashboard", "/ui/payroll/Dashboard"),
+        // PLAN-53: the salary change and reference change screens (read pages of the payroll module; the lists may be empty).
+        new("payroll-salary-changes", "/ui/payroll/PayProfileChanges"),
+        new("payroll-reference-changes", "/ui/payroll/PayrollReferenceChanges"),
+        new("payroll-grade-details", "/ui/payroll/PayGrades", @"/PayGrades/Details/[0-9a-fA-F-]{36}"),
         new("asset-details", "/ui/admin-logistics/Assets", @"/Assets/Details/[0-9a-fA-F-]{36}"),
         new("transfers", "/ui/hr-movements/TransferRequests"),
     ];

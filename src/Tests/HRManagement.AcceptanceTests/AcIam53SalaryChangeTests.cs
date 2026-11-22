@@ -360,7 +360,7 @@ public class AcIam53SalaryChangeTests
             $"JOIN \"PayrollRunJobs\" j ON j.\"Id\" = sn.\"PayrollRunJobId\" WHERE j.\"PayrollRunId\"='{run}' AND sn.\"EmployeeId\"='{pick.Employee}';");
         var baseComponent = await Db(
             "SELECT COALESCE(string_agg(c.\"Amount\"::text, ',' ORDER BY c.\"Amount\"), '') FROM \"SalaryLineComponents\" c JOIN \"SalaryLines\" l ON l.\"Id\" = c.\"SalaryLineId\" " +
-            $"WHERE l.\"PayrollRunId\"='{run}' AND l.\"EmployeeId\"='{pick.Employee}' AND c.\"ComponentType\"=0;");
+            $"WHERE l.\"PayrollRunId\"='{run}' AND l.\"EmployeeId\"='{pick.Employee}' AND c.\"ComponentType\"='BaseSalary';");
         var lines = await Count($"SELECT count(*) FROM \"SalaryLines\" WHERE \"PayrollRunId\"='{run}' AND \"EmployeeId\"='{pick.Employee}';");
 
         await AuditAsync(s, request, pick.Profile, appliedProfile, run);

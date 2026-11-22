@@ -471,11 +471,60 @@ Reason: the owner's message (`ssh hrm-vps whoami` → `hrm`). Re-check:
 - `AcIam53SalaryChangeTests` is in `ci-scope.json` (`prodLike[]`, required, `main`) and `AC-IAM-53` in
   `ac-ownership.json`. Committed with the fixes (2026-11-22T20:45:34Z); the images are rebuilt from that commit.
 
+- **P6 checkpoint, 2026-11-22T21:50:13Z — AC-IAM-53a..e on the prod-like stack:**
+  - Images rebuilt from `9baa4d09` (clean tree): 15 images, 1,416 s (20:45:42Z to 21:09:34Z), every label the commit's
+    SHA; this plan's 15 superseded images removed by id (nothing else pruned).
+  - Prod-like stack, first start 21:09:54Z to 21:24:12Z (14 min 18 s), verification Pass. First run of the class:
+    53b, 53c, 53d, 53e Passed; 53a's product steps all answered as designed (request 302 to its page, own approval 403
+    on the screen and the API, approval applied, run created, 1102 lines calculated, validated, frozen) and the test
+    itself failed on one of its own SQL reads (`ComponentType` is stored as text). Read by SQL after it: the new
+    version 636000.00 from 2026-11-01 with the bank account and the regime carried, the previous one closed
+    2026-10-31, the history row, the snapshot naming the new version, the line's base component 636000.00, the outbox
+    empty. Fixed in the test; a fresh stack was needed (53a freezes the month).
+  - **The prod-like job for the record** (fresh stack; 21:26:43Z to 21:47:45Z; stack 868 s, journey 38 s, main 291 s):
+    `AcIam53SalaryChangeTests` **5/5**, `AcIam50ApproverReachDelegationTests` 5/5, `AcIam51ExplicitPolicyTests` 7/7,
+    `AcIam52BranchScopeTests` 5/5, `AcHcm25ProductionApprovalTests` 8/8, `RecruitmentToHireJourneyProdLikeE2ETests` 1/1.
+    The national-scope and legal-control guards did not refuse 53a's run on the prod-like stack.
+  - **The job's guard said FAIL (3), and none of the three is a test of this run:** AC-23, AC-24 and AC-25 are now
+    required, a narrowed run copies in the committed evidence of the classes it did not run, and the committed
+    evidence of those three is still the «Fail» of CI run 42287724602 (before this plan). The lab job that ran them
+    passed its guard (P5). In CI's full run the lab stage rewrites them. **For the report:** until the next
+    evidence-of-record commit from a CI run (D-QA-20: never from a local run), a narrowed local run must include
+    AC-23, AC-24 and AC-25 or read the class table instead of the verdict.
+  - AC-UX-67 (browser): the job's Chromium step needs `--with-deps` (sudo) on Linux, so the class is run with the
+    helper against the stack the job left up. Three payroll pages were added to its key pages (the salary change
+    list, the reference change list, a grade's details). First try: Chromium's headless shell had not finished
+    downloading («Download failure»); it is being downloaded again.
+  - `AcIam53VpsChecks` (P8's server checks) is written and compiles.
+  - Docs written while the stacks started: the status lines of G-IAM-02, the payroll part of G-IAM-08 and G-PAY-10,
+    `SOD_MATRIX.md`, `PAY_001_APPROVAL_BYPASS.md`, `PRV_001_DPIA_PAYROLL.md`, `CI_AND_TESTING.md`.
+
+- **P6 checkpoint, 2026-11-22T22:34:49Z:**
+  - AC-UX-67 (browser, with the three payroll pages added to its key pages): **7/7** on the prod-like stack the job
+    left up (the helper, Chromium from `~/.cache/ms-playwright`). Stack down with its volumes after it.
+  - **The Testcontainers step on the host, CI's filter** (`Category=Testcontainers&Category!=ObjectStorage`;
+    21:59:08Z to 22:12:03Z): **248 passed, 1 skipped, 0 failed** (12 min 48 s).
+  - **Incident, the agent's own: the disk filled (0 MB) at about 22:33Z.** The migrator image for the leastpriv stage
+    (`hr-migrate:local`, fifteen self-contained bundles; 5.3 GB as an image, more while building) was built with
+    8.4 GB free; the watch loop stopped at 860 MB, and the agent's kill command ended its own shell first (its pattern
+    matched itself), so the build ran on until the disk was full. Freed at once by pruning the build cache (the plan's
+    own builds; 8.2 GB in the end, the NuGet cache mount included: the images are all built). 9.5 GB free after it.
+    **Checked after it:** `git fsck` clean, the working tree as it was, the image was written whole, the owner's dev
+    containers and the other projects' containers are up and healthy (`hrm-keycloak` was restarting before the session
+    and still is). No file of the repository was being written at that moment. **Rule for the rest:** no image build
+    under 12 GB free; a process is stopped by its id, never by a pattern.
+  - The link is faster now (750 KB/s to nuget.org, 530 KB/s to the Ubuntu archive, measured 22:00Z).
+
+- Finished (UTC): 2026-11-22T22:41:56Z — P6 committed (AC-IAM-53a..e pass on the prod-like stack; the review's fixes; the scope and
+  the ownership file). **Still running or to run after this commit, recorded under P8 as they end** (regression
+  only; a product defect found there is fixed before the deploy): the prod-like `isolated` stage (started 22:34:49Z),
+  the `s2s42` stage, the lab classes again (AC-23's months changed; the review's fixes touch the payroll paths), and
+  the leastpriv stage (the migrator image exists; the disk decides).
+
 ## Exact next step
 
-P6, continuing: rebuild the fifteen images from the fixes' commit (`pwsh -NoProfile -File
-artifacts/plan53/build-images-sequential.ps1`, log `artifacts/plan53/p6-image-build.log`; no tracked file changes while
-it runs); start the prod-like stack (`acceptance-up.ps1 -Profile ProdLike -NoBuild`), run `AcIam53SalaryChangeTests`
-with `artifacts/plan53/run-classes.ps1` until green; reset; the job for the record with P-14's lists (prod-like main,
-journey, isolated, s2s42; lab: AC-23, AC-24, AC-25 again; leastpriv if the migrator image can be built on this link);
-the Testcontainers step with CI's filter; commit P6.
+P8: while the prod-like `isolated` stage runs locally (log `artifacts/plan53/p6-isolated-job.log`; then `-Stage
+prodLike:s2s42`, then the lab job for AC-23, AC-24, AC-25 and AcHcm29), on the server: check SSH and the host key, take
+and verify the backup under `/opt/hrm/backups/pre-plan53-<utc>/`, check the disk (30 GB), start the one detached build
+of the P6 commit, and deploy with `scripts/vps/deploy.ps1 -Tag <sha12>` **only after the local regression is green**.
+Then `AcIam53VpsChecks`, the PLAN-36..67 server checks, the smoke; the rollback note; commit P8. Then P9.
