@@ -442,7 +442,7 @@ Reason: the owner's message (`ssh hrm-vps whoami` → `hrm`). Re-check:
 
 ## P6
 
-- Started (UTC): 2026-11-22T20:19:00Z (right after P5's commit `32717c1d`).
+- Started (UTC): 2026-11-22T20:22:24Z (P5's commit `32717c1d`).
 - **The independent review's findings and what was done** (one fresh subagent, read-only; no high finding, so no refuter):
   1. *Medium — a person's request applied over a profile a consumer changed since.* **Fixed:** at approval and at
      activation the active profile must still be the one the request was written against (version, salary, grade,
