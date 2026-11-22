@@ -88,16 +88,19 @@ public class Pay023FrozenRunIsolationTests
         Assert.Equal(originalSalary, stillActive.BaseSalary);
         Assert.False(await db.EmployeePayProfileHistories.AsNoTracking().AnyAsync(h => h.EmployeeId == employeeId));
 
-        // (2) An automatic change (a promotion decision) is not refused by a frozen month: it is applied from June.
+        // (2) An automatic change (a promotion decision) is not refused by a frozen month: it is applied from 1 May, inside the
+        // frozen month itself, and the frozen run below is still as it was (it reads its own snapshot).
         var applier = scope.ServiceProvider.GetRequiredService<IPayProfileChangeApplier>();
         var system = await applier.ApplySystemChangeAsync(
             employeeId, PayProfileChangeKind.BaseSalary, PayProfileChangeSource.Promotion, "قرار ترفيع 14/2026",
-            raisedSalary, null, new DateOnly(2026, 6, 1));
+            raisedSalary, null, new DateOnly(2026, 5, 1));
         Assert.True(system.Success, system.Error);
         Assert.Equal(PayProfileChangeState.Applied, system.State);
 
         db.ChangeTracker.Clear();
-        Assert.Equal(raisedSalary, (await db.EmployeePayProfiles.AsNoTracking().SingleAsync(p => p.EmployeeId == employeeId && p.IsActive)).BaseSalary);
+        var promoted = await db.EmployeePayProfiles.AsNoTracking().SingleAsync(p => p.EmployeeId == employeeId && p.IsActive);
+        Assert.Equal(raisedSalary, promoted.BaseSalary);
+        Assert.Equal(periodStartA, promoted.EffectiveFrom);
         // The pending manual request was written against the version the promotion replaced: it is superseded, not left open.
         var superseded = await db.PayProfileChangeRequests.AsNoTracking().SingleAsync(r => r.Id == submitted.RequestId);
         Assert.Equal(PayProfileChangeState.Superseded, superseded.State);

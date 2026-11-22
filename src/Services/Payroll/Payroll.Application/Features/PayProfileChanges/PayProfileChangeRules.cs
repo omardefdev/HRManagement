@@ -33,7 +33,8 @@ public sealed class PayProfileChangeRules(
     /// <summary>
     /// D-53-2: the salary the change leaves against the bounds of the grade it leaves (the proposed grade, else the current one), with the
     /// contract consumer's rule (<c>salary &lt; min || salary &gt; max</c>); a bound that is not set (zero) is not applied. The message
-    /// names both bounds.
+    /// names both bounds. A profile whose salary is zero is paid the base of its grade (<see cref="EmployeePayProfileRules.ResolveBaseSalary"/>),
+    /// so that is the salary checked.
     /// </summary>
     public async Task<string?> CheckBoundsAsync(decimal salary, Guid? gradeId, CancellationToken ct)
     {
@@ -42,7 +43,8 @@ public sealed class PayProfileChangeRules(
         var grade = await repository.PayGrades.AsNoTracking().FirstOrDefaultAsync(g => g.Id == gradeId, ct);
         if (grade is null)
             return PayProfileChangeMessages.GradeNotFound;
-        return EmployeePayProfileRules.IsOutsideGradeBounds(salary, grade.MinSalary, grade.MaxSalary)
+        var paid = salary == 0m ? grade.BaseSalary : salary;
+        return EmployeePayProfileRules.IsOutsideGradeBounds(paid, grade.MinSalary, grade.MaxSalary)
             ? PayProfileChangeMessages.OutOfGradeBounds(grade.GradeCode, grade.MinSalary, grade.MaxSalary)
             : null;
     }
@@ -77,6 +79,30 @@ public sealed class PayProfileChangeRules(
 
         return null;
     }
+
+    /// <summary>
+    /// A Regular run whose period contains the date, calculated and not yet frozen. P-6 does not count it as a settled month, so a
+    /// change is applied; but validating that run without calculating it again would freeze the salary it read before the change.
+    /// The decision carries a warning for it.
+    /// </summary>
+    public Task<bool> HasCalculatedUnfrozenRegularRunAsync(DateOnly effectiveFrom, CancellationToken ct)
+    {
+        var date = EmployeePayProfileVersioning.ToStoredDate(effectiveFrom);
+        return repository.PayrollRuns.AsNoTracking().AnyAsync(
+            r => r.PeriodStart <= date && r.PeriodEnd >= date && r.RunType == PayrollRunType.Regular
+                 && r.Status == PayrollRunStatus.Calculated && !r.ResultsFrozen, ct);
+    }
+
+    /// <summary>
+    /// Whether the active profile is still the one the request was written against: the same version, salary, grade and unit. A
+    /// consumer (a contract, a transfer, a separation) may have replaced or changed it since; a request a person approved for another
+    /// salary or in another branch is not applied over that.
+    /// </summary>
+    public static bool IsWrittenAgainst(PayProfileChangeRequest request, EmployeePayProfile active) =>
+        request.CurrentProfileId == active.Id
+        && request.CurrentBaseSalary == active.BaseSalary
+        && request.CurrentPayGradeId == active.PayGradeId
+        && request.OrgUnitId == active.OrgUnitId;
 
     /// <summary>The kind a proposal has against the current profile, or null when it changes nothing.</summary>
     public static PayProfileChangeKind? KindOf(EmployeePayProfile current, decimal? proposedBaseSalary, Guid? proposedPayGradeId)

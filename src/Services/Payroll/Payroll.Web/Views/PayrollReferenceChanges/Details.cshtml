@@ -43,7 +43,7 @@
 
         @if (Model.ProfilesOutsideProposedBounds is int outside)
         {
-            <div class="alert @(outside > 0 ? "alert-warning" : "alert-light")" role="alert">
+            <div class="alert @(outside > 0 ? "alert-warning" : "alert-light")" role="alert" data-hr-outside-proposed="@outside">
                 ملفات الأجر الفعّالة التي تصير خارج الحدود المقترحة: <strong>@outside</strong>.
                 تعديل حدود الدرجة لا يغيّر ملف أجر: يبقى كما هو ويُعرض في شاشة ملفات الأجر (خارج حدود الدرجة).
             </div>

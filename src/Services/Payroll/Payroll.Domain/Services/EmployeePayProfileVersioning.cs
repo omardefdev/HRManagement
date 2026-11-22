@@ -50,7 +50,10 @@ public static class EmployeePayProfileVersioning
     {
         ArgumentNullException.ThrowIfNull(previous);
         previous.IsActive = false;
-        previous.EffectiveTo = ClosingDate(newEffectiveFrom);
+        // The day before the new version starts; a version that already ends earlier keeps its end (closing never extends a period).
+        // A version replaced on its own first day held no day: its end is the day before its start, and no day is counted twice.
+        var closing = ClosingDate(newEffectiveFrom);
+        previous.EffectiveTo = previous.EffectiveTo is DateTime end && end < closing ? end : closing;
     }
 
     /// <summary>
@@ -61,9 +64,11 @@ public static class EmployeePayProfileVersioning
         EmployeePayProfile previous,
         DateOnly effectiveFrom,
         decimal? proposedBaseSalary,
-        Guid? proposedPayGradeId)
+        Guid? proposedPayGradeId,
+        DateTime? plannedEnd = null)
     {
         ArgumentNullException.ThrowIfNull(previous);
+        var start = ToStoredDate(effectiveFrom);
         return new EmployeePayProfile
         {
             // carried from the previous version
@@ -77,8 +82,10 @@ public static class EmployeePayProfileVersioning
             // set by the change
             BaseSalary = proposedBaseSalary ?? previous.BaseSalary,
             PayGradeId = proposedPayGradeId ?? previous.PayGradeId,
-            EffectiveFrom = ToStoredDate(effectiveFrom),
-            EffectiveTo = null,
+            EffectiveFrom = start,
+            // The end the previous version was planned to have (read before it was closed) still holds when it lies on or after the
+            // new start; a change never makes a profile that was to end open-ended.
+            EffectiveTo = plannedEnd is DateTime end && end >= start ? end : null,
             IsActive = true,
         };
     }

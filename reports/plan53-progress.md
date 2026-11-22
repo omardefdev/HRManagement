@@ -440,11 +440,42 @@ Reason: the owner's message (`ssh hrm-vps whoami` → `hrm`). Re-check:
     `~/.cache/ms-playwright` while the lab job ran (the job's `--with-deps` step needs sudo on Linux; see P6).
 - Finished (UTC): 2026-11-22T20:22:24Z — P5 committed.
 
+## P6
+
+- Started (UTC): 2026-11-22T20:19:00Z (right after P5's commit `32717c1d`).
+- **The independent review's findings and what was done** (one fresh subagent, read-only; no high finding, so no refuter):
+  1. *Medium — a person's request applied over a profile a consumer changed since.* **Fixed:** at approval and at
+     activation the active profile must still be the one the request was written against (version, salary, grade,
+     unit); otherwise 409 «تغيّر ملف الأجر الفعّال…», the request as it was (a scheduled one keeps `LastApplyError`).
+  2. *Medium — a Regular run calculated and not frozen does not block.* **Not changed, by decision:** it is P-6's letter
+     (the owner's rule; recalculation before the freeze is allowed and reads the new salary), and the gap is in the
+     run's validation, which this plan must not change. **Mitigated:** the approval answers with a warning (API
+     `warning`, the page's alert). **Recorded** as a known limit for PLAN-56 in `PAYROLL_SALARY_CHANGE.md` §13.
+  3. *Medium — AC-23 would expire on 2027-03-01* (fixed February 2027, and a request cannot name a past month).
+     **Fixed:** its two months follow the service's clock, 13 and 14 months ahead. A date limit that remains, recorded
+     for the report: AC-25 uses the current month, AC-24 a fixed April 2027 and AC-12 a fixed June 2027 (neither may
+     change here), so AC-25 meets a live run of its month in April and June 2027.
+  4. *Medium — a second change with the same start day leaves an inverted period.* **Decided and tested:** allowed (a
+     correction in the same month must be possible); the replaced version «held no day», ends the day before it
+     began, and no day is in two versions. Closing never extends a period.
+  5. *Low — the activation took 500 a cycle, refused ones first.* **Fixed:** every due request once a cycle.
+  6. *Low — counts on a grade's page were the agency's for a branch user.* **Fixed:** counted in the caller's scope.
+  7. *Low — a planned end of the active profile was lost.* **Fixed:** carried when it lies on or after the new start.
+  8. *Low — narrowed items:* AC-12 (see P5); AC-23's old last assertion (kept as recorded); `Pay023` now applies the
+     automatic change **inside** the frozen month on PostgreSQL; the validate script's header corrected.
+  9. *Low — the decimal binder read «7500,50» as 750050 under `en`.* **Fixed:** no thousands separator in any culture.
+  10. *Low — a grade-only change of a profile paid its grade's base was checked with zero.* **Fixed.**
+  Tests: `Iam053ReviewFixTests` (17 cases), the binder test, `Iam053PayrollScopeHttpTests` (the counts), `Pay023`.
+  Unit **6562/6562**, architecture **358/358**, the PLAN-53 integration tests on PostgreSQL **22/22**, build
+  `-warnaserror` clean, `iam053-validate.ps1` and its `-SelfTest` (20 planted defects) pass.
+- `AcIam53SalaryChangeTests` is in `ci-scope.json` (`prodLike[]`, required, `main`) and `AC-IAM-53` in
+  `ac-ownership.json`. Committed with the fixes (2026-11-22T20:45:34Z); the images are rebuilt from that commit.
+
 ## Exact next step
 
-P6: fix the review's findings with tests (see the list under P6); add `AcIam53SalaryChangeTests` to `ci-scope.json`
-(`prodLike[]`, required, group `main`) and `AC-IAM-53` to `ac-ownership.json`; rebuild the fifteen images
-(`pwsh -NoProfile -File artifacts/plan53/build-images-sequential.ps1`, no tracked file changes while it runs); start the
-prod-like stack (`acceptance-up.ps1 -Profile ProdLike -NoBuild`), run `AcIam53SalaryChangeTests` with
-`artifacts/plan53/run-classes.ps1` until green, reset, then the job for the record with P-14's lists; the Testcontainers
-step with CI's filter; commit P6.
+P6, continuing: rebuild the fifteen images from the fixes' commit (`pwsh -NoProfile -File
+artifacts/plan53/build-images-sequential.ps1`, log `artifacts/plan53/p6-image-build.log`; no tracked file changes while
+it runs); start the prod-like stack (`acceptance-up.ps1 -Profile ProdLike -NoBuild`), run `AcIam53SalaryChangeTests`
+with `artifacts/plan53/run-classes.ps1` until green; reset; the job for the record with P-14's lists (prod-like main,
+journey, isolated, s2s42; lab: AC-23, AC-24, AC-25 again; leastpriv if the migrator image can be built on this link);
+the Testcontainers step with CI's filter; commit P6.

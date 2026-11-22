@@ -60,14 +60,16 @@ public class PayGradesController : Controller
     {
         var grade = await _db.PayGrades.AsNoTracking().Include(g => g.SalaryScale).FirstOrDefaultAsync(g => g.Id == id);
         if (grade is null) return NotFound();
+        // The grade belongs to the agency; the pay profiles counted on its page are the caller's to see (PLAN-52): a branch user's
+        // numbers are his branch's, as in the pay profile list.
+        var profiles = await _db.EmployeePayProfiles.AsNoTracking().InOrgScopeAsync(HttpContext, _db);
         return View(new PayGradeDetailsViewModel
         {
             Grade = grade,
             OpenRequest = await _db.PayrollReferenceChangeRequests.AsNoTracking().FirstOrDefaultAsync(
                 r => r.EntityType == PayrollReferenceEntityType.PayGrade && r.EntityId == id && r.State == PayrollReferenceChangeState.PendingApproval),
-            ProfilesNamingIt = await _db.EmployeePayProfiles.AsNoTracking().CountAsync(p => p.PayGradeId == id && p.IsActive),
-            ProfilesOutsideBounds = await _db.EmployeePayProfiles.AsNoTracking().Where(p => p.PayGradeId == id)
-                .CountAsync(EmployeePayProfileRules.OutsideGradeBounds),
+            ProfilesNamingIt = await profiles.CountAsync(p => p.PayGradeId == id && p.IsActive),
+            ProfilesOutsideBounds = await profiles.Where(p => p.PayGradeId == id).CountAsync(EmployeePayProfileRules.OutsideGradeBounds),
             CanChange = PayrollPolicyRules.CanChangeMasterData(User, _configuration),
         });
     }

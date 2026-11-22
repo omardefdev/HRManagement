@@ -68,6 +68,9 @@ public sealed class PayProfileChangeApplier(
             return Refuse(request, PayProfileChangeFailure.Invalid, PayProfileChangeMessages.BeforeCurrentVersion);
         if (PayProfileChangeRequest.IsAutomatic(request.Source))
             return null;
+        // A person's request is applied only over the profile it was written against (a consumer may have changed it since).
+        if (!PayProfileChangeRules.IsWrittenAgainst(request, profile))
+            return Refuse(request, PayProfileChangeFailure.Conflict, PayProfileChangeMessages.ProfileChangedSinceRequest);
 
         var bounds = await rules.CheckBoundsAsync(
             request.ProposedBaseSalary ?? profile.BaseSalary, request.ProposedPayGradeId ?? profile.PayGradeId, ct);
@@ -127,7 +130,10 @@ public sealed class PayProfileChangeApplier(
             return PayProfileChangeResult.Fail(PayProfileChangeFailure.Conflict, PayProfileChangeMessages.DecidedConcurrently, request.Id, before);
         }
 
-        return PayProfileChangeResult.Ok(request.Id, request.State);
+        var warning = await rules.HasCalculatedUnfrozenRegularRunAsync(request.EffectiveFrom, ct)
+            ? PayProfileChangeMessages.CalculatedRunNeedsRecalculation
+            : null;
+        return PayProfileChangeResult.Ok(request.Id, request.State) with { Warning = warning };
     }
 
     public async Task<PayProfileChangeResult> ApplySystemChangeAsync(
@@ -220,11 +226,12 @@ public sealed class PayProfileChangeApplier(
         PayProfileChangeRequest request, EmployeePayProfile previous, DateTime now, CancellationToken ct)
     {
         var previousSalary = previous.BaseSalary;
+        var plannedEnd = previous.EffectiveTo;
         EmployeePayProfileVersioning.Close(previous, request.EffectiveFrom);
         await repository.AddAsync(EmployeePayProfileRules.CreateHistorySnapshot(previous, request.Reason), ct);
 
         var next = EmployeePayProfileVersioning.NextVersion(
-            previous, request.EffectiveFrom, request.ProposedBaseSalary, request.ProposedPayGradeId);
+            previous, request.EffectiveFrom, request.ProposedBaseSalary, request.ProposedPayGradeId, plannedEnd);
         await repository.AddAsync(next, ct);
 
         request.State = PayProfileChangeState.Applied;

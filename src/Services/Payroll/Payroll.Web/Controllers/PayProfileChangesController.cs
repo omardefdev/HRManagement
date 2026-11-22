@@ -104,6 +104,7 @@ public sealed class PayProfileChangesController(PayrollDbContext db, IMediator m
         if (result.Success)
         {
             TempData["Success"] = done;
+            if (result.Warning is not null) TempData["Warning"] = result.Warning;
             return RedirectToAction(nameof(Details), new { id });
         }
 

@@ -46,5 +46,5 @@ public sealed class HrInvariantDecimalModelBinder : IModelBinder
     /// <summary>The invariant plain form first (what a numeric input sends), then the request's culture.</summary>
     public static bool TryParse(string raw, out decimal value) =>
         decimal.TryParse(raw, Plain, CultureInfo.InvariantCulture, out value)
-        || decimal.TryParse(raw, NumberStyles.Number, CultureInfo.CurrentCulture, out value);
+        || decimal.TryParse(raw, Plain, CultureInfo.CurrentCulture, out value);
 }

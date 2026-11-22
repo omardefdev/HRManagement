@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Payroll.Application.Features.ReferenceChanges;
 using Payroll.Domain.Entities;
 using Payroll.Domain.Enums;
 using Payroll.Infrastructure.Data;
@@ -53,6 +54,8 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
             OrgUnitId = unit,
             ChangeKind = PayProfileChangeKind.BaseSalary,
             Source = PayProfileChangeSource.Manual,
+            // As the submit command writes it: the request names the profile version it was made against (the applier checks it).
+            CurrentProfileId = employee,
             CurrentBaseSalary = 4500m,
             ProposedBaseSalary = 5000m,
             EffectiveFrom = NextMonth(),
@@ -265,6 +268,86 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
         Assert.Equal(HttpStatusCode.BadRequest, (await restricted.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{createdId}/cancel", new { reason = "" })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await restricted.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{createdId}/cancel", new { reason = "أُلغي القرار" })).StatusCode);
         Assert.Equal(PayProfileChangeState.Cancelled, await StateAsync(host, createdId));
+    }
+
+    /// <summary>The number a grade's page prints after a label (the review's finding: the counts were the agency's for everyone).</summary>
+    private static int CountAfter(string html, string label)
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(html, System.Text.RegularExpressions.Regex.Escape(label) + @"</dt>\s*<dd[^>]*>\s*(\d+)");
+        Assert.True(match.Success, $"«{label}» is not on the page.");
+        return int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture);
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task The_pay_profiles_counted_on_a_grades_page_and_on_its_change_request_are_the_callers_branchs()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        await using var host = await StartAsync();
+        using var restricted = host.Restricted();
+        using var central = host.Central();
+
+        // A grade of the agency with bounds 4000..6000; its own unit has one profile inside and one outside, the other unit two
+        // inside and two outside, and one central profile (no unit) outside.
+        var grade = Guid.NewGuid();
+        var request = Guid.NewGuid();
+        await host.WithDbAsync(async db =>
+        {
+            var scale = new SalaryScale { TenantId = Tenant, Code = "S-53", NameAr = "سلم", EffectiveFrom = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc) };
+            db.Add(scale);
+            db.Add(new PayGrade { Id = grade, TenantId = Tenant, SalaryScale = scale, GradeCode = "G53", GradeNameAr = "درجة", BaseSalary = 4500m, MinSalary = 4000m, MaxSalary = 6000m });
+            void Profile(Guid? unit, decimal salary) => db.Add(new EmployeePayProfile
+            {
+                TenantId = Tenant,
+                EmployeeId = Guid.NewGuid(),
+                PayGradeId = grade,
+                BaseSalary = salary,
+                EffectiveFrom = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                IsActive = true,
+                OrgUnitId = unit,
+            });
+            Profile(host.OwnUnit, 4500m);
+            Profile(host.OwnUnit, 7000m);
+            Profile(host.ForeignUnit, 4500m);
+            Profile(host.ForeignUnit, 5000m);
+            Profile(host.ForeignUnit, 7000m);
+            Profile(host.ForeignUnit, 3000m);
+            Profile(null, 9000m);
+            // A pending request that narrows the grade to 4400..4600: it would leave every profile but the 4500 ones outside.
+            db.Add(new PayrollReferenceChangeRequest
+            {
+                Id = request,
+                TenantId = Tenant,
+                EntityType = PayrollReferenceEntityType.PayGrade,
+                Operation = PayrollReferenceOperation.Update,
+                EntityId = grade,
+                EntityLabel = "G53",
+                CurrentJson = PayrollReferenceChangeJson.Write(new PayGradeChange(scale.Id, "G53", "درجة", 4500m, 4000m, 6000m)),
+                ProposedJson = PayrollReferenceChangeJson.Write(new PayGradeChange(scale.Id, "G53", "درجة", 4500m, 4400m, 4600m)),
+                Reason = "تضييق",
+                LegalReference = "القرار 9 لعام 2026",
+                State = PayrollReferenceChangeState.PendingApproval,
+                RequestedBy = SomeoneElse,
+                RequestedAt = DateTime.UtcNow,
+            });
+            return await db.SaveChangesAsync();
+        });
+
+        const string naming = "ملفات أجر فعّالة على هذه الدرجة";
+        const string outside = "منها خارج حدود الدرجة";
+        var mine = await restricted.GetStringAsync($"/PayGrades/Details/{grade:D}");
+        var everyones = await central.GetStringAsync($"/PayGrades/Details/{grade:D}");
+
+        // The branch user's numbers are his branch's; the central user's are the agency's.
+        Assert.Equal((2, 1), (CountAfter(mine, naming), CountAfter(mine, outside)));
+        Assert.Equal((7, 4), (CountAfter(everyones, naming), CountAfter(everyones, outside)));
+
+        // The same on the change request's page: how many active profiles the proposed bounds would leave outside.
+        var myRequest = await restricted.GetStringAsync($"/PayrollReferenceChanges/Details/{request:D}");
+        var theirRequest = await central.GetStringAsync($"/PayrollReferenceChanges/Details/{request:D}");
+        var count = new System.Text.RegularExpressions.Regex(@"data-hr-outside-proposed=""(\d+)""");
+        Assert.Equal("1", count.Match(myRequest).Groups[1].Value);
+        Assert.Equal("5", count.Match(theirRequest).Groups[1].Value);
     }
 
     [Trait("Category", "Testcontainers")]

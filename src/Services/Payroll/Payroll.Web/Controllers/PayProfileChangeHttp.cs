@@ -24,5 +24,6 @@ internal static class PayProfileChangeHttp
     public static ObjectResult Refusal(PayProfileChangeResult result) =>
         new(new { error = result.Error, requestId = result.RequestId, state = result.State?.ToString() }) { StatusCode = result.StatusCode };
 
-    public static object Body(PayProfileChangeResult result) => new { requestId = result.RequestId, state = result.State?.ToString() };
+    public static object Body(PayProfileChangeResult result) =>
+        new { requestId = result.RequestId, state = result.State?.ToString(), warning = result.Warning };
 }

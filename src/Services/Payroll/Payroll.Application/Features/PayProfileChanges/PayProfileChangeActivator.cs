@@ -25,21 +25,21 @@ public sealed class PayProfileChangeActivator(
     IPayrollCalendar calendar,
     ILogger<PayProfileChangeActivator> logger)
 {
-    public const int BatchSize = 500;
-
     public async Task<PayProfileChangeActivationSummary> ActivateDueAsync(CancellationToken ct = default)
     {
         var today = calendar.Today;
+        // Every request that is due when the cycle starts, each attempted once: the ids are read first (a refused request stays
+        // scheduled, so reading page after page of «still scheduled» would meet it again and never reach the ones behind it).
         var due = await repository.PayProfileChangeRequests.AsNoTracking()
             .Where(r => r.State == PayProfileChangeState.Scheduled && r.EffectiveFrom <= today)
-            .OrderBy(r => r.EffectiveFrom).ThenBy(r => r.RequestedAt)
+            .OrderBy(r => r.EffectiveFrom).ThenBy(r => r.RequestedAt).ThenBy(r => r.Id)
             .Select(r => r.Id)
-            .Take(BatchSize)
             .ToListAsync(ct);
 
         var (applied, blocked) = (0, 0);
         foreach (var id in due)
         {
+            ct.ThrowIfCancellationRequested();
             // Each request is its own unit of work: nothing an earlier attempt left tracked reaches this save.
             repository.ClearChangeTracker();
             var request = await repository.PayProfileChangeRequests

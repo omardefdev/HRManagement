@@ -8,7 +8,7 @@ namespace HRManagement.AcceptanceTests;
 /// <summary>
 /// AC-23: a frozen run is isolated from a pay change. Since PLAN-53 a salary changes by a request another person approves, so the
 /// isolation is proved twice: the change cannot reach the frozen month at all (the approver's approval is refused and the request
-/// stays pending), and the frozen run refuses recalculation and keeps its line. A later run is still computed while the request is
+/// stays pending), and the frozen run refuses recalculation and keeps its line. A run of the next month is still computed while the request is
 /// pending, and the request is still pending after it. That a run holds an applied change is AC-IAM-53a's (the prod-like stack) and
 /// Pay023FrozenRunIsolationTests' (the automatic path): no change can be applied here for a month the clock has not reached.
 /// </summary>
@@ -47,8 +47,13 @@ public class Ac23PayrollFreezeTests
         using var http = await AcceptanceHarness.CreateAuthorizedClientAsync(processor, correlationId);
         using var httpApprover = await AcceptanceHarness.CreateAuthorizedClientAsync(approver, correlationId);
 
-        var periodStartA = new DateTime(2027, 2, 1, 0, 0, 0, DateTimeKind.Utc);
-        var periodEndA = new DateTime(2027, 2, 28, 0, 0, 0, DateTimeKind.Utc);
+        // The two months follow the service's clock (Localization:TimeZone, Asia/Damascus): a request cannot name a month before the
+        // current one, so fixed months would end the scenario's life at their date. Thirteen and fourteen months ahead meet no month
+        // another lab class uses (AC-25 the current month; AC-24 and AC-12 fixed months of 2027) and no seeded Regular run.
+        var today = HRManagement.ServiceDefaults.Localization.HrLocalTime.ToLocal(DateTime.UtcNow, HRManagement.ServiceDefaults.Localization.HrLocalTime.DefaultZone);
+        var periodStartA = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(13);
+        var periodEndA = periodStartA.AddMonths(1).AddDays(-1);
+        var frozenMonth = periodStartA.ToString("yyyy/MM", System.Globalization.CultureInfo.InvariantCulture);
         var createA = await http.PostAsync("api/payroll/runs", JsonContent(new
         {
             periodStart = periodStartA,
@@ -84,7 +89,7 @@ public class Ac23PayrollFreezeTests
         var employeeId = runDoc.RootElement.GetProperty("salaryLines")[0].GetProperty("employeeId").GetGuid();
         var netBefore = runDoc.RootElement.GetProperty("salaryLines")[0].GetProperty("netPay").GetDecimal();
 
-        // PLAN-53: the processor requests a raise from 1 February 2027, inside the grade's bounds, through the PUT alias. It is a
+        // PLAN-53: the processor requests a raise from the first day of the frozen month, inside the grade's bounds, through the PUT alias. It is a
         // request: 202, pending, and the pay profile is not written.
         var (currentSalary, raisedSalary) = await SalaryInsideBoundsAsync(employeeId);
         var profileResp = await http.PutAsJsonAsync($"api/payroll/employees/{employeeId:D}/pay-profile", new
@@ -93,7 +98,7 @@ public class Ac23PayrollFreezeTests
             payGradeId = (Guid?)null,
             effectiveFrom = periodStartA,
             changeReason = "AC-23: زيادة في شهر مجمّد",
-            legalReference = "القرار 23 لعام 2027"
+            legalReference = "القرار 23"
         });
         var requestBody = await profileResp.Content.ReadAsStringAsync();
         recorder.CaptureHttp("after-profile-edit", "PUT",
@@ -108,7 +113,7 @@ public class Ac23PayrollFreezeTests
             requestId = requestDoc.RootElement.GetProperty("requestId").GetGuid();
         }
 
-        // The approver, another person, cannot approve it: February's run is frozen. The request stays pending.
+        // The approver, another person, cannot approve it: the month's run is frozen. The request stays pending.
         var approve = await httpApprover.PostAsJsonAsync($"api/payroll/pay-profile-changes/{requestId:D}/approve", new { note = "AC-23" });
         var approveBody = await approve.Content.ReadAsStringAsync();
         recorder.CaptureHttp("approve-frozen-month-negative", "POST", $"/api/payroll/pay-profile-changes/{requestId:D}/approve",
@@ -116,7 +121,7 @@ public class Ac23PayrollFreezeTests
         Assert.Equal(System.Net.HttpStatusCode.Conflict, approve.StatusCode);
         using (var refusal = JsonDocument.Parse(approveBody))
         {
-            Assert.Contains("2027/02", refusal.RootElement.GetProperty("error").GetString() ?? "", StringComparison.Ordinal);
+            Assert.Contains(frozenMonth, refusal.RootElement.GetProperty("error").GetString() ?? "", StringComparison.Ordinal);
             Assert.Equal("PendingApproval", refusal.RootElement.GetProperty("state").GetString());
         }
 
@@ -137,8 +142,8 @@ public class Ac23PayrollFreezeTests
         recorder.WriteAfter(new { netBefore, netAfter, unchanged = netBefore == netAfter });
         Assert.Equal(netBefore, netAfter);
 
-        var periodStartB = new DateTime(2027, 3, 1, 0, 0, 0, DateTimeKind.Utc);
-        var periodEndB = new DateTime(2027, 3, 31, 0, 0, 0, DateTimeKind.Utc);
+        var periodStartB = periodStartA.AddMonths(1);
+        var periodEndB = periodStartB.AddMonths(1).AddDays(-1);
         var createB = await http.PostAsync("api/payroll/runs", JsonContent(new
         {
             periodStart = periodStartB,
@@ -156,13 +161,13 @@ public class Ac23PayrollFreezeTests
         Assert.True(calculateB.IsSuccessStatusCode, await calculateB.Content.ReadAsStringAsync());
         var runBResp = await http.GetAsync($"api/payroll/runs/{runBId:D}");
         var runBJson = await runBResp.Content.ReadAsStringAsync();
-        recorder.CaptureHttp("run-b-new-salary", "GET", $"/api/payroll/runs/{runBId:D}",
+        recorder.CaptureHttp("run-b-request-still-pending", "GET", $"/api/payroll/runs/{runBId:D}",
             (int)runBResp.StatusCode, JsonSerializer.Deserialize<object>(runBJson));
 
         using var runBDoc = JsonDocument.Parse(runBJson);
         Assert.NotEqual(0, runBDoc.RootElement.GetProperty("salaryLines").GetArrayLength());
-        // A pending request reaches no run (rule 2): after March was computed it is still pending and unapplied, and the pay profile
-        // still holds the salary it held. (The old assertion compared February's net with March's after a direct write.)
+        // A pending request reaches no run (rule 2): after the next month was computed it is still pending and unapplied, and the pay profile
+        // still holds the salary it held. (The old assertion compared the frozen month's net with the next month's after a direct write.)
         var stateAfterRunB = await RequestStateAsync(http, requestId);
         var (salaryAfterRunB, _) = await SalaryInsideBoundsAsync(employeeId);
         recorder.WriteDbChecks(new { netBefore, requestId, stateAfterRunB, currentSalary, salaryAfterRunB, raisedSalary });

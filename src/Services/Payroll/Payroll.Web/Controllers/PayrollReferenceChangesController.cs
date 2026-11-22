@@ -160,7 +160,9 @@ public sealed class PayrollReferenceChangesController(PayrollDbContext db, IMedi
         if (PayrollReferenceChangeJson.Read<PayGradeChange>(request.ProposedJson) is not { } proposed)
             return null;
         var (min, max) = (proposed.MinSalary, proposed.MaxSalary);
-        return await db.EmployeePayProfiles.AsNoTracking().CountAsync(
+        // Counted within the caller's branch scope, as every pay profile he is shown (PLAN-52).
+        var profiles = await db.EmployeePayProfiles.AsNoTracking().InOrgScopeAsync(HttpContext, db);
+        return await profiles.CountAsync(
             p => p.PayGradeId == gradeId && p.IsActive && p.BaseSalary > 0
                  && ((min > 0 && p.BaseSalary < min) || (max > 0 && p.BaseSalary > max)),
             HttpContext.RequestAborted);

@@ -35,6 +35,9 @@ public sealed record PayProfileChangeResult(
     string? Error,
     PayProfileChangeFailure Failure = PayProfileChangeFailure.None)
 {
+    /// <summary>Something the caller should know about an accepted decision (Arabic); it refuses nothing.</summary>
+    public string? Warning { get; init; }
+
     public static PayProfileChangeResult Ok(Guid requestId, PayProfileChangeState state) => new(true, requestId, state, null);
 
     public static PayProfileChangeResult Fail(PayProfileChangeFailure failure, string error, Guid? requestId = null, PayProfileChangeState? state = null) =>
@@ -71,6 +74,10 @@ public static class PayProfileChangeMessages
     public const string BeforeCurrentMonth = "تاريخ السريان لا يسبق الشهر الجاري";
     public const string BeforeCurrentVersion = "تاريخ السريان يسبق بداية ملف الأجر الحالي للموظف";
     public const string OpenRequestExists = "للموظف طلب تغيير راتب مفتوح؛ ألغِه قبل تقديم طلب جديد";
+    public const string ProfileChangedSinceRequest =
+        "تغيّر ملف الأجر الفعّال للموظف بعد تقديم الطلب (تغيير آلي أو نقل)؛ ألغِ الطلب وقدّم طلباً جديداً على الملف الحالي";
+    public const string CalculatedRunNeedsRecalculation =
+        "لهذا الشهر تشغيل رواتب اعتيادي محسوب وغير مجمّد: أعد حسابه قبل التحقق منه ليأخذ الراتب الجديد";
     public const string NotPending = "الطلب ليس بانتظار الاعتماد";
     public const string NotOpen = "الطلب ليس مفتوحاً؛ لا يُلغى إلا طلب بانتظار الاعتماد أو مجدول";
     public const string DecidedConcurrently = "تغيّر الطلب للتو من مستخدم آخر؛ أعد فتحه";
