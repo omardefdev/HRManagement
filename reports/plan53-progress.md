@@ -521,6 +521,26 @@ Reason: the owner's message (`ssh hrm-vps whoami` → `hrm`). Re-check:
   the `s2s42` stage, the lab classes again (AC-23's months changed; the review's fixes touch the payroll paths), and
   the leastpriv stage (the migrator image exists; the disk decides).
 
+## P8
+
+- Started (UTC): 2026-11-22T22:42:29Z (the first server command; the local regression of P6 still runs beside it).
+- **SSH and P-17's condition (22:42Z):** `ssh hrm-vps` → `hrm`; the host key presented is
+  `SHA256:qWIfQls882KM/nQ99yV/WFU2Wk08t6DIb8o+pUMGsto` (as recorded). Running tag `1ee455bf1a6f` (previous
+  `92a69960c826`), which `origin/main` contains. 22 containers, 37 GB free (the 30 GB line is met), up 10 h 41 min.
+- **Server change 1 — the backup:** `/opt/hrm/backups/pre-plan53-20261122T224310Z` (700; `pg_dumpall.sql` 33,277,187
+  bytes, `env.backup`, `SHA256SUMS`, each 600). Verified: both sums OK; 17 `CREATE DATABASE` lines (the 16 databases
+  and `hrm_admin`); the dump ends with «database cluster dump complete». **Undo:** delete the folder when it is no
+  longer needed (`rm -rf /opt/hrm/backups/pre-plan53-20261122T224310Z`).
+- **The picture before the deploy (read-only, 22:43Z; counts and checksums, no amount):** active pay profiles 425 of
+  425, checksum of (employee, salary) `3b2e10719627b05f17069bfca7a784f2` (the same as P0's); 10 grades (md5 of their
+  rows `d964b59013d8ce5845a3dc816ff67c92`); 1 scale; 6 runs; last payroll migration `MSG040_InboxStateKeys`.
+- The scanner image the deploy bundle needs (`zricethezav/gitleaks` at its pinned digest) was pulled to this machine.
+- `AcIam53VpsChecks` follows the prompt's list: the three refused posts as the approver, the request through the API
+  with the marker as its `SourceReference` and Arabic reasons and references, the outbox sequence, Damascus's next
+  month, a reject with a note, the delete refused, nothing left open, the checksum compared.
+- The documents of P9 are committed (`79d523f8`); the server build will be of that commit, started when the local
+  `isolated` stage is green (one build, on the final code).
+
 ## Exact next step
 
 P8: while the prod-like `isolated` stage runs locally (log `artifacts/plan53/p6-isolated-job.log`; then `-Stage
