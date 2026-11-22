@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Payroll.Domain.Entities;
@@ -29,6 +31,7 @@ public class DeductionTypesController : Controller
     public IActionResult Create() => View(new DeductionType());
 
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
     public async Task<IActionResult> Create(DeductionType model)
     {
         if (!ModelState.IsValid) return View(model);
@@ -46,6 +49,7 @@ public class DeductionTypesController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
     public async Task<IActionResult> Edit(Guid id, DeductionType model)
     {
         if (model.Id != id) return BadRequest();
@@ -60,6 +64,7 @@ public class DeductionTypesController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var e = await _db.DeductionTypes.FindAsync(id);

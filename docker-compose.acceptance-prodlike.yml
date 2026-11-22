@@ -89,6 +89,9 @@ services:
       # PLAN-51 (D-IAM-4): mirror of appsettings.Production.json, which this Acceptance stack does not load.
       Authorization__AdminExcludedPolicies__0: "Payroll.Post"
       Authorization__AdminExcludedPolicies__1: "Payroll.Reverse"
+      # PLAN-53 (D-53-4): mirror of the Payroll.MasterData roles of appsettings.Production.json.
+      Authorization__Policies__Payroll.MasterData__Roles__0: "hr-admin"
+      Authorization__Policies__Payroll.MasterData__Roles__1: "payroll-processor"
 
   idcard-web:
     environment:

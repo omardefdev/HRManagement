@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -43,6 +45,7 @@ public class PayGradesController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
     public async Task<IActionResult> Create(PayGrade model)
     {
         if (!ModelState.IsValid) { await PopulateScalesAsync(); return View(model); }
@@ -61,6 +64,7 @@ public class PayGradesController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
     public async Task<IActionResult> Edit(Guid id, PayGrade model)
     {
         if (model.Id != id) return BadRequest();
@@ -75,6 +79,7 @@ public class PayGradesController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var e = await _db.PayGrades.FindAsync(id);

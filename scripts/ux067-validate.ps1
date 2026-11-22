@@ -252,7 +252,7 @@ if ($SelfTest) {
     foreach ($bad in @('<button onclick="go()">x</button>', '<div style="width: 3px">x</div>', '<a href="javascript:history.back()">x</a>')) {
         if ((Test-Views @{ "Planted.cshtml" = "<p>ok</p>`n$bad" }).Count -eq 0) { $failures += "a view with $bad was not refused" }
     }
-    if ((Test-GuardLists @{ "hr-core.txt" = "# comment`nViews/X.cshtml|english-label|Save | PLAN-53: later" }).Count -eq 0) { $failures += "a guard list with a row was not refused" }
+    if ((Test-GuardLists @{ "hr-core.txt" = "# comment`nViews/X.cshtml|english-label|Save | IAM-F: later" }).Count -eq 0) { $failures += "a guard list with a row was not refused" }
     $migration = Read-Bytes $paths.Migration
     $bom = [byte[]](@(0xEF, 0xBB, 0xBF) + $migration)
     if ((Test-Gateway $bom (Read-Bytes $paths.Designer) (Read-Text $paths.UserNames)).Count -eq 0) { $failures += "a migration with a byte order mark was not refused" }

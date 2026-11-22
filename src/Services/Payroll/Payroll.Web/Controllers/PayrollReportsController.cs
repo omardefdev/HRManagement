@@ -103,6 +103,7 @@ public class PayrollReportsController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
     public async Task<IActionResult> BulkPayslips(Guid payrollRunId, bool async = false)
     {
         SecurityAudit.Log(HttpContext, SecurityAudit.EventTypes.BulkExport, $"PayrollReports/BulkPayslips/{payrollRunId}");

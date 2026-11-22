@@ -6,8 +6,8 @@
 # files a reviewer or an operator edits by hand):
 #   1. The gateway matches self-service by exact segment: no "/Ess" substring rule, no TryGetEssPolicy, the 404 decision is recorded.
 #   2. The module filter holds no name list and applies a write policy.
-#   3. The ceiling lists: only Payroll's write list (rows signed PLAN-53), no sensitive row outside Payroll, no entity binding of
-#      HR.Movements, entity rows signed IAM-F, and the old HR.Core list is gone.
+#   3. The ceiling lists: no write-policy list and no sensitive list at all (PLAN-53 emptied Payroll's, the last one), no entity binding
+#      of HR.Movements, entity rows signed IAM-F, and the old HR.Core list is gone.
 #   4. hr-core.workflow is accepted by the three endpoints (Workflow.ExternalStart, Service.CodeGenerate, Service.PolicyEnforce) and the
 #      reads that section 5 rule 1 keeps, never by HrCore.Write.
 #   5. No apply-file: the controller and the gateway table name the apply route only, under Platform.AgencyOnboarding.
@@ -57,13 +57,8 @@ function Test-Lists([hashtable]$files) {
     foreach ($name in $files.Keys) {
         $rows = @($files[$name] -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -ne "" -and -not $_.StartsWith("#") })
         if ($name -eq "hrcore-post-policy-allowlist.txt") { $problems += "the old HR.Core list is back"; continue }
-        if ($name -like "write-policy-allowlist/*") {
-            if ($name -ne "write-policy-allowlist/payroll.txt") { $problems += "$name exists: only Payroll keeps a write-policy list (PLAN-53)"; continue }
-            foreach ($row in $rows) { if ($row -notmatch '\|\s*PLAN-53:') { $problems += "${name}: row not signed by PLAN-53: $row" } }
-        }
-        if ($name -eq "sensitive-actions-allowlist.txt") {
-            foreach ($row in $rows) { if ($row -notmatch '^payroll:' -or $row -notmatch '\|\s*PLAN-53:') { $problems += "sensitive list: a row PLAN-53 does not own: $row" } }
-        }
+        if ($name -like "write-policy-allowlist/*") { $problems += "$name exists: no service keeps a write-policy list (PLAN-53 emptied Payroll's, the last one)"; continue }
+        if ($name -eq "sensitive-actions-allowlist.txt") { $problems += "the sensitive-actions list is back: no plan owns a row of it"; continue }
         if ($name -like "entity-binding-allowlist/*") {
             if ($name -eq "entity-binding-allowlist/hr-movements.txt") { $problems += "HR.Movements binds an entity again (PLAN-51 replaced them with view models)"; continue }
             foreach ($row in $rows) { if ($row -notmatch '\|\s*IAM-F:') { $problems += "${name}: row not signed by IAM-F: $row" } }
@@ -199,10 +194,12 @@ if ($SelfTest) {
     $filter = Read-Text $paths.Filter
     if ((Test-Filter ($filter + "`nif (controller.StartsWith(`"Ess`", StringComparison.OrdinalIgnoreCase)) return;")).Count -eq 0) { $failures += "a name list in the filter was not refused" }
     $lists = Get-ListFiles
-    $planted = $lists.Clone(); $planted["write-policy-allowlist/hr-core.txt"] = "Shifts.Create | PLAN-53: planted"
+    $planted = $lists.Clone(); $planted["write-policy-allowlist/hr-core.txt"] = "Shifts.Create | IAM-F: planted"
     if ((Test-Lists $planted).Count -eq 0) { $failures += "a write list outside Payroll was not refused" }
-    $unsigned = $lists.Clone(); $unsigned["write-policy-allowlist/payroll.txt"] = "PayrollRuns.Create | to save time"
-    if ((Test-Lists $unsigned).Count -eq 0) { $failures += "an unsigned Payroll row was not refused" }
+    $unsigned = $lists.Clone(); $unsigned["write-policy-allowlist/payroll.txt"] = "PayrollRuns.Create | IAM-F: planted"
+    if ((Test-Lists $unsigned).Count -eq 0) { $failures += "a Payroll write list that came back was not refused" }
+    $sensitive = $lists.Clone(); $sensitive["sensitive-actions-allowlist.txt"] = "payroll:PayrollRuns.Create | IAM-F: planted"
+    if ((Test-Lists $sensitive).Count -eq 0) { $failures += "a sensitive-actions list that came back was not refused" }
     $authorization = Read-Text $paths.Authorization
     $services = Read-Text $paths.Services
     $wide = $authorization.Replace("options.RolesPolicy(HrManagementPolicies.HrCoreWrite, HrManagementRoles.Admin, HrManagementRoles.HrCore);",
@@ -224,7 +221,7 @@ if ($SelfTest) {
         $failures | ForEach-Object { Write-Host "[FAIL] self-test: $_" -ForegroundColor Red }
         exit 1
     }
-    Write-Host "[PASS] iam051-validate self-test: 9 planted defects refused, the repository passes" -ForegroundColor Green
+    Write-Host "[PASS] iam051-validate self-test: 10 planted defects refused, the repository passes" -ForegroundColor Green
     exit 0
 }
 

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.ViewModels;
 using Payroll.Application.Abstractions;
@@ -78,6 +79,7 @@ public class EmployeePayProfilesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
     public async Task<IActionResult> Create(EmployeePayProfile model, string? changeReason)
     {
         if (!ModelState.IsValid)

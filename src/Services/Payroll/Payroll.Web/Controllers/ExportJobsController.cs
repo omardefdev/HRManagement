@@ -34,6 +34,7 @@ public class ExportJobsController(IPayrollExportJobService exportJobs) : Control
 
     [HttpPost("{id:guid}/cancel")]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.ModulePayroll)]
     public async Task<IActionResult> Cancel(Guid id, CancellationToken ct)
     {
         var userId = RequireUserId();

@@ -164,15 +164,47 @@ Reason: the owner's message (`ssh hrm-vps whoami` → `hrm`). Re-check:
   - time: `HrLocalTime.ToLocal(utc, HrLocalTime.Zone)`; `TimeProvider.System` is in Payroll's DI through `AddLegalControl`;
   - regime: `ServiceRegimeExceptionService.ResolveAsync` applies the transition itself (two saves, no event published);
     patches pattern `AcceptanceMdmReferencePatch`; the backfill runs only on restarts under the default tenant.
-- Finished (UTC): 2026-11-22T12:58:00Z — P0 committed.
+- Finished (UTC): 2026-11-22T12:44:54Z — P0 committed (`92fab7c6`). (That commit carries `12:58:00Z` here and as P1's start: an estimate written before the clock was read. Corrected to the clock's value one minute later; no other stamp was touched.)
 
 ## P1
 
-- Started (UTC): 2026-11-22T12:58:00Z.
+- Started (UTC): 2026-11-22T12:44:54Z.
+
+- 12:45Z to 12:51Z: `Payroll.MasterData` and `Payroll.ChangeCancel` (rules written once in `PayrollPolicyRules.cs`), the
+  sixteen attributes, the settings and the mirror, the list deleted, `PLAN-53` out of `CeilingList.Owners`, the planted
+  rows moved, `iam051-validate.ps1` and `ux067-validate.ps1` updated, `PayrollWriteActionsTests` written. Build 0 errors;
+  architecture 344/344 (313 + 31 new) at 12:51:18Z.
+- **Stop 2: 2026-11-22T12:51:44Z to 15:16:33Z = 2 h 24 min 49 s.** Cause: the owner stopped the running command (the
+  whole unit suite and the validate scripts), and the machine was restarted (uptime 4 min at the resume). Nothing was
+  lost: the working tree held every P1 edit; the unit run had rewritten `testdata/*/out` files, restored.
+
+### Resumed (UTC): 2026-11-22T15:16:33.8524623Z — the owner's message «اكمل»
+
+- The keep-awake process died with the restart; started again (`systemd-inhibit`, same undo command).
+- Next: the whole unit suite (in the background, log under `artifacts/plan53/`), then the validate scripts, the format
+  check, the P1 commit.
+
+- P1 results (15:17Z to 15:27Z): build `-warnaserror` 0 errors; **unit 6353/6353** (8 min 11 s); architecture 344/344;
+  `iam051-validate.ps1` pass, its `-SelfTest` 10 planted defects refused (one more: a sensitive list that comes back);
+  `ux067-validate.ps1` and its `-SelfTest` pass; format clean on the changed files.
+- **Decisions in P1:**
+  - `Payroll.ChangeCancel` admits whoever passes `Payroll.Process`, `Payroll.MasterData` or `Payroll.Approve` (P-4 names
+    the first and the third; `Payroll.MasterData` is added so a requester of a reference change whose configured roles
+    are not the processor's can still cancel his own request). The three rules are written once (`PayrollPolicyRules`).
+  - `WriteActionsHaveExplicitPolicyTests`: Payroll is no longer left out of the «read policy only» check; its
+    `ExportJobs.Cancel` (P-4: `Module.Payroll`, the owner check stays) is declared like the four other services'
+    `ExportJobs.Cancel`, so the declared reads count goes from 22 to 23. The action is not new: the check did not see
+    Payroll before. Goes into the report.
+  - `GuardSelfTests` now also proves that a row signed `PLAN-53` is refused.
+- Finished (UTC): 2026-11-22T15:27:16Z — P1 committed.
+
+## P2
+
+- Started (UTC): 2026-11-22T15:27:16Z.
 
 ## Exact next step
 
-P1 (P-4): add `Payroll.MasterData` (constant, `RolesPolicy`, settings, mirror) and the cancel policy; put the named
-policy on each of the sixteen actions; delete `tests/architecture/write-policy-allowlist/payroll.txt`; take `PLAN-53`
-out of `CeilingList.Owners` and move the planted rows; update `iam051-validate.ps1`; add `PayrollWriteActionsTests` and
-the per-action policy tests.
+P2 (P-5 entities, P-8 entity, P-12): add `PayProfileChangeRequest` and `PayrollReferenceChangeRequest` with their enums
+(Arabic `[Display]`), their EF configuration (filtered unique index, `xmin`), the two `Restrict` relations,
+`EmployeePayProfileVersioning` with `Iam053ApplierCopyForwardTests`, and migration `PAY053_SalaryChangeRequests` (row
+security on the new tables, no BOM, no pending model changes). Prove row security as a non-superuser.

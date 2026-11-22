@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Payroll.Domain.Entities;
@@ -33,6 +35,7 @@ public class SalaryScalesController : Controller
     public IActionResult Create() => View(new SalaryScale { EffectiveFrom = DateTime.UtcNow });
 
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
     public async Task<IActionResult> Create(SalaryScale model)
     {
         if (!ModelState.IsValid) return View(model);
@@ -50,6 +53,7 @@ public class SalaryScalesController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
     public async Task<IActionResult> Edit(Guid id, SalaryScale model)
     {
         if (model.Id != id) return BadRequest();
@@ -64,6 +68,7 @@ public class SalaryScalesController : Controller
     }
 
     [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var e = await _db.SalaryScales.Include(s => s.PayGrades).FirstOrDefaultAsync(s => s.Id == id);
