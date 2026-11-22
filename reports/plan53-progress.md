@@ -316,13 +316,135 @@ Reason: the owner's message (`ssh hrm-vps whoami` → `hrm`). Re-check:
 - Started (UTC): 2026-11-22T17:09:43Z.
 - Machine at the start of P5: see the disk line written when the lab stack is prepared.
 
+- **P5 checkpoint, 2026-11-22T18:02:28Z (nothing of P5 committed yet; all of it is in the working tree):**
+  - **The machine and the images.** Disk `/` 14 GB free. This machine never built the acceptance images. On Linux
+    `acceptance-up.ps1` builds all seventeen at once; with 18 GB free and a link of 90 to 500 KB/s that would fill the
+    disk and take hours. So the images are built by a local helper, **not committed**
+    (`artifacts/plan53/build-images-sequential.ps1`): one service at a time, the first from the registry's base images,
+    the rest from the local base images `acceptance-up.ps1` itself supports (`hrm-local-dotnet-sdk:10.0.400`,
+    `hrm-local-dotnet-runtime:10.0`, `REUSE_LOCAL_RUNTIME_BASE=true`), and the build-stage cache pruned after each image
+    (`docker builder prune -f --filter type=regular`, then `type=source.local`; the NuGet cache mount and the images stay).
+  - **NuGet cache seeded from the host** (`artifacts/plan53/nuget-seed/`, through `docker compose build`, because
+    `docker build` has no buildx here): 359 packages, 4.3 GB, into the cache mount `hrmanagement-nuget` the service
+    Dockerfile uses; `dotnet restore --locked-mode` still verifies every package. The temporary context copy was pruned
+    (4.64 GB reclaimed, recorded prune 1).
+  - **First build attempt** (17:13:12Z to 17:29:37Z, 16 min 25 s) **failed**: the pull of
+    `mcr.microsoft.com/dotnet/sdk:10.0.400` was reset by the registry at about 95% («connection reset by peer»). The
+    apt layer of the runtime base took 403 s. No image was produced.
+  - **Now:** `docker pull mcr.microsoft.com/dotnet/sdk:10.0.400` with retries, started 17:30:24Z
+    (`artifacts/plan53/p5-sdk-pull.log`); the build helper starts when it ends.
+  - The owner's dev containers (`hrm-keycloak` restarting, `hrm-postgresql`, `hrm-rabbitmq`, `hrm-clamav`) and the other
+    projects' containers were **not touched**: the acceptance compose resets container names and uses the 6xxx ports.
+  - **Written while waiting (build green, tests green where run):**
+    - personas: scenarios `AC-IAM-53` for `payroll-processor`, `payroll-approver`, `a-payroll-poster`,
+      `b-payroll-approver`, and `AC-23` for `payroll-approver`;
+    - `AcceptancePayrollRegimePatch` (HR.Core, called by `AcceptanceSeedOrchestrator` after the recruitment patches) and
+      `Iam053AcceptanceRegimePatchTests` 5/5: it writes exactly what `ResolveAsync` and `ApplyTransitionAsync` write
+      (proved by running both on equal data), one save per agency; it logs, per agency, the records it classifies, the
+      exceptions it resolves and the open exceptions of other types it leaves. **Deviation in order:** the patch was
+      written before the first stack start (the build is hours away on this link); the «before» numbers are its own log
+      lines at the first start, and the «after» numbers come from SQL;
+    - `Ac23PayrollFreezeTests` and `Ac25FraudHoldTests` rewritten on the request and its approval (compile clean; not
+      run yet). AC-23: request from 2027-02-01 through the PUT alias (202), the approver's approval refused (409 naming
+      2027/02), state pending, recalculation refused, net unchanged, March computed while the request is pending, the
+      request cancelled at the end. **Its old last assertion** (`netB != netBefore` after a direct write) is replaced
+      by «the request is still pending and unapplied after a later run»; that a run holds an applied change is proved
+      by AC-IAM-53a and `Pay023`. AC-25: the fixture is a request from the first day of the current month (Damascus),
+      approved and applied, salary inside the grade's bounds; every other assertion as it was;
+    - the regime classes checked by reading: `AcIam50` and `AcS2s42` set `law50` by SQL (now a no-op), `AcInt37` finds
+      the BR1 head first, `AcHcm29`, `AcMsg40`, `AcQa34` do not depend on an unclassified employee; no class and no
+      verify count reads regime exceptions or transitions. To be confirmed by running them (P-14);
+    - `scripts/iam053-validate.ps1` with `-SelfTest` (20 planted defects); today it fails only on the acceptance scope
+      entries that P5 and P6 add (AC-IAM-53 required, AC-12/23/25 required, the ownership row);
+    - the PUT alias body is renamed `PayProfilePutAliasRequest`, so `UpsertEmployeePayProfile` is nowhere in the product
+      code (the validate script checks it).
+
+- **P5 checkpoint, 2026-11-22T18:31Z — the images, without the registry's SDK image:**
+  - The pull of `mcr.microsoft.com/dotnet/sdk:10.0.400` ran from 17:30:24Z to 18:19Z and never finished: the link gave
+    14 to 17 KB/s to the registry (20 to 54 KB/s to other hosts, measured). The agent stopped it (no work waited on it:
+    P5's code was written and tested meanwhile).
+  - **Deviation (this machine only, nothing committed):** the two local base images `acceptance-up.ps1` supports were
+    assembled from what the machine already holds (`artifacts/plan53/sdk-local/`): `hrm-local-dotnet-sdk:10.0.400` =
+    the local `mcr.microsoft.com/dotnet/sdk:10.0` image (10.0.101) with its `/usr/share/dotnet` replaced by the SDK
+    10.0.400 and the runtime 10.0.11 installed on the host (the same Microsoft linux-x64 files; `dotnet --version` in the
+    image answers 10.0.400); `hrm-plan53-aspnet:10.0.11` = the local `aspnet:10.0` (10.0.1) with the host's runtime
+    10.0.11. The first service installs curl and Kerberos on it and becomes `hrm-local-dotnet-runtime:10.0`, as the
+    script does. CI builds from the registry's images; the evidence of record is CI's.
+  - The sequential build started 18:20:53Z: the first image 430 s (apt over the slow link), then about 73 s an image.
+  - `personas.json`: the scenarios had been lost by a `git checkout -- testdata` after a test run; written again and
+    staged, so a restore of the test data keeps them.
+  - `AcIam53SalaryChangeTests` (P6's class) is written while the images build, not compiled yet and not in the scope
+    files; it is **not** part of P5's commit.
+
+- **P5 checkpoint, 2026-11-22T19:18Z — the images are built, the first lab start, the regime numbers:**
+  - Images: 15 service images (the Acceptance stack has fifteen buildable services, not seventeen: the checkpoint above
+    miscounted), all labelled `f9c83a71…-dirty` (P5 is not committed), built in 1,890 s (18:20:53Z to 18:52:33Z);
+    disk 12 GB free after it. `alpine:3.20.3` (the volume-init container) pulled.
+  - **First lab start** 18:58:35Z to 19:12:29Z (13 min 54 s): every service healthy, then `acceptance-verify.ps1`
+    failed **one** check, `SEED-03` (two seed fingerprints). **Cause, the agent's own:** the fingerprint hashes the
+    embedded `testdata/acceptance/personas.json`, and the agent wrote the personas' scenarios again at about 18:25Z,
+    after the first image (`admin-logistics-web`) had been built from the file without them. Fix: stack down with its
+    volumes (`acceptance-reset.ps1`), that one image rebuilt (179 s), second start 19:17Z. Time lost: about 18 minutes.
+    **Rule for the rest of the session:** no tracked file that an image embeds changes while images build.
+  - **P-10's measure** (HR.Core's log at the first start = before; SQL after), current employment records without a
+    regime / open regime exceptions of any type:
+    AGENCY-A 1138 / 0, AGENCY-B 261 / 0, AGENCY-C 132 / 0 before; 0 / 0 for each after, every current record `law50`,
+    and 1138 + 261 + 132 = 1531 `EmploymentRegimeTransitions` rows with the reference `ACCEPTANCE-SEED-LAW50`. The
+    acceptance seed holds **no** `ServiceRegimeExceptions` row at all (the demo holds 500), so the patch resolves none
+    here; its resolving path is proved by `Iam053AcceptanceRegimePatchTests`.
+  - **The seed's payroll runs of agency A** (read by SQL): Regular, posted and frozen, 1102 lines each, for 2025-08 to
+    2026-07; then one run a month of another kind **with no salary line**: 2026-08 Correction, 2026-09 FinalSettlement,
+    2026-10 Correction, **2026-11 FinalSettlement (frozen)**, 2026-12 Correction (frozen), 2027-01 FinalSettlement,
+    2027-02 Correction (frozen). So the current month has no Regular run, and P-6's reading (a run of another kind
+    covers only the employees on its lines) is what lets a change of November be approved.
+  - **The seed's pay profiles of agency A:** 1102 active, each with a grade and a unit; **none** has a regime code, a
+    bank account, a bank name or a verification time. So AC-IAM-53a sets those four on its employee's profile as a
+    stated test precondition (psql), or the copy-forward would be proved on empty values.
+  - `AcIam53SalaryChangeTests` compiles (`-warnaserror`); it is adapted to the two facts above (run kinds are stored as
+    text; the precondition is «no Regular run of the month, and no line of his in a run of the month»).
+
+- **P5 checkpoint, 2026-11-22T19:44Z — the payroll regression on the lab stack:**
+  - Second lab start 19:16:45Z to 19:31:19Z (14 min 34 s), verification **Pass** (64 checks; `DATA-PAYPROFILE`
+    1489 = 1489, `DATA-PAYRUN` 57, `DATA-PAYJOB` 6, `DATA-PAYORDER` 72: the seed counts as before).
+  - Direct run on that stack (`artifacts/plan53/run-classes.ps1`, the job's environment): **AC-23 Passed, AC-24
+    Passed, AC-25 Passed**: each creates, calculates and validates a Regular run for agency A, so the regime gate is
+    passed (P-10's proof). `AcHcm29HireContractTests` 3/3 Passed.
+  - **AC-12 is Blocked, and not by the regime gate:** its script submits a run for review without calculating it, and
+    the product answers 400 («يجب إكمال الحساب والتحقق من الإجماليات قبل الإرسال للمراجعة»). It was Blocked for the same
+    cause before this plan (PLAN-41's report), and PLAN-59 owns its rewrite (its §2, G-PAY-05). The prompt assumed the
+    patch alone would make it pass and says AC-12 «does not change». **Decision:** AC-12 is not changed and not marked
+    required (a required class that is Blocked fails the guard); its ownership row says what was measured. AC-23,
+    AC-24 and AC-25 are `required: true` in `ci-scope.json`; AC-23 and AC-25 carry `[RequiredAcceptance]`. A deviation
+    for the report: «AC-12 green and required» is PLAN-59's, not delivered here.
+  - `AcIam53SalaryChangeTests` tried on the used lab stack: 53b, 53c, 53d, 53e Passed; 53a stopped at its precondition,
+    as designed (AC-25 had frozen the month there). Two defects of the test itself fixed on the way: amounts formatted
+    with the host's culture, and a page names a user by PLAN-67's span (`data-hr-user-id`), not by text.
+  - The lab job for the record (`acceptance-job.ps1 -Profile Lab -NoBuild -Classes Ac12…, Ac23…, Ac24…, Ac25…,
+    AcHcm29…, RecruitmentToHireJourneyE2ETests`) started 19:43:05Z on a fresh stack; log `artifacts/plan53/p5-lab-job.log`.
+  - The independent review (one fresh subagent, read-only) was started at 19:44Z, before the prod-like record run, so
+    its fixes are in the images that run prod-like and go to the server.
+  - PLAN-54's step 0.7 carries the line «نُفّذت في PLAN-53» with the measured numbers.
+
+- **P5 end (2026-11-22T20:22:24Z):**
+  - **The lab job for the record** (fresh stack, 19:43:05Z to 20:02:30Z; stack 907 s, lab-main 201 s, journey 14 s):
+    `acceptance-guard: PASS (6 classes in 2 trx files)`. AC-23 Passed (9 s), AC-24 Passed (41 s), AC-25 Passed (108 s),
+    `AcHcm29HireContractTests` and `RecruitmentToHireJourneyE2ETests` Passed; AC-12 Blocked (not required, shown only).
+    The stack was brought down with its volumes after it (`acceptance-reset.ps1`): the job leaves its last stack up.
+  - Build `-warnaserror` 0 errors; unit **6545/6545** (a first run was aborted at 6273 by a test host crash while the
+    stack was being torn down and the machine was swapping; the rerun with `--blame` is complete and green);
+    architecture **358/358**; format clean on the changed files; `iam053-validate.ps1` fails only on the two entries
+    P6 adds (AC-IAM-53 in the scope and in the ownership file).
+  - **The independent review** came back (read-only, about 16 minutes): no high finding; four medium and six low.
+    They are fixed in P6, before the prod-like record run, and listed there.
+  - Disk: 11 GB free after the stack went down (9.3 GB with it up). Chromium for AC-UX-67 was downloaded to
+    `~/.cache/ms-playwright` while the lab job ran (the job's `--with-deps` step needs sudo on Linux; see P6).
+- Finished (UTC): 2026-11-22T20:22:24Z — P5 committed.
+
 ## Exact next step
 
-P5 (P-10, P-11): check the disk (P-2: `df -h /`, `docker system df`); read how `scripts/acceptance-up.ps1 -Profile Lab`
-and `scripts/acceptance-reset.ps1` work here; update `testdata/acceptance/personas.json` scenarios (AC-IAM-53 for
-`payroll-processor`, `payroll-approver`, `a-payroll-poster`, `b-payroll-approver`; AC-23 for `payroll-approver`); build
-the lab images once, start the lab stack, measure per agency the current records without a regime and the open regime
-exceptions; write `AcceptancePayrollRegimePatch` and call it from `AcceptanceSeedOrchestrator`; check the classes that
-read regimes; prove a Regular run for agency A passes the gate; update `Ac23PayrollFreezeTests` and
-`Ac25FraudHoldTests`; run AC-12, AC-23, AC-24, AC-25, `AcHcm29` and the lab journey; set AC-12, AC-23, AC-25 (and
-AC-24 if green) `required: true` in `tests/acceptance/ci-scope.json`; `down -v`.
+P6: fix the review's findings with tests (see the list under P6); add `AcIam53SalaryChangeTests` to `ci-scope.json`
+(`prodLike[]`, required, group `main`) and `AC-IAM-53` to `ac-ownership.json`; rebuild the fifteen images
+(`pwsh -NoProfile -File artifacts/plan53/build-images-sequential.ps1`, no tracked file changes while it runs); start the
+prod-like stack (`acceptance-up.ps1 -Profile ProdLike -NoBuild`), run `AcIam53SalaryChangeTests` with
+`artifacts/plan53/run-classes.ps1` until green, reset, then the job for the record with P-14's lists; the Testcontainers
+step with CI's filter; commit P6.

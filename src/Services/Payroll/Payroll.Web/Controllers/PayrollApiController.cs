@@ -145,7 +145,7 @@ public class PayrollApiController : ControllerBase
     [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
     public async Task<IActionResult> UpsertPayProfile(
         Guid employeeId,
-        [FromBody] UpsertEmployeePayProfileApiRequest request,
+        [FromBody] PayProfilePutAliasRequest request,
         CancellationToken ct)
     {
         var scope = await HttpContext.GetOrgScopeAsync();
@@ -404,7 +404,7 @@ public record CreatePayrollRunApiRequest(
     Guid? SourceRunId = null);
 
 /// <summary>The body of the PUT alias (PLAN-53): the old shape, plus the legal reference a manual change needs.</summary>
-public record UpsertEmployeePayProfileApiRequest(
+public record PayProfilePutAliasRequest(
     decimal BaseSalary,
     Guid? PayGradeId,
     DateTime EffectiveFrom,

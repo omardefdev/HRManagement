@@ -21,6 +21,8 @@ public static class AcceptanceSeedOrchestrator
         await AcceptanceCompetitionPatch.ApplyAsync(db, logger, ct);
         await AcceptanceRecruitmentReportsPatch.ApplyAsync(db, logger, ct);
         await AcceptanceRecruitmentStatesPatch.ApplyAsync(db, logger, ct);
+        // PLAN-53 (P-10): the seeded employees get a service regime (law50), so payroll runs pass the service-regime gate.
+        await AcceptancePayrollRegimePatch.ApplyAsync(db, logger, ct);
         // PLAN-41: last, because the patches above add BR1 positions; the plan target is funded + 2 over the final subtree.
         await AcceptancePlanningPatch.SyncPlanTargetAsync(db, logger, ct);
         // PLAN-42: only with docker-compose.acceptance-s2s42.yml.
