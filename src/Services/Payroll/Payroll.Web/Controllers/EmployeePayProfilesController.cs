@@ -1,52 +1,63 @@
-using Microsoft.AspNetCore.Authorization;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.ViewModels;
-using Payroll.Application.Abstractions;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Payroll.Application.Abstractions;
 using Payroll.Application.Features.EmployeePayProfiles;
+using Payroll.Application.Features.PayProfileChanges;
+using Payroll.Application.Services;
 using Payroll.Domain.Entities;
+using Payroll.Domain.Enums;
 using Payroll.Infrastructure.Data;
+using Payroll.Web.ViewModels;
 
 namespace Payroll.Web.Controllers;
 
+/// <summary>
+/// Pay profiles are read here and never written: PLAN-53 turned «ملف راتب جديد» into the salary change request form, so a salary or a
+/// grade changes only through a request another person approves. Branch scope (the IAM study's note 3): the filter resolves every
+/// <c>employeeId</c> through the employee's active profile before the action runs (a foreign employee is 404), and the list is filtered.
+/// </summary>
+[OrgScoped(typeof(EmployeePayProfile))]
 public class EmployeePayProfilesController : Controller
 {
     private readonly PayrollDbContext _db;
     private readonly IMediator _mediator;
     private readonly IEmployeeLookup _employeeLookup;
+    private readonly IPayrollCalendar _calendar;
 
     public EmployeePayProfilesController(
         PayrollDbContext db,
         IMediator mediator,
-        IEmployeeLookup employeeLookup)
+        IEmployeeLookup employeeLookup,
+        IPayrollCalendar calendar)
     {
         _db = db;
         _mediator = mediator;
         _employeeLookup = employeeLookup;
+        _calendar = calendar;
     }
 
     public async Task<IActionResult> Index(Guid? employeeId, Guid? payGradeId, bool? isActive, DateTime? effectiveFrom, DateTime? effectiveTo)
     {
-        var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, _db.OrgUnitSnapshots);
-        if (scope.IsDenied) return Forbid();
-        var items = await _mediator.Send(new GetEmployeePayProfilesQuery());
-        if (scope.MustFilter)
-            items = items.Where(p => p.OrgUnitId.HasValue && scope.AllowedOrgUnitIds.Contains(p.OrgUnitId.Value)).ToList();
-        if (employeeId.HasValue) items = items.Where(p => p.EmployeeId == employeeId.Value).ToList();
-        if (payGradeId.HasValue) items = items.Where(p => p.PayGradeId == payGradeId.Value).ToList();
-        if (isActive.HasValue) items = items.Where(p => p.IsActive == isActive.Value).ToList();
-        if (effectiveFrom.HasValue) items = items.Where(p => p.EffectiveFrom >= effectiveFrom.Value).ToList();
-        if (effectiveTo.HasValue) items = items.Where(p => p.EffectiveFrom <= effectiveTo.Value).ToList();
-        items = items.Take(SearchFilterBase.MaxPageSize).ToList();
+        var query = await _db.EmployeePayProfiles.Include(p => p.PayGrade).AsNoTracking().InOrgScopeAsync(HttpContext, _db);
+        if (employeeId.HasValue) query = query.Where(p => p.EmployeeId == employeeId.Value);
+        if (payGradeId.HasValue) query = query.Where(p => p.PayGradeId == payGradeId.Value);
+        if (isActive.HasValue) query = query.Where(p => p.IsActive == isActive.Value);
+        if (effectiveFrom.HasValue) query = query.Where(p => p.EffectiveFrom >= effectiveFrom.Value);
+        if (effectiveTo.HasValue) query = query.Where(p => p.EffectiveFrom <= effectiveTo.Value);
+        IList<EmployeePayProfile> items = await query.OrderByDescending(p => p.EffectiveFrom).Take(SearchFilterBase.MaxPageSize)
+            .ToListAsync(HttpContext.RequestAborted);
 
         ViewBag.EmployeeId = employeeId;
         ViewBag.PayGradeId = payGradeId;
         ViewBag.IsActive = isActive;
         ViewBag.EffectiveFrom = effectiveFrom;
         ViewBag.EffectiveTo = effectiveTo;
+        ViewBag.CanRequest = PayrollPolicyRules.CanProcess(User);
         ViewBag.PayGrades = new SelectList(
             await _db.PayGrades.AsNoTracking().OrderBy(g => g.GradeCode).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(),
             "Id", "GradeNameAr", payGradeId);
@@ -58,12 +69,6 @@ public class EmployeePayProfilesController : Controller
 
     public async Task<IActionResult> History(Guid employeeId)
     {
-        var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(User, _db.OrgUnitSnapshots);
-        if (scope.IsDenied) return Forbid();
-        var profile = await _mediator.Send(new GetEmployeePayProfilesQuery());
-        var match = profile.FirstOrDefault(p => p.EmployeeId == employeeId);
-        if (match is not null && !scope.CanAccess(match.OrgUnitId))
-            return Forbid();
         ViewBag.EmployeeId = employeeId;
         ViewBag.EmployeeName = await _employeeLookup.GetEmployeeDisplayNameAsync(
             employeeId, HttpContext.RequestAborted) ?? "غير متاح";
@@ -71,35 +76,54 @@ public class EmployeePayProfilesController : Controller
         return View(items);
     }
 
-    public async Task<IActionResult> Create()
+    /// <summary>The salary change request form (PLAN-53): what is saved is a request, never a pay profile.</summary>
+    [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
+    public async Task<IActionResult> Create(Guid? employeeId)
     {
-        ViewBag.Grades = new SelectList(await _db.PayGrades.AsNoTracking().OrderBy(g => g.GradeCode).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "GradeNameAr");
-        return View(new EmployeePayProfile { EffectiveFrom = DateTime.UtcNow, IsActive = true });
+        await PopulateGradesAsync();
+        // D-53-1: the first day of a month, by default the next one (dates of the configured zone).
+        return View(new PayProfileChangeRequestViewModel
+        {
+            EmployeeId = employeeId,
+            EffectiveFrom = _calendar.FirstDayOfCurrentMonth.AddMonths(1),
+        });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
-    public async Task<IActionResult> Create(EmployeePayProfile model, string? changeReason)
+    public async Task<IActionResult> Create(PayProfileChangeRequestViewModel model)
     {
         if (!ModelState.IsValid)
         {
-            ViewBag.Grades = new SelectList(await _db.PayGrades.AsNoTracking().OrderBy(g => g.GradeCode).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "GradeNameAr");
+            await PopulateGradesAsync();
+            Response.StatusCode = StatusCodes.Status400BadRequest;
             return View(model);
         }
 
-        var (success, _, error) = await _mediator.Send(new UpsertEmployeePayProfileCommand(
-            model.EmployeeId, model.BaseSalary, model.PayGradeId,
-            model.EffectiveFrom, model.EffectiveTo, model.IsActive, changeReason));
+        var result = await _mediator.Send(new SubmitPayProfileChangeCommand(
+            model.EmployeeId!.Value, model.ProposedBaseSalary, model.ProposedPayGradeId, model.EffectiveFrom!.Value, model.Reason,
+            model.LegalReference, PayProfileChangeSource.Manual, SourceReference: null,
+            PayProfileChangeHttp.RequireUserId(User), PayProfileChangeHttp.UserName(User), await HttpContext.GetOrgScopeAsync()),
+            HttpContext.RequestAborted);
 
-        if (!success)
+        if (!result.Success)
         {
-            ModelState.AddModelError(string.Empty, error ?? "فشل الحفظ");
-            ViewBag.Grades = new SelectList(await _db.PayGrades.AsNoTracking().OrderBy(g => g.GradeCode).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "GradeNameAr");
+            if (result.Failure == PayProfileChangeFailure.NotFound)
+                return NotFound();
+            // The same answer as the API (400 a broken rule, 409 a second open request), with the Arabic message on the form.
+            ModelState.AddModelError(string.Empty, result.Error ?? "تعذّر تقديم الطلب");
+            await PopulateGradesAsync();
+            Response.StatusCode = result.StatusCode;
             return View(model);
         }
 
-        TempData["Success"] = "تم حفظ ملف الراتب";
-        return RedirectToAction(nameof(Index));
+        TempData["Success"] = "قُدّم طلب تغيير الراتب، وهو بانتظار اعتماد معتمد رواتب آخر";
+        return RedirectToAction(nameof(PayProfileChangesController.Details), "PayProfileChanges", new { id = result.RequestId });
     }
+
+    private async Task PopulateGradesAsync() =>
+        ViewBag.Grades = new SelectList(
+            await _db.PayGrades.AsNoTracking().OrderBy(g => g.GradeCode).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(),
+            "Id", "GradeNameAr");
 }

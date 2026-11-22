@@ -1,6 +1,7 @@
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using HRManagement.SharedKernel.SeparationOfDuties;
 using Payroll.Application.Frd;
 using Payroll.Application.Services;
@@ -27,6 +28,15 @@ public static class DependencyInjection
         services.AddScoped<FraudAnomalyEngine>();
         services.AddScoped<PaymentHoldService>();
         services.AddSingleton<SeparationOfDutiesService>();
+
+        // PLAN-53: the salary change transaction. The clock is injected so the month rules are testable (P-6).
+        services.TryAddSingleton(TimeProvider.System);
+        services.TryAddSingleton<IPayrollCalendar, PayrollCalendar>();
+        services.AddOptions<Options.PayProfileChangeOptions>().BindConfiguration(Options.PayProfileChangeOptions.SectionName);
+        services.AddOptions<Options.PayrollMasterDataOptions>().BindConfiguration(Options.PayrollMasterDataOptions.SectionName);
+        services.AddScoped<Features.PayProfileChanges.PayProfileChangeRules>();
+        services.AddScoped<Features.PayProfileChanges.IPayProfileChangeApplier, Features.PayProfileChanges.PayProfileChangeApplier>();
+        services.AddScoped<Features.PayProfileChanges.PayProfileChangeActivator>();
 
         return services;
     }

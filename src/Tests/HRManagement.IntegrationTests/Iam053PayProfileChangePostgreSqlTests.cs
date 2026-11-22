@@ -1,6 +1,7 @@
 using HRManagement.ServiceDefaults;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Payroll.Domain.Constants;
 using Payroll.Domain.Entities;
 using Payroll.Domain.Enums;
 using Payroll.Infrastructure.Data;
@@ -11,10 +12,11 @@ namespace HRManagement.IntegrationTests;
 /// PLAN-53 (P-12 and the plan's integration cases) on PostgreSQL. This part proves what migration <c>PAY053_SalaryChangeRequests</c>
 /// gives the database, as a role that is neither superuser nor owner (Testcontainers' own connection bypasses row security and would
 /// prove nothing): agency B sees and writes no request of agency A; one open request per employee; a grade a pay profile names and a
-/// scale that has grades are not deleted.
+/// scale that has grades are not deleted. The other part (the transaction's four cases) is in the second file of this class; both use
+/// the PostgreSQL of the collection that also has RabbitMQ, because the transaction is proved on the real bus outbox.
 /// </summary>
-[Collection("PostgreSql")]
-public sealed partial class Iam053PayProfileChangePostgreSqlTests(PostgreSqlFixture fixture)
+[Collection("PgRabbit")]
+public sealed partial class Iam053PayProfileChangePostgreSqlTests(PgRabbitFixture fixture)
 {
     private static readonly Guid AgencyA = Guid.Parse("53000000-0000-4000-8000-00000000000a");
     private static readonly Guid AgencyB = Guid.Parse("53000000-0000-4000-8000-00000000000b");
@@ -34,10 +36,10 @@ public sealed partial class Iam053PayProfileChangePostgreSqlTests(PostgreSqlFixt
     private async Task<(string Admin, string App)> MigratedAsync()
     {
         var name = TestDatabaseNames.Unique("iam053_");
-        var admin = await fixture.CreateDatabaseAsync(name);
+        var admin = await fixture.Postgres.CreateDatabaseAsync(name);
         await using (var db = Context(admin, AgencyA))
             await db.Database.MigrateAsync();
-        return (admin, await fixture.CreateAppConnectionAsync(name));
+        return (admin, await fixture.Postgres.CreateAppConnectionAsync(name));
     }
 
     private static async Task<T> ScalarAsync<T>(string connection, string sql, Guid? tenant = null)
@@ -173,14 +175,14 @@ public sealed partial class Iam053PayProfileChangePostgreSqlTests(PostgreSqlFixt
             var second = await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
             var pg = Assert.IsType<PostgresException>(second.InnerException);
             Assert.Equal(PostgresErrorCodes.UniqueViolation, pg.SqlState);
-            Assert.Equal(PayProfileChangeRequestIndexes.OneOpen, pg.ConstraintName);
+            Assert.Equal(PayrollChangeIndexNames.OneOpenPayProfileChange, pg.ConstraintName);
         }
 
         await using (var db = Context(app, AgencyA))
         {
             db.PayrollReferenceChangeRequests.Add(ReferenceRequest(grade));
             var second = await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
-            Assert.Equal(PayProfileChangeRequestIndexes.OneOpenReferenceChange, Assert.IsType<PostgresException>(second.InnerException).ConstraintName);
+            Assert.Equal(PayrollChangeIndexNames.OneOpenReferenceChange, Assert.IsType<PostgresException>(second.InnerException).ConstraintName);
         }
 
         // A closed request does not count: once the open one is cancelled, a new one is accepted.

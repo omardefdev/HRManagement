@@ -48,6 +48,21 @@ public sealed class PayrollWriteActionsTests
         [OwnExportJobCancel] = HrManagementPolicies.ModulePayroll,
     };
 
+    /// <summary>The write actions PLAN-53 adds, each with the policy it names on the action (P-4): submit with Payroll.Process, the
+    /// decisions and the manual activation with Payroll.Approve, cancel with the policy that admits whoever may request or decide.</summary>
+    public static readonly IReadOnlyDictionary<string, string> Added = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["PayProfileChangesApi.Submit"] = HrManagementPolicies.PayrollProcess,
+        ["PayrollApi.UpsertPayProfile"] = HrManagementPolicies.PayrollProcess,          // the PUT alias of Submit
+        ["PayProfileChangesApi.Approve"] = HrManagementPolicies.PayrollApprove,
+        ["PayProfileChangesApi.Reject"] = HrManagementPolicies.PayrollApprove,
+        ["PayProfileChangesApi.ActivateDue"] = HrManagementPolicies.PayrollApprove,
+        ["PayProfileChangesApi.Cancel"] = HrManagementPolicies.PayrollChangeCancel,
+        ["PayProfileChanges.Approve"] = HrManagementPolicies.PayrollApprove,
+        ["PayProfileChanges.Reject"] = HrManagementPolicies.PayrollApprove,
+        ["PayProfileChanges.Cancel"] = HrManagementPolicies.PayrollChangeCancel,
+    };
+
     private static IEnumerable<ActionInfo> Writes => ActionCatalog.Of(Service).Where(a => a.IsWrite && !a.Anonymous);
 
     private static ClaimsPrincipal User(params string[] roles) => new(new ClaimsIdentity(
@@ -145,6 +160,42 @@ public sealed class PayrollWriteActionsTests
         var actions = Writes.Where(a => a.Key == key).ToList();
         Assert.True(actions.Count > 0, $"{key} is no longer a write action of Payroll.Web");
         Assert.All(actions, a => Assert.Equal([policy], a.ActionPolicies));
+    }
+
+    public static TheoryData<string, string> AddedRows()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var (key, policy) in Added)
+            data.Add(key, policy);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(AddedRows))]
+    public void Each_action_the_plan_adds_names_its_policy_on_the_action(string key, string policy)
+    {
+        var actions = Writes.Where(a => a.Key == key).ToList();
+        Assert.True(actions.Count > 0, $"{key} is not a write action of Payroll.Web");
+        Assert.All(actions, a => Assert.Equal([policy], a.ActionPolicies));
+    }
+
+    [Fact]
+    public void Every_write_of_the_controllers_the_plan_adds_is_in_the_table()
+    {
+        // A write added later to a request controller needs its row here, with the policy it names.
+        var controllers = new[] { "PayProfileChangesApi", "PayProfileChanges", "PayrollReferenceChanges" };
+        var unlisted = Writes.Where(a => controllers.Contains(a.ControllerName)).Select(a => a.Key)
+            .Where(k => !Added.ContainsKey(k)).Distinct(StringComparer.Ordinal).ToList();
+        Assert.True(unlisted.Count == 0, "Write actions of the request controllers with no row in PayrollWriteActionsTests.Added: " + string.Join(", ", unlisted));
+    }
+
+    [Fact]
+    public void The_lists_and_the_details_of_the_requests_are_open_to_the_module_and_are_no_writes()
+    {
+        var reads = ActionCatalog.Of(Service)
+            .Where(a => a.ControllerName is "PayProfileChangesApi" or "PayProfileChanges" && !a.IsWrite).ToList();
+        Assert.NotEmpty(reads);
+        Assert.All(reads, a => Assert.Equal([HrManagementPolicies.ModulePayroll], a.AllPolicies.Distinct()));
     }
 
     [Fact]

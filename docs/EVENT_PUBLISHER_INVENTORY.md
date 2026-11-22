@@ -127,6 +127,9 @@ outbox on every receive endpoint.
 |-------|-----------|---------|
 | `IPayrollProcessed` | `PostPayrollRunHandler` | SingleSave |
 | `IExportJobRequested` | `PayrollExportJobService.EnqueueAsync` | SingleSave |
+| `IPayProfileChangeSubmitted` | `SubmitPayProfileChangeHandler` → `PayProfileChangeEventPublisher.PublishSubmittedAsync` (PLAN-53: a salary change is requested; the request and the message in one save) | SingleSave |
+| `IPayProfileChangeDecided` | `DecidePayProfileChangeHandler` (rejected, or approved and scheduled) and `PayProfileChangeApplier.ApplyAsync` (approved and applied at once) → `PayProfileChangeEventPublisher.PublishDecidedAsync` | SingleSave |
+| `IPayProfileChangeApplied` | `PayProfileChangeApplier.ApplyAsync` (an approval that is due, or the activation of a scheduled request) and `PayProfileChangeApplier.ApplySystemChangeAsync` (an automatic source) → `PayProfileChangeEventPublisher.PublishAppliedAsync`: the closed version, the new version, the request and the message in one save | SingleSave |
 | `ISeparationPartyCompleted`, `ISeparationPartyFaulted`, `ITransferPartyCompleted`, `ITransferPartyFaulted`, `IHirePartyCompleted`, `ISecondmentPartyCompleted`, `ISecondmentPartyFaulted` | `PayrollEventConsumers` | ConsumerOutbox |
 
 ### HR.Health, HR.Training, IDCard, Compliance

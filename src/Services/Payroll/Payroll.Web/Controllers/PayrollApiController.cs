@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Payroll.Application.Dtos;
-using Payroll.Application.Features.EmployeePayProfiles;
+using Payroll.Application.Features.PayProfileChanges;
 using Payroll.Application.Features.Fraud;
 using Payroll.Application.Features.PartialDisbursement;
 using Payroll.Application.Features.PayrollRuns;
@@ -135,6 +135,12 @@ public class PayrollApiController : ControllerBase
         return Ok(dto);
     }
 
+    /// <summary>
+    /// PLAN-53: kept as an alias of <c>POST api/payroll/pay-profile-changes</c>. It no longer writes the pay profile: it submits a salary
+    /// change request (source Api) and answers 202 with the request's id and state; another person approves it. The old body is mapped:
+    /// <c>changeReason</c> is the reason, <c>effectiveFrom</c> its calendar date, <c>effectiveTo</c> and <c>isActive</c> are ignored, and
+    /// <c>legalReference</c> is new. Outside the caller's branch the employee is 404.
+    /// </summary>
     [HttpPut("employees/{employeeId:guid}/pay-profile")]
     [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
     public async Task<IActionResult> UpsertPayProfile(
@@ -142,39 +148,29 @@ public class PayrollApiController : ControllerBase
         [FromBody] UpsertEmployeePayProfileApiRequest request,
         CancellationToken ct)
     {
-        var scope = await OrgScopeResolver.GetAllowedOrgUnitIdsAsync(
-            User,
-            _db.OrgUnitSnapshots,
-            ct: ct);
+        var scope = await HttpContext.GetOrgScopeAsync();
         if (this.ForbidIfOrgScopeDenied(scope) is { } scopeDenied)
             return scopeDenied;
 
-        if (scope.MustFilter)
-        {
-            var employeeOrgUnitId = await _db.EmployeePayProfiles
-                .AsNoTracking()
-                .Where(p => p.EmployeeId == employeeId)
-                .Select(p => p.OrgUnitId)
-                .FirstOrDefaultAsync(ct);
+        // A calendar date: the date as sent, never shifted by a zone (a local-kind value is first made universal).
+        var effectiveFrom = DateOnly.FromDateTime(
+            request.EffectiveFrom.Kind == DateTimeKind.Local ? request.EffectiveFrom.ToUniversalTime() : request.EffectiveFrom);
 
-            if (this.ForbidIfOrgUnitOutOfScope(
-                    scope,
-                    employeeOrgUnitId,
-                    resourceType: "EmployeePayProfile",
-                    resourceId: employeeId.ToString("D")) is { } employeeDenied)
-                return employeeDenied;
-        }
-
-        var (success, profileId, error) = await _mediator.Send(new UpsertEmployeePayProfileCommand(
+        var result = await _mediator.Send(new SubmitPayProfileChangeCommand(
             employeeId,
             request.BaseSalary,
             request.PayGradeId,
-            request.EffectiveFrom,
-            request.EffectiveTo,
-            request.IsActive,
-            request.ChangeReason), ct);
-        if (!success) return BadRequest(new { error });
-        return Ok(new { profileId });
+            effectiveFrom,
+            request.ChangeReason,
+            request.LegalReference,
+            PayProfileChangeSource.Api,
+            SourceReference: null,
+            RequireUserId(),
+            PayProfileChangeHttp.UserName(User),
+            scope), ct);
+        return result.Success
+            ? Accepted(PayProfileChangeHttp.Body(result))
+            : PayProfileChangeHttp.Refusal(result);
     }
 
     [HttpPost("runs/{id:guid}/funding-decisions")]
@@ -407,13 +403,15 @@ public record CreatePayrollRunApiRequest(
     PayrollRunType RunType = PayrollRunType.Regular,
     Guid? SourceRunId = null);
 
+/// <summary>The body of the PUT alias (PLAN-53): the old shape, plus the legal reference a manual change needs.</summary>
 public record UpsertEmployeePayProfileApiRequest(
     decimal BaseSalary,
     Guid? PayGradeId,
     DateTime EffectiveFrom,
-    DateTime? EffectiveTo,
+    DateTime? EffectiveTo = null,
     bool IsActive = true,
-    string? ChangeReason = null);
+    string? ChangeReason = null,
+    string? LegalReference = null);
 
 public record PartialDisburseApiRequest(Guid FundingDecisionId);
 

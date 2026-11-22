@@ -92,6 +92,13 @@ services:
       # PLAN-53 (D-53-4): mirror of the Payroll.MasterData roles of appsettings.Production.json.
       Authorization__Policies__Payroll.MasterData__Roles__0: "hr-admin"
       Authorization__Policies__Payroll.MasterData__Roles__1: "payroll-processor"
+      # PLAN-53 (D-53-1, D-53-2, D-PAY-6, D-53-4): mirror of the Payroll:SalaryChange and Payroll:MasterData values of Production.
+      Payroll__SalaryChange__RequireMonthStart: "true"
+      Payroll__SalaryChange__AllowOutOfGradeBounds: "false"
+      Payroll__SalaryChange__RequireLegalReference: "true"
+      Payroll__SalaryChange__Activation__Enabled: "true"
+      Payroll__SalaryChange__Activation__IntervalMinutes: "60"
+      Payroll__MasterData__RequireApproval: "true"
 
   idcard-web:
     environment:

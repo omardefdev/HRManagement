@@ -53,6 +53,8 @@ public static class OpenTelemetryExtensions
                         "HRManagement.WorkflowIntegrity",
                         // PLAN-45: asset_approval_starting_total, asset_approval_needs_intervention_total (Admin.Logistics.Infrastructure).
                         "HRManagement.AssetApproval",
+                        // PLAN-53: payroll_salary_change_apply_blocked (Payroll.Application PayProfileChangeMetrics).
+                        "HRManagement.PayrollSalaryChange",
                         Workflow.WorkflowMetrics.MeterName,
                         Policy.PolicyClientMetrics.MeterName,
                         PaymentExportMetrics.MeterName,

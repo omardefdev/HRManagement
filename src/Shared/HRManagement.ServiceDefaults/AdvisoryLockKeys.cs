@@ -19,4 +19,6 @@ public static class AdvisoryLockKeys
     public const long CardRequestApprovalSweep = 4_001_011;
     /// <summary>PLAN-46: Compliance, the owner-side sweep of disciplinary actions.</summary>
     public const long DisciplinaryApprovalSweep = 4_001_012;
+    /// <summary>PLAN-53: Payroll, the activation of the scheduled salary changes that are due.</summary>
+    public const long PayProfileChangeActivation = 4_001_013;
 }

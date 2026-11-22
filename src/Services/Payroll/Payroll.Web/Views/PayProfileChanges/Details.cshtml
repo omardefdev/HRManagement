@@ -1,0 +1,152 @@
+@model Payroll.Web.ViewModels.PayProfileChangeDetailsViewModel
+@{
+    ViewData["Title"] = "طلب تغيير راتب";
+    var r = Model.Row.Request;
+    var blocked = r.State == PayProfileChangeState.Scheduled && !string.IsNullOrEmpty(r.LastApplyError);
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="fas fa-exchange-alt"></i> طلب تغيير راتب: @Html.HrEmployeeName(r.EmployeeId)</h3>
+        <a asp-action="Index" class="btn btn-secondary btn-sm">عودة إلى الطلبات</a>
+    </div>
+
+    <div class="card-body">
+        <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+
+        @if (blocked)
+        {
+            <div class="alert alert-danger" role="alert">
+                <strong>تعذّر تطبيق هذا الطلب المجدول:</strong> @r.LastApplyError
+            </div>
+        }
+
+        <dl class="row mb-4">
+            <dt class="col-sm-3">الحالة</dt>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(r.State)</dd>
+            <dt class="col-sm-3">نوع التغيير</dt>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(r.ChangeKind)</dd>
+            <dt class="col-sm-3">المصدر</dt>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(r.Source) @if (!string.IsNullOrEmpty(r.SourceReference)) { <span class="text-muted">(@r.SourceReference)</span> }</dd>
+            <dt class="col-sm-3">يسري من</dt>
+            <dd class="col-sm-9">@Html.HrDate(r.EffectiveFrom)</dd>
+            <dt class="col-sm-3">السبب</dt>
+            <dd class="col-sm-9">@r.Reason</dd>
+            <dt class="col-sm-3">المرجع القانوني</dt>
+            <dd class="col-sm-9">@(string.IsNullOrEmpty(r.LegalReference) ? "—" : r.LegalReference)</dd>
+            <dt class="col-sm-3">الوحدة التنظيمية</dt>
+            <dd class="col-sm-9">@Html.HrOrgUnitName(r.OrgUnitId, "مركزي")</dd>
+        </dl>
+
+        <h5>المقارنة بين الحالي والمقترح</h5>
+        <table class="table table-bordered mb-4">
+            <thead><tr><th>البند</th><th>الحالي عند الطلب</th><th>المقترح</th></tr></thead>
+            <tbody>
+                <tr>
+                    <th scope="row">الراتب الأساسي</th>
+                    <td>@(r.CurrentBaseSalary?.ToString("N2") ?? "—")</td>
+                    <td>@(r.ProposedBaseSalary?.ToString("N2") ?? "بلا تغيير")</td>
+                </tr>
+                <tr>
+                    <th scope="row">الدرجة</th>
+                    <td>@(Model.Row.CurrentGradeName ?? "—")</td>
+                    <td>@(r.ProposedPayGradeId.HasValue ? (Model.Row.ProposedGradeName ?? "—") : "بلا تغيير")</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h5>سجل الطلب</h5>
+        <table class="table table-sm mb-4">
+            <thead><tr><th>الإجراء</th><th>المستخدم</th><th>التاريخ</th><th>الملاحظة</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td>تقديم الطلب</td>
+                    <td>@await Html.PartialAsync("_UserDisplayName", (object)r.RequestedBy)</td>
+                    <td>@Html.HrDateTime(r.RequestedAt)</td>
+                    <td>@r.Reason</td>
+                </tr>
+                @if (r.DecidedAt.HasValue)
+                {
+                    <tr>
+                        <td>@(r.State == PayProfileChangeState.Rejected ? "رفض" : "اعتماد")</td>
+                        <td>@await Html.PartialAsync("_UserDisplayName", (object?)r.DecidedBy)</td>
+                        <td>@Html.HrDateTime(r.DecidedAt)</td>
+                        <td>@(string.IsNullOrEmpty(r.DecisionNote) ? "—" : r.DecisionNote)</td>
+                    </tr>
+                }
+                @if (r.CancelledAt.HasValue)
+                {
+                    <tr>
+                        <td>إلغاء</td>
+                        <td>@await Html.PartialAsync("_UserDisplayName", (object?)r.CancelledBy)</td>
+                        <td>@Html.HrDateTime(r.CancelledAt)</td>
+                        <td>@(string.IsNullOrEmpty(r.CancelReason) ? "—" : r.CancelReason)</td>
+                    </tr>
+                }
+                @if (r.AppliedAt.HasValue)
+                {
+                    <tr>
+                        <td>تطبيق على ملف الأجر</td>
+                        <td>@await Html.PartialAsync("_UserDisplayName", (object)Guid.Empty)</td>
+                        <td>@Html.HrDateTime(r.AppliedAt)</td>
+                        <td>نسخة جديدة من ملف الأجر تسري من @Html.HrDate(r.EffectiveFrom)</td>
+                    </tr>
+                }
+                @if (r.State == PayProfileChangeState.Superseded)
+                {
+                    <tr>
+                        <td>إبطال بتغيير آلي</td>
+                        <td>@await Html.PartialAsync("_UserDisplayName", (object)Guid.Empty)</td>
+                        <td>@Html.HrDateTime(r.UpdatedAt)</td>
+                        <td>طُبّق على الموظف تغيير آلي فأُبطل هذا الطلب</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (Model.IsOwnRequest)
+        {
+            <div class="alert alert-info" role="alert">لا يجوز اعتماد الطلب من طالبه: يقرر فيه معتمد رواتب آخر.</div>
+        }
+
+        @if (Model.CanDecide)
+        {
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <form asp-action="Approve" asp-route-id="@r.Id" method="post" class="border rounded p-3">
+                        @Html.AntiForgeryToken()
+                        <label class="form-label" for="approveNote">ملاحظة الاعتماد (اختيارية)</label>
+                        <input id="approveNote" name="note" class="form-control mb-2" maxlength="500" />
+                        <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> اعتماد</button>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <form asp-action="Reject" asp-route-id="@r.Id" method="post" class="border rounded p-3"
+                          data-hr-confirm="رفض طلب تغيير الراتب؟"
+                          data-hr-confirm-title="تأكيد الرفض"
+                          data-hr-confirm-variant="danger"
+                          data-hr-confirm-label="رفض">
+                        @Html.AntiForgeryToken()
+                        <label class="form-label" for="rejectNote">ملاحظة الرفض (إلزامية)</label>
+                        <input id="rejectNote" name="note" class="form-control mb-2" maxlength="500" required />
+                        <button type="submit" class="btn btn-danger"><i class="fas fa-times"></i> رفض</button>
+                    </form>
+                </div>
+            </div>
+        }
+
+        @if (Model.CanCancel)
+        {
+            <form asp-action="Cancel" asp-route-id="@r.Id" method="post" class="border rounded p-3"
+                  data-hr-confirm="إلغاء طلب تغيير الراتب؟"
+                  data-hr-confirm-title="تأكيد الإلغاء"
+                  data-hr-confirm-variant="danger"
+                  data-hr-confirm-label="إلغاء الطلب">
+                @Html.AntiForgeryToken()
+                <label class="form-label" for="cancelReason">سبب الإلغاء (إلزامي)</label>
+                <input id="cancelReason" name="reason" class="form-control mb-2" maxlength="500" required />
+                <button type="submit" class="btn btn-outline-danger"><i class="fas fa-ban"></i> إلغاء الطلب</button>
+            </form>
+        }
+    </div>
+</div>

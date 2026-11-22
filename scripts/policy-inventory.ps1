@@ -50,7 +50,7 @@ foreach ($m in [regex]::Matches((Read-Source "src/Shared/HRManagement.SharedKern
 }
 $catalog = Read-Source "src/Shared/HRManagement.SharedKernel/Policy/PolicyDomainCatalog.cs"
 $governed = @{}
-foreach ($m in [regex]::Matches($catalog, 'Domain = PolicyDomains\.(\w+),\s*Status = PolicyDomainStatus\.Governed')) { $governed[$constants[$m.Groups[1].Value]] = $true }
+foreach ($m in [regex]::Matches($catalog, 'Domain = PolicyDomains\.(\w+),(?:\s*NameAr = "[^"]*",)?\s*Status = PolicyDomainStatus\.Governed')) { $governed[$constants[$m.Groups[1].Value]] = $true }
 $outOfScope = @{}
 foreach ($m in [regex]::Matches($catalog, 'OutOfScope\(PolicyDomains\.(\w+),')) { $outOfScope[$constants[$m.Groups[1].Value]] = $true }
 if ($governed.Count -eq 0 -or ($governed.Count + $outOfScope.Count) -ne $constants.Count) {

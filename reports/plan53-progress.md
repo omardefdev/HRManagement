@@ -229,12 +229,67 @@ Reason: the owner's message (`ssh hrm-vps whoami` → `hrm`). Re-check:
 
 - Started (UTC): 2026-11-22T15:39:37Z.
 
+- **P3 checkpoint, 2026-11-22T16:05Z (not committed yet; everything below is in the working tree and builds):**
+  - Written: the three event contracts; `Features/PayProfileChanges/` (result and messages, rules, applier with
+    `ApplySystemChangeAsync`, Submit/Decide/Cancel handlers, activator); `PayrollCalendar` (Damascus dates from
+    `TimeProvider`); `PayProfileChangeMetrics`; `PayProfileChangeEventPublisher` (stager); `PayrollOrgScopeKeys`;
+    `PayProfileChangeActivationJob` (lock key `4_001_013`, meter `HRManagement.PayrollSalaryChange`);
+    `PayProfileChangesApiController`, `PayProfileChangesController` and its two views, the request form
+    (`EmployeePayProfiles/Create` with `PayProfileChangeRequestViewModel`), the PUT alias (202), the dashboard tiles, the
+    menu link, the scope filter and the job in `Program.cs`, the `Payroll:SalaryChange` and `Payroll:MasterData` settings in
+    the three files and the mirror. `UpsertEmployeePayProfileCommand` and its handler are deleted.
+  - Lists: `EmployeePayProfiles` left the org-scope list (ceiling 24 → 23) and `EmployeePayProfiles.Create` the
+    entity-binding list (16 → 15); Payroll's keys are registered in `OrgScopeCoverageTests.Configurations`.
+  - Docs: the three event rows in `EVENT_PUBLISHER_INVENTORY.md`, `MESSAGE_EVENT_MATRIX.md` and
+    `rel-compat/event-schema-inventory.json`; `docs/policy-rules-inventory.csv` regenerated (one row more).
+  - Tests so far: `Iam053*` unit 116/116 (state machine, automatic sources, Damascus dates, run kinds, copy-forward);
+    architecture 344/344; `Pay023FrozenRunIsolationTests` rewritten (not run yet).
+  - **Decisions in P3 so far:**
+    - The commands return a record `PayProfileChangeResult(Success, RequestId, State, Error, Failure)`: the plan's tuple
+      plus the kind of refusal, which gives the HTTP status (Invalid 400, Conflict 409, SelfDecision and Forbidden 403,
+      NotFound 404). A refused form action renders its page with the same status.
+    - The applier's public entry points each do the one save (`ApplyAsync` for an approval that is due or a scheduled
+      request; `ApplySystemChangeAsync`), because PLAN-40's guard wants the publish and the save in one method.
+    - The employee's scope key is the unit of his **active** pay profile (`KeyBy EmployeeId` in `PayrollOrgScopeKeys`),
+      so the filter answers 404 for a foreign `employeeId` before the action; the handler checks it again.
+    - Only what differs from the current profile is stored as proposed (the PUT alias always sends both values).
+    - A bound of a grade that is zero is «not set» and is not applied (P-5: «when set»).
+    - Messages format numbers and the month with the invariant culture (an Arabic culture put a direction mark in
+      «2026/12»).
+    - **Found, older than this plan:** `scripts/policy-inventory.ps1` could not read the catalog since PLAN-67 added
+      `NameAr` between `Domain` and `Status` (it threw «0 governed»). Its regex now tolerates that line; `-Check` passes.
+    - **The known limit, read from the rules (P-5):** the engine prorates only when `0 < employee days < period days`
+      (`PayrollRules.cs:29-33`). A month calculated after a later month's change has applied reads the newer active
+      version, whose dates leave that month no day, so it is paid **the full new salary** (not zero). The old
+      `Pay023` test showed exactly this (June calculated with a profile effective in November). For PLAN-56.
+  - Then written and passing: `PayProfileWritersTests` (Roslyn, 19 tests: seven named writers, a new writer fails, a
+    stale name fails); the transaction's PostgreSQL cases on the real bus outbox
+    (`Iam053PayProfileChangePostgreSqlTests`, 9: two concurrent approvals, two concurrent submits, a failure in the
+    applier's save from the application and from a database trigger, one active profile, the audit row in the same
+    save without the amount); `Iam053ActivationJobTests` (4, three agencies as the non-superuser role);
+    `Iam053PayrollScopeHttpTests` (5: PLAN-52's generated test on Payroll.Web, the restricted user's walk, the form,
+    the roles); the new write actions in `PayrollWriteActionsTests`; `docs/PAYROLL_SALARY_CHANGE.md`.
+  - **A defect the generated scope test caught:** the request form answered 500 under the Arabic culture
+    (`[Range(typeof(decimal), "0.01", …)]` parsed its limits with the culture's separator). Fixed with
+    `ParseLimitsInInvariantCulture`; a lasting test opens the form and posts it.
+  - **A test fact:** the outbox sequence advances on a rolled-back insert, so the PostgreSQL tests count the committed
+    rows of `OutboxMessage` (the test host runs no delivery service).
+- **P3 results (16:25Z to 16:37Z):** build `-warnaserror` 0 errors; **unit 6488/6488** (7 min 7 s); architecture
+  355/355; integration without Testcontainers (`Pay|Outbox|Hcm027|IntegrationHost|Consumer`) 85 passed, 1 skipped;
+  Testcontainers `Iam053|Pay023|Iam052ServiceScopeHttp` 22/22 (48 s); `iam050`, `iam051`, `iam052`, `ux067` validate
+  scripts pass; `policy-inventory.ps1 -Check` passes; format clean.
+- Finished (UTC): 2026-11-22T16:37:54Z — P3 committed.
+
+## P4
+
+- Started (UTC): 2026-11-22T16:37:54Z.
+
 ## Exact next step
 
-P3 (P-5, P-6, P-7, P-9): `Features/PayProfileChanges/` (Submit, Decide, Cancel, `IPayProfileChangeApplier` with
-`ApplySystemChangeAsync`, the month rule with `TimeProvider` and `HrLocalTime`), the three event contracts and their
-stager, the API controller and the PUT alias, `PayProfileChangesController` and its views, the request form in
-`EmployeePayProfiles/Create`, the dashboard counts and the menu, `PayrollOrgScopeKeys` and the filter,
-`PayProfileChangeActivationJob` with its endpoint and gauge, delete `UpsertEmployeePayProfileCommand`,
-`PayProfileWritersTests`, `docs/PAYROLL_SALARY_CHANGE.md` and the event rows; then the unit, PostgreSQL, job and
-scope tests.
+P4 (P-8): `Features/ReferenceChanges/` (submit, decide, cancel; the change applied in the approval's save; validation at
+submit and approval; the delete protection), `SalaryScaleChangeViewModel` and `PayGradeChangeViewModel`, the two
+controllers' Create/Edit/Delete as requests, `PayrollReferenceChangesController` («طلبات البيانات المرجعية»,
+`[OrgScopeNotApplicable]`) with its list and readable before/after details, `Payroll:MasterData:RequireApproval`
+(false honoured in Development only, with a warning at start), the entity-binding rows of PayGrades and SalaryScales
+removed (ceiling 15 → 11), the exceptions report test for a profile outside new bounds, `Iam053ReferenceChangeTests`,
+the reference writers guard, the new actions in `PayrollWriteActionsTests`, the section in `PAYROLL_SALARY_CHANGE.md`.

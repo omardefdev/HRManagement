@@ -31,6 +31,9 @@ internal static class PayrollIntegrationTestSetup
             o.DefaultPartitionSize = 200;
         });
         services.AddSingleton(Mock.Of<IPayrollEventPublisher>());
+        // PLAN-53: the salary change events are recorded, not sent (the outbox itself is proved on the stack and in Iam053*PostgreSql*).
+        services.TryAddSingleton<RecordingPayProfileChangeEvents>();
+        services.TryAddScoped<IPayProfileChangeEventPublisher>(sp => sp.GetRequiredService<RecordingPayProfileChangeEvents>());
         // QA-034 (moved from PLAN-59): the calculator asks HR.Core for service-regime payroll blockers and refuses without
         // a client; integration hosts get the declared fake (nobody blocked). The blocked path itself is PLAN-59.
         services.TryAddScoped<IHrCoreServiceRegimeClient, FakeHrCoreServiceRegimeClient>();
