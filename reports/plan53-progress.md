@@ -202,9 +202,39 @@ Reason: the owner's message (`ssh hrm-vps whoami` → `hrm`). Re-check:
 
 - Started (UTC): 2026-11-22T15:27:16Z.
 
+- Entities `PayProfileChangeRequest` and `PayrollReferenceChangeRequest`, their enums (Arabic `[Display]`),
+  `EmployeePayProfileVersioning` (close the day before, copy every field), the EF configuration, and migration
+  `20261122153208_PAY053_SalaryChangeRequests` (two tables, row security, filtered unique indexes
+  `IX_PayProfileChangeRequests_OneOpen` on `(TenantId, EmployeeId)` where `State IN (0, 1)` and
+  `IX_PayrollReferenceChangeRequests_OneOpen`, both relations `Restrict`). No BOM (the tool wrote one in both files;
+  stripped). `has-pending-model-changes`: none.
+- **Decisions in P2:**
+  - The request keeps who cancelled it in its own fields (`CancelledBy`, `CancelledByName`, `CancelledAt`,
+    `CancelReason`), apart from the decision, so a scheduled request that is cancelled keeps its approver. Four fields
+    more than the plan's table; the contract only grows.
+  - `PayrollReferenceChangeRequest` also holds `EntityLabel` (the record's code and name for lists) and the same cancel
+    fields; one open request per reference record (a second filtered unique index).
+  - **A version cannot start before the version it replaces** (`EmployeePayProfileVersioning.StartsBefore`): otherwise
+    the days between would be paid by a version that never held them. Refused at submit, approval and activation (P3).
+  - States are stored as integers (the filter of the index names 0 and 1).
+- Tests (15:35Z to 15:39Z): build `-warnaserror` 0 errors (1 min 22 s); `Iam053ApplierCopyForwardTests` 11/11;
+  `Iam053PayProfileChangePostgreSqlTests` 3/3 on PostgreSQL as the non-superuser role `hrm_rls_app` (row security: agency
+  B sees and writes nothing of agency A; one open request; a used grade and a scale with grades not deleted); unit
+  `Pay0|Payroll|Architecture|Migration|Ten0|Rls|Data001` 466/466; architecture 344/344; integration without
+  Testcontainers `Pay|Outbox|Hcm027` 48 passed, 1 skipped; format clean.
+- Testcontainers run on this machine with no VPN issue (12 s for the three tests).
+- Finished (UTC): 2026-11-22T15:39:37Z — P2 committed.
+
+## P3
+
+- Started (UTC): 2026-11-22T15:39:37Z.
+
 ## Exact next step
 
-P2 (P-5 entities, P-8 entity, P-12): add `PayProfileChangeRequest` and `PayrollReferenceChangeRequest` with their enums
-(Arabic `[Display]`), their EF configuration (filtered unique index, `xmin`), the two `Restrict` relations,
-`EmployeePayProfileVersioning` with `Iam053ApplierCopyForwardTests`, and migration `PAY053_SalaryChangeRequests` (row
-security on the new tables, no BOM, no pending model changes). Prove row security as a non-superuser.
+P3 (P-5, P-6, P-7, P-9): `Features/PayProfileChanges/` (Submit, Decide, Cancel, `IPayProfileChangeApplier` with
+`ApplySystemChangeAsync`, the month rule with `TimeProvider` and `HrLocalTime`), the three event contracts and their
+stager, the API controller and the PUT alias, `PayProfileChangesController` and its views, the request form in
+`EmployeePayProfiles/Create`, the dashboard counts and the menu, `PayrollOrgScopeKeys` and the filter,
+`PayProfileChangeActivationJob` with its endpoint and gauge, delete `UpsertEmployeePayProfileCommand`,
+`PayProfileWritersTests`, `docs/PAYROLL_SALARY_CHANGE.md` and the event rows; then the unit, PostgreSQL, job and
+scope tests.

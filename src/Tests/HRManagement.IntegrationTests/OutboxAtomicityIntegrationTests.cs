@@ -40,6 +40,9 @@ public class OutboxAtomicityIntegrationTests
         public IQueryable<PayrollRun> PayrollRuns => _inner.PayrollRuns;
         public IQueryable<EmployeePayProfile> EmployeePayProfiles => _inner.EmployeePayProfiles;
         public IQueryable<EmployeePayProfileHistory> EmployeePayProfileHistories => _inner.EmployeePayProfileHistories;
+        public IQueryable<PayProfileChangeRequest> PayProfileChangeRequests => _inner.PayProfileChangeRequests;
+        public IQueryable<PayrollReferenceChangeRequest> PayrollReferenceChangeRequests => _inner.PayrollReferenceChangeRequests;
+        public IQueryable<SalaryScale> SalaryScales => _inner.SalaryScales;
         public IQueryable<AllowanceRecord> AllowanceRecords => _inner.AllowanceRecords;
         public IQueryable<DeductionRecord> DeductionRecords => _inner.DeductionRecords;
         public IQueryable<DeductionType> DeductionTypes => _inner.DeductionTypes;
