@@ -42,9 +42,7 @@ public sealed class PayProfileChangeRules(
         var grade = await repository.PayGrades.AsNoTracking().FirstOrDefaultAsync(g => g.Id == gradeId, ct);
         if (grade is null)
             return PayProfileChangeMessages.GradeNotFound;
-        var below = grade.MinSalary > 0 && salary < grade.MinSalary;
-        var above = grade.MaxSalary > 0 && salary > grade.MaxSalary;
-        return below || above
+        return EmployeePayProfileRules.IsOutsideGradeBounds(salary, grade.MinSalary, grade.MaxSalary)
             ? PayProfileChangeMessages.OutOfGradeBounds(grade.GradeCode, grade.MinSalary, grade.MaxSalary)
             : null;
     }

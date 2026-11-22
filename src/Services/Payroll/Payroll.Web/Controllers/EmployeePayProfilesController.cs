@@ -41,9 +41,13 @@ public class EmployeePayProfilesController : Controller
         _calendar = calendar;
     }
 
-    public async Task<IActionResult> Index(Guid? employeeId, Guid? payGradeId, bool? isActive, DateTime? effectiveFrom, DateTime? effectiveTo)
+    public async Task<IActionResult> Index(
+        Guid? employeeId, Guid? payGradeId, bool? isActive, DateTime? effectiveFrom, DateTime? effectiveTo, bool outsideBounds = false)
     {
         var query = await _db.EmployeePayProfiles.Include(p => p.PayGrade).AsNoTracking().InOrgScopeAsync(HttpContext, _db);
+        // PLAN-53 (§4 rule 1): the active profiles whose salary is outside their grade's bounds. New bounds change no profile: they are
+        // listed here, and corrected by a salary change request.
+        if (outsideBounds) query = query.Where(Payroll.Domain.Services.EmployeePayProfileRules.OutsideGradeBounds);
         if (employeeId.HasValue) query = query.Where(p => p.EmployeeId == employeeId.Value);
         if (payGradeId.HasValue) query = query.Where(p => p.PayGradeId == payGradeId.Value);
         if (isActive.HasValue) query = query.Where(p => p.IsActive == isActive.Value);
@@ -57,6 +61,7 @@ public class EmployeePayProfilesController : Controller
         ViewBag.IsActive = isActive;
         ViewBag.EffectiveFrom = effectiveFrom;
         ViewBag.EffectiveTo = effectiveTo;
+        ViewBag.OutsideBounds = outsideBounds;
         ViewBag.CanRequest = PayrollPolicyRules.CanProcess(User);
         ViewBag.PayGrades = new SelectList(
             await _db.PayGrades.AsNoTracking().OrderBy(g => g.GradeCode).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(),

@@ -61,6 +61,10 @@ public sealed class PayrollWriteActionsTests
         ["PayProfileChanges.Approve"] = HrManagementPolicies.PayrollApprove,
         ["PayProfileChanges.Reject"] = HrManagementPolicies.PayrollApprove,
         ["PayProfileChanges.Cancel"] = HrManagementPolicies.PayrollChangeCancel,
+        // «طلبات البيانات المرجعية»: the decision of a scale or grade change; its submission is the sixteen's Create, Edit and Delete.
+        ["PayrollReferenceChanges.Approve"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollReferenceChanges.Reject"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollReferenceChanges.Cancel"] = HrManagementPolicies.PayrollChangeCancel,
     };
 
     private static IEnumerable<ActionInfo> Writes => ActionCatalog.Of(Service).Where(a => a.IsWrite && !a.Anonymous);
@@ -193,7 +197,7 @@ public sealed class PayrollWriteActionsTests
     public void The_lists_and_the_details_of_the_requests_are_open_to_the_module_and_are_no_writes()
     {
         var reads = ActionCatalog.Of(Service)
-            .Where(a => a.ControllerName is "PayProfileChangesApi" or "PayProfileChanges" && !a.IsWrite).ToList();
+            .Where(a => a.ControllerName is "PayProfileChangesApi" or "PayProfileChanges" or "PayrollReferenceChanges" && !a.IsWrite).ToList();
         Assert.NotEmpty(reads);
         Assert.All(reads, a => Assert.Equal([HrManagementPolicies.ModulePayroll], a.AllPolicies.Distinct()));
     }

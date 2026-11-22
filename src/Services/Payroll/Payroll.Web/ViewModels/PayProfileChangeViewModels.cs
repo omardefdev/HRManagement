@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using HRManagement.ServiceDefaults.Localization;
+using Microsoft.AspNetCore.Mvc;
 using Payroll.Domain.Entities;
 using Payroll.Domain.Enums;
 
@@ -18,6 +20,7 @@ public sealed class PayProfileChangeRequestViewModel
     [Range(typeof(decimal), "0.01", "999999999999", ParseLimitsInInvariantCulture = true,
         ErrorMessage = "الراتب الأساسي المقترح يجب أن يكون أكبر من صفر")]
     [Display(Name = "الراتب الأساسي المقترح")]
+    [ModelBinder(typeof(HrInvariantDecimalModelBinder))]
     public decimal? ProposedBaseSalary { get; set; }
 
     [Display(Name = "الدرجة المقترحة")]

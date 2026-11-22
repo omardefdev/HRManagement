@@ -284,12 +284,45 @@ Reason: the owner's message (`ssh hrm-vps whoami` → `hrm`). Re-check:
 
 - Started (UTC): 2026-11-22T16:37:54Z.
 
+- Written: `Features/ReferenceChanges/` (contracts with the allowlisted `PayGradeChange` and `SalaryScaleChange`, the
+  applier with validation at submit and at approval, Submit/Decide/Cancel); `SalaryScaleChangeViewModel`,
+  `PayGradeChangeViewModel`, `PayrollReferenceDeleteViewModel`; the two controllers' Create/Edit/Delete as requests
+  (Delete got a page for its reason and legal reference) and a Details page each showing the open request;
+  `PayrollReferenceChangesController` («طلبات البيانات المرجعية», `[OrgScopeNotApplicable]`) with its list and its
+  before/after details; the start-up warning for `Payroll:MasterData:RequireApproval`; the menu link; the section in
+  `docs/PAYROLL_SALARY_CHANGE.md`. The four entity-binding rows of PayGrades and SalaryScales left (ceiling 15 → 11).
+- **Decisions and findings in P4:**
+  - **The plan's «existing exceptions report» does not exist in Payroll.** Rule 1 (new bounds change no profile; the
+    profile outside them is shown) is met by a new filter on the pay profiles screen («خارج حدود الدرجة», through the
+    branch scope), a count on the grade's details page, and a count on the request's page before approval. The rule is
+    written once (`EmployeePayProfileRules.OutsideGradeBounds`) and proved in `Iam053ReferenceChangeTests`.
+  - A deletion needs a reason and a legal reference, so `Delete` has a GET page; the POST keeps its name and policy.
+  - One open request per reference record (the second filtered index); two creations with the same code are both
+    accepted and the second approval is refused (409).
+  - With `RequireApproval=false` in Development the request is recorded `Applied` with no decider.
+  - `PayrollReferenceWritersTests` (Roslyn): only the reference applier, the two change records and the seed write a
+    scale or a grade.
+  - **Found, older than this plan:** a form field of type decimal with a fraction («8250.75») fails to bind under the
+    service's Arabic culture (the framework reads it with the culture's separator), in every service. This plan's
+    forms bind through `HrInvariantDecimalModelBinder` (by attribute, nothing global); the app-wide defect goes into
+    the report for a later plan.
+- **P4 results (16:58Z to 17:09Z):** build `-warnaserror` 0 errors; **unit 6540/6540** (7 min 6 s); architecture
+  358/358; integration without Testcontainers 85 passed, 1 skipped; Testcontainers `Iam053|Pay023|Hcm027` 30/30;
+  `iam051`, `iam052`, `ux067` validate scripts pass; format clean.
+- Finished (UTC): 2026-11-22T17:09:43Z — P4 committed.
+
+## P5
+
+- Started (UTC): 2026-11-22T17:09:43Z.
+- Machine at the start of P5: see the disk line written when the lab stack is prepared.
+
 ## Exact next step
 
-P4 (P-8): `Features/ReferenceChanges/` (submit, decide, cancel; the change applied in the approval's save; validation at
-submit and approval; the delete protection), `SalaryScaleChangeViewModel` and `PayGradeChangeViewModel`, the two
-controllers' Create/Edit/Delete as requests, `PayrollReferenceChangesController` («طلبات البيانات المرجعية»,
-`[OrgScopeNotApplicable]`) with its list and readable before/after details, `Payroll:MasterData:RequireApproval`
-(false honoured in Development only, with a warning at start), the entity-binding rows of PayGrades and SalaryScales
-removed (ceiling 15 → 11), the exceptions report test for a profile outside new bounds, `Iam053ReferenceChangeTests`,
-the reference writers guard, the new actions in `PayrollWriteActionsTests`, the section in `PAYROLL_SALARY_CHANGE.md`.
+P5 (P-10, P-11): check the disk (P-2: `df -h /`, `docker system df`); read how `scripts/acceptance-up.ps1 -Profile Lab`
+and `scripts/acceptance-reset.ps1` work here; update `testdata/acceptance/personas.json` scenarios (AC-IAM-53 for
+`payroll-processor`, `payroll-approver`, `a-payroll-poster`, `b-payroll-approver`; AC-23 for `payroll-approver`); build
+the lab images once, start the lab stack, measure per agency the current records without a regime and the open regime
+exceptions; write `AcceptancePayrollRegimePatch` and call it from `AcceptanceSeedOrchestrator`; check the classes that
+read regimes; prove a Regular run for agency A passes the gate; update `Ac23PayrollFreezeTests` and
+`Ac25FraudHoldTests`; run AC-12, AC-23, AC-24, AC-25, `AcHcm29` and the lab journey; set AC-12, AC-23, AC-25 (and
+AC-24 if green) `required: true` in `tests/acceptance/ci-scope.json`; `down -v`.

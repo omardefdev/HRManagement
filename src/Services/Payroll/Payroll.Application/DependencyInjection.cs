@@ -37,6 +37,7 @@ public static class DependencyInjection
         services.AddScoped<Features.PayProfileChanges.PayProfileChangeRules>();
         services.AddScoped<Features.PayProfileChanges.IPayProfileChangeApplier, Features.PayProfileChanges.PayProfileChangeApplier>();
         services.AddScoped<Features.PayProfileChanges.PayProfileChangeActivator>();
+        services.AddScoped<Features.ReferenceChanges.PayrollReferenceChangeApplier>();
 
         return services;
     }

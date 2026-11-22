@@ -1,0 +1,47 @@
+@model Payroll.Web.ViewModels.PayGradeDetailsViewModel
+@{
+    ViewData["Title"] = "الدرجة الوظيفية";
+    var g = Model.Grade;
+}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="fas fa-layer-group"></i> الدرجة الوظيفية: @g.GradeNameAr</h3>
+        <a asp-action="Index" asp-route-scaleId="@g.SalaryScaleId" class="btn btn-secondary btn-sm">عودة</a>
+    </div>
+    <div class="card-body">
+        @if (Model.OpenRequest is not null)
+        {
+            <div class="alert alert-warning" role="alert">
+                على هذه الدرجة طلب @Html.HrEnumDisplay(Model.OpenRequest.Operation) بانتظار الاعتماد، والقيم أدناه هي المعتمدة حتى يُقرَّر فيه.
+                <a asp-controller="PayrollReferenceChanges" asp-action="Details" asp-route-id="@Model.OpenRequest.Id" class="alert-link">عرض الطلب</a>
+            </div>
+        }
+        <dl class="row">
+            <dt class="col-sm-3">جدول الرواتب</dt><dd class="col-sm-9">@g.SalaryScale?.NameAr</dd>
+            <dt class="col-sm-3">كود الدرجة</dt><dd class="col-sm-9">@g.GradeCode</dd>
+            <dt class="col-sm-3">اسم الدرجة</dt><dd class="col-sm-9">@g.GradeNameAr</dd>
+            <dt class="col-sm-3">الراتب الأساسي</dt><dd class="col-sm-9">@g.BaseSalary.ToString("N2")</dd>
+            <dt class="col-sm-3">الحد الأدنى</dt><dd class="col-sm-9">@g.MinSalary.ToString("N2")</dd>
+            <dt class="col-sm-3">الحد الأعلى</dt><dd class="col-sm-9">@g.MaxSalary.ToString("N2")</dd>
+            <dt class="col-sm-3">ملفات أجر فعّالة على هذه الدرجة</dt>
+            <dd class="col-sm-9">
+                @Model.ProfilesNamingIt
+                <a asp-controller="EmployeePayProfiles" asp-action="Index" asp-route-payGradeId="@g.Id" asp-route-isActive="true" class="ms-2">عرضها</a>
+            </dd>
+            <dt class="col-sm-3">منها خارج حدود الدرجة</dt>
+            <dd class="col-sm-9">
+                @Model.ProfilesOutsideBounds
+                @if (Model.ProfilesOutsideBounds > 0)
+                {
+                    <a asp-controller="EmployeePayProfiles" asp-action="Index" asp-route-payGradeId="@g.Id" asp-route-outsideBounds="true" class="ms-2">عرضها</a>
+                    <span class="text-muted">(لا تُعدَّل آلياً؛ يصحّحها طلب تغيير راتب)</span>
+                }
+            </dd>
+        </dl>
+        @if (Model.CanChange && Model.OpenRequest is null)
+        {
+            <a asp-action="Edit" asp-route-id="@g.Id" class="btn btn-warning btn-sm"><i class="fas fa-edit"></i> طلب تعديل</a>
+            <a asp-action="Delete" asp-route-id="@g.Id" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash"></i> طلب حذف</a>
+        }
+    </div>
+</div>

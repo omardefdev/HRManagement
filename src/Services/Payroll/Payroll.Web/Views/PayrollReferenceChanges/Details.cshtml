@@ -1,0 +1,130 @@
+@model Payroll.Web.ViewModels.PayrollReferenceChangeDetailsViewModel
+@{
+    ViewData["Title"] = "طلب تغيير بيانات مرجعية";
+    var r = Model.Request;
+}
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="fas fa-clipboard-check"></i> طلب @Html.HrEnumDisplay(r.Operation): @Html.HrEnumDisplay(r.EntityType)</h3>
+        <a asp-action="Index" class="btn btn-secondary btn-sm">عودة إلى الطلبات</a>
+    </div>
+    <div class="card-body">
+        <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+
+        <dl class="row mb-4">
+            <dt class="col-sm-3">السجل</dt><dd class="col-sm-9">@(string.IsNullOrEmpty(r.EntityLabel) ? "—" : r.EntityLabel)</dd>
+            <dt class="col-sm-3">الحالة</dt><dd class="col-sm-9">@Html.HrEnumDisplay(r.State)</dd>
+            <dt class="col-sm-3">السبب</dt><dd class="col-sm-9">@r.Reason</dd>
+            <dt class="col-sm-3">المرجع القانوني</dt><dd class="col-sm-9">@r.LegalReference</dd>
+        </dl>
+
+        <h5>قبل التغيير وبعده</h5>
+        @if (r.Operation == PayrollReferenceOperation.Delete)
+        {
+            <p class="text-danger">المطلوب حذف السجل. قيمه الحالية:</p>
+        }
+        <table class="table table-bordered mb-3">
+            <thead><tr><th>الحقل</th><th>الحالي عند الطلب</th><th>المقترح</th></tr></thead>
+            <tbody>
+                @foreach (var row in Model.Rows)
+                {
+                    <tr class="@(row.Changed && r.Operation == PayrollReferenceOperation.Update ? "table-warning" : null)">
+                        <th scope="row">@row.Label</th>
+                        <td>@row.Current</td>
+                        <td>@row.Proposed</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (Model.Rows.Count == 0)
+        {
+            @await Html.PartialAsync("_HrEmptyState", "لا حقول لعرضها")
+        }
+
+        @if (Model.ProfilesOutsideProposedBounds is int outside)
+        {
+            <div class="alert @(outside > 0 ? "alert-warning" : "alert-light")" role="alert">
+                ملفات الأجر الفعّالة التي تصير خارج الحدود المقترحة: <strong>@outside</strong>.
+                تعديل حدود الدرجة لا يغيّر ملف أجر: يبقى كما هو ويُعرض في شاشة ملفات الأجر (خارج حدود الدرجة).
+            </div>
+        }
+
+        <partial name="_TechnicalJson" model="@(new HRManagement.Web.Shared.Models.TechnicalJsonModel([("القيم الحالية", r.CurrentJson), ("القيم المقترحة", r.ProposedJson)]))" />
+
+        <h5 class="mt-4">سجل الطلب</h5>
+        <table class="table table-sm mb-4">
+            <thead><tr><th>الإجراء</th><th>المستخدم</th><th>التاريخ</th><th>الملاحظة</th></tr></thead>
+            <tbody>
+                <tr>
+                    <td>تقديم الطلب</td>
+                    <td>@await Html.PartialAsync("_UserDisplayName", (object)r.RequestedBy)</td>
+                    <td>@Html.HrDateTime(r.RequestedAt)</td>
+                    <td>@r.Reason</td>
+                </tr>
+                @if (r.DecidedAt.HasValue)
+                {
+                    <tr>
+                        <td>@(r.State == PayrollReferenceChangeState.Rejected ? "رفض" : "اعتماد وتطبيق")</td>
+                        <td>@await Html.PartialAsync("_UserDisplayName", (object?)r.DecidedBy)</td>
+                        <td>@Html.HrDateTime(r.DecidedAt)</td>
+                        <td>@(string.IsNullOrEmpty(r.DecisionNote) ? "—" : r.DecisionNote)</td>
+                    </tr>
+                }
+                @if (r.CancelledAt.HasValue)
+                {
+                    <tr>
+                        <td>إلغاء</td>
+                        <td>@await Html.PartialAsync("_UserDisplayName", (object?)r.CancelledBy)</td>
+                        <td>@Html.HrDateTime(r.CancelledAt)</td>
+                        <td>@(string.IsNullOrEmpty(r.CancelReason) ? "—" : r.CancelReason)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (Model.IsOwnRequest)
+        {
+            <div class="alert alert-info" role="alert">لا يجوز اعتماد الطلب من طالبه: يقرر فيه معتمد رواتب آخر.</div>
+        }
+
+        @if (Model.CanDecide)
+        {
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <form asp-action="Approve" asp-route-id="@r.Id" method="post" class="border rounded p-3">
+                        @Html.AntiForgeryToken()
+                        <label class="form-label" for="approveNote">ملاحظة الاعتماد (اختيارية)</label>
+                        <input id="approveNote" name="note" class="form-control mb-2" maxlength="500" />
+                        <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> اعتماد وتطبيق</button>
+                    </form>
+                </div>
+                <div class="col-md-6">
+                    <form asp-action="Reject" asp-route-id="@r.Id" method="post" class="border rounded p-3"
+                          data-hr-confirm="رفض طلب تغيير البيانات المرجعية؟"
+                          data-hr-confirm-title="تأكيد الرفض"
+                          data-hr-confirm-variant="danger"
+                          data-hr-confirm-label="رفض">
+                        @Html.AntiForgeryToken()
+                        <label class="form-label" for="rejectNote">ملاحظة الرفض (إلزامية)</label>
+                        <input id="rejectNote" name="note" class="form-control mb-2" maxlength="500" required />
+                        <button type="submit" class="btn btn-danger"><i class="fas fa-times"></i> رفض</button>
+                    </form>
+                </div>
+            </div>
+        }
+
+        @if (Model.CanCancel)
+        {
+            <form asp-action="Cancel" asp-route-id="@r.Id" method="post" class="border rounded p-3"
+                  data-hr-confirm="إلغاء طلب تغيير البيانات المرجعية؟"
+                  data-hr-confirm-title="تأكيد الإلغاء"
+                  data-hr-confirm-variant="danger"
+                  data-hr-confirm-label="إلغاء الطلب">
+                @Html.AntiForgeryToken()
+                <label class="form-label" for="cancelReason">سبب الإلغاء (إلزامي)</label>
+                <input id="cancelReason" name="reason" class="form-control mb-2" maxlength="500" required />
+                <button type="submit" class="btn btn-outline-danger"><i class="fas fa-ban"></i> إلغاء الطلب</button>
+            </form>
+        }
+    </div>
+</div>

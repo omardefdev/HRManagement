@@ -1,0 +1,18 @@
+@model Payroll.Web.ViewModels.PayrollReferenceDeleteViewModel
+@{ ViewData["Title"] = "طلب حذف درجة وظيفية"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title"><i class="fas fa-trash"></i> طلب حذف درجة وظيفية</h3></div>
+    <div class="card-body">
+        <p class="mb-3">الدرجة المطلوب حذفها: <strong>@Model.Label</strong></p>
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post"
+              data-hr-confirm="تقديم طلب الحذف؟"
+              data-hr-confirm-title="تأكيد طلب الحذف"
+              data-hr-confirm-variant="danger"
+              data-hr-confirm-label="تقديم طلب الحذف">@Html.AntiForgeryToken()
+            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+            <partial name="_ReferenceChangeFields" model="Model" />
+            <button type="submit" class="btn btn-danger"><i class="fas fa-paper-plane"></i> تقديم طلب الحذف</button>
+            <a asp-action="Index" class="btn btn-secondary">عودة</a>
+        </form>
+    </div>
+</div>

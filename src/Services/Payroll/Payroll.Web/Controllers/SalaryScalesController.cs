@@ -1,17 +1,31 @@
 using HRManagement.ServiceDefaults;
+using HRManagement.SharedKernel.ViewModels;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Payroll.Domain.Entities;
+using Payroll.Domain.Enums;
 using Payroll.Infrastructure.Data;
-using HRManagement.SharedKernel.ViewModels;
+using Payroll.Web.ViewModels;
 
 namespace Payroll.Web.Controllers;
 
+/// <summary>
+/// Salary scales are read here. PLAN-53 (§4, D-53-4): Create, Edit and Delete submit a request (<c>Payroll.MasterData</c>, with a
+/// reason and a legal reference) that a different payroll approver decides on «طلبات البيانات المرجعية»; nothing is written in place.
+/// </summary>
 public class SalaryScalesController : Controller
 {
     private readonly PayrollDbContext _db;
-    public SalaryScalesController(PayrollDbContext db) => _db = db;
+    private readonly IMediator _mediator;
+    private readonly IConfiguration _configuration;
+
+    public SalaryScalesController(PayrollDbContext db, IMediator mediator, IConfiguration configuration)
+    {
+        _db = db;
+        _mediator = mediator;
+        _configuration = configuration;
+    }
 
     public async Task<IActionResult> Index(string? q, bool? isActive, DateTime? effectiveFrom, DateTime? effectiveTo)
     {
@@ -29,53 +43,89 @@ public class SalaryScalesController : Controller
         ViewBag.IsActive = isActive;
         ViewBag.EffectiveFrom = effectiveFrom;
         ViewBag.EffectiveTo = effectiveTo;
+        ViewBag.CanChange = PayrollPolicyRules.CanChangeMasterData(User, _configuration);
+        ViewBag.OpenRequests = await PayrollReferenceChangeHttp.OpenRequestsAsync(_db, PayrollReferenceEntityType.SalaryScale, HttpContext.RequestAborted);
         return View(items);
     }
 
-    public IActionResult Create() => View(new SalaryScale { EffectiveFrom = DateTime.UtcNow });
+    public async Task<IActionResult> Details(Guid id)
+    {
+        var scale = await _db.SalaryScales.AsNoTracking().Include(s => s.PayGrades).FirstOrDefaultAsync(s => s.Id == id);
+        if (scale is null) return NotFound();
+        return View(new SalaryScaleDetailsViewModel
+        {
+            Scale = scale,
+            OpenRequest = await _db.PayrollReferenceChangeRequests.AsNoTracking().FirstOrDefaultAsync(
+                r => r.EntityType == PayrollReferenceEntityType.SalaryScale && r.EntityId == id && r.State == PayrollReferenceChangeState.PendingApproval),
+            CanChange = PayrollPolicyRules.CanChangeMasterData(User, _configuration),
+        });
+    }
+
+    [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
+    public IActionResult Create() => View(new SalaryScaleChangeViewModel { EffectiveFrom = DateOnly.FromDateTime(DateTime.UtcNow) });
 
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
-    public async Task<IActionResult> Create(SalaryScale model)
+    public async Task<IActionResult> Create(SalaryScaleChangeViewModel model)
     {
-        if (!ModelState.IsValid) return View(model);
-        _db.SalaryScales.Add(model);
-        await _db.SaveChangesAsync();
-        TempData["Success"] = "تم إضافة جدول الرواتب";
-        return RedirectToAction(nameof(Index));
+        if (!ModelState.IsValid)
+        {
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            return View(model);
+        }
+
+        var result = await this.SubmitAsync(_mediator, PayrollReferenceEntityType.SalaryScale, PayrollReferenceOperation.Create, null, null, model.ToChange(), model);
+        return this.Submitted(result) ?? View(model);
     }
 
+    [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
     public async Task<IActionResult> Edit(Guid id)
     {
-        var e = await _db.SalaryScales.FindAsync(id);
+        var e = await _db.SalaryScales.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
         if (e is null) return NotFound();
-        return View(e);
+        return View(SalaryScaleChangeViewModel.From(e));
     }
 
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
-    public async Task<IActionResult> Edit(Guid id, SalaryScale model)
+    public async Task<IActionResult> Edit(Guid id, SalaryScaleChangeViewModel model)
     {
-        if (model.Id != id) return BadRequest();
-        if (!ModelState.IsValid) return View(model);
-        var e = await _db.SalaryScales.FindAsync(id);
-        if (e is null) return NotFound();
-        e.Code = model.Code; e.NameAr = model.NameAr; e.EffectiveFrom = model.EffectiveFrom;
-        e.EffectiveTo = model.EffectiveTo; e.IsActive = model.IsActive;
-        await _db.SaveChangesAsync();
-        TempData["Success"] = "تم التحديث";
-        return RedirectToAction(nameof(Index));
+        model.Id = id;
+        if (!ModelState.IsValid)
+        {
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            return View(model);
+        }
+
+        var result = await this.SubmitAsync(_mediator, PayrollReferenceEntityType.SalaryScale, PayrollReferenceOperation.Update, id, null, model.ToChange(), model);
+        return this.Submitted(result) ?? View(model);
     }
 
-    [HttpPost, ValidateAntiForgeryToken]
+    /// <summary>The page of the delete request: the reason and the legal reference a deletion needs.</summary>
+    [HttpGet]
     [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var e = await _db.SalaryScales.Include(s => s.PayGrades).FirstOrDefaultAsync(s => s.Id == id);
+        var e = await _db.SalaryScales.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
         if (e is null) return NotFound();
-        _db.SalaryScales.Remove(e);
-        await _db.SaveChangesAsync();
-        TempData["Success"] = "تم الحذف";
-        return RedirectToAction(nameof(Index));
+        return View(new PayrollReferenceDeleteViewModel { Id = id, Label = $"{e.Code} — {e.NameAr}" });
+    }
+
+    [HttpPost, ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
+    public async Task<IActionResult> Delete(Guid id, PayrollReferenceDeleteViewModel model)
+    {
+        var e = await _db.SalaryScales.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
+        if (e is null) return NotFound();
+        model.Id = id;
+        model.Label = $"{e.Code} — {e.NameAr}";
+        if (!ModelState.IsValid)
+        {
+            Response.StatusCode = StatusCodes.Status400BadRequest;
+            return View(model);
+        }
+
+        var result = await this.SubmitAsync(_mediator, PayrollReferenceEntityType.SalaryScale, PayrollReferenceOperation.Delete, id, null, null, model);
+        return this.Submitted(result) ?? View(model);
     }
 }
