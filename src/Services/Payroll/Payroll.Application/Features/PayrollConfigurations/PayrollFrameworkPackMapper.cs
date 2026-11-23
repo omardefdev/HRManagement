@@ -117,6 +117,23 @@ public static class PayrollFrameworkPackMapper
     }
 
     /// <summary>Writes a pack's decision onto a register row (a new one, or the one with the same decision id).</summary>
+    /// <summary>Whether the register row already says what the pack's decision says: such a row is not written again.</summary>
+    public static bool DecisionMatches(PackDecision source, LegalDecisionRecord target)
+    {
+        var copy = new LegalDecisionRecord();
+        ApplyDecision(source, copy);
+        return copy.DecisionId == target.DecisionId
+               && copy.ConfigField == target.ConfigField
+               && copy.RuleId == target.RuleId
+               && copy.OfficialSource == target.OfficialSource
+               && copy.IssueRef == target.IssueRef
+               && copy.EffectiveFrom == target.EffectiveFrom
+               && copy.Owner == target.Owner
+               && copy.ApprovalStatus == target.ApprovalStatus
+               && copy.RegimeCode == target.RegimeCode
+               && copy.Notes == target.Notes;
+    }
+
     public static void ApplyDecision(PackDecision source, LegalDecisionRecord target)
     {
         PayrollFrameworkPackValidator.TryParseDate(source.EffectiveFrom, out var from);

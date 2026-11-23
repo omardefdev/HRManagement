@@ -258,8 +258,9 @@ public sealed class ImportPayrollFrameworkPackHandler(IPayrollRepository reposit
                     PayrollFrameworkPackMapper.ApplyDecision(decision, row);
                     await repository.AddAsync(row, cancellationToken);
                 }
-                else
+                else if (!PayrollFrameworkPackMapper.DecisionMatches(decision, row))
                 {
+                    // A register row the pack repeats as it is stays untouched: importing the same pack again writes no decision.
                     PayrollFrameworkPackMapper.ApplyDecision(decision, row);
                     row.UpdatedAt = now;
                 }

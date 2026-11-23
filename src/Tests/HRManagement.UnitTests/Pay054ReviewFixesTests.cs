@@ -106,6 +106,37 @@ public sealed class Pay054ReviewFixesTests
     }
 
     [Fact]
+    public async Task A_pack_that_repeats_the_register_writes_no_decision_row_and_one_changed_decision_writes_one()
+    {
+        using var h = new Pay054FrameworkHarness();
+        Assert.True((await h.ImportAsync(code: "LAW_50_2004_REG", effectiveFrom: January)).Success);
+        Dictionary<string, DateTime> before;
+        await using (var db = h.Db())
+            before = await db.LegalDecisionRecords.AsNoTracking().ToDictionaryAsync(d => d.DecisionId, d => d.UpdatedAt);
+        Assert.Equal(17, before.Count);
+
+        // The same pack an hour later, under another code: the register is as it was, row for row.
+        h.Clock.Now = h.Clock.Now.AddHours(1);
+        Assert.True((await h.ImportAsync(code: "LAW_50_2004_REG2", effectiveFrom: January)).Success);
+        await using (var db = h.Db())
+        {
+            var after = await db.LegalDecisionRecords.AsNoTracking().ToDictionaryAsync(d => d.DecisionId, d => d.UpdatedAt);
+            Assert.Equal(before, after);
+        }
+
+        // One decision says something else: that row is written, the sixteen others are not.
+        h.Clock.Now = h.Clock.Now.AddHours(1);
+        var changed = Pay054FrameworkHarness.PackWith(pack =>
+            pack["decisions"]!.AsArray().Single(d => d!["decisionId"]!.GetValue<string>() == "LD-TAX-BRACKETS")!["officialSource"] = "المرسوم التشريعي 24 لعام 2003");
+        Assert.True((await h.ImportAsync(changed, code: "LAW_50_2004_REG3", effectiveFrom: January)).Success);
+        await using (var db = h.Db())
+        {
+            var after = await db.LegalDecisionRecords.AsNoTracking().ToDictionaryAsync(d => d.DecisionId, d => d.UpdatedAt);
+            Assert.Equal(["LD-TAX-BRACKETS"], after.Where(row => row.Value != before[row.Key]).Select(row => row.Key).ToList());
+        }
+    }
+
+    [Fact]
     public async Task The_expiry_warning_names_a_superseded_version_while_it_still_governs_today()
     {
         // 10 December 2026: the exceptions end in 52 days. Version 2 is published from 15 January 2027, so version 1 is superseded
