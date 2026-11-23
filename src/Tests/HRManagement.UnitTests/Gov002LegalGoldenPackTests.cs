@@ -27,7 +27,7 @@ public class Gov002LegalGovernanceTests
     {
         var v1 = PayrollRegimeSeed.CreateLaw50Configuration();
         v1.Id = Guid.NewGuid();
-        var v2 = PayrollConfigurationVersioning.CloneAsDraft(v1, 2, c => c.TaxExemptionAmount = 100);
+        var v2 = PayrollConfigurationVersioning.CloneAsDraft(v1, 2, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), c => c.TaxExemptionAmount = 100);
         v2.Id = Guid.NewGuid();
         PayrollConfigurationVersioning.TryApprove(v2, Guid.NewGuid());
         var actor = Guid.NewGuid();

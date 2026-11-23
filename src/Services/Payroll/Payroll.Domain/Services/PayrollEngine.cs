@@ -23,7 +23,7 @@ public static class PayrollEngine
         new Engine.Rules.BaseSalaryRule(),
         new Engine.Rules.AllowanceRule(),
         new Engine.Rules.AbsenceRule(),
-        new Engine.Rules.StatutoryDeductionRule(),
+        new Engine.Rules.StatutoryDeductionEngineRule(),
         new Engine.Rules.AdHocDeductionRule(),
         new Engine.Rules.AdvanceRecoveryRule(),
         new Engine.Rules.AdjustmentRule(),

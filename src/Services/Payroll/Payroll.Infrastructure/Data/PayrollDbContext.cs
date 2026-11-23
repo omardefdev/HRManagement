@@ -35,6 +35,9 @@ public class PayrollDbContext : TenantAwareDbContext
     public DbSet<EndOfServiceSettlement> EndOfServiceSettlements => Set<EndOfServiceSettlement>();
     public DbSet<PayrollConfiguration> PayrollConfigurations => Set<PayrollConfiguration>();
     public DbSet<TaxBracket> TaxBrackets => Set<TaxBracket>();
+    public DbSet<StatutoryDeductionRule> StatutoryDeductionRules => Set<StatutoryDeductionRule>();
+    public DbSet<PayrollConfigurationFieldSource> PayrollConfigurationFieldSources => Set<PayrollConfigurationFieldSource>();
+    public DbSet<PayrollConfigurationEditor> PayrollConfigurationEditors => Set<PayrollConfigurationEditor>();
     public DbSet<OfficialHoliday> OfficialHolidays => Set<OfficialHoliday>();
     public DbSet<LegalDecisionRecord> LegalDecisionRecords => Set<LegalDecisionRecord>();
     public DbSet<LegalAttestation> LegalAttestations => Set<LegalAttestation>();
@@ -167,6 +170,13 @@ public class PayrollDbContext : TenantAwareDbContext
                 .HasDatabaseName("IX_DisbursementPriorityRules_RuleSet_Priority");
             entity.HasIndex(e => new { e.RuleSetId, e.Category })
                 .HasDatabaseName("IX_DisbursementPriorityRules_RuleSet_Category");
+            // PLAN-54: a rule inside a framework version; null for a general rule older than PLAN-54.
+            entity.Property(e => e.LegalStatus).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.InterimExceptionId).HasMaxLength(LegalValueRules.InterimExceptionIdMaxLength);
+            entity.HasOne(e => e.PayrollConfiguration)
+                  .WithMany(c => c.PriorityRules)
+                  .HasForeignKey(e => e.PayrollConfigurationId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ArrearsLedgerEntry>(entity =>
@@ -235,6 +245,11 @@ public class PayrollDbContext : TenantAwareDbContext
                   .WithMany()
                   .HasForeignKey(e => e.AllowanceTypeId)
                   .OnDelete(DeleteBehavior.Restrict);
+            // PLAN-54 (D-PAY-6): the column defaults (Approved, System) are the migration's; EF always writes the value.
+            entity.Property(e => e.ApprovalStatus).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.Origin).HasConversion<string>().HasMaxLength(20);
+            entity.HasIndex(e => new { e.TenantId, e.ApprovalStatus })
+                  .HasDatabaseName("IX_AllowanceRecords_Tenant_ApprovalStatus");
         });
 
         modelBuilder.Entity<DeductionRecord>(entity =>
@@ -243,6 +258,10 @@ public class PayrollDbContext : TenantAwareDbContext
                   .WithMany()
                   .HasForeignKey(e => e.AppliedInRunId)
                   .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.ApprovalStatus).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.Origin).HasConversion<string>().HasMaxLength(20);
+            entity.HasIndex(e => new { e.TenantId, e.ApprovalStatus })
+                  .HasDatabaseName("IX_DeductionRecords_Tenant_ApprovalStatus");
         });
 
         modelBuilder.Entity<AbsenceDeduction>(entity =>
@@ -260,6 +279,10 @@ public class PayrollDbContext : TenantAwareDbContext
                   .WithMany()
                   .HasForeignKey(e => e.PayrollRunId)
                   .OnDelete(DeleteBehavior.SetNull);
+            entity.Property(e => e.ApprovalStatus).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.Origin).HasConversion<string>().HasMaxLength(20);
+            entity.HasIndex(e => new { e.TenantId, e.ApprovalStatus })
+                  .HasDatabaseName("IX_PayrollAdjustments_Tenant_ApprovalStatus");
         });
 
         modelBuilder.Entity<SalaryScale>(entity =>
@@ -372,19 +395,67 @@ public class PayrollDbContext : TenantAwareDbContext
                   .WithOne(t => t.PayrollConfiguration)
                   .HasForeignKey(t => t.PayrollConfigurationId)
                   .OnDelete(DeleteBehavior.Cascade);
+            // PLAN-54: the version owns its statutory deductions, field sources and editors (its holidays and priority rules are
+            // mapped on their own entities).
+            entity.HasMany(e => e.StatutoryDeductions)
+                  .WithOne(d => d.PayrollConfiguration)
+                  .HasForeignKey(d => d.PayrollConfigurationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.FieldSources)
+                  .WithOne(f => f.PayrollConfiguration)
+                  .HasForeignKey(f => f.PayrollConfigurationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+            entity.HasMany(e => e.Editors)
+                  .WithOne(x => x.PayrollConfiguration)
+                  .HasForeignKey(x => x.PayrollConfigurationId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<TaxBracket>(entity =>
+        {
+            entity.Property(e => e.LegalStatus).HasConversion<string>().HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<StatutoryDeductionRule>(entity =>
+        {
+            entity.HasIndex(e => new { e.PayrollConfigurationId, e.Code })
+                  .IsUnique()
+                  .HasDatabaseName("IX_StatutoryDeductionRules_Configuration_Code");
+            entity.Property(e => e.BaseKind).HasConversion<string>().HasMaxLength(20);
+            entity.Property(e => e.LegalStatus).HasConversion<string>().HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<PayrollConfigurationFieldSource>(entity =>
+        {
+            entity.HasIndex(e => new { e.PayrollConfigurationId, e.FieldName })
+                  .IsUnique()
+                  .HasDatabaseName("IX_PayrollConfigurationFieldSources_Configuration_Field");
+            entity.Property(e => e.LegalStatus).HasConversion<string>().HasMaxLength(20);
+        });
+
+        modelBuilder.Entity<PayrollConfigurationEditor>(entity =>
+        {
+            entity.HasIndex(e => new { e.PayrollConfigurationId, e.UserId })
+                  .HasDatabaseName("IX_PayrollConfigurationEditors_Configuration_User");
+            entity.Property(e => e.Kind).HasConversion<string>().HasMaxLength(20);
         });
 
         modelBuilder.Entity<OfficialHoliday>(entity =>
         {
             entity.HasOne(e => e.PayrollConfiguration)
-                  .WithMany()
+                  .WithMany(c => c.Holidays)
                   .HasForeignKey(e => e.PayrollConfigurationId)
                   .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(e => e.LegalStatus).HasConversion<string>().HasMaxLength(20);
         });
 
         modelBuilder.Entity<LegalDecisionRecord>(entity =>
         {
-            entity.HasIndex(e => e.DecisionId).IsUnique();
+            // PLAN-54: a decision id is unique inside an agency (it was unique across agencies, so a second agency's import of the
+            // same legal pack would have been refused by the index).
+            entity.HasIndex(e => new { e.TenantId, e.DecisionId })
+                  .IsUnique()
+                  .HasDatabaseName("IX_LegalDecisionRecords_Tenant_DecisionId");
             entity.Property(e => e.DecisionId).HasMaxLength(64);
             entity.Property(e => e.ApprovalStatus).HasMaxLength(32);
             entity.Property(e => e.OfficialSource).HasMaxLength(512);
@@ -397,6 +468,7 @@ public class PayrollDbContext : TenantAwareDbContext
             entity.Property(e => e.ContentHash).HasMaxLength(64);
             entity.Property(e => e.Status).HasMaxLength(32);
             entity.Property(e => e.DecisionIdsJson).HasColumnType("text");
+            entity.Property(e => e.InterimExceptionIdsJson).HasColumnType("text");
             entity.HasOne(e => e.PayrollConfiguration)
                   .WithMany()
                   .HasForeignKey(e => e.PayrollConfigurationId)

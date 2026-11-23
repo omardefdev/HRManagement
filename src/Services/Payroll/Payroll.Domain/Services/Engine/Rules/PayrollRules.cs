@@ -123,7 +123,7 @@ public sealed class AbsenceRule : IPayrollRule
     }
 }
 
-public sealed class StatutoryDeductionRule : IPayrollRule
+public sealed class StatutoryDeductionEngineRule : IPayrollRule
 {
     public int Order => 40;
 

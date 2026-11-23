@@ -96,7 +96,7 @@ public class PayrollConfigurationsController(PayrollDbContext db) : Controller
             var nextVersion = await db.PayrollConfigurations
                 .Where(c => c.Code == config.Code)
                 .MaxAsync(c => (int?)c.VersionNumber) ?? config.VersionNumber;
-            var draft = PayrollConfigurationVersioning.CloneAsDraft(config, nextVersion + 1, ApplyFields);
+            var draft = PayrollConfigurationVersioning.CloneAsDraft(config, nextVersion + 1, model.EffectiveFrom, ApplyFields);
             db.PayrollConfigurations.Add(draft);
             await db.SaveChangesAsync();
             TempData["Success"] = $"تم إنشاء إصدار مسودة جديد (v{draft.VersionNumber}) — لا تُعدَّل النسخ المنشورة.";

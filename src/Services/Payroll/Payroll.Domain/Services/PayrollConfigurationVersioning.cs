@@ -3,6 +3,15 @@ using Payroll.Domain.Enums;
 
 namespace Payroll.Domain.Services;
 
+/// <summary>
+/// PLAN-54: what a run of a framework version older than PLAN-54 reads from the general tables, handed to
+/// <see cref="PayrollConfigurationVersioning.CloneAsDraft"/> so that a v2 draft of such a version starts from the same values.
+/// </summary>
+public sealed record PayrollLegacyReferenceData(
+    IReadOnlyList<DeductionType> StatutoryDeductionTypes,
+    IReadOnlyList<OfficialHoliday> Holidays,
+    IReadOnlyList<DisbursementPriorityRule> ActivePriorityRules);
+
 /// <summary>PAY-002: resolve / clone / approve / publish immutable payroll configuration versions.</summary>
 public static class PayrollConfigurationVersioning
 {
@@ -24,17 +33,25 @@ public static class PayrollConfigurationVersioning
             .FirstOrDefault();
     }
 
+    /// <summary>
+    /// A new draft of <paramref name="source"/>'s code with every value that governs pay carried over: the numeric fields, the tax
+    /// brackets, the statutory deductions, the holidays, the priority rules and the field sources, each with its legal reference,
+    /// status and exception. The draft is always of fingerprint v2 and takes <paramref name="effectiveFrom"/> as its own date: a clone
+    /// never inherits its source's dates (PLAN-54, P-6).
+    /// <para>
+    /// A source older than PLAN-54 (fingerprint v1) holds none of the three tables: its runs read the general tables. So the draft's
+    /// starting rows are what such a run reads today, given in <paramref name="legacy"/>: the statutory deduction types, the general
+    /// holidays (with the source's own) and the active general priority rules, each interim with no exception. The numbers do not
+    /// move, and the draft cannot be approved before someone classifies those values (export, then import).
+    /// </para>
+    /// </summary>
     public static PayrollConfiguration CloneAsDraft(
         PayrollConfiguration source,
         int nextVersionNumber,
-        Action<PayrollConfiguration>? applyEdits = null)
+        DateTime effectiveFrom,
+        Action<PayrollConfiguration>? applyEdits = null,
+        PayrollLegacyReferenceData? legacy = null)
     {
-        if (source.PublicationStatus == PayrollConfigPublicationStatus.Draft
-            && source.ContentHash is null)
-        {
-            // Editing an unpublished draft in place is allowed by callers; clone is for immutable rows.
-        }
-
         var clone = new PayrollConfiguration
         {
             Code = source.Code,
@@ -43,9 +60,10 @@ public static class PayrollConfigurationVersioning
             IsActive = false,
             VersionNumber = nextVersionNumber,
             PublicationStatus = PayrollConfigPublicationStatus.Draft,
+            HashSchemaVersion = PayrollConfiguration.CurrentHashSchemaVersion,
             ContentHash = null,
-            EffectiveFrom = source.EffectiveFrom,
-            EffectiveTo = source.EffectiveTo,
+            EffectiveFrom = NormalizeDate(effectiveFrom),
+            EffectiveTo = null,
             SupersedesConfigurationId = source.Id,
             ProrationDaysBasis = source.ProrationDaysBasis,
             DailyRateDivisor = source.DailyRateDivisor,
@@ -73,16 +91,166 @@ public static class PayrollConfigurationVersioning
         {
             clone.TaxBrackets.Add(new TaxBracket
             {
+                PayrollConfigurationId = clone.Id,
                 UpperLimit = b.UpperLimit,
                 RatePercent = b.RatePercent,
                 SortOrder = b.SortOrder,
+                LegalReference = b.LegalReference,
+                LegalStatus = b.LegalStatus,
+                InterimExceptionId = b.InterimExceptionId,
                 TenantId = source.TenantId
             });
         }
 
+        if (source.IsLegacyFramework)
+            AddLegacyStartingRows(clone, source, legacy);
+        else
+            CopyVersionTables(clone, source);
+
         applyEdits?.Invoke(clone);
         return clone;
     }
+
+    /// <summary>A v2 source: its own tables and field sources, value for value.</summary>
+    private static void CopyVersionTables(PayrollConfiguration clone, PayrollConfiguration source)
+    {
+        foreach (var d in source.StatutoryDeductions.OrderBy(x => x.SortOrder).ThenBy(x => x.Code, StringComparer.Ordinal))
+        {
+            clone.StatutoryDeductions.Add(new StatutoryDeductionRule
+            {
+                PayrollConfigurationId = clone.Id,
+                Code = d.Code,
+                NameAr = d.NameAr,
+                EmployeePercent = d.EmployeePercent,
+                EmployerPercent = d.EmployerPercent,
+                FixedAmount = d.FixedAmount,
+                BaseKind = d.BaseKind,
+                Ceiling = d.Ceiling,
+                InsuranceBody = d.InsuranceBody,
+                LegalReference = d.LegalReference,
+                LegalStatus = d.LegalStatus,
+                InterimExceptionId = d.InterimExceptionId,
+                SortOrder = d.SortOrder,
+                TenantId = source.TenantId
+            });
+        }
+
+        foreach (var h in source.Holidays.OrderBy(x => x.Date).ThenBy(x => x.NameAr, StringComparer.Ordinal))
+            clone.Holidays.Add(CopyHoliday(h, clone, h.LegalReference, h.LegalStatus, h.InterimExceptionId));
+
+        foreach (var r in source.PriorityRules.OrderBy(x => x.Priority).ThenBy(x => x.Category, StringComparer.Ordinal))
+            clone.PriorityRules.Add(CopyPriorityRule(r, clone, r.LegalStatus, r.InterimExceptionId));
+
+        foreach (var f in source.FieldSources.OrderBy(x => x.FieldName, StringComparer.Ordinal))
+        {
+            clone.FieldSources.Add(new PayrollConfigurationFieldSource
+            {
+                PayrollConfigurationId = clone.Id,
+                FieldName = f.FieldName,
+                LegalReference = f.LegalReference,
+                LegalStatus = f.LegalStatus,
+                InterimExceptionId = f.InterimExceptionId,
+                TenantId = source.TenantId
+            });
+        }
+    }
+
+    /// <summary>A v1 source: what its runs read from the general tables becomes the draft's own, unclassified rows.</summary>
+    private static void AddLegacyStartingRows(
+        PayrollConfiguration clone,
+        PayrollConfiguration source,
+        PayrollLegacyReferenceData? legacy)
+    {
+        var order = 0;
+        foreach (var type in (legacy?.StatutoryDeductionTypes ?? []).Where(t => t.IsStatutory))
+        {
+            clone.StatutoryDeductions.Add(new StatutoryDeductionRule
+            {
+                PayrollConfigurationId = clone.Id,
+                Code = type.Code,
+                NameAr = type.NameAr,
+                EmployeePercent = type.Percentage ?? 0m,
+                EmployerPercent = 0m,
+                FixedAmount = type.FixedAmount ?? 0m,
+                BaseKind = StatutoryDeductionBaseKind.GrossPay,
+                Ceiling = null,
+                InsuranceBody = null,
+                LegalReference = null,
+                LegalStatus = PayrollLegalValueStatus.Interim,
+                InterimExceptionId = null,
+                SortOrder = order++,
+                TenantId = source.TenantId
+            });
+        }
+
+        // A legacy run reads the general holidays and the version's own; the draft owns a copy of both.
+        var holidays = (legacy?.Holidays ?? []).Concat(source.Holidays)
+            .GroupBy(h => (h.Date, h.NameAr, h.IsRecurring))
+            .Select(g => g.First())
+            .OrderBy(h => h.Date)
+            .ThenBy(h => h.NameAr, StringComparer.Ordinal);
+        foreach (var h in holidays)
+            clone.Holidays.Add(CopyHoliday(h, clone, null, PayrollLegalValueStatus.Interim, null));
+
+        foreach (var r in (legacy?.ActivePriorityRules ?? [])
+                     .Where(r => r.IsActive && r.PayrollConfigurationId is null)
+                     .OrderBy(r => r.Priority)
+                     .ThenBy(r => r.Category, StringComparer.Ordinal))
+            clone.PriorityRules.Add(CopyPriorityRule(r, clone, PayrollLegalValueStatus.Interim, null));
+
+        foreach (var field in PayrollConfigurationFieldSource.GovernedFields)
+        {
+            clone.FieldSources.Add(new PayrollConfigurationFieldSource
+            {
+                PayrollConfigurationId = clone.Id,
+                FieldName = field,
+                LegalReference = null,
+                LegalStatus = PayrollLegalValueStatus.Interim,
+                InterimExceptionId = null,
+                TenantId = source.TenantId
+            });
+        }
+    }
+
+    private static OfficialHoliday CopyHoliday(
+        OfficialHoliday source,
+        PayrollConfiguration clone,
+        string? legalReference,
+        PayrollLegalValueStatus legalStatus,
+        string? interimExceptionId) => new()
+        {
+            PayrollConfigurationId = clone.Id,
+            Date = source.Date,
+            NameAr = source.NameAr,
+            IsRecurring = source.IsRecurring,
+            LegalReference = legalReference,
+            LegalStatus = legalStatus,
+            InterimExceptionId = interimExceptionId,
+            TenantId = clone.TenantId
+        };
+
+    private static DisbursementPriorityRule CopyPriorityRule(
+        DisbursementPriorityRule source,
+        PayrollConfiguration clone,
+        PayrollLegalValueStatus legalStatus,
+        string? interimExceptionId) => new()
+        {
+            // The version is the rule set of its own rules.
+            RuleSetId = clone.Id,
+            PayrollConfigurationId = clone.Id,
+            Category = source.Category,
+            Priority = source.Priority,
+            MinimumAmount = source.MinimumAmount,
+            LegalSource = source.LegalSource,
+            IsActive = true,
+            LegalStatus = legalStatus,
+            InterimExceptionId = interimExceptionId,
+            TenantId = clone.TenantId
+        };
+
+    /// <summary>A framework date is a day: midnight UTC, whatever kind the caller passed.</summary>
+    public static DateTime NormalizeDate(DateTime value) =>
+        DateTime.SpecifyKind(value.Kind == DateTimeKind.Local ? value.ToUniversalTime().Date : value.Date, DateTimeKind.Utc);
 
     public static (bool Success, string? Error) TryApprove(PayrollConfiguration config, Guid actorId)
     {

@@ -40,7 +40,7 @@ public class Pay002ImmutableConfigTests
     public void EditPublished_CreatesNewDraftVersion()
     {
         var published = PublishedLaw50();
-        var draft = PayrollConfigurationVersioning.CloneAsDraft(published, nextVersionNumber: 2, c =>
+        var draft = PayrollConfigurationVersioning.CloneAsDraft(published, nextVersionNumber: 2, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), c =>
         {
             c.TaxExemptionAmount = 1000m;
         });
@@ -68,7 +68,7 @@ public class Pay002ImmutableConfigTests
     {
         var v1 = PublishedLaw50(new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc));
         v1.Id = Guid.NewGuid();
-        var v2 = PayrollConfigurationVersioning.CloneAsDraft(v1, 2, c => c.TaxExemptionAmount = 500);
+        var v2 = PayrollConfigurationVersioning.CloneAsDraft(v1, 2, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), c => c.TaxExemptionAmount = 500);
         v2.Id = Guid.NewGuid();
         PayrollConfigurationVersioning.TryApprove(v2, Guid.NewGuid());
 
@@ -182,7 +182,7 @@ public class Pay002ImmutableConfigTests
         Assert.Equal(a.TotalDeductions, b.TotalDeductions);
 
         // Publishing a different active config must not change replay on the pinned instance.
-        var mutatedActive = PayrollConfigurationVersioning.CloneAsDraft(config, 2, c => c.TaxExemptionAmount = 50_000m);
+        var mutatedActive = PayrollConfigurationVersioning.CloneAsDraft(config, 2, new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc), c => c.TaxExemptionAmount = 50_000m);
         mutatedActive.PublicationStatus = PayrollConfigPublicationStatus.Published;
         mutatedActive.ContentHash = PayrollConfigurationHashService.ComputeContentHash(mutatedActive);
 

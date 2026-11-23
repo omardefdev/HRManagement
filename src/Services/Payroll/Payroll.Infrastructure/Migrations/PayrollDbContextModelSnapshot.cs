@@ -516,11 +516,26 @@ namespace Payroll.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<string>("ApprovalStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("DecisionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime>("EffectiveFrom")
                         .HasColumnType("timestamp with time zone");
@@ -530,6 +545,15 @@ namespace Payroll.Infrastructure.Migrations
 
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
@@ -543,6 +567,9 @@ namespace Payroll.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AllowanceTypeId");
+
+                    b.HasIndex("TenantId", "ApprovalStatus")
+                        .HasDatabaseName("IX_AllowanceRecords_Tenant_ApprovalStatus");
 
                     b.ToTable("AllowanceRecords");
                 });
@@ -727,11 +754,26 @@ namespace Payroll.Infrastructure.Migrations
                     b.Property<Guid?>("AppliedInRunId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("ApprovalStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("DecisionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("DeductionType")
                         .IsRequired()
@@ -745,6 +787,11 @@ namespace Payroll.Infrastructure.Migrations
 
                     b.Property<int?>("InstallmentNumber")
                         .HasColumnType("integer");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Reason")
                         .HasColumnType("text");
@@ -765,6 +812,9 @@ namespace Payroll.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AppliedInRunId");
+
+                    b.HasIndex("TenantId", "ApprovalStatus")
+                        .HasDatabaseName("IX_DeductionRecords_Tenant_ApprovalStatus");
 
                     b.ToTable("DeductionRecords");
                 });
@@ -827,6 +877,10 @@ namespace Payroll.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("InterimExceptionId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -835,9 +889,17 @@ namespace Payroll.Infrastructure.Migrations
                         .HasMaxLength(512)
                         .HasColumnType("character varying(512)");
 
+                    b.Property<string>("LegalStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<decimal>("MinimumAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
+
+                    b.Property<Guid?>("PayrollConfigurationId")
+                        .HasColumnType("uuid");
 
                     b.Property<int>("Priority")
                         .HasColumnType("integer");
@@ -852,6 +914,8 @@ namespace Payroll.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PayrollConfigurationId");
 
                     b.HasIndex("RuleSetId", "Category")
                         .HasDatabaseName("IX_DisbursementPriorityRules_RuleSet_Category");
@@ -1221,6 +1285,10 @@ namespace Payroll.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("InterimExceptionIdsJson")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<Guid>("PayrollConfigurationId")
                         .HasColumnType("uuid");
 
@@ -1306,8 +1374,9 @@ namespace Payroll.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DecisionId")
-                        .IsUnique();
+                    b.HasIndex("TenantId", "DecisionId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_LegalDecisionRecords_Tenant_DecisionId");
 
                     b.ToTable("LegalDecisionRecords");
                 });
@@ -1324,8 +1393,21 @@ namespace Payroll.Infrastructure.Migrations
                     b.Property<DateOnly>("Date")
                         .HasColumnType("date");
 
+                    b.Property<string>("InterimExceptionId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<bool>("IsRecurring")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("LegalReference")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("LegalStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("NameAr")
                         .IsRequired()
@@ -1809,14 +1891,34 @@ namespace Payroll.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<string>("ApprovalStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ApprovedBy")
+                        .HasColumnType("uuid");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("CreatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("DecisionNote")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("Origin")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<Guid?>("PayrollRunId")
                         .HasColumnType("uuid");
@@ -1833,6 +1935,9 @@ namespace Payroll.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("PayrollRunId");
+
+                    b.HasIndex("TenantId", "ApprovalStatus")
+                        .HasDatabaseName("IX_PayrollAdjustments_Tenant_ApprovalStatus");
 
                     b.ToTable("PayrollAdjustments");
                 });
@@ -1986,6 +2091,9 @@ namespace Payroll.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<int>("HashSchemaVersion")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
@@ -2086,6 +2194,88 @@ namespace Payroll.Infrastructure.Migrations
                         .HasDatabaseName("IX_PayrollConfigurations_Tenant_Code_Version");
 
                     b.ToTable("PayrollConfigurations");
+                });
+
+            modelBuilder.Entity("Payroll.Domain.Entities.PayrollConfigurationEditor", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("PayrollConfigurationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PayrollConfigurationId", "UserId")
+                        .HasDatabaseName("IX_PayrollConfigurationEditors_Configuration_User");
+
+                    b.ToTable("PayrollConfigurationEditors");
+                });
+
+            modelBuilder.Entity("Payroll.Domain.Entities.PayrollConfigurationFieldSource", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FieldName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("InterimExceptionId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("LegalReference")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("LegalStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("PayrollConfigurationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PayrollConfigurationId", "FieldName")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PayrollConfigurationFieldSources_Configuration_Field");
+
+                    b.ToTable("PayrollConfigurationFieldSources");
                 });
 
             modelBuilder.Entity("Payroll.Domain.Entities.PayrollReferenceChangeRequest", b =>
@@ -2400,6 +2590,10 @@ namespace Payroll.Infrastructure.Migrations
 
                     b.Property<DateTime?>("LeaseUntil")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Log")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
 
                     b.Property<int>("PartitionSize")
                         .HasColumnType("integer");
@@ -2728,6 +2922,84 @@ namespace Payroll.Infrastructure.Migrations
                     b.ToTable("SalaryScales");
                 });
 
+            modelBuilder.Entity("Payroll.Domain.Entities.StatutoryDeductionRule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BaseKind")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<decimal?>("Ceiling")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("EmployeePercent")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("EmployerPercent")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("FixedAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("InsuranceBody")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("InterimExceptionId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("LegalReference")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("LegalStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<Guid>("PayrollConfigurationId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PayrollConfigurationId", "Code")
+                        .IsUnique()
+                        .HasDatabaseName("IX_StatutoryDeductionRules_Configuration_Code");
+
+                    b.ToTable("StatutoryDeductionRules");
+                });
+
             modelBuilder.Entity("Payroll.Domain.Entities.TaxBracket", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2736,6 +3008,19 @@ namespace Payroll.Infrastructure.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("InterimExceptionId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("LegalReference")
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)");
+
+                    b.Property<string>("LegalStatus")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<Guid>("PayrollConfigurationId")
                         .HasColumnType("uuid");
@@ -2797,6 +3082,16 @@ namespace Payroll.Infrastructure.Migrations
                     b.Navigation("AppliedInRun");
                 });
 
+            modelBuilder.Entity("Payroll.Domain.Entities.DisbursementPriorityRule", b =>
+                {
+                    b.HasOne("Payroll.Domain.Entities.PayrollConfiguration", "PayrollConfiguration")
+                        .WithMany("PriorityRules")
+                        .HasForeignKey("PayrollConfigurationId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("PayrollConfiguration");
+                });
+
             modelBuilder.Entity("Payroll.Domain.Entities.EmployeePayProfile", b =>
                 {
                     b.HasOne("Payroll.Domain.Entities.PayGrade", "PayGrade")
@@ -2841,7 +3136,7 @@ namespace Payroll.Infrastructure.Migrations
             modelBuilder.Entity("Payroll.Domain.Entities.OfficialHoliday", b =>
                 {
                     b.HasOne("Payroll.Domain.Entities.PayrollConfiguration", "PayrollConfiguration")
-                        .WithMany()
+                        .WithMany("Holidays")
                         .HasForeignKey("PayrollConfigurationId")
                         .OnDelete(DeleteBehavior.Cascade);
 
@@ -2915,6 +3210,28 @@ namespace Payroll.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("SupersedesConfigurationId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Payroll.Domain.Entities.PayrollConfigurationEditor", b =>
+                {
+                    b.HasOne("Payroll.Domain.Entities.PayrollConfiguration", "PayrollConfiguration")
+                        .WithMany("Editors")
+                        .HasForeignKey("PayrollConfigurationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PayrollConfiguration");
+                });
+
+            modelBuilder.Entity("Payroll.Domain.Entities.PayrollConfigurationFieldSource", b =>
+                {
+                    b.HasOne("Payroll.Domain.Entities.PayrollConfiguration", "PayrollConfiguration")
+                        .WithMany("FieldSources")
+                        .HasForeignKey("PayrollConfigurationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PayrollConfiguration");
                 });
 
             modelBuilder.Entity("Payroll.Domain.Entities.PayrollRun", b =>
@@ -3004,6 +3321,17 @@ namespace Payroll.Infrastructure.Migrations
                     b.Navigation("SalaryLine");
                 });
 
+            modelBuilder.Entity("Payroll.Domain.Entities.StatutoryDeductionRule", b =>
+                {
+                    b.HasOne("Payroll.Domain.Entities.PayrollConfiguration", "PayrollConfiguration")
+                        .WithMany("StatutoryDeductions")
+                        .HasForeignKey("PayrollConfigurationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("PayrollConfiguration");
+                });
+
             modelBuilder.Entity("Payroll.Domain.Entities.TaxBracket", b =>
                 {
                     b.HasOne("Payroll.Domain.Entities.PayrollConfiguration", "PayrollConfiguration")
@@ -3017,6 +3345,16 @@ namespace Payroll.Infrastructure.Migrations
 
             modelBuilder.Entity("Payroll.Domain.Entities.PayrollConfiguration", b =>
                 {
+                    b.Navigation("Editors");
+
+                    b.Navigation("FieldSources");
+
+                    b.Navigation("Holidays");
+
+                    b.Navigation("PriorityRules");
+
+                    b.Navigation("StatutoryDeductions");
+
                     b.Navigation("TaxBrackets");
                 });
 

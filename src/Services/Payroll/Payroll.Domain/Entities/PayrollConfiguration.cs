@@ -112,7 +112,60 @@ public class PayrollConfiguration : BaseEntity
     [Display(Name = "العملة")]
     public string CurrencyCode { get; set; } = "SYP";
 
+    /// <summary>
+    /// PLAN-54: which fingerprint the version carries. <see cref="LegacyHashSchemaVersion"/> for every version that existed before
+    /// PLAN-54 and for the Demo and Acceptance seeds (fields and brackets only; a run of it reads the general tables as before);
+    /// <see cref="CurrentHashSchemaVersion"/> for every version created, cloned or imported since (the four tables, the field sources
+    /// and every reference are inside the version and its fingerprint).
+    /// </summary>
+    [Display(Name = "إصدار البصمة")]
+    public int HashSchemaVersion { get; set; } = LegacyHashSchemaVersion;
+
+    public const int LegacyHashSchemaVersion = 1;
+    public const int CurrentHashSchemaVersion = 2;
+
+    /// <summary>True for a version older than PLAN-54: its run reads the general deduction types, holidays and priority rules.</summary>
+    public bool IsLegacyFramework => HashSchemaVersion < CurrentHashSchemaVersion;
+
     public ICollection<TaxBracket> TaxBrackets { get; set; } = new List<TaxBracket>();
+
+    /// <summary>PLAN-54: the statutory deductions of a v2 version (empty on a legacy version).</summary>
+    public ICollection<StatutoryDeductionRule> StatutoryDeductions { get; set; } = new List<StatutoryDeductionRule>();
+
+    /// <summary>The version's own official holidays. A v2 run reads these only; a legacy run also reads the general rows.</summary>
+    public ICollection<OfficialHoliday> Holidays { get; set; } = new List<OfficialHoliday>();
+
+    /// <summary>PLAN-54: the disbursement priority rules of a v2 version (empty on a legacy version).</summary>
+    public ICollection<DisbursementPriorityRule> PriorityRules { get; set; } = new List<DisbursementPriorityRule>();
+
+    /// <summary>PLAN-54: the legal source of each governed numeric field (v2).</summary>
+    public ICollection<PayrollConfigurationFieldSource> FieldSources { get; set; } = new List<PayrollConfigurationFieldSource>();
+
+    /// <summary>PLAN-54: everyone who created, imported into or edited this version. Not part of the fingerprint.</summary>
+    public ICollection<PayrollConfigurationEditor> Editors { get; set; } = new List<PayrollConfigurationEditor>();
+
+    /// <summary>Every legally sourced value of the version, for the governance gates and the screens.</summary>
+    public IEnumerable<ILegallySourcedValue> LegalValues() =>
+        FieldSources.OrderBy(f => f.FieldName, StringComparer.Ordinal).Cast<ILegallySourcedValue>()
+            .Concat(TaxBrackets.OrderBy(b => b.SortOrder).ThenBy(b => b.UpperLimit))
+            .Concat(StatutoryDeductions.OrderBy(d => d.SortOrder).ThenBy(d => d.Code, StringComparer.Ordinal))
+            .Concat(Holidays.OrderBy(h => h.Date).ThenBy(h => h.NameAr, StringComparer.Ordinal))
+            .Concat(PriorityRules.OrderBy(r => r.Priority).ThenBy(r => r.Category, StringComparer.Ordinal));
+
+    /// <summary>Records <paramref name="userId"/> as an editor of this version (once per person and kind).</summary>
+    public void RecordEditor(Guid userId, PayrollFrameworkEditKind kind, DateTime atUtc)
+    {
+        if (userId == Guid.Empty || Editors.Any(e => e.UserId == userId && e.Kind == kind))
+            return;
+        Editors.Add(new PayrollConfigurationEditor
+        {
+            PayrollConfigurationId = Id,
+            UserId = userId,
+            Kind = kind,
+            At = atUtc,
+            TenantId = TenantId
+        });
+    }
 
     public bool IsImmutable =>
         PublicationStatus is PayrollConfigPublicationStatus.Published

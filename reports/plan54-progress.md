@@ -9,8 +9,8 @@ Session: one, in the main folder `/home/omar/HRManagement` (Linux notebook), bra
 | Phase | Status | Finished (UTC) |
 |-------|--------|----------------|
 | P0 baseline | done | 2026-11-23T07:36:53Z |
-| P1 data and fingerprint | next | |
-| P2 create, import, governing version | | |
+| P1 data and fingerprint | done | 2026-11-23T08:50:07Z |
+| P2 create, import, governing version | next | |
 | P3 engine reads the version | | |
 | P4 governance | | |
 | P5 manual inputs | | |
@@ -40,9 +40,49 @@ Session: one, in the main folder `/home/omar/HRManagement` (Linux notebook), bra
   `artifacts/plan54/vps/p0-picture.txt`.
 - **Server at P0:** tag `5aa61b78e3a6` (PLAN-53's last, the rollback target), 22 containers (20 healthy of 20 with a check), 30 GB free.
 
+## P1 — the data and the fingerprint
+
+- Finished (UTC): 2026-11-23T08:50:07Z.
+- **Entities:** `StatutoryDeductionRule`, `PayrollConfigurationFieldSource`, `PayrollConfigurationEditor` (the editors' record of P-8);
+  `ILegallySourcedValue` on brackets, holidays, statutory deductions, field sources and priority rules; `HashSchemaVersion` and the
+  five child collections on `PayrollConfiguration`; `IManualPayInput` and its five fields on the three inputs (and `Reason` on an
+  allowance); `LegalAttestation.InterimExceptionIdsJson`; `PayrollRunJob.Log`.
+- **Fingerprint v2** (`PayrollConfigurationHashService`): v1's method is unchanged text; v2 adds the effective date, the four tables,
+  the field sources and every reference, status and exception; rows sorted by their keys, money with two decimals.
+- **`CloneAsDraft`** carries every table and reference, takes the date it is given, and for a v1 source starts from what a v1 run
+  reads (`PayrollLegacyReferenceData`), unclassified.
+- **Migration `20261123074128_PAY054_LegalFrameworkPacks`:** no byte order mark; every existing row by column default
+  (`HashSchemaVersion` 1, `Approved`/`System`, `Interim`, `[]`), no data statement; row security on the three new tables;
+  `has-pending-model-changes`: none.
+- **Tests:** unit filter `Pay054|Pay002|Gov002|Payroll` 194/194 (11 s); `Pay054MigrationPostgreSqlTests` 3/3 on PostgreSQL as a
+  NOSUPERUSER NOBYPASSRLS owner under forced row security (14 s); build `-warnaserror` 0/0 (35 s incremental); format clean.
+- **Proof that v1 did not move:** `Pay054HashV2Tests` recomputes the three seeded versions' fingerprints and gets the demo server's
+  stored values (`9d028823…`, `6a3fa3da…`, `a5de27a1…`).
+- **Files:** `Payroll.Domain/Entities/{StatutoryDeductionRule,PayrollConfigurationFieldSource,PayrollConfigurationEditor,ILegallySourcedValue,IManualPayInput}.cs`,
+  `Enums/{PayrollLegalValueStatus,ManualInputApproval}.cs`, edits to nine entities, the hash service, the versioning service,
+  `PayrollDbContext`, the migration, and the tests `Pay054HashV2Tests`, `Pay054CloneCarriesEverythingTests`, `Pay054MigrationPostgreSqlTests`.
+
 ## Decisions (with reasons)
 
 Recorded as they are taken; see each phase.
+
+- **D1 (P-7, the name clash):** `PayrollRegimeAndRulesTests.cs` needed a qualified name, so the engine's rule class
+  `Engine.Rules.StatutoryDeductionRule` is renamed `StatutoryDeductionEngineRule`; the entity keeps the plan's name.
+- **D2 (P-7, `LegalSource`):** `DisbursementPriorityRule.LegalSource` («المصدر القانوني») means the same as a legal reference: it is
+  reused (the interface's `LegalReference` reads it); only `LegalStatus` and `InterimExceptionId` are added to that entity.
+- **D3 (`HashSchemaVersion` in code):** the C# default is 1 and only the creation paths (create, clone, import) set 2, so the Demo
+  and Acceptance seeds and the several hundred test fixtures stay v1 and compute as before. A test pins which product files may
+  construct a `PayrollConfiguration` (P2).
+- **D4 (column defaults live in the migration only):** the model declares no default for the new enum columns. With a model default,
+  EF would treat the CLR default (`Signed`, `Approved`) as «not set» and write the database default instead (`Interim`), a silent
+  wrong value. EF writes every value explicitly; the defaults fill the existing rows and plain-SQL inserts.
+- **D5 (a legal reference that starts with `LD-` cites a decision):** the plan gives each value three fields (`legalReference`,
+  `legalStatus`, `interimExceptionId`) and asks that every cited decision exist; so a reference is either a decision id or a free
+  citation.
+- **D6 (the effective date is inside fingerprint v2):** an approved version cannot change its date without changing its fingerprint.
+- **D7 (`LegalDecisionRecords` unique index):** now `(TenantId, DecisionId)`; it was unique across agencies (baseline fact 1).
+- **D8 (`PayrollRunJob.Log`):** «سجل المهمة» had no field; the job gains a short text log (the legacy path, the interim indicator, an
+  expired exception). A refusal before a job exists is recorded on a job row of status `Failed`, which is not an active job.
 
 ## Server changes and their undo commands
 
@@ -54,4 +94,6 @@ None.
 
 ## Exact next step
 
-P1: the entities and fields (P-7, P-9, P-8's editors), `HashSchemaVersion`, fingerprint v2, `CloneAsDraft`, migration `PAY054_LegalFrameworkPacks`.
+P2: the schema and the pack (`docs/syr/payroll-framework-packs/`), the pack reader/validator/importer and the create command
+(`Payroll.Application/Features/PayrollConfigurations/`), the identity proof, the API with its antiforgery endpoint, the screens,
+`TryPublish`/resolver/`GetActiveConfigurationAsync`/`Activate`, first-run diagnostics, the operator's script.
