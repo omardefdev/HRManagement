@@ -12,8 +12,8 @@ Session: one, in the main folder `/home/omar/HRManagement` (Linux notebook), bra
 | P1 data and fingerprint | done | 2026-11-23T08:50:07Z |
 | P2 create, import, governing version | done | 2026-11-23T09:39:43Z |
 | P3 engine reads the version | done | 2026-11-23T10:56:44Z |
-| P4 governance | next | |
-| P5 manual inputs | | |
+| P4 governance | done | 2026-11-23T11:32:43Z |
+| P5 manual inputs | next | |
 | P6 acceptance and review | | |
 | P7 main | | |
 | P8 demo server | | |
@@ -125,6 +125,41 @@ Session: one, in the main folder `/home/omar/HRManagement` (Linux notebook), bra
 - **A finding for D-PAY-1 / PAY-E, recorded, not changed:** the interim values tax income twice (`DED-TAX` 5% of gross as a statutory
   deduction, and the brackets). A test pins that the pack reproduces it, because the seeds do it today.
 
+## P4 — the cycle's governance
+
+- Finished (UTC): 2026-11-23T11:32:43Z.
+- **`PayrollFrameworkGovernance`** (domain): approve (a draft of fingerprint v2, not by an editor, with brackets, through the interim
+  gate), attest (an approved version, by neither an editor nor the approver; every cited decision in the register; the attestation
+  records the cited decisions and exceptions), publish (approved, an active attestation of the same fingerprint, by the approver or
+  the attestor, never an editor; then `Versioning.TryPublish`). `PayrollLegalGovernance` keeps the attestation record and the change
+  notice; its old publish rule is gone.
+- **The interim gate:** `IPayrollLegalControlGuard.IsExceptionActive(id, asOf)` and `ExceptionExpiresOn(id)`; at approve, attest and
+  publish, every value has a reference and every interim value cites an exception active that day, the refusal naming the value and
+  the exception; at a run's start and at a resume (`PayrollInterimGate.RefusalForRun`): «انتهى الاستثناء القانوني X», the run neither
+  pinned nor started, a `Failed` job row with the reason in `Error` and `Log`. «Today» is `IPayrollCalendar.Today` (Damascus).
+  With no catalog to ask, no exception is active (fails closed).
+- **The policy:** `Payroll.LegalAttest`, met through the policy `Payroll:Legal:AttestorPolicy` names (`Payroll.Approve` by default);
+  the service refuses to start on an unknown name or on the policy itself. The setting and `Payroll:ManualInputs:RequireApproval`
+  are in the three settings files and mirrored in `docker-compose.acceptance-prodlike.yml`.
+- **Web:** the four acts on the screens go through the commands; a refusal renders the version's page with the message and status
+  400. API: `POST {id}/approve`, `legal-attest`, `publish`, `activate`, each with its policy and `[ValidateAntiForgeryToken]`.
+- **Indicators:** a run's page and its provenance (`interimIndicator`, `interimExceptionIds`, `frameworkPredatesLegalPacks`,
+  `jobLog`); the job's log («إطار مؤقت — استثناء …»); the dashboard, from 60 days before an exception a published v2 version cites
+  ends, names it, its date and the frameworks.
+- **Tests:** `Pay054FrameworkGovernanceTests` (every actor rule and act with the state unchanged on each refusal; the gate on seven
+  instants around 31 January 2027, 21:00 UTC being 1 February in Damascus; the run gate; signed values; the real guard against a
+  catalog file, and the shared status-only check unchanged); `Pay054V2RunPostgreSqlTests` start-gate test (refused, not pinned, the
+  failed job's log; a paused job not resumed; the legacy month goes on; renewed, it calculates);
+  `Pay054FrameworkCycleHttpTests` (three users on the screens and the API, every wrong order 400 or 403 with nothing changed,
+  D-PAY-13, the indicators, the dashboard at 61, 60 and after 0 days); policy rows and setting tests in `PayrollWriteActionsTests`.
+  Runs: payroll unit filter 994/994; PLAN-54 PostgreSQL 12/12; architecture 378/378; integration (not Testcontainers) 47/47.
+- **Existing tests that changed:** `Gov002LegalGovernanceTests.Publish_WithoutAttestation_Fails` and
+  `Publish_WithMatchingAttestation_CreatesNotice` now call `PayrollFrameworkGovernance.TryPublish` (the rule moved); the second uses
+  a classified v2 version with an approver and a separate attestor, since an unclassified clone is no longer approved. Their meaning
+  is kept: no publication without an attestation; a publication with a matching one writes the notice.
+- **Found while testing:** the integration hosts validate their container and register no legal catalog, so the cycle's handlers
+  could not be built; the guard is optional in them and the gate fails closed without it.
+
 ## Decisions (with reasons)
 
 Recorded as they are taken; see each phase.
@@ -165,6 +200,15 @@ Recorded as they are taken; see each phase.
 - **D15 (the API's surface):** the plan lists four endpoints; `GET` list and `GET {id}` are added as reads, and the cycle's acts get
   API endpoints in P4 (the acceptance class and the server check run the cycle as three users).
 
+- **D16 (an exception's last day):** the plan writes `expiresOn > asOf`; this prompt's P-10 gives the dates (the framework is
+  refused «from 2027-02-01», the dashboard warns «from 2026-12-02», 60 days before). So `expiresOn` is the exception's last day:
+  it is active while `asOf <= expiresOn`, in the payroll calendar's date. An exception without a readable date is not active.
+- **D17 (a legacy draft is not approved):** a draft of fingerprint v1 (none exists on the demo) would publish a new legacy
+  version; the approval refuses it and says to create a new version from it.
+- **D18 (approval is from Draft only):** the old `TryApprove` also re-approved an approved version, rewriting its approver.
+- **D19 (a refused run leaves a job row):** «the job's log says…» for a run that never got a job: a `Failed` job row (not an
+  active job) carries the refusal; the run is neither pinned nor started.
+
 ## Server changes and their undo commands
 
 None yet.
@@ -175,7 +219,6 @@ None.
 
 ## Exact next step
 
-P4: `PayrollFrameworkGovernance` (editors, approver, attestor, publisher; refusals change nothing), the policy `Payroll.LegalAttest`
-and the setting `Payroll:Legal:AttestorPolicy`, `IPayrollLegalControlGuard.IsExceptionActive(id, asOf)`, the interim gate at approve,
-attest, publish and at a run's start, the attestation's decision check and `InterimExceptionIdsJson`, the indicators on the run and
-the dashboard, 400 on the forms, API endpoints for the acts.
+P5: manual inputs with a second person: view models (`ManualInputViewModels.cs`), `Features/ManualInputs/` create and decide
+commands, the loader and every reader that feeds pay filtered on `Approved`, the screens (state column, approve, reject with
+`data-hr-confirm`), `Payroll:ManualInputs:RequireApproval` honoured in Development only; the three `IAM-F` entity-binding rows leave.

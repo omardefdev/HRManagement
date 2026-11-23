@@ -87,26 +87,39 @@ public sealed class Pay054V2RunPostgreSqlTests(PostgreSqlFixture fixture)
         return (runId.Value, PayrollDeterminismComparer.ExportCanonical(lines, components));
     }
 
-    /// <summary>The interim pack as version 2 of LAW_50_2004 from 1 October 2026, approved and published (the cycle's rules are P4's).</summary>
+    private static readonly Guid Approver = Guid.Parse("54000000-0000-4000-8000-0000000000c3");
+    private static readonly Guid Attestor = Guid.Parse("54000000-0000-4000-8000-0000000000c4");
+
+    /// <summary>A scope with the test's clock (23 November 2026 unless moved) and catalog: the interim gate never reads today's date.</summary>
+    private async Task<(Microsoft.Extensions.DependencyInjection.ServiceProvider Root, Microsoft.Extensions.DependencyInjection.AsyncServiceScope Scope,
+        PayrollDbContext Db, IMediator Mediator, Pay054Clock Clock, Pay054CatalogGuard Guard)> ScopeAsync()
+    {
+        var clock = new Pay054Clock(Pay054Clock.Default);
+        var guard = new Pay054CatalogGuard();
+        var (root, scope, db, mediator) = await PayrollPostgresTestSupport.CreateScopeAsync(fixture, configureServices: Pay054TestLegal.Services(clock, guard));
+        return (root, scope, db, mediator, clock, guard);
+    }
+
+    /// <summary>
+    /// The interim pack as version 2 of LAW_50_2004 from 1 October 2026, taken through the product's cycle: imported by one person,
+    /// approved by a second, attested by a third, published by the approver.
+    /// </summary>
     private static async Task<PayrollConfiguration> ImportAndPublishAsync(PayrollDbContext db, IMediator mediator)
     {
         var imported = await mediator.Send(new ImportPayrollFrameworkPackCommand(
             Pay054FrameworkHttpTests.InterimPackJson(), null, new DateOnly(2026, 10, 1), null, Importer));
         Assert.True(imported.Success, imported.Error + string.Join(" | ", imported.Errors));
+        var id = imported.FrameworkId!.Value;
+
+        var approved = await mediator.Send(new ApprovePayrollFrameworkCommand(id, Approver));
+        Assert.True(approved.Success, approved.Error);
+        var attested = await mediator.Send(new AttestPayrollFrameworkCommand(id, Attestor));
+        Assert.True(attested.Success, attested.Error);
+        var published = await mediator.Send(new PublishPayrollFrameworkCommand(id, Approver, null));
+        Assert.True(published.Success, published.Error);
 
         db.ChangeTracker.Clear();
-        var sameCode = await db.PayrollConfigurations
-            .Include(c => c.TaxBrackets).Include(c => c.StatutoryDeductions).Include(c => c.Holidays)
-            .Include(c => c.PriorityRules).Include(c => c.FieldSources)
-            .Where(c => c.Code == "LAW_50_2004")
-            .ToListAsync();
-        var v2 = sameCode.Single(c => c.Id == imported.FrameworkId);
-        Assert.True(PayrollConfigurationVersioning.TryApprove(v2, Guid.NewGuid()).Success);
-        var (published, error) = PayrollConfigurationVersioning.TryPublish(v2, sameCode, Guid.NewGuid());
-        Assert.True(published, error);
-        await db.SaveChangesAsync();
-        db.ChangeTracker.Clear();
-        return v2;
+        return await db.PayrollConfigurations.AsNoTracking().SingleAsync(c => c.Id == id);
     }
 
     private static async Task<SocialInsuranceReportRequest> ExportInsuranceAsync(PayrollDbContext db, Guid runId)
@@ -142,9 +155,9 @@ public sealed class Pay054V2RunPostgreSqlTests(PostgreSqlFixture fixture)
     public async Task The_same_employees_and_month_give_identical_lines_with_the_seeded_version_and_with_the_imported_pack()
     {
         Skip.IfNot(PostgreSqlFixture.IsEnabled, "Set RUN_TESTCONTAINERS=true and start Docker.");
-        var (root, scope, db, mediator) = await PayrollPostgresTestSupport.CreateScopeAsync(fixture);
-        await using var _ = scope;
-        await using var __ = root;
+        var (root, scope, db, mediator, _, _) = await ScopeAsync();
+        await using var disposeScope = scope;
+        await using var disposeRoot = root;
         var v1 = await SeedAsTheDemoSeedDoesAsync(db, employees: 8);
 
         // A: the seeded version (v1), the general deduction types and holidays. The legacy path, named in the job's log.
@@ -189,9 +202,9 @@ public sealed class Pay054V2RunPostgreSqlTests(PostgreSqlFixture fixture)
     public async Task Editing_the_general_tables_after_pinning_moves_neither_a_v2_result_nor_its_fingerprint_nor_its_export()
     {
         Skip.IfNot(PostgreSqlFixture.IsEnabled, "Set RUN_TESTCONTAINERS=true and start Docker.");
-        var (root, scope, db, mediator) = await PayrollPostgresTestSupport.CreateScopeAsync(fixture);
-        await using var _ = scope;
-        await using var __ = root;
+        var (root, scope, db, mediator, _, _) = await ScopeAsync();
+        await using var disposeScope = scope;
+        await using var disposeRoot = root;
         var v1 = await SeedAsTheDemoSeedDoesAsync(db, employees: 6);
         var v2 = await ImportAndPublishAsync(db, mediator);
 
@@ -239,12 +252,89 @@ public sealed class Pay054V2RunPostgreSqlTests(PostgreSqlFixture fixture)
 
     [Trait("Category", "Testcontainers")]
     [SkippableFact]
+    public async Task A_calculation_with_an_interim_framework_stops_when_its_exception_has_expired_and_a_legacy_month_goes_on()
+    {
+        Skip.IfNot(PostgreSqlFixture.IsEnabled, "Set RUN_TESTCONTAINERS=true and start Docker.");
+        var (root, scope, db, mediator, clock, guard) = await ScopeAsync();
+        await using var disposeScope = scope;
+        await using var disposeRoot = root;
+        var v1 = await SeedAsTheDemoSeedDoesAsync(db, employees: 4);
+        var v2 = await ImportAndPublishAsync(db, mediator);
+
+        // While the exceptions are active the month calculates, and the job's log says the framework is interim and under what.
+        var (october, lines) = await CalculateAsync(db, mediator, October, OctoberEnd);
+        Assert.Equal(4, lines.Count);
+        var job = await db.PayrollRunJobs.AsNoTracking().SingleAsync(j => j.PayrollRunId == october);
+        Assert.Contains("إطار مؤقت — استثناء EX-STR2-LAW50-UNCERTIFIED، EX-STR2-TAX-INTERIM", job.Log ?? string.Empty, StringComparison.Ordinal);
+
+        // 1 February 2027 in Damascus (31 January, 21:30 UTC): both exceptions ended yesterday. A new month is refused, closed.
+        clock.Now = new DateTimeOffset(2027, 1, 31, 21, 30, 0, TimeSpan.Zero);
+        var (created, november, createError) = await mediator.Send(new CreatePayrollRunCommand(
+            new DateTime(2026, 11, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2026, 11, 30, 0, 0, 0, DateTimeKind.Utc), DateTime.UtcNow));
+        Assert.True(created, createError);
+        var (calculated, generated, error) = await mediator.Send(new CalculatePayrollRunCommand(november!.Value));
+        Assert.False(calculated);
+        Assert.Equal(0, generated);
+        Assert.Equal("انتهى الاستثناء القانوني EX-STR2-LAW50-UNCERTIFIED؛ انتهى الاستثناء القانوني EX-STR2-TAX-INTERIM", error);
+
+        db.ChangeTracker.Clear();
+        var refusedRun = await db.PayrollRuns.AsNoTracking().SingleAsync(r => r.Id == november);
+        Assert.Equal(PayrollRunStatus.Draft, refusedRun.Status);                      // not started
+        Assert.Null(refusedRun.PayrollConfigurationId);                               // not pinned
+        Assert.Null(refusedRun.ConfigContentHash);
+        Assert.Equal(0, await db.SalaryLines.CountAsync(l => l.PayrollRunId == november));
+        var refusedJob = await db.PayrollRunJobs.AsNoTracking().SingleAsync(j => j.PayrollRunId == november);
+        Assert.Equal(PayrollRunJobStatus.Failed, refusedJob.Status);                  // the job's log carries the reason
+        Assert.Equal(error, refusedJob.Error);
+        Assert.Contains("انتهى الاستثناء القانوني EX-STR2-TAX-INTERIM", refusedJob.Log ?? string.Empty, StringComparison.Ordinal);
+
+        // A paused calculation of the interim version is not resumed either, and its job says why; it stays paused for the day the
+        // exception is renewed.
+        var pinned = new PayrollRun
+        {
+            PeriodStart = new DateTime(2026, 12, 1, 0, 0, 0, DateTimeKind.Utc),
+            PeriodEnd = new DateTime(2026, 12, 31, 0, 0, 0, DateTimeKind.Utc),
+            RunDate = DateTime.UtcNow,
+            Status = PayrollRunStatus.Calculating,
+            PayrollConfigurationId = v2.Id,
+            ConfigContentHash = v2.ContentHash,
+        };
+        db.PayrollRuns.Add(pinned);
+        var paused = new PayrollRunJob { PayrollRunId = pinned.Id, Phase = PayrollRunJobPhase.Calculate, Status = PayrollRunJobStatus.Paused, Attempt = 1 };
+        db.PayrollRunJobs.Add(paused);
+        await db.SaveChangesAsync();
+        db.ChangeTracker.Clear();
+        var resumed = await mediator.Send(new StartPayrollRunJobCommand(pinned.Id));
+        Assert.False(resumed.Success);
+        Assert.Equal(error, resumed.Error);
+        db.ChangeTracker.Clear();
+        var stillPaused = await db.PayrollRunJobs.AsNoTracking().SingleAsync(j => j.Id == paused.Id);
+        Assert.Equal(PayrollRunJobStatus.Paused, stillPaused.Status);
+        Assert.Equal(1, stillPaused.Attempt);
+        Assert.Equal(error, stillPaused.Error);
+
+        // September is the superseded legacy version's month: it cites no exception and calculates as before.
+        var (september, septemberLines) = await CalculateAsync(
+            db, mediator, new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2026, 9, 30, 0, 0, 0, DateTimeKind.Utc));
+        Assert.Equal(4, septemberLines.Count);
+        Assert.Equal(v1.Id, (await db.PayrollRuns.AsNoTracking().SingleAsync(r => r.Id == september)).PayrollConfigurationId);
+
+        // The exception is renewed in the catalog: the refused month calculates.
+        guard.LastDays[Pay054CatalogGuard.Tax] = new DateOnly(2027, 12, 31);
+        guard.LastDays[Pay054CatalogGuard.Law50] = new DateOnly(2027, 12, 31);
+        var (again, againLines, againError) = await mediator.Send(new CalculatePayrollRunCommand(november.Value));
+        Assert.True(again, againError);
+        Assert.Equal(4, againLines);
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
     public async Task A_partial_disbursement_of_a_v2_run_reads_its_versions_rules_and_a_legacy_run_the_general_ones()
     {
         Skip.IfNot(PostgreSqlFixture.IsEnabled, "Set RUN_TESTCONTAINERS=true and start Docker.");
-        var (root, scope, db, mediator) = await PayrollPostgresTestSupport.CreateScopeAsync(fixture);
-        await using var _ = scope;
-        await using var __ = root;
+        var (root, scope, db, mediator, _, _) = await ScopeAsync();
+        await using var disposeScope = scope;
+        await using var disposeRoot = root;
         var v1 = await SeedAsTheDemoSeedDoesAsync(db, employees: 3);
         var v2 = await ImportAndPublishAsync(db, mediator);
 

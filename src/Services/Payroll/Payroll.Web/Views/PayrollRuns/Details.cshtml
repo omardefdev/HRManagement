@@ -143,6 +143,17 @@
                 <div>العملة/التقريب: @Model.PayrollConfiguration.CurrencyCode / @Html.HrEnumDisplay(Model.PayrollConfiguration.RoundingMode)</div>
                 <div>البصمة: <code>@(Model.ConfigContentHash ?? Model.PayrollConfiguration.ContentHash ?? "—")</code></div>
                 <div>اعتماد/نشر: @Html.HrDate(Model.PayrollConfiguration.ApprovedAt) / @Html.HrDate(Model.PayrollConfiguration.PublishedAt)</div>
+                @if (ViewBag.FrameworkNote is Payroll.Application.Features.PayrollConfigurations.PayrollRunFrameworkNote note)
+                {
+                    if (note.IsLegacy)
+                    {
+                        <div class="text-muted" data-testid="run-framework-legacy">@Payroll.Application.Features.PayrollConfigurations.PayrollRunFrameworkNote.LegacyNote</div>
+                    }
+                    else if (note.InterimIndicator is not null)
+                    {
+                        <div class="text-warning-emphasis fw-bold" data-testid="run-framework-interim">@note.InterimIndicator</div>
+                    }
+                }
             }
             else if (!string.IsNullOrEmpty(Model.ConfigContentHash))
             {

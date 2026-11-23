@@ -267,124 +267,59 @@ public class PayrollConfigurationsController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
-    public async Task<IActionResult> Approve(Guid id)
-    {
-        var config = await db.PayrollConfigurations
-            .Include(c => c.TaxBrackets)
-            .FirstOrDefaultAsync(c => c.Id == id);
-        if (config is null) return NotFound();
+    // ------------------------------------------------------------------ the cycle (PLAN-54 §3)
 
-        var actor = ParseUserId(User) ?? Guid.Empty;
-        var (ok, error) = PayrollConfigurationVersioning.TryApprove(config, actor);
-        if (!ok)
+    /// <summary>
+    /// The answer of an act of the cycle on the form: a success goes back to the version; a refusal renders the version's page with
+    /// the Arabic message and status 400 (404 when there is no such version), and the version is as it was.
+    /// </summary>
+    private async Task<IActionResult> CycleAnswerAsync(Guid id, PayrollFrameworkResult result, string success)
+    {
+        if (result.Success)
         {
-            TempData["Error"] = error;
+            TempData["Success"] = success;
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        await db.SaveChangesAsync();
-        TempData["Success"] = "تم اعتماد النسخة القانونية";
-        return RedirectToAction(nameof(Details), new { id });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
-    public async Task<IActionResult> LegalAttest(Guid id)
-    {
-        var config = await db.PayrollConfigurations
-            .Include(c => c.TaxBrackets)
-            .FirstOrDefaultAsync(c => c.Id == id);
-        if (config is null) return NotFound();
-
-        if (config.PublicationStatus is not (PayrollConfigPublicationStatus.Draft
-            or PayrollConfigPublicationStatus.Approved))
-        {
-            TempData["Error"] = "التصديق القانوني للمسودات/المعتمدة فقط قبل النشر.";
-            return RedirectToAction(nameof(Details), new { id });
-        }
-
-        var actor = ParseUserId(User) ?? Guid.Empty;
-        config.ContentHash ??= PayrollConfigurationHashService.ComputeContentHash(config);
-
-        var prior = await db.LegalAttestations
-            .Where(a => a.PayrollConfigurationId == id && a.Status == "Active")
-            .ToListAsync();
-        foreach (var p in prior)
-            p.Status = "Voided";
-
-        db.LegalAttestations.Add(PayrollLegalGovernance.CreateAttestation(config, actor));
-        await db.SaveChangesAsync();
-        TempData["Success"] = "تم تسجيل التصديق القانوني الإلكتروني للنسخة.";
-        return RedirectToAction(nameof(Details), new { id });
+        var model = await DetailsModelAsync(id, result.Error);
+        if (model is null) return NotFound();
+        Response.StatusCode = result.StatusCode;
+        return View(nameof(Details), model);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
-    public async Task<IActionResult> Publish(Guid id, string? impactSummary)
-    {
-        var config = await db.PayrollConfigurations
-            .Include(c => c.TaxBrackets)
-            .FirstOrDefaultAsync(c => c.Id == id);
-        if (config is null) return NotFound();
+    public async Task<IActionResult> Approve(Guid id) =>
+        await CycleAnswerAsync(
+            id,
+            await mediator.Send(new ApprovePayrollFrameworkCommand(id, PayProfileChangeHttp.RequireUserId(User))),
+            "تم اعتماد النسخة القانونية. الخطوة التالية: تصديق قانوني من شخص ثالث.");
 
-        var sameCode = await db.PayrollConfigurations
-            .Where(c => c.Code == config.Code)
-            .Take(SearchFilterBase.MaxPageSize)
-            .ToListAsync();
-        var actor = ParseUserId(User) ?? Guid.Empty;
-
-        var attestation = await db.LegalAttestations
-            .Where(a => a.PayrollConfigurationId == id && a.Status == "Active")
-            .OrderByDescending(a => a.AttestedAt)
-            .FirstOrDefaultAsync();
-
-        var latestPosted = await PayrollFrameworkQueries.LatestPostedPeriodEndAsync(repository, config.RegimeCode, HttpContext.RequestAborted);
-        var (ok, error, notice) = PayrollLegalGovernance.TryPublishWithGovernance(
-            config, sameCode, actor, attestation, impactSummary, latestPosted);
-        if (!ok)
-        {
-            TempData["Error"] = error;
-            return RedirectToAction(nameof(Details), new { id });
-        }
-
-        if (notice is not null)
-            db.PayrollConfigChangeNotices.Add(notice);
-
-        await db.SaveChangesAsync();
-        TempData["Success"] = $"تم نشر الإطار القانوني: {config.NameAr} (v{config.VersionNumber}) مع إشعار تغيير.";
-        return RedirectToAction(nameof(Details), new { id });
-    }
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollLegalAttest)]
+    public async Task<IActionResult> LegalAttest(Guid id) =>
+        await CycleAnswerAsync(
+            id,
+            await mediator.Send(new AttestPayrollFrameworkCommand(id, PayProfileChangeHttp.RequireUserId(User))),
+            "تم تسجيل التصديق القانوني الإلكتروني للنسخة. الخطوة التالية: النشر.");
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
-    public async Task<IActionResult> Activate(Guid id)
-    {
-        // PLAN-54 (§3, rule 3): Activate works on a published version only; it never publishes.
-        var target = await db.PayrollConfigurations.FirstOrDefaultAsync(c => c.Id == id);
-        if (target is null) return NotFound();
+    public async Task<IActionResult> Publish(Guid id, string? impactSummary) =>
+        await CycleAnswerAsync(
+            id,
+            await mediator.Send(new PublishPayrollFrameworkCommand(id, PayProfileChangeHttp.RequireUserId(User), impactSummary)),
+            "تم نشر الإطار القانوني مع إشعار تغيير.");
 
-        var all = await db.PayrollConfigurations.Where(c => c.Code == target.Code).Take(SearchFilterBase.MaxPageSize).ToListAsync();
-        var (ok, error) = PayrollConfigurationVersioning.TryActivate(target, all);
-        if (!ok)
-        {
-            TempData["Error"] = error;
-            return RedirectToAction(nameof(Details), new { id });
-        }
-
-        await db.SaveChangesAsync();
-        TempData["Success"] = $"تم تفعيل الإطار القانوني: {target.NameAr}";
-        return RedirectToAction(nameof(Index));
-    }
-
-    private static Guid? ParseUserId(ClaimsPrincipal user)
-    {
-        var v = user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub");
-        return Guid.TryParse(v, out var g) ? g : null;
-    }
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
+    public async Task<IActionResult> Activate(Guid id) =>
+        await CycleAnswerAsync(
+            id,
+            await mediator.Send(new ActivatePayrollFrameworkCommand(id, PayProfileChangeHttp.RequireUserId(User))),
+            "تم تفعيل الإطار القانوني.");
 }

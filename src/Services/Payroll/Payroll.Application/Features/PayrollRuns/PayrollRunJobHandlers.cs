@@ -22,9 +22,13 @@ public class StartPayrollRunJobHandler(
     IServiceScopeFactory scopeFactory,
     IOptions<PayrollBatchOptions> batchOptions,
     IPayrollNationalScopeGuard? nationalScopeGuard = null,
-    IPayrollLegalControlGuard? legalControlGuard = null)
+    IPayrollLegalControlGuard? legalControlGuard = null,
+    IPayrollCalendar? calendar = null)
     : IRequestHandler<StartPayrollRunJobCommand, (bool Success, int LinesGenerated, Guid? JobId, string? Error)>
 {
+    /// <summary>«Today» for the interim gate: the payroll calendar's date (Damascus), never the UTC date.</summary>
+    private readonly IPayrollCalendar _calendar = calendar ?? new PayrollCalendar(TimeProvider.System);
+
     public async Task<(bool Success, int LinesGenerated, Guid? JobId, string? Error)> Handle(
         StartPayrollRunJobCommand request,
         CancellationToken cancellationToken)
@@ -46,6 +50,17 @@ public class StartPayrollRunJobHandler(
                 && existing.LeaseUntil > DateTime.UtcNow)
                 return (false, 0, existing.Id, "مهمة حساب نشطة لهذا التشغيل — استخدم الإيقاف أو انتظر.");
 
+            // PLAN-54 (§3): a resumed calculation passes the interim gate again; the exception may have expired since it started.
+            var resumed = await ResolveConfigAsync(repository, run, DateOnly.FromDateTime(run.PeriodStart), cancellationToken);
+            if (resumed.Config is not null
+                && Features.PayrollConfigurations.PayrollInterimGate.RefusalForRun(resumed.Config, legalControlGuard, _calendar) is { } expired)
+            {
+                existing.Error = expired;
+                existing.AppendLog(expired);
+                await repository.SaveChangesAsync(cancellationToken);
+                return (false, 0, existing.Id, expired);
+            }
+
             existing.Status = PayrollRunJobStatus.Running;
             existing.Attempt++;
             existing.LeaseOwner = Environment.MachineName;
@@ -64,6 +79,26 @@ public class StartPayrollRunJobHandler(
         var configResult = await ResolveConfigAsync(repository, run, periodStart, cancellationToken);
         if (configResult.Error != null) return (false, 0, null, configResult.Error);
         var config = configResult.Config!;
+
+        // PLAN-54 (§3): a version that holds interim values is calculated only while every STR-002 exception it cites is active
+        // today. The refusal is closed: the run is not pinned and not started, and a failed job row carries the reason in its log.
+        if (Features.PayrollConfigurations.PayrollInterimGate.RefusalForRun(config, legalControlGuard, _calendar) is { } interimRefusal)
+        {
+            var refused = new PayrollRunJob
+            {
+                PayrollRunId = run.Id,
+                Phase = PayrollRunJobPhase.Snapshot,
+                Status = PayrollRunJobStatus.Failed,
+                Attempt = 1,
+                Error = interimRefusal,
+                LastCheckpointAt = _calendar.UtcNow,
+                TenantId = run.TenantId
+            };
+            refused.AppendLog(interimRefusal);
+            await repository.AddAsync(refused, cancellationToken);
+            await repository.SaveChangesAsync(cancellationToken);
+            return (false, 0, refused.Id, interimRefusal);
+        }
 
         run.PayrollConfigurationId = config.Id;
         run.ConfigContentHash = config.ContentHash;
@@ -85,6 +120,8 @@ public class StartPayrollRunJobHandler(
             LastCheckpointAt = DateTime.UtcNow,
             CalculateStartedAt = DateTime.UtcNow
         };
+        if (Features.PayrollConfigurations.PayrollInterimGate.InterimIndicator(config) is { } interimIndicator)
+            job.AppendLog(interimIndicator);
         await repository.AddAsync(job, cancellationToken);
 
         var profiles = await repository.EmployeePayProfiles

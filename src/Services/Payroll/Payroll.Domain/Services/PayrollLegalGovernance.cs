@@ -5,7 +5,10 @@ using Payroll.Domain.Enums;
 
 namespace Payroll.Domain.Services;
 
-/// <summary>GOV-002: legal attest + change notice around PAY-002 publish.</summary>
+/// <summary>
+/// GOV-002: the legal attestation record and the change notice around a PAY-002 publication. The rules of who may approve, attest and
+/// publish, and of interim values, are <see cref="PayrollFrameworkGovernance"/>'s since PLAN-54.
+/// </summary>
 public static class PayrollLegalGovernance
 {
     public static LegalAttestation CreateAttestation(
@@ -16,9 +19,12 @@ public static class PayrollLegalGovernance
         var hash = config.ContentHash ?? PayrollConfigurationHashService.ComputeContentHash(config);
         config.ContentHash = hash;
 
-        var ids = decisionIds?.ToList() ?? LegalDecisionIds.Law50AttestSet.ToList();
-        if (string.Equals(config.RegimeCode, LegalRegimeCodes.CivilService2026, StringComparison.OrdinalIgnoreCase))
-            ids = [LegalDecisionIds.CivilServicePending];
+        // PLAN-54: a v2 version is attested for the decisions its own values cite (given by the caller). With none given (a version
+        // older than PLAN-54), the regime's default set, as before.
+        var ids = decisionIds?.ToList()
+                  ?? (string.Equals(config.RegimeCode, LegalRegimeCodes.CivilService2026, StringComparison.OrdinalIgnoreCase)
+                      ? [LegalDecisionIds.CivilServicePending]
+                      : LegalDecisionIds.Law50AttestSet.ToList());
 
         return new LegalAttestation
         {
@@ -72,25 +78,5 @@ public static class PayrollLegalGovernance
             PublishedBy = actorId,
             TenantId = config.TenantId
         };
-    }
-
-    public static (bool Ok, string? Error, PayrollConfigChangeNotice? Notice) TryPublishWithGovernance(
-        PayrollConfiguration config,
-        IList<PayrollConfiguration> sameCodeConfigs,
-        Guid actorId,
-        LegalAttestation? attestation,
-        string? impactSummary = null,
-        DateTime? latestPostedPeriodEnd = null)
-    {
-        var (attestOk, attestErr) = EnsureAttestationForPublish(config, attestation);
-        if (!attestOk)
-            return (false, attestErr, null);
-
-        var (ok, error) = PayrollConfigurationVersioning.TryPublish(config, sameCodeConfigs, actorId, latestPostedPeriodEnd);
-        if (!ok)
-            return (false, error, null);
-
-        var notice = CreateChangeNotice(config, actorId, impactSummary);
-        return (true, null, notice);
     }
 }

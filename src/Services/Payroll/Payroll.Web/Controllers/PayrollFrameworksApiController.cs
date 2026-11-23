@@ -119,6 +119,44 @@ public sealed class PayrollFrameworksApiController(PayrollDbContext db, IMediato
         var result = await mediator.Send(new SetPayrollFrameworkEffectiveFromCommand(id, effectiveFrom, PayProfileChangeHttp.RequireUserId(User)), ct);
         return result.Success ? Ok(PayrollFrameworkHttp.Body(result)) : PayrollFrameworkHttp.Refusal(result);
     }
+
+    // ------------------------------------------------------------------ the cycle (PLAN-54 §3)
+
+    /// <summary>A second person approves a draft. 400 when he is an editor of it, or an interim value cites no active exception.</summary>
+    [HttpPost("{id:guid}/approve")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
+    public async Task<IActionResult> Approve(Guid id, CancellationToken ct) =>
+        Cycle(await mediator.Send(new ApprovePayrollFrameworkCommand(id, PayProfileChangeHttp.RequireUserId(User)), ct));
+
+    /// <summary>A third person attests an approved version legally. 400 when he is an editor or the approver.</summary>
+    [HttpPost("{id:guid}/legal-attest")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollLegalAttest)]
+    public async Task<IActionResult> LegalAttest(Guid id, CancellationToken ct) =>
+        Cycle(await mediator.Send(new AttestPayrollFrameworkCommand(id, PayProfileChangeHttp.RequireUserId(User)), ct));
+
+    /// <summary>The approver or the attestor publishes. 400 from a draft, without an attestation, back in time, or into a posted period.</summary>
+    [HttpPost("{id:guid}/publish")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
+    public async Task<IActionResult> Publish(Guid id, [FromBody] PublishPayrollFrameworkApiRequest? request, CancellationToken ct) =>
+        Cycle(await mediator.Send(new PublishPayrollFrameworkCommand(id, PayProfileChangeHttp.RequireUserId(User), request?.ImpactSummary), ct));
+
+    /// <summary>Makes a published version the active one of its code; it never publishes.</summary>
+    [HttpPost("{id:guid}/activate")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
+    public async Task<IActionResult> Activate(Guid id, CancellationToken ct) =>
+        Cycle(await mediator.Send(new ActivatePayrollFrameworkCommand(id, PayProfileChangeHttp.RequireUserId(User)), ct));
+
+    private IActionResult Cycle(PayrollFrameworkResult result) =>
+        result.Success ? Ok(PayrollFrameworkHttp.Body(result)) : PayrollFrameworkHttp.Refusal(result);
+}
+
+public sealed class PublishPayrollFrameworkApiRequest
+{
+    public string? ImpactSummary { get; set; }
 }
 
 /// <summary>The body of <c>POST api/payroll/frameworks</c>. Dates are text (<c>yyyy-MM-dd</c>) so that a bad one is answered in Arabic.</summary>

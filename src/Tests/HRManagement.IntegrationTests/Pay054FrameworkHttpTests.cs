@@ -47,12 +47,17 @@ public sealed class Pay054FrameworkHttpTests(PostgreSqlFixture postgres)
         return node.ToJsonString();
     }
 
-    internal static Task<Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext>> StartAsync(PostgreSqlFixture postgres) =>
+    /// <summary>
+    /// Payroll.Web with no seed (as production runs) and the test's clock: 23 November 2026 unless a test moves it, so the interim
+    /// gate (the real catalog's exceptions end on 31 January 2027) never depends on the day the suite runs.
+    /// </summary>
+    internal static Task<Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext>> StartAsync(PostgreSqlFixture postgres, Pay054Clock? clock = null) =>
         Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext>.StartAsync(
             postgres, "PayrollDb", PayrollOrgScopeKeys.Registry,
             $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollApprover}",
             $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollProcessor}",
             "/PayrollConfigurations/Create", (_, _) => Task.FromResult(new Dictionary<Type, Guid>()),
+            testServices: Pay054TestLegal.Services(clock ?? new Pay054Clock(Pay054Clock.Default)),
             // As production runs: no seed. The Development default would seed the Demo frameworks.
             settings: new Dictionary<string, string?> { ["Seed:Profile"] = "None" });
 
@@ -115,6 +120,17 @@ public sealed class Pay054FrameworkHttpTests(PostgreSqlFixture postgres)
         if (effectiveFrom is not null) parts.Add($"\"effectiveFrom\":\"{effectiveFrom}\"");
         if (targetDraftId is Guid target) parts.Add($"\"targetDraftId\":\"{target:D}\"");
         return new StringContent("{" + string.Join(",", parts) + "}", Encoding.UTF8, "application/json");
+    }
+
+    /// <summary>A person the shared host does not know: an unrestricted user with the given roles.</summary>
+    internal static HttpClient Person(Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext> host, Guid user, string roles)
+    {
+        var client = host.Host.CreateClient(new Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "test");
+        client.DefaultRequestHeaders.Add(TestAuthHandler.TenantHeader, HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId.ToString("D"));
+        client.DefaultRequestHeaders.Add(TestAuthHandler.UserIdHeader, user.ToString("D"));
+        client.DefaultRequestHeaders.Add(TestAuthHandler.RolesHeader, roles);
+        return client;
     }
 
     private static Task<int> VersionCountAsync(Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext> host) =>
@@ -219,7 +235,7 @@ public sealed class Pay054FrameworkHttpTests(PostgreSqlFixture postgres)
         Assert.Equal(new DateTime(2031, 3, 1, 0, 0, 0, DateTimeKind.Utc), edited.EffectiveFrom);
         Assert.Equal(6, edited.MaxRetroCorrectionMonths);
         Assert.Equal(4, edited.StatutoryDeductions.Count);                       // the edit form does not touch the tables
-        Assert.Equal([PayrollFrameworkEditKind.Imported, PayrollFrameworkEditKind.Edited], edited.Editors.OrderBy(e => e.At).Select(e => e.Kind));
+        Assert.Equal([PayrollFrameworkEditKind.Imported, PayrollFrameworkEditKind.Edited], edited.Editors.Select(e => e.Kind).Order());
         Assert.Single(edited.Editors.Select(e => e.UserId).Distinct());
         Assert.Equal(1, await VersionCountAsync(host));
 
@@ -338,6 +354,257 @@ public sealed class Pay054FrameworkHttpTests(PostgreSqlFixture postgres)
         Assert.Equal(rows, await RowCountAsync(host));
         Assert.Equal(new DateTime(2031, 2, 1, 0, 0, 0, DateTimeKind.Utc),
             await host.WithDbAsync(db => db.Set<PayrollConfiguration>().AsNoTracking().Where(c => c.Id == id).Select(c => c.EffectiveFrom).SingleAsync()));
+    }
+}
+
+/// <summary>
+/// PLAN-54 (§3, P-8, P-10) over HTTP on Payroll.Web itself (PostgreSQL): the cycle of a framework version as three people run it, on
+/// the screens and on the API. A refusal answers 400 with an Arabic message and changes nothing: on a form the version's page is
+/// rendered with the message; a person without the act's policy is refused 403. And the indicators: a run's page and its provenance
+/// say the framework is interim and under which exception, and the dashboard warns from 60 days before an exception ends.
+/// </summary>
+[Collection("PostgreSql")]
+public sealed class Pay054FrameworkCycleHttpTests(PostgreSqlFixture postgres)
+{
+    private static readonly Regex Token = new("name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"", RegexOptions.Compiled);
+    private static readonly Guid AttestorUser = Guid.Parse("54000000-0000-4000-8000-0000000000d3");
+    private static readonly Guid BothUser = Guid.Parse("54000000-0000-4000-8000-0000000000d4");
+
+    private static async Task<PayrollConfiguration> VersionAsync(Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext> host, Guid id) =>
+        await host.WithDbAsync(db => db.Set<PayrollConfiguration>().AsNoTracking().SingleAsync(c => c.Id == id));
+
+    private static async Task<string> StateAsync(Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext> host, Guid id)
+    {
+        var v = await VersionAsync(host, id);
+        var attestations = await host.WithDbAsync(db => db.Set<LegalAttestation>().CountAsync(a => a.PayrollConfigurationId == id));
+        return string.Join("|", v.PublicationStatus, v.IsActive, v.ContentHash, v.ApprovedBy, v.PublishedBy, v.EffectiveFrom.Ticks, attestations);
+    }
+
+    /// <summary>Posts one of the cycle's forms from the version's page, with the page's own token.</summary>
+    private static async Task<HttpResponseMessage> PostActAsync(HttpClient client, Guid id, string act)
+    {
+        var page = await Pay054FrameworkHttpTests.PageAsync(client, $"/PayrollConfigurations/Details/{id}");
+        var token = Token.Match(page);
+        var fields = new Dictionary<string, string>();
+        if (token.Success)
+            fields["__RequestVerificationToken"] = token.Groups[1].Value;
+        else
+            fields["__RequestVerificationToken"] = await Pay054FrameworkHttpTests.FormTokenAsync(client, "/PayrollConfigurations");
+        return await client.PostAsync($"/PayrollConfigurations/{act}/{id}", new FormUrlEncodedContent(fields));
+    }
+
+    private static async Task AssertFormRefusalAsync(
+        Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext> host, HttpClient client, Guid id, string act, string message)
+    {
+        var before = await StateAsync(host, id);
+
+        var response = await PostActAsync(client, id, act);
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        var html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
+        Assert.Contains(message, html, StringComparison.Ordinal);                           // the version's page, with the message
+        Assert.Contains("data-testid=\"framework-refusal\"", html, StringComparison.Ordinal);
+        Assert.Contains("شرائح الضريبة", html, StringComparison.Ordinal);
+        Assert.Equal(before, await StateAsync(host, id));
+    }
+
+    private static async Task AssertApiRefusalAsync(
+        Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext> host, HttpClient client, Guid id, string act, string message, HttpStatusCode status = HttpStatusCode.BadRequest)
+    {
+        var before = await StateAsync(host, id);
+
+        var response = await client.PostAsync($"/api/payroll/frameworks/{id:D}/{act}", null);
+
+        Assert.Equal(status, response.StatusCode);
+        if (status == HttpStatusCode.BadRequest)
+        {
+            using var body = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+            Assert.Equal(message, body.RootElement.GetProperty("error").GetString());
+        }
+
+        Assert.Equal(before, await StateAsync(host, id));
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task Three_people_approve_attest_and_publish_and_every_other_order_is_refused_with_nothing_changed()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        var clock = new Pay054Clock(Pay054Clock.Default);
+        await using var host = await Pay054FrameworkHttpTests.StartAsync(postgres, clock);
+        var approverRoles = $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollApprover}";
+        using var processor = await Pay054FrameworkHttpTests.WithApiTokenAsync(host.Central());
+        using var approver = await Pay054FrameworkHttpTests.WithApiTokenAsync(host.Restricted());
+        using var attestor = await Pay054FrameworkHttpTests.WithApiTokenAsync(Pay054FrameworkHttpTests.Person(host, AttestorUser, approverRoles));
+        // A person who holds both roles: once he edits the draft he is an editor, whatever his policies allow.
+        using var both = await Pay054FrameworkHttpTests.WithApiTokenAsync(Pay054FrameworkHttpTests.Person(
+            host, BothUser, $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollProcessor},{HrManagementRoles.PayrollApprover}"));
+
+        var imported = await processor.PostAsync("/api/payroll/frameworks/import",
+            Pay054FrameworkHttpTests.ImportBody(Pay054FrameworkHttpTests.InterimPackJson(), code: "LAW_50_2004_CYC", effectiveFrom: "2031-01-01"));
+        Assert.Equal(HttpStatusCode.Created, imported.StatusCode);
+        Guid id;
+        using (var body = JsonDocument.Parse(await imported.Content.ReadAsStringAsync()))
+            id = body.RootElement.GetProperty("frameworkId").GetGuid();
+        Assert.Equal(HttpStatusCode.OK, (await both.PutAsJsonAsync($"/api/payroll/frameworks/{id:D}/effective-from", new { effectiveFrom = "2031-01-01" })).StatusCode);
+
+        // The processor holds no policy of the cycle: 403 on the form and on the API, for every act.
+        foreach (var act in new[] { "Approve", "LegalAttest", "Publish", "Activate" })
+            Assert.Equal(HttpStatusCode.Forbidden, (await PostActAsync(processor, id, act)).StatusCode);
+        foreach (var act in new[] { "approve", "legal-attest", "publish", "activate" })
+            await AssertApiRefusalAsync(host, processor, id, act, "", HttpStatusCode.Forbidden);
+
+        // Nothing is published from a draft, nor attested, nor activated.
+        await AssertFormRefusalAsync(host, approver, id, "Publish", "لا يُنشر إلا إصدار معتمد");
+        await AssertApiRefusalAsync(host, approver, id, "publish", "لا يُنشر إلا إصدار معتمد: المسودة تُعتمد ثم تُصادَق قانونياً ثم تُنشر");
+        await AssertFormRefusalAsync(host, attestor, id, "LegalAttest", "التصديق القانوني لنسخة معتمدة لم تُنشر بعد");
+        await AssertFormRefusalAsync(host, approver, id, "Activate", "التفعيل للنسخ المنشورة فقط");
+
+        // An editor does not approve, though his role would let him.
+        await AssertApiRefusalAsync(host, both, id, "approve", "لا يعتمد النسخة من أنشأها أو استوردها أو عدّلها: يعتمدها شخص آخر");
+        await AssertFormRefusalAsync(host, both, id, "Approve", "لا يعتمد النسخة من أنشأها أو استوردها أو عدّلها");
+
+        // B approves on the form. The page then offers the attestation and the publication, no longer the approval.
+        var approved = await PostActAsync(approver, id, "Approve");
+        Assert.Equal(HttpStatusCode.Redirect, approved.StatusCode);
+        var version = await VersionAsync(host, id);
+        Assert.Equal(PayrollConfigPublicationStatus.Approved, version.PublicationStatus);
+        Assert.Equal(64, version.ContentHash!.Length);
+        var page = await Pay054FrameworkHttpTests.PageAsync(approver, $"/PayrollConfigurations/Details/{id}");
+        Assert.Contains($"/PayrollConfigurations/LegalAttest/{id}", page, StringComparison.Ordinal);
+        Assert.Contains($"/PayrollConfigurations/Publish/{id}", page, StringComparison.Ordinal);
+        Assert.DoesNotContain($"/PayrollConfigurations/Approve/{id}", page, StringComparison.Ordinal);
+        Assert.Contains("معتمد", page, StringComparison.Ordinal);
+
+        // The approver does not attest; an editor neither; nothing is published without an attestation; an approved version is not edited in place.
+        await AssertFormRefusalAsync(host, approver, id, "LegalAttest", "لا يصادق قانونياً على النسخة من اعتمدها: يصادق عليها شخص ثالث");
+        await AssertApiRefusalAsync(host, approver, id, "legal-attest", "لا يصادق قانونياً على النسخة من اعتمدها: يصادق عليها شخص ثالث");
+        await AssertApiRefusalAsync(host, both, id, "legal-attest", "لا يصادق قانونياً على النسخة من أنشأها أو استوردها أو عدّلها");
+        await AssertApiRefusalAsync(host, approver, id, "publish", "يلزم تصديق قانوني إلكتروني (LegalAttest) قبل النشر.");
+        var moved = await processor.PutAsJsonAsync($"/api/payroll/frameworks/{id:D}/effective-from", new { effectiveFrom = "2032-01-01" });
+        Assert.Equal(HttpStatusCode.Conflict, moved.StatusCode);
+        Assert.Equal(new DateTime(2031, 1, 1, 0, 0, 0, DateTimeKind.Utc), (await VersionAsync(host, id)).EffectiveFrom);
+
+        // C attests on the API.
+        Assert.Equal(HttpStatusCode.OK, (await attestor.PostAsync($"/api/payroll/frameworks/{id:D}/legal-attest", null)).StatusCode);
+        var attestation = await host.WithDbAsync(db => db.Set<LegalAttestation>().AsNoTracking().SingleAsync(a => a.PayrollConfigurationId == id));
+        Assert.Equal((AttestorUser, "Active", version.ContentHash), (attestation.AttestedBy, attestation.Status, attestation.ContentHash));
+        Assert.Contains("EX-STR2-TAX-INTERIM", attestation.InterimExceptionIdsJson, StringComparison.Ordinal);
+
+        // An editor does not publish. B publishes on the form.
+        await AssertFormRefusalAsync(host, both, id, "Publish", "لا ينشر النسخة من أنشأها أو استوردها أو عدّلها");
+        var published = await PostActAsync(approver, id, "Publish");
+        Assert.Equal(HttpStatusCode.Redirect, published.StatusCode);
+        version = await VersionAsync(host, id);
+        Assert.Equal(PayrollConfigPublicationStatus.Published, version.PublicationStatus);
+        Assert.True(version.IsActive);
+        Assert.Equal(1, await host.WithDbAsync(db => db.Set<PayrollConfigChangeNotice>().CountAsync(n => n.PayrollConfigurationId == id)));
+        Assert.Equal(HttpStatusCode.OK, (await approver.PostAsync($"/api/payroll/frameworks/{id:D}/activate", null)).StatusCode);
+
+        // D-PAY-13: a second version that would start inside a posted month of the regime is approved and attested, never published.
+        await host.WithDbAsync(async db =>
+        {
+            db.Set<PayrollRun>().Add(new PayrollRun
+            {
+                TenantId = HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId,
+                PeriodStart = new DateTime(2031, 3, 1, 0, 0, 0, DateTimeKind.Utc),
+                PeriodEnd = new DateTime(2031, 3, 31, 0, 0, 0, DateTimeKind.Utc),
+                RunDate = new DateTime(2031, 3, 28, 0, 0, 0, DateTimeKind.Utc),
+                Status = PayrollRunStatus.Posted,
+            });
+            return await db.SaveChangesAsync();
+        });
+        var second = await processor.PostAsync("/api/payroll/frameworks/import",
+            Pay054FrameworkHttpTests.ImportBody(Pay054FrameworkHttpTests.InterimPackJson(), code: "LAW_50_2004_CYC", effectiveFrom: "2031-02-01"));
+        Guid secondId;
+        using (var body = JsonDocument.Parse(await second.Content.ReadAsStringAsync()))
+        {
+            secondId = body.RootElement.GetProperty("frameworkId").GetGuid();
+            Assert.Equal(2, body.RootElement.GetProperty("versionNumber").GetInt32());
+        }
+
+        Assert.Equal(HttpStatusCode.OK, (await approver.PostAsync($"/api/payroll/frameworks/{secondId:D}/approve", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await attestor.PostAsync($"/api/payroll/frameworks/{secondId:D}/legal-attest", null)).StatusCode);
+        await AssertApiRefusalAsync(host, attestor, secondId, "publish",
+            "لا تُنشر نسخة تسري من 2031-02-01: للنظام نفسه تشغيل رواتب مرحّل تنتهي فترته في 2031-03-31. اختر تاريخ سريان بعد آخر فترة مرحّلة (الأثر الرجعي غير متاح)");
+        await AssertFormRefusalAsync(host, attestor, secondId, "Publish", "للنظام نفسه تشغيل رواتب مرحّل تنتهي فترته في 2031-03-31");
+        Assert.Equal(PayrollConfigPublicationStatus.Published, (await VersionAsync(host, id)).PublicationStatus);     // the first is not superseded
+        Assert.Null((await VersionAsync(host, id)).EffectiveTo);
+
+        // An act on a version that does not exist: 404.
+        Assert.Equal(HttpStatusCode.NotFound, (await approver.PostAsync($"/api/payroll/frameworks/{Guid.NewGuid():D}/approve", null)).StatusCode);
+        // And every act of the API needs the antiforgery token.
+        using var bare = host.Restricted();
+        foreach (var act in new[] { "approve", "legal-attest", "publish", "activate" })
+            Assert.Equal(HttpStatusCode.BadRequest, (await bare.PostAsync($"/api/payroll/frameworks/{secondId:D}/{act}", null)).StatusCode);
+
+        // The indicators. A run pinned to the interim version says so, with its exceptions, on its page and in its provenance; a run
+        // pinned to a version older than legal packs says that.
+        var (interimRun, legacyRun) = await host.WithDbAsync(async db =>
+        {
+            var legacy = Payroll.Domain.Services.PayrollRegimeSeed.CreateLaw53Configuration();
+            legacy.TenantId = HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId;
+            foreach (var bracket in legacy.TaxBrackets) bracket.TenantId = legacy.TenantId;
+            db.Set<PayrollConfiguration>().Add(legacy);
+            PayrollRun Run(Guid configuration, string? hash, int month) => new()
+            {
+                TenantId = legacy.TenantId,
+                PeriodStart = new DateTime(2031, month, 1, 0, 0, 0, DateTimeKind.Utc),
+                PeriodEnd = new DateTime(2031, month, 28, 0, 0, 0, DateTimeKind.Utc),
+                RunDate = new DateTime(2031, month, 27, 0, 0, 0, DateTimeKind.Utc),
+                Status = PayrollRunStatus.Calculated,
+                PayrollConfigurationId = configuration,
+                ConfigContentHash = hash,
+            };
+            var a = Run(id, version.ContentHash, 5);
+            var b = Run(legacy.Id, legacy.ContentHash, 6);
+            db.Set<PayrollRun>().AddRange(a, b);
+            await db.SaveChangesAsync();
+            return (a.Id, b.Id);
+        });
+        var interimPage = await Pay054FrameworkHttpTests.PageAsync(approver, $"/PayrollRuns/Details/{interimRun}");
+        Assert.Contains("إطار مؤقت — استثناء EX-STR2-LAW50-UNCERTIFIED، EX-STR2-TAX-INTERIM", interimPage, StringComparison.Ordinal);
+        Assert.Contains("إطار أقدم من حزم الإطار القانوني", await Pay054FrameworkHttpTests.PageAsync(approver, $"/PayrollRuns/Details/{legacyRun}"), StringComparison.Ordinal);
+        using (var provenance = JsonDocument.Parse(await approver.GetStringAsync($"/api/payroll/runs/{interimRun:D}/provenance")))
+        {
+            Assert.Equal("إطار مؤقت — استثناء EX-STR2-LAW50-UNCERTIFIED، EX-STR2-TAX-INTERIM", provenance.RootElement.GetProperty("interimIndicator").GetString());
+            Assert.Equal(2, provenance.RootElement.GetProperty("frameworkHashSchemaVersion").GetInt32());
+            Assert.False(provenance.RootElement.GetProperty("frameworkPredatesLegalPacks").GetBoolean());
+            Assert.Equal("LAW_50_2004_CYC", provenance.RootElement.GetProperty("frameworkCode").GetString());
+            Assert.Equal(2, provenance.RootElement.GetProperty("interimExceptionIds").GetArrayLength());
+        }
+
+        using (var provenance = JsonDocument.Parse(await approver.GetStringAsync($"/api/payroll/runs/{legacyRun:D}/provenance")))
+        {
+            Assert.True(provenance.RootElement.GetProperty("frameworkPredatesLegalPacks").GetBoolean());
+            Assert.Equal(JsonValueKind.Null, provenance.RootElement.GetProperty("interimIndicator").ValueKind);
+        }
+
+        // The dashboard. Today (23 November 2026) the exceptions end in 69 days: no warning yet, and the framework notice is gone.
+        var dashboard = await Pay054FrameworkHttpTests.PageAsync(approver, "/Dashboard");
+        Assert.DoesNotContain("data-testid=\"exception-expiry-warning\"", dashboard, StringComparison.Ordinal);
+        Assert.DoesNotContain("data-testid=\"no-published-framework\"", dashboard, StringComparison.Ordinal);
+        // From 2 December 2026 (60 days before 31 January 2027) it names each exception and its date.
+        clock.Now = new DateTimeOffset(2026, 12, 1, 12, 0, 0, TimeSpan.Zero);
+        Assert.DoesNotContain("data-testid=\"exception-expiry-warning\"", await Pay054FrameworkHttpTests.PageAsync(approver, "/Dashboard"), StringComparison.Ordinal);
+        clock.Now = new DateTimeOffset(2026, 12, 2, 12, 0, 0, TimeSpan.Zero);
+        dashboard = await Pay054FrameworkHttpTests.PageAsync(approver, "/Dashboard");
+        Assert.Contains("ينتهي الاستثناء القانوني EX-STR2-TAX-INTERIM", dashboard, StringComparison.Ordinal);
+        Assert.Contains("ينتهي الاستثناء القانوني EX-STR2-LAW50-UNCERTIFIED", dashboard, StringComparison.Ordinal);
+        Assert.Contains("بعد 60 يوماً", dashboard, StringComparison.Ordinal);
+        Assert.Contains("LAW_50_2004_CYC v1", dashboard, StringComparison.Ordinal);
+        // After the last day it says the exception has ended, and an approval of a new interim draft is refused for it.
+        clock.Now = new DateTimeOffset(2027, 2, 1, 12, 0, 0, TimeSpan.Zero);
+        Assert.Contains("انتهى الاستثناء القانوني EX-STR2-TAX-INTERIM", await Pay054FrameworkHttpTests.PageAsync(approver, "/Dashboard"), StringComparison.Ordinal);
+        var third = await processor.PostAsync("/api/payroll/frameworks/import",
+            Pay054FrameworkHttpTests.ImportBody(Pay054FrameworkHttpTests.InterimPackJson(), code: "LAW_50_2004_LATE", effectiveFrom: "2032-01-01"));
+        Guid thirdId;
+        using (var body = JsonDocument.Parse(await third.Content.ReadAsStringAsync()))
+            thirdId = body.RootElement.GetProperty("frameworkId").GetGuid();
+        var late = await approver.PostAsync($"/api/payroll/frameworks/{thirdId:D}/approve", null);
+        Assert.Equal(HttpStatusCode.BadRequest, late.StatusCode);
+        Assert.Contains("وهو غير نافذ اليوم", await late.Content.ReadAsStringAsync(), StringComparison.Ordinal);
+        Assert.Equal(PayrollConfigPublicationStatus.Draft, (await VersionAsync(host, thirdId)).PublicationStatus);
     }
 }
 

@@ -77,12 +77,16 @@ public sealed class PayrollWriteActionsTests
         ["PayrollConfigurations.Import"] = HrManagementPolicies.PayrollMasterData,
         ["PayrollConfigurations.Edit"] = HrManagementPolicies.PayrollMasterData,
         ["PayrollConfigurations.Approve"] = HrManagementPolicies.PayrollApprove,
-        ["PayrollConfigurations.LegalAttest"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollConfigurations.LegalAttest"] = HrManagementPolicies.PayrollLegalAttest,
         ["PayrollConfigurations.Publish"] = HrManagementPolicies.PayrollApprove,
         ["PayrollConfigurations.Activate"] = HrManagementPolicies.PayrollApprove,
         ["PayrollFrameworksApi.Create"] = HrManagementPolicies.PayrollMasterData,
         ["PayrollFrameworksApi.Import"] = HrManagementPolicies.PayrollMasterData,
         ["PayrollFrameworksApi.SetEffectiveFrom"] = HrManagementPolicies.PayrollMasterData,
+        ["PayrollFrameworksApi.Approve"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollFrameworksApi.LegalAttest"] = HrManagementPolicies.PayrollLegalAttest,
+        ["PayrollFrameworksApi.Publish"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollFrameworksApi.Activate"] = HrManagementPolicies.PayrollApprove,
     };
 
     /// <summary>The controllers PLAN-54 adds or completes: every write of theirs has a row in <see cref="Pay054"/>.</summary>
@@ -339,7 +343,9 @@ public sealed class PayrollWriteActionsTests
         {
             [HrManagementRoles.PayrollProcessor] =
                 [HrManagementPolicies.PayrollProcess, HrManagementPolicies.PayrollMasterData, HrManagementPolicies.PayrollChangeCancel],
-            [HrManagementRoles.PayrollApprover] = [HrManagementPolicies.PayrollApprove, HrManagementPolicies.PayrollChangeCancel],
+            // PLAN-54 (D-PAY-12): the legal attestation is met through the policy the setting names, Payroll.Approve by default.
+            [HrManagementRoles.PayrollApprover] =
+                [HrManagementPolicies.PayrollApprove, HrManagementPolicies.PayrollChangeCancel, HrManagementPolicies.PayrollLegalAttest],
             [HrManagementRoles.PayrollPoster] = [HrManagementPolicies.PayrollPost, HrManagementPolicies.PayrollReverse],
             [HrManagementRoles.PayrollReverser] = [HrManagementPolicies.PayrollReverse],
         };
@@ -426,6 +432,75 @@ public sealed class PayrollWriteActionsTests
         Assert.False(await PassesAsync(HrManagementRoles.Payroll));
         Assert.False(await PassesAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollPoster));
         Assert.False(await PassesAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollReverser));
+    }
+
+    // --- PLAN-54 (D-PAY-12): Payroll.LegalAttest follows the setting ---
+
+    private static IConfiguration AttestorPolicy(string? name) =>
+        new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?> { [PayrollLegalAttestPolicy.SettingKey] = name }).Build();
+
+    [Fact]
+    public async Task The_legal_attestation_is_met_by_whoever_meets_the_policy_the_setting_names()
+    {
+        var processor = User(HrManagementRoles.Payroll, HrManagementRoles.PayrollProcessor);
+        var approver = User(HrManagementRoles.Payroll, HrManagementRoles.PayrollApprover);
+        var module = User(HrManagementRoles.Payroll);
+        async Task<bool> PassesAsync(ClaimsPrincipal user, IConfiguration? configuration = null) =>
+            (await Authorization(configuration).AuthorizeAsync(user, HrManagementPolicies.PayrollLegalAttest)).Succeeded;
+
+        // By default (no setting, and Payroll's own settings files) it is Payroll.Approve.
+        Assert.True(await PassesAsync(approver));
+        Assert.True(await PassesAsync(User(HrManagementRoles.Admin)));
+        Assert.False(await PassesAsync(processor));
+        Assert.False(await PassesAsync(module));
+        foreach (var environment in new[] { null, "Production", "Staging" })
+        {
+            Assert.Equal(HrManagementPolicies.PayrollApprove, Settings(environment)[PayrollLegalAttestPolicy.SettingKey]);
+            Assert.True(await PassesAsync(approver, Settings(environment)));
+            Assert.False(await PassesAsync(processor, Settings(environment)));
+        }
+
+        // Another policy named by the setting takes its place without a code change.
+        Assert.True(await PassesAsync(processor, AttestorPolicy(HrManagementPolicies.PayrollProcess)));
+        Assert.False(await PassesAsync(approver, AttestorPolicy(HrManagementPolicies.PayrollProcess)));
+        // A name that is unknown, or the policy itself, lets nobody through (and stops the service at start, below).
+        Assert.False(await PassesAsync(approver, AttestorPolicy("Payroll.NoSuchPolicy")));
+        Assert.False(await PassesAsync(approver, AttestorPolicy(HrManagementPolicies.PayrollLegalAttest)));
+    }
+
+    [Fact]
+    public async Task The_service_refuses_to_start_on_an_attestor_policy_that_is_unknown_or_names_itself()
+    {
+        static IServiceProvider Services(IConfiguration configuration)
+        {
+            var services = new ServiceCollection();
+            services.AddSingleton(configuration);
+            services.AddLogging();
+            services.AddAuthorization();
+            services.AddHrManagementAuthorizationPolicies();
+            return services.BuildServiceProvider();
+        }
+
+        await PayrollLegalAttestPolicy.ValidateAsync(Services(new ConfigurationBuilder().Build()));
+        await PayrollLegalAttestPolicy.ValidateAsync(Services(AttestorPolicy(HrManagementPolicies.PayrollApprove)));
+        await PayrollLegalAttestPolicy.ValidateAsync(Services(AttestorPolicy(HrManagementPolicies.PayrollProcess)));
+        foreach (var environment in new[] { null, "Production", "Staging" })
+            await PayrollLegalAttestPolicy.ValidateAsync(Services(Settings(environment)));
+
+        var unknown = await Assert.ThrowsAsync<InvalidOperationException>(() => PayrollLegalAttestPolicy.ValidateAsync(Services(AttestorPolicy("Payroll.NoSuchPolicy"))));
+        Assert.Contains(PayrollLegalAttestPolicy.SettingKey, unknown.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("NoSuchPolicy", unknown.Message, StringComparison.Ordinal);       // the configured value is not echoed
+        var self = await Assert.ThrowsAsync<InvalidOperationException>(() => PayrollLegalAttestPolicy.ValidateAsync(Services(AttestorPolicy(HrManagementPolicies.PayrollLegalAttest))));
+        Assert.Contains("itself", self.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void The_prodlike_stack_mirrors_the_plan_54_settings_of_production()
+    {
+        var compose = global::System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, "docker-compose.acceptance-prodlike.yml"));
+        Assert.Contains("Payroll__Legal__AttestorPolicy: \"Payroll.Approve\"", compose, StringComparison.Ordinal);
+        Assert.Contains("Payroll__ManualInputs__RequireApproval: \"true\"", compose, StringComparison.Ordinal);
+        Assert.Equal("True", Settings("Production")["Payroll:ManualInputs:RequireApproval"]);
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 using System.Text.Json.Nodes;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Payroll.Application.Abstractions;
 using Payroll.Application.Features.PayrollConfigurations;
 using Payroll.Application.Services;
 using Payroll.Domain.Entities;
@@ -8,6 +9,31 @@ using Payroll.Infrastructure.Data;
 using Payroll.Infrastructure.Repositories;
 
 namespace HRManagement.UnitTests;
+
+/// <summary>
+/// PLAN-54: the STR-002 catalog as a test holds it: each exception with its last day. By default the two exceptions the interim pack
+/// cites, both ending on 31 January 2027 as the real catalog says.
+/// </summary>
+public sealed class Pay054FakeLegalGuard : IPayrollLegalControlGuard
+{
+    public const string Tax = "EX-STR2-TAX-INTERIM";
+    public const string Law50 = "EX-STR2-LAW50-UNCERTIFIED";
+
+    public Dictionary<string, DateOnly> LastDays { get; } = new(StringComparer.Ordinal)
+    {
+        [Tax] = new DateOnly(2027, 1, 31),
+        [Law50] = new DateOnly(2027, 1, 31),
+    };
+
+    public string? ValidatePayrollRelease() => null;
+
+    public bool IsCapabilityAllowed(string requirementId) => true;
+
+    public bool IsExceptionActive(string? exceptionId, DateOnly asOf) => ExceptionExpiresOn(exceptionId) is { } lastDay && asOf <= lastDay;
+
+    public DateOnly? ExceptionExpiresOn(string? exceptionId) =>
+        exceptionId is not null && LastDays.TryGetValue(exceptionId.Trim(), out var lastDay) ? lastDay : null;
+}
 
 /// <summary>
 /// PLAN-54: the framework commands on a relational in-memory database (SQLite: real transactions and unique indexes, which the EF
@@ -34,6 +60,8 @@ public sealed class Pay054FrameworkHarness : IDisposable
     public Iam053Clock Clock { get; }
 
     public IPayrollCalendar Calendar => new PayrollCalendar(Clock);
+
+    public Pay054FakeLegalGuard Guard { get; } = new();
 
     public PayrollDbContext Db() => new(new DbContextOptionsBuilder<PayrollDbContext>().UseSqlite(_connection).Options);
 
@@ -108,6 +136,66 @@ public sealed class Pay054FrameworkHarness : IDisposable
     {
         await using var db = Db();
         return await new ExportPayrollFrameworkHandler(Repository(db)).Handle(new ExportPayrollFrameworkQuery(id), CancellationToken.None);
+    }
+
+    // ------------------------------------------------------------------ the cycle
+
+    public async Task<PayrollFrameworkResult> ApproveAsync(Guid id, Guid? actor = null)
+    {
+        await using var db = Db();
+        return await new ApprovePayrollFrameworkHandler(Repository(db), Calendar, Guard).Handle(
+            new ApprovePayrollFrameworkCommand(id, actor ?? Approver), CancellationToken.None);
+    }
+
+    public async Task<PayrollFrameworkResult> AttestAsync(Guid id, Guid? actor = null)
+    {
+        await using var db = Db();
+        return await new AttestPayrollFrameworkHandler(Repository(db), Calendar, Guard).Handle(
+            new AttestPayrollFrameworkCommand(id, actor ?? Attestor), CancellationToken.None);
+    }
+
+    public async Task<PayrollFrameworkResult> PublishAsync(Guid id, Guid? actor = null)
+    {
+        await using var db = Db();
+        return await new PublishPayrollFrameworkHandler(Repository(db), Calendar, Guard).Handle(
+            new PublishPayrollFrameworkCommand(id, actor ?? Approver, null), CancellationToken.None);
+    }
+
+    public async Task<PayrollFrameworkResult> ActivateAsync(Guid id, Guid? actor = null)
+    {
+        await using var db = Db();
+        return await new ActivatePayrollFrameworkHandler(Repository(db)).Handle(
+            new ActivatePayrollFrameworkCommand(id, actor ?? Approver), CancellationToken.None);
+    }
+
+    /// <summary>The interim pack imported, approved, attested and published by four acts of three people. Returns the version's id.</summary>
+    public async Task<Guid> PublishedAsync(string code = "LAW_50_2004", DateOnly? effectiveFrom = null)
+    {
+        var imported = await ImportAsync(code: code, effectiveFrom: effectiveFrom ?? new DateOnly(2026, 1, 1));
+        Assert.True(imported.Success, imported.Error + string.Join(" | ", imported.Errors));
+        var id = imported.FrameworkId!.Value;
+        var approved = await ApproveAsync(id);
+        Assert.True(approved.Success, approved.Error);
+        var attested = await AttestAsync(id);
+        Assert.True(attested.Success, attested.Error);
+        var published = await PublishAsync(id);
+        Assert.True(published.Success, published.Error);
+        return id;
+    }
+
+    /// <summary>What a refusal must leave as it was: the version's place in the cycle, and every row a cycle act writes.</summary>
+    public async Task<string> CycleStateAsync(Guid id)
+    {
+        await using var db = Db();
+        var v = await db.PayrollConfigurations.AsNoTracking().SingleAsync(c => c.Id == id);
+        var attestations = await db.LegalAttestations.AsNoTracking().Where(a => a.PayrollConfigurationId == id)
+            .OrderBy(a => a.AttestedAt).Select(a => a.AttestedBy + ":" + a.Status).ToListAsync();
+        var notices = await db.PayrollConfigChangeNotices.CountAsync();
+        var others = await db.PayrollConfigurations.AsNoTracking().Where(c => c.Id != id)
+            .OrderBy(c => c.Code).ThenBy(c => c.VersionNumber)
+            .Select(c => c.Code + c.VersionNumber + c.PublicationStatus + c.IsActive + c.EffectiveTo).ToListAsync();
+        return string.Join("|", v.PublicationStatus, v.IsActive, v.ContentHash, v.ApprovedBy, v.ApprovedAt?.Ticks, v.PublishedBy, v.PublishedAt?.Ticks,
+            v.EffectiveFrom.Ticks, v.EffectiveTo?.Ticks, string.Join(",", attestations), notices, string.Join(",", others));
     }
 
     // ------------------------------------------------------------------ reading

@@ -126,6 +126,11 @@ public class PayrollRunsController : Controller
             .OrderByDescending(j => j.CreatedAt)
             .FirstOrDefaultAsync();
         ViewBag.Job = job;
+        // PLAN-54 (§3): what the pinned framework version is: interim (and under which exceptions), or older than legal packs.
+        ViewBag.FrameworkNote = await Payroll.Application.Features.PayrollConfigurations.PayrollFrameworkIndicators.ForRunAsync(
+            HttpContext.RequestServices.GetRequiredService<Payroll.Application.Abstractions.IPayrollRepository>(),
+            run.PayrollConfigurationId,
+            HttpContext.RequestAborted);
         ViewBag.EmployeeNames = await ResolveEmployeeNamesAsync(run.SalaryLines.Select(line => line.EmployeeId));
 
         return View(run);

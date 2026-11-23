@@ -265,6 +265,10 @@ public class PayrollApiController : ControllerBase
                 .FirstOrDefaultAsync(ct);
         }
 
+        // PLAN-54 (§3): what the pinned framework version is: interim (and under which exceptions), or older than legal packs.
+        var framework = await Payroll.Application.Features.PayrollConfigurations.PayrollFrameworkIndicators.ForRunAsync(
+            HttpContext.RequestServices.GetRequiredService<Payroll.Application.Abstractions.IPayrollRepository>(), run.PayrollConfigurationId, ct);
+
         var snapshots = job?.InputSnapshots ?? [];
         var aggregateFingerprint = snapshots.Count > 0
             ? PayrollDeterminismComparer.ComputeAggregateInputFingerprint(
@@ -283,7 +287,16 @@ public class PayrollApiController : ControllerBase
             job?.Partitions.Count ?? 0,
             job?.LastCheckpointAt,
             aggregateFingerprint,
-            "PAY-002 pinned config + PAY-003 frozen snapshot");
+            "PAY-002 pinned config + PAY-003 frozen snapshot")
+        {
+            FrameworkCode = framework?.Code,
+            FrameworkVersionNumber = framework?.VersionNumber,
+            FrameworkHashSchemaVersion = framework?.HashSchemaVersion,
+            FrameworkPredatesLegalPacks = framework?.IsLegacy,
+            InterimIndicator = framework?.InterimIndicator,
+            InterimExceptionIds = framework?.InterimExceptionIds ?? [],
+            JobLog = job?.Log,
+        };
 
         return Ok(dto);
     }
