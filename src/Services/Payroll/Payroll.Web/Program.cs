@@ -94,7 +94,11 @@ builder.AddHrLocalization();
 
 builder.Services.AddHrQuestPdfDocuments();
 builder.Services.AddControllersWithViews()
-    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModulePayroll, HrManagementPolicies.PayrollWrite);
+    .AddHrModuleAuthorizeFilter(HrManagementPolicies.ModulePayroll, HrManagementPolicies.PayrollWrite)
+    // PLAN-53 (§2 rule 3): the branch scope of the salary change requests and of the pay profiles (a foreign id is 404 before the action).
+    .AddOrgScopeFilter<PayrollDbContext>(
+        Payroll.Infrastructure.OrgScope.PayrollOrgScopeKeys.Service, Payroll.Infrastructure.OrgScope.PayrollOrgScopeKeys.Configure);
+builder.Services.AddSnapshotOrgScopeProvider<PayrollDbContext>();
 builder.Services.AddHrOpenApi("Payroll API");
 
 builder.Services.AddHttpContextAccessor();
@@ -114,6 +118,8 @@ builder.Services.AddDbContext<PayrollDbContext>((sp, options) =>
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<PayrollDbContext>());
 
 builder.Services.AddPayrollInfrastructure(builder.Configuration);
+// PLAN-53 (P-7): applies the scheduled salary changes that are due (one replica per cycle, every agency under its own tenant).
+builder.Services.AddHostedService<Payroll.Infrastructure.Services.PayProfileChangeActivationJob>();
 builder.Services.AddServiceMassTransit(
     builder.Configuration,
     configureOutbox: x => x.AddPostgresOutbox<PayrollDbContext>(consumerOutbox: true),
@@ -124,6 +130,14 @@ builder.Services.AddHrServiceHealthChecks<PayrollDbContext>(builder.Configuratio
 
 var app = builder.Build();
 app.UseHrProductionMiddleware(app.Configuration);
+
+// PLAN-53 (D-53-4): skipping the approval of scale and grade changes is a Development convenience only. Anywhere else the setting is
+// ignored, and the service says so once at start.
+{
+    var masterData = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<Payroll.Application.Options.PayrollMasterDataOptions>>().Value;
+    if (Payroll.Application.Features.ReferenceChanges.PayrollMasterDataApproval.IsIgnored(masterData, app.Environment))
+        app.Logger.LogWarning(Payroll.Application.Features.ReferenceChanges.PayrollMasterDataApproval.IgnoredWarning, app.Environment.EnvironmentName);
+}
 
 await app.Services.TryMigrateAsync<PayrollDbContext>();
 var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
@@ -206,3 +220,6 @@ static async Task SeedPayrollDataAsync(IServiceProvider services)
 
     await db.SaveChangesAsync();
 }
+
+/// <summary>The entry point as a public type, for the tests that host the service in process (PLAN-53).</summary>
+public partial class PayrollWebProgram { }

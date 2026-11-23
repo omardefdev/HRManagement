@@ -12,6 +12,8 @@
 | RoleAssignment | auth-directory | hr-admin | — | — | yes | — | 2 (four-eyes) |
 | LegalDataChange | hr-core | hr-management-approver | — | — | yes | — | 2 (four-eyes) |
 | EosSettlement | payroll-approver | payroll-poster | — | — | yes | 50,000,000 SYP | 1 |
+| PayProfileChangeRequest (base salary, pay grade; PLAN-53) | payroll-processor (`Payroll.Process`) | payroll-approver (`Payroll.Approve`) — never the requester (403), in his branch scope | — | — | yes — the handler refuses the requester whatever roles he holds; an automatic source (contract, promotion, transfer) has no decider and carries its decision's reference | — | 1 |
+| PayrollReferenceChangeRequest (salary scale, pay grade bounds; PLAN-53) | payroll-processor or hr-admin (`Payroll.MasterData`) | payroll-approver (`Payroll.Approve`) — never the requester | — | — | yes | — | 1 |
 | SelectionCommitteeSession | hr-core (creator / secretary) | hr-core or branch-manager (steps 1–2), hr-management-approver (step 3) | — | — | yes — the creator approves no step; committee members do not approve step 3; quorum re-checked from step 2 | — | 3 steps |
 | RecruitmentAppeal | hr-core (files on behalf, assigns reviewer, resubmits) | compliance — the assigned independent reviewer only | — | — | yes — the reviewer is not the applicant, a committee member of the requisition, an interview panel member, an assessor, the filer or the assigner | — | 1 |
 

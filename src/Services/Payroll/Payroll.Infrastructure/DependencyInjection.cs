@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddPayrollApplication();
         services.AddScoped<IPayrollRepository, PayrollRepository>();
         services.AddScoped<IPayrollEventPublisher, PayrollEventPublisher>();
+        services.AddScoped<IPayProfileChangeEventPublisher, PayProfileChangeEventPublisher>();
         services.AddScoped<IEmployeeLookup, EmployeeLookupService>();
         services.AddScoped<IPayrollNationalScopeGuard, PayrollNationalScopeGuard>();
         services.AddScoped<IPaymentDisbursementGate, Services.PaymentDisbursementGate>();

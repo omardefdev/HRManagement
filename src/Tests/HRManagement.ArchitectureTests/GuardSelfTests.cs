@@ -53,15 +53,17 @@ public sealed class GuardSelfTests
         var list = CeilingList.Parse("x.txt",
         [
             "# comment",
-            "PlantedWrite.Create | PLAN-53: owned",
+            "PlantedWrite.Create | IAM-H: owned",
             "Gone.Action | IAM-F: owned",
             "NoReason.Action",
             "Unsigned.Action | to save time",
+            "Emptied.Action | PLAN-53: its list is empty and it signs no row any more",
         ]);
 
         Assert.Equal(["PlantedWrite.Patch"], CeilingChecks.Unlisted(["PlantedWrite.Create", "PlantedWrite.Patch"], list));
         Assert.Equal(["Gone.Action"], CeilingChecks.Stale(["PlantedWrite.Create"], list));
-        Assert.Equal(2, list.Malformed.Count);
+        Assert.Equal(3, list.Malformed.Count);
+        Assert.DoesNotContain("PLAN-53", CeilingList.Owners);
     }
 
     [Authorize(Policy = HrManagementPolicies.ModuleHrContracts)]

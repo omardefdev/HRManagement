@@ -211,18 +211,22 @@ public static class HrManagementAuthorizationExtensions
 
             // The base payroll role grants module access only. Operational roles are deliberately
             // separate so a processor cannot approve or post the same run.
-            options.AddPolicy(HrManagementPolicies.PayrollProcess, p => p.RequireAssertion(c =>
-                c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.PayrollProcessor)));
+            // PLAN-53: the two assertions are written once, in PayrollPolicyRules (hr-admin or the operational role).
+            options.AddPolicy(HrManagementPolicies.PayrollProcess, p => p.RequireAssertion(c => PayrollPolicyRules.CanProcess(c.User)));
 
-            options.AddPolicy(HrManagementPolicies.PayrollApprove, p => p.RequireAssertion(c =>
-                c.User.IsInRole(HrManagementRoles.Admin)
-                || c.User.IsInRole(HrManagementRoles.PayrollApprover)));
+            options.AddPolicy(HrManagementPolicies.PayrollApprove, p => p.RequireAssertion(c => PayrollPolicyRules.CanApprove(c.User)));
 
             // PLAN-51 (D-IAM-4): roles from configuration, so Authorization:AdminExcludedPolicies can drop hr-admin outside demo mode.
             options.RolesPolicy(HrManagementPolicies.PayrollPost, HrManagementRoles.Admin, HrManagementRoles.PayrollPoster);
             options.RolesPolicy(HrManagementPolicies.PayrollReverse,
                 HrManagementRoles.Admin, HrManagementRoles.PayrollPoster, HrManagementRoles.PayrollReverser);
+
+            // PLAN-53 (D-53-4): payroll reference data. Roles from configuration; hr-admin is not excluded from it.
+            options.AddPolicy(HrManagementPolicies.PayrollMasterData, p => p.AddRequirements(PayrollPolicyRules.MasterData));
+
+            // PLAN-53: a change request is cancelled by whoever may request one (Payroll.Process for a salary change, Payroll.MasterData
+            // for a scale or a grade) or decide one (Payroll.Approve). Whose request he may cancel is the handler's rule.
+            options.AddPolicy(HrManagementPolicies.PayrollChangeCancel, p => p.AddRequirements(new PayrollChangeCancelRequirement()));
 
             // PLAN-50 (§5, rule 3): or an active delegate of hr-management-approver for the action's entity type. With no lookup registered
             // (the gateway, HR.Contracts' HireWizard.Step3Approve) it is the two roles only.
@@ -284,6 +288,7 @@ public static class HrManagementAuthorizationExtensions
         services.AddSingleton<IAuthorizationHandler, GatewayApprovalReachHandler>();
         services.AddSingleton<IAuthorizationHandler, InteractiveStaffOrServiceScopeHandler>();
         services.AddSingleton<IAuthorizationHandler, ConfiguredRolesHandler>();
+        services.AddSingleton<IAuthorizationHandler, PayrollChangeCancelHandler>();
         services.AddSingleton<IAuthorizationHandler, Delegation.RoleOrDelegationHandler>();
         services.AddServiceToServiceAuthorizationPolicies();
         services.AddHrMvcSecurityDefaults();

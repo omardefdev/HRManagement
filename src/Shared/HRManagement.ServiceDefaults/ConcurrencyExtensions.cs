@@ -29,6 +29,32 @@ public static class ConcurrencyExtensions
         return entity;
     }
 
+    /// <summary>
+    /// PLAN-53: the save broke a unique index (PostgreSQL 23505, or SQLite's UNIQUE constraint in tests); with
+    /// <paramref name="constraintName"/>, that index only (PostgreSQL names it; SQLite names the columns, so the name is not checked there).
+    /// The transaction rolled back and wrote nothing.
+    /// </summary>
+    public static bool IsUniqueViolation(Exception exception, string? constraintName = null)
+    {
+        for (Exception? ex = exception; ex is not null; ex = ex.InnerException)
+        {
+            var type = ex.GetType();
+            if (string.Equals(type.Name, "PostgresException", StringComparison.Ordinal)
+                && type.GetProperty("SqlState")?.GetValue(ex) as string == "23505")
+            {
+                return constraintName is null
+                       || string.Equals(type.GetProperty("ConstraintName")?.GetValue(ex) as string, constraintName, StringComparison.Ordinal);
+            }
+
+            if (string.Equals(type.Name, "SqliteException", StringComparison.Ordinal)
+                && type.GetProperty("SqliteErrorCode")?.GetValue(ex) is 19
+                && ex.Message.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
     /// <summary>PLAN-45: PostgreSQL ended this transaction to break a deadlock (40P01). It rolled back and wrote nothing.</summary>
     public static bool IsDeadlock(Exception exception)
     {

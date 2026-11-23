@@ -1,6 +1,7 @@
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Tenancy;
 using Microsoft.EntityFrameworkCore;
+using Payroll.Domain.Constants;
 using Payroll.Domain.Entities;
 
 namespace Payroll.Infrastructure.Data;
@@ -39,6 +40,8 @@ public class PayrollDbContext : TenantAwareDbContext
     public DbSet<LegalAttestation> LegalAttestations => Set<LegalAttestation>();
     public DbSet<PayrollConfigChangeNotice> PayrollConfigChangeNotices => Set<PayrollConfigChangeNotice>();
     public DbSet<EmployeePayProfileHistory> EmployeePayProfileHistories => Set<EmployeePayProfileHistory>();
+    public DbSet<PayProfileChangeRequest> PayProfileChangeRequests => Set<PayProfileChangeRequest>();
+    public DbSet<PayrollReferenceChangeRequest> PayrollReferenceChangeRequests => Set<PayrollReferenceChangeRequest>();
     public DbSet<PayrollRunApproval> PayrollRunApprovals => Set<PayrollRunApproval>();
     public DbSet<PayslipDelivery> PayslipDeliveries => Set<PayslipDelivery>();
     public DbSet<AbsenceDeduction> AbsenceDeductions => Set<AbsenceDeduction>();
@@ -262,10 +265,11 @@ public class PayrollDbContext : TenantAwareDbContext
         modelBuilder.Entity<SalaryScale>(entity =>
         {
             entity.HasIndex(e => e.Code).IsUnique();
+            // PLAN-53 (§4): a scale with grades is not deleted (was Cascade: deleting a scale deleted its grades).
             entity.HasMany(e => e.PayGrades)
                   .WithOne(g => g.SalaryScale)
                   .HasForeignKey(g => g.SalaryScaleId)
-                  .OnDelete(DeleteBehavior.Cascade);
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<PayGrade>(entity =>
@@ -285,10 +289,38 @@ public class PayrollDbContext : TenantAwareDbContext
                 .IsUnique()
                 .HasDatabaseName("IX_EmployeePayProfiles_OneActive")
                 .HasFilter("\"IsActive\" = TRUE");
+            // PLAN-53 (§4): a grade a pay profile names is not deleted (was SetNull: the delete emptied the grade of every profile).
             entity.HasOne(e => e.PayGrade)
                   .WithMany()
                   .HasForeignKey(e => e.PayGradeId)
-                  .OnDelete(DeleteBehavior.SetNull);
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.ConfigureOptimisticConcurrency(this);
+        });
+
+        modelBuilder.Entity<PayProfileChangeRequest>(entity =>
+        {
+            // PLAN-53 (D-53-3): one open request per employee and agency (PendingApproval = 0, Scheduled = 1).
+            entity.HasIndex(e => new { e.TenantId, e.EmployeeId })
+                .IsUnique()
+                .HasDatabaseName(PayrollChangeIndexNames.OneOpenPayProfileChange)
+                .HasFilter("\"State\" IN (0, 1)");
+            // The activation job: the scheduled requests that are due.
+            entity.HasIndex(e => new { e.State, e.EffectiveFrom });
+            // The branch scope of lists.
+            entity.HasIndex(e => e.OrgUnitId);
+            entity.ConfigureOptimisticConcurrency(this);
+        });
+
+        modelBuilder.Entity<PayrollReferenceChangeRequest>(entity =>
+        {
+            entity.Property(e => e.ProposedJson).HasColumnType("text");
+            entity.Property(e => e.CurrentJson).HasColumnType("text");
+            // One open request per record (PendingApproval = 0); a creation has no record yet.
+            entity.HasIndex(e => new { e.TenantId, e.EntityType, e.EntityId })
+                .IsUnique()
+                .HasDatabaseName(PayrollChangeIndexNames.OneOpenReferenceChange)
+                .HasFilter("\"State\" = 0 AND \"EntityId\" IS NOT NULL");
+            entity.HasIndex(e => e.State);
             entity.ConfigureOptimisticConcurrency(this);
         });
 

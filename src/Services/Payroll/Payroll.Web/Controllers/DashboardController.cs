@@ -18,6 +18,11 @@ public class DashboardController : Controller
         ViewBag.TotalProfiles = await _db.EmployeePayProfiles.CountAsync(p => p.IsActive);
         ViewBag.TotalPosted = await _db.PayrollRuns.CountAsync(r => r.Status == PayrollRunStatus.Posted);
 
+        // PLAN-53: the salary changes that wait for an approver, and the scheduled ones a cycle could not apply; the caller's branch only.
+        var changes = await _db.PayProfileChangeRequests.AsNoTracking().InOrgScopeAsync(HttpContext, _db);
+        ViewBag.PendingSalaryChanges = await changes.CountAsync(r => r.State == PayProfileChangeState.PendingApproval);
+        ViewBag.BlockedSalaryChanges = await changes.CountAsync(r => r.State == PayProfileChangeState.Scheduled && r.LastApplyError != null);
+
         var lastRun = await _db.PayrollRuns
             .Include(r => r.SalaryLines)
             .OrderByDescending(r => r.RunDate)

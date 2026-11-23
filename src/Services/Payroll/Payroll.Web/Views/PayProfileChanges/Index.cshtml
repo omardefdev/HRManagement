@@ -1,0 +1,102 @@
+@model Payroll.Web.ViewModels.PayProfileChangeListViewModel
+@{
+    ViewData["Title"] = "طلبات تغيير الراتب";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="fas fa-exchange-alt"></i> طلبات تغيير الراتب</h3>
+        @if (Model.CanRequest)
+        {
+            <a asp-controller="EmployeePayProfiles" asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> طلب تغيير راتب</a>
+        }
+    </div>
+
+    <div class="card-body">
+        <p class="text-muted mb-3">يطلب معالج الرواتب التغيير، ويعتمده معتمد رواتب آخر، ولا يدخل ملف الأجر قبل الاعتماد وتاريخ السريان.</p>
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <label class="form-label" for="state">الحالة</label>
+                <select id="state" name="state" class="form-select form-select-sm">
+                    <option value="">كل الحالات</option>
+                    @foreach (var option in Html.HrEnumSelectList<PayProfileChangeState>())
+                    {
+                        <option value="@option.Value" selected="@(Model.State?.ToString() == option.Value ? "selected" : null)">@option.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="employeeId">الموظف</label>
+                <select id="employeeId" name="employeeId" class="form-select form-select-sm" data-hr-picker="employee" data-placeholder="كل الموظفين">
+                    <option value="">كل الموظفين</option>
+                    @if (Model.EmployeeId is Guid selectedEmployee)
+                    {
+                        <option value="@selectedEmployee" selected="selected" data-hr-employee-id="@selectedEmployee">الموظف المحدد</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="blockedOnly" name="blockedOnly" value="true" checked="@(Model.BlockedOnly ? "checked" : null)" />
+                    <label class="form-check-label" for="blockedOnly">المجدولة التي تعذّر تطبيقها فقط</label>
+                </div>
+            </div>
+            <div class="col-md-2 d-flex align-items-end gap-1">
+                <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm" title="مسح الفلاتر" aria-label="مسح الفلاتر"><i aria-hidden="true" class="fas fa-times"></i></a>
+            </div>
+        </form>
+        @if (Model.CanApprove)
+        {
+            <a asp-action="Index" asp-route-state="@PayProfileChangeState.PendingApproval" class="btn btn-outline-warning btn-sm"><i class="fas fa-hourglass-half"></i> بانتظار الاعتماد</a>
+        }
+    </div>
+
+    <div class="card-body p-0 border-top-0 pt-0">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>الموظف</th>
+                    <th>نوع التغيير</th>
+                    <th>الراتب الحالي</th>
+                    <th>الراتب المقترح</th>
+                    <th>الدرجة المقترحة</th>
+                    <th>يسري من</th>
+                    <th>الحالة</th>
+                    <th>الطالب</th>
+                    <th>تاريخ الطلب</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Items)
+                {
+                    var r = row.Request;
+                    var blocked = r.State == PayProfileChangeState.Scheduled && !string.IsNullOrEmpty(r.LastApplyError);
+                    <tr class="@(blocked ? "table-danger" : null)">
+                        <td>@Html.HrEmployeeName(r.EmployeeId)</td>
+                        <td>@Html.HrEnumDisplay(r.ChangeKind)</td>
+                        <td>@(r.CurrentBaseSalary?.ToString("N2") ?? "—")</td>
+                        <td>@(r.ProposedBaseSalary?.ToString("N2") ?? "—")</td>
+                        <td>@(row.ProposedGradeName ?? "—")</td>
+                        <td>@Html.HrDate(r.EffectiveFrom)</td>
+                        <td>
+                            @Html.HrEnumDisplay(r.State)
+                            @if (blocked)
+                            {
+                                <span class="badge bg-danger" title="@r.LastApplyError">تعذّر التطبيق</span>
+                            }
+                        </td>
+                        <td>@await Html.PartialAsync("_UserDisplayName", (object)r.RequestedBy)</td>
+                        <td>@Html.HrDateTime(r.RequestedAt)</td>
+                        <td><a asp-action="Details" asp-route-id="@r.Id" class="btn btn-info btn-xs">التفاصيل</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (Model.Items.Count == 0)
+        {
+            @await Html.PartialAsync("_HrEmptyState", "لا توجد طلبات تغيير راتب")
+        }
+    </div>
+</div>

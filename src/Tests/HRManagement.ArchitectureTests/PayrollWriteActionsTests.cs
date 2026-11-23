@@ -1,0 +1,345 @@
+using System.Security.Claims;
+using System.Text.Json;
+using HRManagement.ServiceDefaults;
+using HRManagement.TestSupport;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace HRManagement.ArchitectureTests;
+
+/// <summary>
+/// PLAN-53 (§1, P-4, G-IAM-02, G-PAY-10): no payroll write works with the module role <c>payroll</c> alone. Payroll's write-policy list is
+/// gone and takes no row; every write of Payroll.Web names a policy the module role does not pass; each of the sixteen writes PLAN-51
+/// froze, and every action PLAN-53 adds, carries the policy the plan gives it; and each payroll persona reaches exactly the writes its
+/// roles give it. The policies are evaluated by the real authorization service, the way the module filter and MVC evaluate them.
+/// </summary>
+public sealed class PayrollWriteActionsTests
+{
+    private const string Service = "payroll";
+
+    /// <summary>The policies the module role alone passes: the module's read policy and the module filter's default write policy.</summary>
+    private static readonly IReadOnlySet<string> ModuleRolePolicies = new HashSet<string>(StringComparer.Ordinal)
+    {
+        HrManagementPolicies.ModulePayroll, HrManagementPolicies.PayrollWrite,
+    };
+
+    /// <summary>The one write the module role keeps: cancelling the caller's own export job (the handler checks the owner).</summary>
+    private const string OwnExportJobCancel = "ExportJobs.Cancel";
+
+    /// <summary>The sixteen writes PLAN-51 froze in Payroll's list, each with the policy PLAN-53 names on the action (P-4).</summary>
+    public static readonly IReadOnlyDictionary<string, string> Sixteen = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["CompensationTypes.Create"] = HrManagementPolicies.PayrollMasterData,
+        ["CompensationTypes.Edit"] = HrManagementPolicies.PayrollMasterData,
+        ["CompensationTypes.Delete"] = HrManagementPolicies.PayrollMasterData,
+        ["DeductionTypes.Create"] = HrManagementPolicies.PayrollMasterData,
+        ["DeductionTypes.Edit"] = HrManagementPolicies.PayrollMasterData,
+        ["DeductionTypes.Delete"] = HrManagementPolicies.PayrollMasterData,
+        ["SalaryScales.Create"] = HrManagementPolicies.PayrollMasterData,
+        ["SalaryScales.Edit"] = HrManagementPolicies.PayrollMasterData,
+        ["SalaryScales.Delete"] = HrManagementPolicies.PayrollMasterData,
+        ["PayGrades.Create"] = HrManagementPolicies.PayrollMasterData,
+        ["PayGrades.Edit"] = HrManagementPolicies.PayrollMasterData,
+        ["PayGrades.Delete"] = HrManagementPolicies.PayrollMasterData,
+        ["EmployeePayProfiles.Create"] = HrManagementPolicies.PayrollProcess,
+        ["PayrollRuns.Create"] = HrManagementPolicies.PayrollProcess,
+        ["PayrollReports.BulkPayslips"] = HrManagementPolicies.PayrollProcess,
+        [OwnExportJobCancel] = HrManagementPolicies.ModulePayroll,
+    };
+
+    /// <summary>The write actions PLAN-53 adds, each with the policy it names on the action (P-4): submit with Payroll.Process, the
+    /// decisions and the manual activation with Payroll.Approve, cancel with the policy that admits whoever may request or decide.</summary>
+    public static readonly IReadOnlyDictionary<string, string> Added = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["PayProfileChangesApi.Submit"] = HrManagementPolicies.PayrollProcess,
+        ["PayrollApi.UpsertPayProfile"] = HrManagementPolicies.PayrollProcess,          // the PUT alias of Submit
+        ["PayProfileChangesApi.Approve"] = HrManagementPolicies.PayrollApprove,
+        ["PayProfileChangesApi.Reject"] = HrManagementPolicies.PayrollApprove,
+        ["PayProfileChangesApi.ActivateDue"] = HrManagementPolicies.PayrollApprove,
+        ["PayProfileChangesApi.Cancel"] = HrManagementPolicies.PayrollChangeCancel,
+        ["PayProfileChanges.Approve"] = HrManagementPolicies.PayrollApprove,
+        ["PayProfileChanges.Reject"] = HrManagementPolicies.PayrollApprove,
+        ["PayProfileChanges.Cancel"] = HrManagementPolicies.PayrollChangeCancel,
+        // «طلبات البيانات المرجعية»: the decision of a scale or grade change; its submission is the sixteen's Create, Edit and Delete.
+        ["PayrollReferenceChanges.Approve"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollReferenceChanges.Reject"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollReferenceChanges.Cancel"] = HrManagementPolicies.PayrollChangeCancel,
+    };
+
+    private static IEnumerable<ActionInfo> Writes => ActionCatalog.Of(Service).Where(a => a.IsWrite && !a.Anonymous);
+
+    private static ClaimsPrincipal User(params string[] roles) => new(new ClaimsIdentity(
+        roles.Select(r => new Claim(ClaimTypes.Role, r))
+            .Append(new Claim(ClaimTypes.NameIdentifier, Guid.NewGuid().ToString("D")))
+            .Append(new Claim("azp", "hr-gateway-client"))
+            .Append(new Claim(TenantContext.TenantClaimType, Guid.NewGuid().ToString())),
+        "TestAuth"));
+
+    private static IAuthorizationService Authorization(IConfiguration? configuration = null)
+    {
+        var services = new ServiceCollection();
+        services.AddSingleton(configuration ?? new ConfigurationBuilder().Build());
+        services.AddLogging();
+        services.AddAuthorization();
+        services.AddHrManagementAuthorizationPolicies();
+        return services.BuildServiceProvider().GetRequiredService<IAuthorizationService>();
+    }
+
+    /// <summary>
+    /// What MVC and the module filter ask of a caller: the module policy (or the action's override), every policy named on the action and
+    /// its class, and, for a write that names none, the module's write policy.
+    /// </summary>
+    private static async Task<bool> ReachesAsync(IAuthorizationService authorization, ClaimsPrincipal user, ActionInfo action)
+    {
+        var policies = action.AllPolicies.Append(action.EffectiveOverride ?? HrManagementPolicies.ModulePayroll).ToList();
+        if (!action.HasExplicitPolicy)
+            policies.Add(HrManagementPolicies.PayrollWrite);
+        foreach (var policy in policies.Distinct(StringComparer.Ordinal))
+        {
+            if (!(await authorization.AuthorizeAsync(user, policy)).Succeeded)
+                return false;
+        }
+        return true;
+    }
+
+    private static async Task<List<string>> ReachedAsync(ClaimsPrincipal user, IEnumerable<ActionInfo> actions, IConfiguration? configuration = null)
+    {
+        var authorization = Authorization(configuration);
+        var reached = new List<string>();
+        foreach (var action in actions)
+        {
+            if (await ReachesAsync(authorization, user, action))
+                reached.Add(action.Key);
+        }
+        return reached.Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+    }
+
+    // --- the list ---
+
+    [Fact]
+    public void Payroll_has_no_write_policy_list_and_no_list_takes_a_row()
+    {
+        var path = WriteActionsHaveExplicitPolicyTests.ListPath(Service);
+        Assert.False(global::System.IO.File.Exists(Path.Combine(RepoPaths.Root, path)), $"{path} is back: Payroll's write-policy list was deleted by PLAN-53");
+        Assert.Empty(CeilingList.Load(path).Rows);
+        Assert.All(WriteActionsHaveExplicitPolicyTests.Ceilings, ceiling => Assert.Equal(0, ceiling.Value));
+        Assert.DoesNotContain("PLAN-53", CeilingList.Owners);
+    }
+
+    [Fact]
+    public void Every_payroll_write_names_its_policy()
+    {
+        var offenders = WriteActionsHaveExplicitPolicyTests.Offenders(ActionCatalog.Of(Service)).ToList();
+        Assert.True(offenders.Count == 0, "Payroll writes without a named policy: " + string.Join(", ", offenders));
+    }
+
+    [Fact]
+    public void Every_payroll_write_names_a_policy_the_module_role_does_not_pass()
+    {
+        var offenders = Writes
+            .Where(a => a.Key != OwnExportJobCancel)
+            .Where(a => a.AllPolicies.Append(a.EffectiveOverride ?? HrManagementPolicies.ModulePayroll).All(ModuleRolePolicies.Contains))
+            .Select(a => a.Key).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+
+        Assert.True(offenders.Count == 0,
+            "Payroll writes the module role 'payroll' alone could reach (name Payroll.Process, Payroll.Approve, Payroll.Post, Payroll.Reverse, "
+            + "Payroll.MasterData or Payroll.ChangeCancel on the action): " + string.Join(", ", offenders));
+    }
+
+    // --- the sixteen ---
+
+    public static TheoryData<string, string> SixteenRows()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var (key, policy) in Sixteen)
+            data.Add(key, policy);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(SixteenRows))]
+    public void Each_of_the_sixteen_names_the_policy_the_plan_gives_it_on_the_action(string key, string policy)
+    {
+        var actions = Writes.Where(a => a.Key == key).ToList();
+        Assert.True(actions.Count > 0, $"{key} is no longer a write action of Payroll.Web");
+        Assert.All(actions, a => Assert.Equal([policy], a.ActionPolicies));
+    }
+
+    public static TheoryData<string, string> AddedRows()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var (key, policy) in Added)
+            data.Add(key, policy);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(AddedRows))]
+    public void Each_action_the_plan_adds_names_its_policy_on_the_action(string key, string policy)
+    {
+        var actions = Writes.Where(a => a.Key == key).ToList();
+        Assert.True(actions.Count > 0, $"{key} is not a write action of Payroll.Web");
+        Assert.All(actions, a => Assert.Equal([policy], a.ActionPolicies));
+    }
+
+    [Fact]
+    public void Every_write_of_the_controllers_the_plan_adds_is_in_the_table()
+    {
+        // A write added later to a request controller needs its row here, with the policy it names.
+        var controllers = new[] { "PayProfileChangesApi", "PayProfileChanges", "PayrollReferenceChanges" };
+        var unlisted = Writes.Where(a => controllers.Contains(a.ControllerName)).Select(a => a.Key)
+            .Where(k => !Added.ContainsKey(k)).Distinct(StringComparer.Ordinal).ToList();
+        Assert.True(unlisted.Count == 0, "Write actions of the request controllers with no row in PayrollWriteActionsTests.Added: " + string.Join(", ", unlisted));
+    }
+
+    [Fact]
+    public void The_lists_and_the_details_of_the_requests_are_open_to_the_module_and_are_no_writes()
+    {
+        var reads = ActionCatalog.Of(Service)
+            .Where(a => a.ControllerName is "PayProfileChangesApi" or "PayProfileChanges" or "PayrollReferenceChanges" && !a.IsWrite).ToList();
+        Assert.NotEmpty(reads);
+        Assert.All(reads, a => Assert.Equal([HrManagementPolicies.ModulePayroll], a.AllPolicies.Distinct()));
+    }
+
+    [Fact]
+    public void The_sixteen_are_sixteen()
+    {
+        Assert.Equal(16, Sixteen.Count);
+        Assert.Equal(12, Sixteen.Count(p => p.Value == HrManagementPolicies.PayrollMasterData));
+        Assert.Equal(3, Sixteen.Count(p => p.Value == HrManagementPolicies.PayrollProcess));
+    }
+
+    // --- who reaches what ---
+
+    private static IEnumerable<ActionInfo> SixteenActions => Writes.Where(a => Sixteen.ContainsKey(a.Key));
+
+    [Fact]
+    public async Task The_module_role_alone_reaches_no_payroll_write_but_cancelling_its_own_export_job()
+    {
+        Assert.Equal([OwnExportJobCancel], await ReachedAsync(User(HrManagementRoles.Payroll), Writes));
+    }
+
+    [Fact]
+    public async Task A_processor_reaches_the_sixteen_and_an_approver_and_a_poster_reach_none_of_them_but_their_own_export_job()
+    {
+        var processor = User(HrManagementRoles.Payroll, HrManagementRoles.PayrollProcessor);
+        var approver = User(HrManagementRoles.Payroll, HrManagementRoles.PayrollApprover);
+        var poster = User(HrManagementRoles.Payroll, HrManagementRoles.PayrollPoster);
+        var reverser = User(HrManagementRoles.Payroll, HrManagementRoles.PayrollReverser);
+
+        Assert.Equal(Sixteen.Keys.Order(StringComparer.Ordinal), await ReachedAsync(processor, SixteenActions));
+        Assert.Equal([OwnExportJobCancel], await ReachedAsync(approver, SixteenActions));
+        Assert.Equal([OwnExportJobCancel], await ReachedAsync(poster, SixteenActions));
+        Assert.Equal([OwnExportJobCancel], await ReachedAsync(reverser, SixteenActions));
+    }
+
+    [Fact]
+    public async Task Each_operational_role_reaches_exactly_the_writes_whose_policies_it_passes()
+    {
+        // The whole of Payroll.Web, new actions included: a role reaches a write only through a policy that names the role.
+        var byRole = new Dictionary<string, string[]>(StringComparer.Ordinal)
+        {
+            [HrManagementRoles.PayrollProcessor] =
+                [HrManagementPolicies.PayrollProcess, HrManagementPolicies.PayrollMasterData, HrManagementPolicies.PayrollChangeCancel],
+            [HrManagementRoles.PayrollApprover] = [HrManagementPolicies.PayrollApprove, HrManagementPolicies.PayrollChangeCancel],
+            [HrManagementRoles.PayrollPoster] = [HrManagementPolicies.PayrollPost, HrManagementPolicies.PayrollReverse],
+            [HrManagementRoles.PayrollReverser] = [HrManagementPolicies.PayrollReverse],
+        };
+
+        foreach (var (role, passes) in byRole)
+        {
+            var allowed = passes.Concat(ModuleRolePolicies).ToHashSet(StringComparer.Ordinal);
+            var expected = Writes
+                .Where(a => a.AllPolicies.Append(a.EffectiveOverride ?? HrManagementPolicies.ModulePayroll).All(allowed.Contains))
+                .Select(a => a.Key).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+
+            Assert.Equal(expected, await ReachedAsync(User(HrManagementRoles.Payroll, role), Writes));
+        }
+    }
+
+    [Fact]
+    public async Task Hr_admin_reaches_the_sixteen_in_development_and_with_payrolls_production_settings()
+    {
+        var admin = User(HrManagementRoles.Admin);
+        Assert.Equal(Sixteen.Keys.Order(StringComparer.Ordinal), await ReachedAsync(admin, SixteenActions));
+        // Payroll.MasterData is not one of Authorization:AdminExcludedPolicies (P-4): hr-admin keeps the sixteen outside demo mode too.
+        Assert.Equal(Sixteen.Keys.Order(StringComparer.Ordinal), await ReachedAsync(admin, SixteenActions, Settings("Production")));
+        Assert.Equal(Sixteen.Keys.Order(StringComparer.Ordinal), await ReachedAsync(admin, SixteenActions, Settings("Staging")));
+    }
+
+    // --- Payroll.MasterData: roles from configuration ---
+
+    private static IConfiguration Settings(string? environment)
+    {
+        var name = environment is null ? "appsettings.json" : $"appsettings.{environment}.json";
+        var path = Path.Combine(RepoPaths.Root, "src", "Services", "Payroll", "Payroll.Web", name);
+        return new ConfigurationBuilder().AddJsonStream(new MemoryStream(global::System.IO.File.ReadAllBytes(path))).Build();
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("Production")]
+    [InlineData("Staging")]
+    public void Payrolls_settings_name_the_master_data_roles(string? environment)
+    {
+        var roles = Settings(environment).GetSection(ConfiguredRolesHandler.PolicyRolesKey(HrManagementPolicies.PayrollMasterData)).Get<string[]>();
+        Assert.Equal([HrManagementRoles.Admin, HrManagementRoles.PayrollProcessor], roles ?? []);
+        Assert.DoesNotContain(HrManagementPolicies.PayrollMasterData,
+            Settings(environment).GetSection(ConfiguredRolesHandler.AdminExcludedPoliciesKey).Get<string[]>() ?? []);
+    }
+
+    [Fact]
+    public void The_prodlike_stack_mirrors_the_master_data_roles_of_production()
+    {
+        var compose = global::System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, "docker-compose.acceptance-prodlike.yml"));
+        Assert.Contains("Authorization__Policies__Payroll.MasterData__Roles__0: \"hr-admin\"", compose, StringComparison.Ordinal);
+        Assert.Contains("Authorization__Policies__Payroll.MasterData__Roles__1: \"payroll-processor\"", compose, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task The_master_data_roles_are_read_from_configuration()
+    {
+        var key = ConfiguredRolesHandler.PolicyRolesKey(HrManagementPolicies.PayrollMasterData);
+        var configured = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            [$"{key}:0"] = HrManagementRoles.PayrollApprover,
+        }).Build();
+        var processor = User(HrManagementRoles.Payroll, HrManagementRoles.PayrollProcessor);
+        var approver = User(HrManagementRoles.Payroll, HrManagementRoles.PayrollApprover);
+
+        Assert.True((await Authorization().AuthorizeAsync(processor, HrManagementPolicies.PayrollMasterData)).Succeeded);
+        Assert.False((await Authorization().AuthorizeAsync(approver, HrManagementPolicies.PayrollMasterData)).Succeeded);
+        Assert.False((await Authorization(configured).AuthorizeAsync(processor, HrManagementPolicies.PayrollMasterData)).Succeeded);
+        Assert.True((await Authorization(configured).AuthorizeAsync(approver, HrManagementPolicies.PayrollMasterData)).Succeeded);
+        // The module role alone never passes, whatever the default.
+        Assert.False((await Authorization().AuthorizeAsync(User(HrManagementRoles.Payroll), HrManagementPolicies.PayrollMasterData)).Succeeded);
+    }
+
+    [Fact]
+    public async Task Cancelling_a_change_admits_whoever_may_request_or_decide_one_and_nobody_else()
+    {
+        var authorization = Authorization();
+        async Task<bool> PassesAsync(params string[] roles) =>
+            (await authorization.AuthorizeAsync(User(roles), HrManagementPolicies.PayrollChangeCancel)).Succeeded;
+
+        Assert.True(await PassesAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollProcessor));
+        Assert.True(await PassesAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollApprover));
+        Assert.True(await PassesAsync(HrManagementRoles.Admin));
+        Assert.False(await PassesAsync(HrManagementRoles.Payroll));
+        Assert.False(await PassesAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollPoster));
+        Assert.False(await PassesAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollReverser));
+    }
+
+    [Fact]
+    public void Payrolls_settings_files_parse()
+    {
+        foreach (var environment in new[] { null, "Production", "Staging" })
+        {
+            var name = environment is null ? "appsettings.json" : $"appsettings.{environment}.json";
+            var bytes = global::System.IO.File.ReadAllBytes(Path.Combine(RepoPaths.Root, "src", "Services", "Payroll", "Payroll.Web", name));
+            using var document = JsonDocument.Parse(bytes.AsSpan(bytes.Length >= 3 && bytes[0] == 0xEF ? 3 : 0).ToArray());
+            Assert.Equal(JsonValueKind.Object, document.RootElement.ValueKind);
+        }
+    }
+}

@@ -17,12 +17,17 @@
 
         <h3 class="card-title mb-0"><i class="fas fa-id-card"></i> ملفات الراتب</h3>
 
-        <a asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> جديد</a>
+        <span>
+            <a asp-controller="PayProfileChanges" asp-action="Index" class="btn btn-outline-secondary btn-sm"><i class="fas fa-exchange-alt"></i> طلبات تغيير الراتب</a>
+            @if (ViewBag.CanRequest == true)
+            {
+                <a asp-action="Create" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> طلب تغيير راتب</a>
+            }
+        </span>
 
     </div>
 
     <div class="card-body">
-        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
         <form method="get" class="row g-2 mb-3">
             <div class="col-md-3">
                 <label class="form-label">الموظف</label>
@@ -56,6 +61,12 @@
                 <label class="form-label">ساري إلى</label>
                 <input type="date" name="effectiveTo" value="@Html.HrDateInputValue(effectiveTo)" class="form-control form-control-sm" />
             </div>
+            <div class="col-md-12">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="outsideBounds" name="outsideBounds" value="true" checked="@(ViewBag.OutsideBounds == true ? "checked" : null)" />
+                    <label class="form-check-label" for="outsideBounds">الفعّالة التي راتبها خارج حدود درجتها فقط</label>
+                </div>
+            </div>
             <div class="col-md-1 d-flex align-items-end gap-1">
                 <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button>
                 <a asp-action="Index" class="btn btn-outline-secondary btn-sm" title="مسح الفلاتر"><i class="fas fa-times"></i></a>
@@ -89,7 +100,10 @@
 
                         <td>@(p.IsActive ? "نعم" : "لا")</td>
 
-                        <td><a asp-action="History" asp-route-employeeId="@p.EmployeeId" class="btn btn-info btn-xs">السجل</a></td>
+                        <td>
+                            <a asp-action="History" asp-route-employeeId="@p.EmployeeId" class="btn btn-info btn-xs">السجل</a>
+                            <a asp-controller="PayProfileChanges" asp-action="Index" asp-route-employeeId="@p.EmployeeId" class="btn btn-outline-secondary btn-xs">طلبات التغيير</a>
+                        </td>
 
                     </tr>
 

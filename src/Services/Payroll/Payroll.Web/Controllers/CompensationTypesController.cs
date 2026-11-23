@@ -1,3 +1,5 @@
+using HRManagement.ServiceDefaults;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Payroll.Domain.Entities;
@@ -29,6 +31,7 @@ public class CompensationTypesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
     public async Task<IActionResult> Create(CompensationType model)
     {
         if (await _db.CompensationTypes.AnyAsync(x => x.Code == model.Code))
@@ -54,6 +57,7 @@ public class CompensationTypesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
     public async Task<IActionResult> Edit(Guid id, CompensationType model)
     {
         if (id != model.Id) return BadRequest();
@@ -79,6 +83,7 @@ public class CompensationTypesController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollMasterData)]
     public async Task<IActionResult> Delete(Guid id)
     {
         var e = await _db.CompensationTypes.FindAsync(id);

@@ -14,10 +14,10 @@ public sealed class WriteActionsHaveExplicitPolicyTests
     /// <summary>The most rows each list may hold. Lower a ceiling when its list shrinks; never raise one.</summary>
     public static readonly IReadOnlyDictionary<string, int> Ceilings = new Dictionary<string, int>(StringComparer.Ordinal)
     {
-        // PLAN-51 (P-6): every list is empty except Payroll's, which PLAN-53 empties with its sixteen policies.
+        // PLAN-51 (P-6) emptied every list but Payroll's; PLAN-53 (P-4) gave Payroll's sixteen writes their policies. Every list is empty.
         ["hr-core"] = 0,
         ["hr-contracts"] = 0,
-        ["payroll"] = 16,
+        ["payroll"] = 0,
         ["hr-movements"] = 0,
         ["hr-training"] = 0,
         ["hr-health"] = 0,
@@ -71,6 +71,7 @@ public sealed class WriteActionsHaveExplicitPolicyTests
         ["hr-core:Signatures.Verify"] = "checks a signature (plan §4: HrCore.ReadOnly)",
         ["hr-core:ExportJobs.Cancel"] = "cancels the caller's own export job (plan §4: HrCore.ReadOnly with the owner check)",
         ["hr-contracts:ExportJobs.Cancel"] = "cancels the caller's own export job",
+        ["payroll:ExportJobs.Cancel"] = "cancels the caller's own export job (PLAN-53: Module.Payroll named on the action, the owner check stays)",
         ["hr-contracts:HireWizard.Step1"] = "the plan keeps HireWizard as it is (§4: HrContracts.HireView, PLAN-29)",
         ["hr-contracts:HireWizard.Step2Confirm"] = "the plan keeps HireWizard as it is (§4: HrContracts.HireView, PLAN-29)",
         ["compliance:ExportJobs.Cancel"] = "cancels the caller's own export job",
@@ -90,7 +91,8 @@ public sealed class WriteActionsHaveExplicitPolicyTests
     [Fact]
     public void Every_write_names_a_policy_that_is_not_only_a_read_policy_or_is_a_declared_read()
     {
-        var undeclared = ReadOnlyWrites(ActionCatalog.Actions.Where(a => a.Service != "payroll"))
+        // PLAN-53: Payroll is no longer left out: its writes name operational policies, and its one read on POST is declared.
+        var undeclared = ReadOnlyWrites(ActionCatalog.Actions)
             .Where(k => !DeclaredReads.ContainsKey(k)).Order(StringComparer.Ordinal).ToList();
         Assert.True(undeclared.Count == 0,
             "Writes whose only policies admit the module's readers (name the module's write or approval policy): " + string.Join(", ", undeclared));
@@ -102,7 +104,8 @@ public sealed class WriteActionsHaveExplicitPolicyTests
         var current = ReadOnlyWrites(ActionCatalog.Actions).ToHashSet(StringComparer.Ordinal);
         var stale = DeclaredReads.Keys.Where(k => !current.Contains(k)).ToList();
         Assert.True(stale.Count == 0, "Declared reads that no longer exist or now name a write policy (remove them): " + string.Join(", ", stale));
-        Assert.True(DeclaredReads.Count <= 22, "The declared reads never grow: a new read on POST is reviewed with its reason");
+        // 22 until PLAN-53; 23 with Payroll's ExportJobs.Cancel, which existed before and was hidden while Payroll was left out of the check.
+        Assert.True(DeclaredReads.Count <= 23, "The declared reads never grow: a new read on POST is reviewed with its reason");
     }
 
     public static TheoryData<string> Services() => new(WebAssemblyCatalog.Entries.Select(e => e.Service));

@@ -209,6 +209,20 @@ public static class HrManagementPolicies
     public const string PayrollPost = "Payroll.Post";
     public const string PayrollReverse = "Payroll.Reverse";
 
+    /// <summary>
+    /// PLAN-53 (D-53-4): payroll reference data. Pay and deduction types change with it directly; a salary scale or a grade changes by a
+    /// request it submits and <see cref="PayrollApprove"/> decides. Roles from <c>Authorization:Policies:Payroll.MasterData:Roles</c>, by
+    /// default hr-admin and payroll-processor. The module role <c>payroll</c> alone never passes.
+    /// </summary>
+    public const string PayrollMasterData = "Payroll.MasterData";
+
+    /// <summary>
+    /// PLAN-53: cancelling a salary or reference change request: whoever passes <see cref="PayrollProcess"/>,
+    /// <see cref="PayrollMasterData"/> or <see cref="PayrollApprove"/>. The handler lets a requester cancel his own request only; an
+    /// approver may cancel any.
+    /// </summary>
+    public const string PayrollChangeCancel = "Payroll.ChangeCancel";
+
     public const string HrManagementApprove = "HrManagement.Approve";
 
     /// <summary>

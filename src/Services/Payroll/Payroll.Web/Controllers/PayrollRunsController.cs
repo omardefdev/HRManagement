@@ -77,6 +77,7 @@ public class PayrollRunsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Idempotent]
+    [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
     public async Task<IActionResult> Create(PayrollRunFormViewModel model)
     {
         if (!ModelState.IsValid) return View(model);
