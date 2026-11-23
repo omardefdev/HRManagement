@@ -16,8 +16,8 @@ Session: one, in the main folder `/home/omar/HRManagement` (Linux notebook), bra
 | P5 manual inputs | done | 2026-11-23T12:04:28Z |
 | P6 acceptance and review | done | 2026-11-23T17:18:00Z |
 | P7 main | done: `origin/main` did not move (`53690e0e`) | 2026-11-23T17:18:00Z |
-| P8 demo server | in progress | |
-| P9 docs, gates, report, merge | | |
+| P8 demo server | done | 2026-11-23T22:15:00Z |
+| P9 docs, gates, report, merge | in progress | |
 
 ## P0 — timing, keep-awake, preconditions, baseline
 
@@ -340,6 +340,54 @@ they were stamped then.
   register 17 rows (`4ee88def8114915fcd22ee453ec904fb`), no attestation, six runs (none pinned), inputs 800 / 500 / 80,
   last payroll migration `PAY053_SalaryChangeRequests`.
 
+- **The build, once, on `83b99786a420`** (P6's commit; everything after it is documents and the server check class). The
+  archive (32.7 MB) and the committed `deploy/vps/build-on-host.sh` were uploaded as `build-on-host.ps1` does (100 s) and the
+  script started **detached** on the server (`setsid nohup`, 17:19:18Z; log `/opt/hrm/build-83b99786a420.log`, exit code in
+  `/opt/hrm/build-83b99786a420.done`). Build 2,165 s, push 50 s, exit 0 at about 17:56Z; 17 of 17 images. Disk: 40 GB before,
+  17 GB at the lowest seen, 33 GB after the script's own cleanup.
+- **The deploy** (`scripts/vps/deploy.ps1 -Tag 83b99786a420`, 17:56:44Z to 18:02:07Z, 323 s with the smoke): pull 5 s, up
+  150 s, bootstrap 64 s (PAY054 applied by the migrator), keycloak reconcile 15 s, healthy 22 s. `deployments.log`:
+  `2026-11-23T18:01:04Z|tag=83b99786a420|action=deploy|result=healthy|previous=5aa61b78e3a6`. The services were away for about
+  3 minutes at most (the «up» step). **Smoke: pass 50, fail 0, warn 1** (the port check from the client's side, as before).
+- **This plan's server checks** (`AcPay54VpsChecks`, the helper `artifacts/plan54/run-vps.ps1`; evidence
+  `artifacts/plan54/vps/`):
+  1. *The migration* — **Passed.** PAY054 recorded; the three new tables have forced row security; the demo's three versions
+     are v1 with their fingerprints and the checksum of P0's picture (`3efb4119…`); the decision register `17|4ee88def…`;
+     inputs 800 / 500 / 80, every one `Approved` and `System`; runs as in the picture, none pinned.
+  2. *The cycle* — **Passed.** `e2e-payroll-processor` imported the real pack as `LAW_50_2004_CHK54` from 2026-04-01 (the
+     first day of the last posted month); publishing the draft 400; the processor's approval 403; `e2e-payroll-approver`
+     approved; his attestation 400; **`hradmin` attested (he meets the attest policy in demo mode: no user was added)**;
+     publishing 400 «…تشغيل رواتب مرحّل تنتهي فترته في 2026-04-30». The version stays approved, attested and unpublished. A pack
+     with a 120% bracket: 400, the field named, no row. The other versions, the decision register (checksum and every row's
+     write time) and the runs are as before.
+  3. *A manual input* — **Passed.** An allowance for a demo employee, dated inside the posted month 2026-04: pending and
+     `Manual`; the author's approval 403; the approver rejected it with a note; nothing pending is left; the system inputs
+     are as before.
+  4. *The screens* — **Passed at the fifth run** (27 min 28 s): ten screens at two sizes in a real Chromium as
+     `e2e-payroll-processor`, each HTTP 200, one CSP policy, no violation; the version's page Arabic, right-to-left, its editor
+     named by the registry's span, no user id printed, «مؤقت», the exception and the statutory deductions named.
+     **The four runs before it failed for this machine's network, not for the server** (62 min): the owner's dev container
+     `hrm-keycloak` (restart count 1268, every minute) changes a network interface under Chromium — `ERR_NETWORK_CHANGED`,
+     `ERR_NAME_NOT_RESOLVED`, a sign-in that does not come back, and over HTTP/3 a navigation that stalls to its 60 s timeout
+     (the edge logged «aborting with incomplete response» for the client; Payroll answered each page in under 100 ms; `curl`
+     over TCP was steady, 2 to 7 s a request). A temporary diagnostic (not committed) showed the same on the sign-in itself.
+     The check now probes one page at one size per step, repeats a step the machine's network cut (18 repeats in the passing
+     run, 39 attempts for 21 steps) with pauses of different lengths, and launches Chromium with `--disable-quic`.
+- **The server checks of PLAN-36..53** (nothing heavy beside them; 19:53:35Z to 21:50:48Z, 7,033 s; the link was about
+  480 ms that day and a check took 5 to 7 minutes): **53 of 59 in the run, 58 of 59 after the reruns.**
+  - `AC_WF_46_vps_the_sweeps_run…`: no sweep cycle yet after the deploy; run again after one: Passed.
+  - Four browser checks of PLAN-67 (the policy page, the destructive form, the portal, the tour of key pages): this
+    machine's network under Chromium. The browser checks of PLAN-53 and PLAN-67 now launch Chromium without QUIC, and the
+    tour uses the new shared `Ux067PageProbe.ProbeEachAsync` (a page the client's network cut is probed again). Run again:
+    the policy page and the form Passed, the portal Passed at its third run, **the tour Passed** (11 min 54 s, three
+    repeats; PLAN-53 could not pass it from this machine): thirty key pages, this plan's three among them.
+  - `AC_POL_47_vps_the_migration_the_trigger…`: **not passed, the local cause PLAN-53 recorded** (it reads
+    `artifacts/plan47/vps/fingerprint-before.json`, a file of the formatted Windows machine).
+  - The suites rewrote files under the committed `acceptance-evidence/*/vps/` and wrote `reports/msg040-replay-server-…json`:
+    restored and removed.
+- **The demo at the end of P8:** `83b99786a420`, 22 containers, every health check passing, smoke 50 pass and 0 fail.
+- Finished (UTC): 2026-11-23T22:15:00Z.
+
 ## Decisions (with reasons)
 
 Recorded as they are taken; see each phase.
@@ -416,6 +464,17 @@ Recorded as they are taken; see each phase.
    (35,538,324 bytes), `env.backup`, `SHA256SUMS` (each 600). Verified: both sums OK; 17 `CREATE DATABASE` lines (the sixteen
    databases and `hrm_admin`); the dump ends with «PostgreSQL database cluster dump complete». **Undo:** delete the folder when it
    is no longer needed (`rm -rf /opt/hrm/backups/pre-plan54-20261123T170449Z`).
+3. **2026-11-23T17:19Z to 17:56Z, the build's files.** `/opt/hrm/build-83b99786a420.log` and `.done` (kept, as for every
+   earlier build), `/opt/hrm/build/images-83b99786a420.json`; the script removed its source, the build cache and the SDK image;
+   the uploaded `/opt/hrm/build-on-host-83b99786a420.sh` was removed after the build. Seventeen images tagged `83b99786a420`
+   in the loopback registry. **Undo:** none needed; the files can be deleted, the tag stays in the registry.
+4. **2026-11-23T17:56:44Z, the deploy of `83b99786a420`** (previous `5aa61b78e3a6`). Migration `PAY054_LegalFrameworkPacks`
+   applied to `payroll_db`. **Undo:** `pwsh -NoProfile -File scripts/vps/deploy.ps1 -Tag 5aa61b78e3a6` (or `-Rollback`); the
+   database keeps PAY054, which that release does not read (the rollback note in `docs/OPS_VPS_SINGLE_HOST.md`).
+5. **2026-11-23T18:04Z to 18:12Z, what the checks left.** One framework version `LAW_50_2004_CHK54` v1, approved, attested
+   (by `hradmin`), unpublished, effective 2026-04-01 inside a posted month (D-PAY-13 refuses its publication; it governs
+   nothing), with its child rows and one attestation; one manual allowance, **rejected**, dated inside 2026-04. No decision
+   row was written. **Undo:** none needed; they are records (a version is never deleted).
 
 ## Open issues
 
@@ -424,8 +483,7 @@ Recorded as they are taken; see each phase.
 
 ## Exact next step
 
-P8: commit, then the server build of HEAD, detached (`git archive` and `deploy/vps/build-on-host.sh` uploaded as
-`scripts/vps/build-on-host.ps1` does; log `/opt/hrm/build-<tag>.log`, exit code in `/opt/hrm/build-<tag>.done`); then
-`pwsh -NoProfile -File scripts/vps/deploy.ps1 -Tag <tag>`; then `AcPay54VpsChecks` (the helper `artifacts/plan54/run-vps.ps1`,
-filter `AC_PAY_54_vps`), the PLAN-36..53 server checks and `scripts/vps/smoke.ps1 -RequireIntegrationWiring`; the rollback note
-and the change table in `docs/OPS_VPS_SINGLE_HOST.md`; then P9.
+P9: the local gates on HEAD (the Testcontainers step ran on the final product code in P6; `scripts/ci/run-steps.sh --all` in a
+fresh clone with the not-run steps named; `scripts/plan035-prepush.ps1`), then `release/plan-54` (`--no-ff` from `origin/main`),
+push, the pull request with `reports/plan54-pr.md`, the wait for the checks, the merge, the merge note on
+`docs/plan-54-merge-note`, and the keep-awake stopped by its PID (`artifacts/plan54/keepawake.pid`).

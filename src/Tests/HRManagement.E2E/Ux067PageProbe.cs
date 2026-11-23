@@ -257,6 +257,53 @@ public static class Ux067PageProbe
         return results;
     }
 
+    /// <summary>
+    /// Whether a step failed because the network of the machine that runs the browser changed under it, which says nothing of the
+    /// site: Chromium aborts every request when a local interface changes (<c>ERR_NETWORK_CHANGED</c>; a container restarting on
+    /// that machine does it), a navigation then runs into its timeout, and a sign-in does not come back.
+    /// </summary>
+    public static bool IsClientNetworkCut(Exception ex) =>
+        ex is TimeoutException
+        || (ex is PlaywrightException && (ex.Message.Contains("ERR_", StringComparison.Ordinal) || ex.Message.Contains("Timeout", StringComparison.Ordinal)))
+        || (ex is InvalidOperationException && ex.Message.Contains("did not return to the gateway", StringComparison.Ordinal));
+
+    /// <summary>
+    /// <see cref="ProbeAsync"/> one page at a time, for a site reached over a remote link: a page whose load the client's own
+    /// network cut is probed again (up to <paramref name="attemptsPerPage"/> times, with pauses of different lengths, so a
+    /// disturbance on a fixed period does not cut every attempt at the same point). What a page must show is unchanged; the
+    /// repeats are returned for the evidence.
+    /// </summary>
+    public static async Task<(IReadOnlyList<Ux067PageResult> Results, IReadOnlyList<string> Repeats)> ProbeEachAsync(
+        IBrowser browser,
+        string baseUrl,
+        string? signedInStatePath,
+        IEnumerable<Ux067KeyPage> pages,
+        IReadOnlyList<(int Width, int Height)> sizes,
+        string screenshotDir,
+        int attemptsPerPage = 10)
+    {
+        var results = new List<Ux067PageResult>();
+        var repeats = new List<string>();
+        foreach (var page in pages)
+        {
+            for (var attempt = 1; ; attempt++)
+            {
+                try
+                {
+                    results.AddRange(await ProbeAsync(browser, baseUrl, signedInStatePath, [page], sizes, screenshotDir));
+                    break;
+                }
+                catch (Exception ex) when (attempt < attemptsPerPage && IsClientNetworkCut(ex))
+                {
+                    repeats.Add($"{page.Name}: {ex.Message.Split('\n')[0]}");
+                    await Task.Delay(TimeSpan.FromSeconds(3 + ((attempt * 7) % 23)));
+                }
+            }
+        }
+
+        return (results, repeats);
+    }
+
     /// <summary>Signs in once through Keycloak in a context and saves its storage state for the probe's contexts.</summary>
     public static async Task<string> SignInAndSaveStateAsync(IBrowser browser, string baseUrl, string username, string password, string statePath)
     {

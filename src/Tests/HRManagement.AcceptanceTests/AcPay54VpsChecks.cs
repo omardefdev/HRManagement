@@ -301,7 +301,7 @@ public partial class AcOps36VpsBootTests
     public async Task AC_PAY_54_vps_a_manual_allowance_waits_its_author_cannot_approve_it_and_the_approver_rejects_it()
     {
         var recorder = StartPay54("manual-input",
-            "Demo server: the processor enters an allowance for a demo employee (pending, of origin Manual); his own approval answers 403; the approver rejects it with a note; nothing is left pending and no other input changes");
+            "Demo server: the processor enters an allowance for a demo employee, dated inside a posted month (pending, of origin Manual); his own approval answers 403; the approver rejects it with a note; nothing is left pending and no other input changes");
         var password = DemoPassword();
         var (processor, _) = await SignInAsync(Pay54Processor, password, "/ui/payroll/");
         var (approver, _) = await SignInAsync(Pay54Approver, password, "/ui/payroll/");
@@ -311,8 +311,11 @@ public partial class AcOps36VpsBootTests
             var employee = Sql("payroll_db", "select \"EmployeeId\" from \"EmployeePayProfiles\" where \"IsActive\" order by \"EmployeeId\" limit 1").Single();
             var type = Sql("payroll_db", "select \"Id\" from \"CompensationTypes\" order by \"Code\" limit 1").SingleOrDefault();
             AcceptanceGate.RequireData(recorder, type is not null, "لا يوجد نوع بدل على خادم العرض", "The demo has no allowance type.");
-            var today = HRManagement.ServiceDefaults.Localization.HrLocalTime.ToLocal(DateTime.UtcNow, HRManagement.ServiceDefaults.Localization.HrLocalTime.DefaultZone);
-            var next = new DateOnly(today.Year, today.Month, 1).AddMonths(1);
+            // The allowance is dated inside the demo's last posted month: a posted month is never calculated again, so the row can
+            // enter no run under any release, also one that knows no approval (a rollback to the release before PLAN-54).
+            var posted = Sql("payroll_db",
+                "select coalesce(to_char(max(\"PeriodStart\"), 'YYYY-MM-DD') || '|' || to_char(max(\"PeriodEnd\"), 'YYYY-MM-DD'), '') from \"PayrollRuns\" where \"Status\" = 2").Single().Split('|');
+            AcceptanceGate.RequireData(recorder, posted.Length == 2, "لا يوجد تشغيل رواتب مرحّل على خادم العرض", "The demo has no posted payroll run to date the check's allowance in.");
             var inputsBefore = Pay54Inputs();
             var pendingBefore = Sql("payroll_db", "select count(*) from \"AllowanceRecords\" where \"ApprovalStatus\" = 'PendingApproval'").Single();
             var mineBefore = Sql("payroll_db", $"select count(*) from \"AllowanceRecords\" where \"EmployeeId\" = '{employee}' and \"Origin\" = 'Manual' and \"Amount\" = {Pay54AllowanceAmount}").Single();
@@ -322,8 +325,8 @@ public partial class AcOps36VpsBootTests
                 ["EmployeeId"] = employee,
                 ["AllowanceTypeId"] = type!,
                 ["Amount"] = Pay54AllowanceAmount,
-                ["EffectiveFrom"] = next.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
-                ["EffectiveTo"] = next.AddMonths(1).AddDays(-1).ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+                ["EffectiveFrom"] = posted[0],
+                ["EffectiveTo"] = posted[1],
                 ["Reason"] = Pay54AllowanceReason,
                 // Not the form's: a person's input is pending and of origin Manual whatever the request says.
                 ["ApprovalStatus"] = "Approved",
@@ -359,6 +362,7 @@ public partial class AcOps36VpsBootTests
                 {
                     employee,
                     allowance,
+                    datedInsideThePostedMonth = $"{posted[0]} to {posted[1]}",
                     entered,
                     pending,
                     rowFormat = "approval status|origin|has an author|decided by another person|decision note",
@@ -423,38 +427,63 @@ public partial class AcOps36VpsBootTests
 
         var password = DemoPassword();
         var output = Path.Combine(AcceptanceHarness.RepoRoot, "artifacts", "plan54", "vps", "screens");
-        IReadOnlyList<Ux067PageResult>? results = null;
-        var attempts = 0;
+        // A page load, or the sign-in, fails when a network interface of the machine that runs the check changes under Chromium
+        // (a local container restarting does it: ERR_NETWORK_CHANGED, a navigation that never ends, a sign-in that does not come
+        // back). That says nothing of the server. So the session is opened once and each page is probed on its own, and a step
+        // the machine's network cut is done again; what each page must show is unchanged.
         var networkChanges = new List<string>();
-        // A page load fails with ERR_NETWORK_CHANGED when a network interface of the machine that runs the check changes
-        // under Chromium (a local container restarting does it). That says nothing of the server: the probe is run again.
-        while (results is null && attempts < 5)
+        var attempts = 0;
+        async Task<T> OnThisMachinesNetworkAsync<T>(string step, Func<Task<T>> work)
         {
-            attempts++;
-            var playwright = await Playwright.CreateAsync();
-            var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
-            var state = Path.Combine(Path.GetTempPath(), $"pay54-state-{Guid.NewGuid():N}.json");
-            try
+            for (var attempt = 1; ; attempt++)
             {
-                await Ux067PageProbe.SignInAndSaveStateAsync(browser, $"https://{AppDomain}", Pay54Processor, password, state);
-                results = await Ux067PageProbe.ProbeAsync(browser, $"https://{AppDomain}", state, pages, [(1366, 768), (390, 844)], Path.Combine(output, "screenshots"));
-            }
-            catch (PlaywrightException ex) when (ex.Message.Contains("ERR_NETWORK_CHANGED", StringComparison.Ordinal))
-            {
-                networkChanges.Add(ex.Message.Split('\n')[0]);
-            }
-            finally
-            {
-                await browser.DisposeAsync();
-                playwright.Dispose();
-                if (File.Exists(state)) File.Delete(state);
+                attempts++;
+                try
+                {
+                    return await work();
+                }
+                catch (Exception ex) when (attempt < 12 && Ux067PageProbe.IsClientNetworkCut(ex))
+                {
+                    networkChanges.Add($"{step}: {ex.Message.Split('\n')[0]}");
+                    // Not a fixed pause: a container that restarts on a fixed period would cut every attempt at the same point.
+                    await Task.Delay(TimeSpan.FromSeconds(3 + ((attempt * 7) % 23)));
+                }
             }
         }
 
-        Assert.True(results is not null, $"The probe met a network change on this machine {attempts} times: {string.Join(" / ", networkChanges)}");
+        var results = new List<Ux067PageResult>();
+        var playwright = await Playwright.CreateAsync();
+        // Over HTTP/3 a connection whose local path changed stalls until the navigation times out instead of failing at once (the
+        // server's edge logs the response as cut by the client); over TCP it fails fast and the step is done again.
+        var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true, Args = ["--disable-quic"] });
+        var state = Path.Combine(Path.GetTempPath(), $"pay54-state-{Guid.NewGuid():N}.json");
+        try
+        {
+            await OnThisMachinesNetworkAsync("sign-in", async () =>
+            {
+                await Ux067PageProbe.SignInAndSaveStateAsync(browser, $"https://{AppDomain}", Pay54Processor, password, state);
+                return true;
+            });
+            // One page at one size per step: the shorter a step, the less often the machine's network cuts it.
+            foreach (var one in pages)
+            {
+                foreach (var size in new[] { (Width: 1366, Height: 768), (Width: 390, Height: 844) })
+                {
+                    results.AddRange(await OnThisMachinesNetworkAsync($"{one.Name} {size.Width}x{size.Height}", () =>
+                        Ux067PageProbe.ProbeAsync(browser, $"https://{AppDomain}", state, [one], [size], Path.Combine(output, "screenshots"))));
+                }
+            }
+        }
+        finally
+        {
+            await browser.DisposeAsync();
+            playwright.Dispose();
+            if (File.Exists(state)) File.Delete(state);
+        }
+
         Directory.CreateDirectory(output);
-        await File.WriteAllTextAsync(Path.Combine(output, "csp-pages.json"), Ux067PageProbe.ToJson(results!));
-        recorder.WriteScenarioSteps(string.Join("\n", results!.Select(r =>
+        await File.WriteAllTextAsync(Path.Combine(output, "csp-pages.json"), Ux067PageProbe.ToJson(results));
+        recorder.WriteScenarioSteps(string.Join("\n", results.Select(r =>
             $"- {r.Name}: HTTP {r.Status}, {r.CspHeaders} CSP header(s), {r.CspPolicies} policies, {r.Violations.Count} violation(s)" + (r.Note is null ? "" : $" ({r.Note})"))));
 
         // Arabic, right-to-left, people by name, and every value with its reference and status: the version's page as the server sends it.
@@ -464,14 +493,14 @@ public partial class AcOps36VpsBootTests
         using (var page = await processor.GetAsync($"https://{AppDomain}{Pay54Pages}/Details/{version[0]}"))
             details = WebUtility.HtmlDecode(await page.Content.ReadAsStringAsync());
         var visible = Regex.Replace(Regex.Replace(details, "<(script|style)[^>]*>.*?</\\1>", " ", RegexOptions.Singleline | RegexOptions.IgnoreCase), "<[^>]+>", " ");
-        var failures = results!.Where(r => !r.Passes || r.Status != 200)
+        var failures = results.Where(r => !r.Passes || r.Status != 200)
             .Select(r => $"{r.Name}: HTTP {r.Status}, {r.CspPolicies} policies, {r.Violations.Count} violations {string.Join("; ", r.Violations.Select(v => $"{v.Directive} {v.BlockedUri} {v.Source}"))} {r.Note}")
             .ToList();
         recorder.WriteScenarioDbChecks(new
         {
             attempts,
             networkChanges,
-            pages = results!.Select(r => new { r.Name, r.Status, r.CspHeaders, r.CspPolicies, violations = r.Violations.Count, r.Passes }),
+            pages = results.Select(r => new { r.Name, r.Status, r.CspHeaders, r.CspPolicies, violations = r.Violations.Count, r.Passes }),
             rightToLeft = details.Contains("dir=\"rtl\"", StringComparison.Ordinal),
             arabic = details.Contains("lang=\"ar\"", StringComparison.Ordinal),
             editorNamedByTheRegistry = details.Contains($"data-hr-user-id=\"{version[1]}\"", StringComparison.OrdinalIgnoreCase),
@@ -481,7 +510,7 @@ public partial class AcOps36VpsBootTests
             namesAStatutoryDeduction = visible.Contains("تأمينات اجتماعية", StringComparison.Ordinal)
         });
 
-        Assert.Equal(pages.Length, results!.Count);
+        Assert.Equal(pages.Length * 2, results.Count);                                  // every page, at both sizes
         Assert.True(failures.Count == 0, "Screens failing the CSP check:\n" + string.Join("\n", failures));
         Assert.Contains("dir=\"rtl\"", details, StringComparison.Ordinal);
         Assert.Contains("lang=\"ar\"", details, StringComparison.Ordinal);

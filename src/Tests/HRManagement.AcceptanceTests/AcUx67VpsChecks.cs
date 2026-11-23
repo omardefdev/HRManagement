@@ -42,9 +42,24 @@ public partial class AcOps36VpsBootTests
     private static async Task<(IPlaywright Playwright, IBrowser Browser, string State)> Ux67BrowserAsync()
     {
         var playwright = await Playwright.CreateAsync();
-        var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
+        // Without HTTP/3: over QUIC a connection whose local path changed (the machine that runs the check) stalls until the page
+        // load times out; over TCP it fails at once. What the pages must show does not depend on the transport (PLAN-54, P8).
+        var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true, Args = ["--disable-quic"] });
         var state = Path.Combine(Path.GetTempPath(), $"ux67-state-{Guid.NewGuid():N}.json");
-        await Ux067PageProbe.SignInAndSaveStateAsync(browser, $"https://{AppDomain}", "hradmin", DemoPassword(), state);
+        // A sign-in the checking machine's own network cut is done again (Ux067PageProbe.IsClientNetworkCut).
+        for (var attempt = 1; ; attempt++)
+        {
+            try
+            {
+                await Ux067PageProbe.SignInAndSaveStateAsync(browser, $"https://{AppDomain}", "hradmin", DemoPassword(), state);
+                break;
+            }
+            catch (Exception ex) when (attempt < 6 && Ux067PageProbe.IsClientNetworkCut(ex))
+            {
+                await Task.Delay(TimeSpan.FromSeconds(4 * attempt));
+            }
+        }
+
         return (playwright, browser, state);
     }
 
@@ -102,9 +117,12 @@ public partial class AcOps36VpsBootTests
                 }).ToList();
             }
 
-            var results = await Ux067PageProbe.ProbeAsync(
+            // One page at a time, and a page the checking machine's own network cut is probed again (PLAN-54, P8: on the owner's
+            // Linux machine a container restarts every minute and Chromium aborts every request each time).
+            var (results, repeats) = await Ux067PageProbe.ProbeEachAsync(
                 chromium.Browser, $"https://{AppDomain}", chromium.State, pages, [(1366, 768), (390, 844)], Path.Combine(Ux67Out, "screenshots"));
             await File.WriteAllTextAsync(Path.Combine(Ux67Out, "csp-pages.json"), Ux067PageProbe.ToJson(results));
+            await File.WriteAllLinesAsync(Path.Combine(Ux67Out, "csp-pages-repeats.txt"), repeats);
 
             recorder.WriteScenarioSteps(string.Join("\n", results.Select(r =>
                 $"- {r.Name}: HTTP {r.Status}, {r.CspHeaders} CSP header(s), {r.CspPolicies} policies, {r.Violations.Count} violation(s)" +
