@@ -1,30 +1,55 @@
-@model Payroll.Domain.Entities.PayrollConfiguration
+@model Payroll.Web.ViewModels.PayrollFrameworkEditViewModel
 @{
     ViewData["Title"] = "تعديل الإطار القانوني";
 }
-<form asp-action="Edit" method="post">
+<form asp-action="Edit" asp-route-id="@Model.Id" method="post">
     @Html.AntiForgeryToken()
-    <input type="hidden" asp-for="Id" />
     <div class="card">
         <div class="card-header"><h3 class="card-title">@Model.NameAr</h3></div>
         <div class="card-body">
-            <div class="mb-3"><label asp-for="NameAr" class="form-label"></label><input asp-for="NameAr" class="form-control" /></div>
-            <div class="mb-3"><label asp-for="NonWorkingDays" class="form-label"></label><input asp-for="NonWorkingDays" class="form-control" /></div>
-            <div class="mb-3"><label asp-for="EosGratuityRateFirstPeriod" class="form-label"></label><input asp-for="EosGratuityRateFirstPeriod" class="form-control" /></div>
-            <div class="mb-3"><label asp-for="EosGratuityFirstYearsThreshold" class="form-label"></label><input asp-for="EosGratuityFirstYearsThreshold" class="form-control" /></div>
-            <div class="mb-3"><label asp-for="EosGratuityRateAfterThreshold" class="form-label"></label><input asp-for="EosGratuityRateAfterThreshold" class="form-control" /></div>
-            <div class="mb-3"><label asp-for="TaxableBaseMode" class="form-label"></label><input asp-for="TaxableBaseMode" class="form-control" /></div>
-            <div class="mb-3"><label asp-for="TaxExemptionAmount" class="form-label"></label><input asp-for="TaxExemptionAmount" class="form-control" /></div>
-            <div class="mb-3"><label asp-for="LeavePayoutDailyDivisor" class="form-label"></label><input asp-for="LeavePayoutDailyDivisor" class="form-control" /></div>
-            <div class="mb-3"><label asp-for="DailyRateDivisor" class="form-label"></label><input asp-for="DailyRateDivisor" class="form-control" /></div>
-            <div class="mb-3"><label asp-for="CurrencyCode" class="form-label"></label><input asp-for="CurrencyCode" class="form-control" maxlength="3" /></div>
-            <div class="mb-3"><label asp-for="DecimalPlaces" class="form-label"></label><input asp-for="DecimalPlaces" class="form-control" /></div>
-            <div class="mb-3">
-                <label asp-for="RoundingMode" class="form-label"></label>
-                <select asp-for="RoundingMode" class="form-select" asp-items="Html.GetEnumSelectList<Payroll.Domain.Enums.PayrollRoundingMode>()"></select>
+            <partial name="_FormErrors" />
+            @if (Model.IsImmutable)
+            {
+                <div class="alert alert-info" role="alert">
+                    النسخة المعتمدة أو المنشورة لا تُعدَّل: الحفظ ينشئ منها مسودة جديدة تحمل كل جداولها، بتاريخ السريان الذي تحدده هنا.
+                </div>
+            }
+            <p class="text-muted">تُعدَّل هنا الحقول العددية وتاريخ السريان. الشرائح والخصومات النظامية والعطل وقواعد الأولوية تُعدَّل بتصدير الحزمة واستيرادها.</p>
+            <div class="row">
+                <div class="col-md-8 mb-3"><label asp-for="NameAr" class="form-label"></label><input asp-for="NameAr" class="form-control" maxlength="200" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="EffectiveFrom" class="form-label"></label><input asp-for="EffectiveFrom" class="form-control" type="date" value="@Html.HrDateInputValue(Model.EffectiveFrom)" required /></div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="ProrationDaysBasis" class="form-label"></label>
+                    <select asp-for="ProrationDaysBasis" class="form-select" asp-items="Html.GetEnumSelectList<ProrationDaysBasis>()"></select>
+                </div>
+                <div class="col-md-4 mb-3"><label asp-for="DailyRateDivisor" class="form-label"></label><input asp-for="DailyRateDivisor" class="form-control" type="number" min="1" max="31" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="LeavePayoutDailyDivisor" class="form-label"></label><input asp-for="LeavePayoutDailyDivisor" class="form-control" type="number" min="1" max="31" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="NonWorkingDays" class="form-label"></label><input asp-for="NonWorkingDays" class="form-control" dir="ltr" maxlength="100" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="MaxRetroCorrectionMonths" class="form-label"></label><input asp-for="MaxRetroCorrectionMonths" class="form-control" type="number" min="0" max="120" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="MissionAllowanceAmount" class="form-label"></label><input asp-for="MissionAllowanceAmount" class="form-control" type="number" step="0.01" min="0" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="SecondmentAllowancePercent" class="form-label"></label><input asp-for="SecondmentAllowancePercent" class="form-control" type="number" step="0.01" min="0" max="100" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="TrainingPremiumAmount" class="form-label"></label><input asp-for="TrainingPremiumAmount" class="form-control" type="number" step="0.01" min="0" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="MedicalCompensationDefaultAmount" class="form-label"></label><input asp-for="MedicalCompensationDefaultAmount" class="form-control" type="number" step="0.01" min="0" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="EosGratuityRateFirstPeriod" class="form-label"></label><input asp-for="EosGratuityRateFirstPeriod" class="form-control" type="number" step="0.01" min="0" max="12" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="EosGratuityFirstYearsThreshold" class="form-label"></label><input asp-for="EosGratuityFirstYearsThreshold" class="form-control" type="number" min="0" max="60" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="EosGratuityRateAfterThreshold" class="form-label"></label><input asp-for="EosGratuityRateAfterThreshold" class="form-control" type="number" step="0.01" min="0" max="12" /></div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="TaxableBaseMode" class="form-label"></label>
+                    <select asp-for="TaxableBaseMode" class="form-select">
+                        <option value="GrossPay">@Html.HrStoredEnumDisplay("TaxableBaseMode", "GrossPay")</option>
+                        <option value="NetOfStatutory">@Html.HrStoredEnumDisplay("TaxableBaseMode", "NetOfStatutory")</option>
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3"><label asp-for="TaxExemptionAmount" class="form-label"></label><input asp-for="TaxExemptionAmount" class="form-control" type="number" step="0.01" min="0" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="CurrencyCode" class="form-label"></label><input asp-for="CurrencyCode" class="form-control" maxlength="3" dir="ltr" /></div>
+                <div class="col-md-4 mb-3"><label asp-for="DecimalPlaces" class="form-label"></label><input asp-for="DecimalPlaces" class="form-control" type="number" min="0" max="6" /></div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="RoundingMode" class="form-label"></label>
+                    <select asp-for="RoundingMode" class="form-select" asp-items="Html.GetEnumSelectList<PayrollRoundingMode>()"></select>
+                </div>
+                <div class="col-md-6 mb-3 form-check"><input asp-for="UseDbHolidaysOnly" class="form-check-input" /><label asp-for="UseDbHolidaysOnly" class="form-check-label"></label></div>
+                <div class="col-md-6 mb-3 form-check"><input asp-for="EnableTrainingPremiums" class="form-check-input" /><label asp-for="EnableTrainingPremiums" class="form-check-label"></label></div>
             </div>
-            <div class="mb-3"><label asp-for="MaxRetroCorrectionMonths" class="form-label"></label><input asp-for="MaxRetroCorrectionMonths" class="form-control" /></div>
-            <div class="form-check"><input asp-for="UseDbHolidaysOnly" class="form-check-input" /><label asp-for="UseDbHolidaysOnly" class="form-check-label"></label></div>
         </div>
         <div class="card-footer">
             <button type="submit" class="btn btn-primary">حفظ</button>

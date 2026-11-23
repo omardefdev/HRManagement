@@ -67,6 +67,40 @@ public sealed class PayrollWriteActionsTests
         ["PayrollReferenceChanges.Cancel"] = HrManagementPolicies.PayrollChangeCancel,
     };
 
+    /// <summary>
+    /// The write actions PLAN-54 adds or renames a policy on (P-4): creating, importing and editing a framework draft and setting its
+    /// date with Payroll.MasterData, on the screens and the API alike; the cycle's acts with Payroll.Approve.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> Pay054 = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["PayrollConfigurations.Create"] = HrManagementPolicies.PayrollMasterData,
+        ["PayrollConfigurations.Import"] = HrManagementPolicies.PayrollMasterData,
+        ["PayrollConfigurations.Edit"] = HrManagementPolicies.PayrollMasterData,
+        ["PayrollConfigurations.Approve"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollConfigurations.LegalAttest"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollConfigurations.Publish"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollConfigurations.Activate"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollFrameworksApi.Create"] = HrManagementPolicies.PayrollMasterData,
+        ["PayrollFrameworksApi.Import"] = HrManagementPolicies.PayrollMasterData,
+        ["PayrollFrameworksApi.SetEffectiveFrom"] = HrManagementPolicies.PayrollMasterData,
+    };
+
+    /// <summary>The controllers PLAN-54 adds or completes: every write of theirs has a row in <see cref="Pay054"/>.</summary>
+    private static readonly string[] Pay054Controllers = ["PayrollConfigurations", "PayrollFrameworksApi"];
+
+    /// <summary>
+    /// Reads of the framework that are not open to the module role alone: the forms of a write (a person who cannot submit one does not
+    /// open it) and the export of a version as a pack.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> Pay054GuardedReads = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["PayrollConfigurations.Create"] = HrManagementPolicies.PayrollMasterData,
+        ["PayrollConfigurations.Import"] = HrManagementPolicies.PayrollMasterData,
+        ["PayrollConfigurations.Edit"] = HrManagementPolicies.PayrollMasterData,
+        ["PayrollConfigurations.Export"] = HrManagementPolicies.PayrollMasterData,
+        ["PayrollFrameworksApi.Export"] = HrManagementPolicies.PayrollMasterData,
+    };
+
     private static IEnumerable<ActionInfo> Writes => ActionCatalog.Of(Service).Where(a => a.IsWrite && !a.Anonymous);
 
     private static ClaimsPrincipal User(params string[] roles) => new(new ClaimsIdentity(
@@ -191,6 +225,69 @@ public sealed class PayrollWriteActionsTests
         var unlisted = Writes.Where(a => controllers.Contains(a.ControllerName)).Select(a => a.Key)
             .Where(k => !Added.ContainsKey(k)).Distinct(StringComparer.Ordinal).ToList();
         Assert.True(unlisted.Count == 0, "Write actions of the request controllers with no row in PayrollWriteActionsTests.Added: " + string.Join(", ", unlisted));
+    }
+
+    // --- PLAN-54: the framework's actions ---
+
+    public static TheoryData<string, string> Pay054Rows()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var (key, policy) in Pay054)
+            data.Add(key, policy);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(Pay054Rows))]
+    public void Each_action_plan_54_adds_names_its_policy_on_the_action(string key, string policy)
+    {
+        var actions = Writes.Where(a => a.Key == key).ToList();
+        Assert.True(actions.Count > 0, $"{key} is not a write action of Payroll.Web");
+        Assert.All(actions, a => Assert.Equal([policy], a.ActionPolicies));
+    }
+
+    [Fact]
+    public void Every_write_of_the_controllers_plan_54_adds_or_completes_is_in_its_table()
+    {
+        var unlisted = Writes.Where(a => Pay054Controllers.Contains(a.ControllerName)).Select(a => a.Key)
+            .Where(k => !Pay054.ContainsKey(k)).Distinct(StringComparer.Ordinal).ToList();
+        Assert.True(unlisted.Count == 0, "Write actions with no row in PayrollWriteActionsTests.Pay054: " + string.Join(", ", unlisted));
+    }
+
+    [Fact]
+    public void The_forms_of_a_framework_write_and_the_export_need_the_writes_policy_and_the_other_reads_are_open_to_the_module()
+    {
+        var reads = ActionCatalog.Of(Service).Where(a => Pay054Controllers.Contains(a.ControllerName) && !a.IsWrite).ToList();
+        Assert.NotEmpty(reads);
+        foreach (var read in reads)
+        {
+            var expected = Pay054GuardedReads.TryGetValue(read.Key, out var policy)
+                ? new[] { HrManagementPolicies.ModulePayroll, policy }
+                : [HrManagementPolicies.ModulePayroll];
+            Assert.True(
+                expected.Order(StringComparer.Ordinal).SequenceEqual(read.AllPolicies.Distinct().Order(StringComparer.Ordinal)),
+                $"{read.Key} ({string.Join("/", read.Verbs)}): policies {string.Join(", ", read.AllPolicies.Distinct())}");
+        }
+
+        Assert.All(Pay054GuardedReads.Keys, key => Assert.Contains(reads, r => r.Key == key));
+    }
+
+    [Fact]
+    public async Task A_processor_creates_imports_and_edits_a_framework_and_an_approver_runs_its_cycle_and_neither_does_the_others_part()
+    {
+        var framework = Writes.Where(a => Pay054Controllers.Contains(a.ControllerName)).ToList();
+        var processor = User(HrManagementRoles.Payroll, HrManagementRoles.PayrollProcessor);
+        var approver = User(HrManagementRoles.Payroll, HrManagementRoles.PayrollApprover);
+
+        Assert.Equal(
+            Pay054.Where(p => p.Value == HrManagementPolicies.PayrollMasterData).Select(p => p.Key).Order(StringComparer.Ordinal),
+            await ReachedAsync(processor, framework));
+        Assert.Equal(
+            Pay054.Where(p => p.Value != HrManagementPolicies.PayrollMasterData).Select(p => p.Key).Order(StringComparer.Ordinal),
+            await ReachedAsync(approver, framework));
+        Assert.Empty(await ReachedAsync(User(HrManagementRoles.Payroll), framework));
+        Assert.Empty(await ReachedAsync(User(HrManagementRoles.Payroll, HrManagementRoles.PayrollPoster), framework));
+        Assert.Empty(await ReachedAsync(User(HrManagementRoles.Payroll, HrManagementRoles.PayrollReverser), framework));
     }
 
     [Fact]

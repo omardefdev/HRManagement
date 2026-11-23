@@ -10,8 +10,8 @@ Session: one, in the main folder `/home/omar/HRManagement` (Linux notebook), bra
 |-------|--------|----------------|
 | P0 baseline | done | 2026-11-23T07:36:53Z |
 | P1 data and fingerprint | done | 2026-11-23T08:50:07Z |
-| P2 create, import, governing version | next | |
-| P3 engine reads the version | | |
+| P2 create, import, governing version | done | 2026-11-23T09:39:43Z |
+| P3 engine reads the version | next | |
 | P4 governance | | |
 | P5 manual inputs | | |
 | P6 acceptance and review | | |
@@ -62,6 +62,42 @@ Session: one, in the main folder `/home/omar/HRManagement` (Linux notebook), bra
   `Enums/{PayrollLegalValueStatus,ManualInputApproval}.cs`, edits to nine entities, the hash service, the versioning service,
   `PayrollDbContext`, the migration, and the tests `Pay054HashV2Tests`, `Pay054CloneCarriesEverythingTests`, `Pay054MigrationPostgreSqlTests`.
 
+## P2 — create, import, and the version that governs a period
+
+- Finished (UTC): 2026-11-23T09:39:43Z.
+- **The pack:** `docs/syr/payroll-framework-packs/schema.v1.json` (the documented contract) and `law50-interim.json` (generated from
+  the seeds' values, then checked against them by a test). The importer validates in code
+  (`PayrollFrameworkPackValidator`); a test keeps the schema's required fields, enumerations and row properties in line with it.
+- **Application** (`Payroll.Application/Features/PayrollConfigurations/`): `PayrollFrameworkPack` (model and reader: 512 KB, depth 16,
+  unknown properties refused), `PayrollFrameworkPackValidator`, `PayrollFrameworkPackMapper`, and the commands import, create,
+  set-effective-from and export (`PayrollFrameworkCommands.cs`). The import is one transaction; the actor is recorded as an editor.
+- **Domain:** `ResolveGoverning` (Published and Superseded, an active code first, the latest date, the highest number, then the code
+  and the id), `TryPublish` (Approved only, the version's own date, never on or before the published one's date, D-PAY-13),
+  `TryActivate` (Published only), `PayrollFrameworkTemplate`, `PayrollFrameworkMessages`.
+- **Repository:** `GetActiveConfigurationAsync` and `GetConfigurationByRegimeCodeAsync` are the resolver for today (Damascus,
+  `IPayrollCalendar`); `GetConfigurationByIdAsync` loads every table; `GetFrameworkForUpdateAsync`.
+- **Web:** `PayrollFrameworksApiController` (`api/payroll/frameworks`: antiforgery, list, get, create, import, export,
+  effective-from; every POST and PUT with `[ValidateAntiForgeryToken]`), `PayrollConfigurationsController` (create, import, export,
+  edit on a view model, activate; `[OrgScopeNotApplicable]`), the views `Create`, `Import`, `Details` (the four tables and the field
+  sources with reference, status and exception), `Edit` (with the date), the dashboard's «لا يوجد إطار منشور», and the calculation's
+  refusal naming the import page.
+- **Operations:** `scripts/pay054-import-legal-pack.ps1` (ASCII, parses under pwsh 7); `scripts/deploy-organization.ps1` prints it.
+- **Lists that shrank:** `tests/architecture/org-scope-allowlist/payroll.txt` lost `PayrollConfigurations` (it declares its stance);
+  `tests/architecture/entity-binding-allowlist/payroll.txt` lost `PayrollConfigurations.Edit` (it binds a view model now).
+- **Tests:** full unit suite 6713/6713 (9 min 19 s); architecture 371/371; payroll integration (not Testcontainers) 29/29;
+  `Pay054FrameworkHttpTests` 2/2 on PostgreSQL through Payroll.Web; build `-warnaserror` 0/0; format clean.
+  New: `Pay054FrameworkPackImporterTests` (50 planted defects, each refused with the field named, no echo, no row; 8 unreadable
+  files; decisions; replace; export round trip; create; the date; schema in line; pack equals seed), `Pay054VersioningTests` (21),
+  `Pay054FrameworkWritersTests`, `Pay054FrameworkEditFormTests`, and the framework rows of `PayrollWriteActionsTests`.
+- **Found while testing:**
+  - a re-import by the same person in the same instant marked his existing editor row as new (a duplicate key); the importer now
+    marks only the rows it added;
+  - **the edit form could not bind a fraction** under the service's Arabic culture (`0.5` for the end-of-service rate: PLAN-53's
+    known decimal defect) and bound the entity; it is a view model now with the invariant decimal binder, so the form works and its
+    `IAM-F` row left the list;
+  - the shared in-process test host starts in Development and so seeds the Demo frameworks; it takes optional settings now, and these
+    tests run with `Seed:Profile=None`.
+
 ## Decisions (with reasons)
 
 Recorded as they are taken; see each phase.
@@ -84,6 +120,24 @@ Recorded as they are taken; see each phase.
 - **D8 (`PayrollRunJob.Log`):** «سجل المهمة» had no field; the job gains a short text log (the legacy path, the interim indicator, an
   expired exception). A refusal before a job exists is recorded on a job row of status `Failed`, which is not an active job.
 
+- **D9 (which version governs a period, P-6):** as the prompt says, with two additions: the code's name and the id settle a tie
+  (so the answer never depends on row order), and `GetConfigurationByRegimeCodeAsync` — a third resolver the plan does not list —
+  is the same resolver for today, filtered by regime or code.
+- **D10 (the last bracket has no ceiling):** «ascending with no gap» includes the gap above the last limit: the last bracket's
+  upper limit must be the open-ended amount `9999999999999999.99` (the seeds' own value), or income above it would be untaxed.
+- **D11 (a code keeps one regime):** an import or a create under a code that another regime already uses is refused.
+- **D12 (the interim pack's insurance rules):** today's export finds the employee's insurance share by name («تأمين»): `DED-SOC`
+  and `DED-HEALTH`. So the pack marks both `insuranceBody: GOSI` and gives `DED-SOC` the employer's 14%; a v2 run of the pack
+  exports what a v1 run exports. Which body each deduction really belongs to (pension to GOIP) is D-PAY-1 / PAY-E.
+- **D13 (errors never echo the file):** a pack error carries a JSON path cut at the first name the contract does not know, and an
+  Arabic message that says what is required. The API's import reads its body itself, not through the model binder, for the same
+  reason.
+- **D14 (the exception number on the page):** the interface guard reads a printed `…Id` as a technical id. A value's interim
+  exception number is a legal citation the reader looks up (like a decree number), so the details page prints it through the view
+  model's `ExceptionCitation`; no row was added to the guard's lists.
+- **D15 (the API's surface):** the plan lists four endpoints; `GET` list and `GET {id}` are added as reads, and the cycle's acts get
+  API endpoints in P4 (the acceptance class and the server check run the cycle as three users).
+
 ## Server changes and their undo commands
 
 None yet.
@@ -94,6 +148,6 @@ None.
 
 ## Exact next step
 
-P2: the schema and the pack (`docs/syr/payroll-framework-packs/`), the pack reader/validator/importer and the create command
-(`Payroll.Application/Features/PayrollConfigurations/`), the identity proof, the API with its antiforgery endpoint, the screens,
-`TryPublish`/resolver/`GetActiveConfigurationAsync`/`Activate`, first-run diagnostics, the operator's script.
+P3: the engine's v2 paths (statutory deductions from the version with base kind and ceiling, holidays, priority rules, the export's
+insurance shares), the v1 legacy path with its job log line, no `DefaultBrackets` on a v2 path, `IsStatutory` read-only on the
+deduction types screens; tests: the identity proof (seeded v1 against imported v2), a v2 run reads only its rows.

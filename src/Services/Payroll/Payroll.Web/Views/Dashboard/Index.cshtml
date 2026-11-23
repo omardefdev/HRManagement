@@ -1,4 +1,12 @@
 @{ ViewData["Title"] = "لوحة تحكم الرواتب"; }
+@if (ViewBag.NoPublishedFramework == true)
+{
+    <div class="alert alert-danger" role="alert" data-testid="no-published-framework">
+        <strong>@Payroll.Domain.Services.PayrollFrameworkMessages.NoPublishedFramework.</strong>
+        لا يُحسب أي تشغيل رواتب قبل نشر إطار قانوني: استورد حزمة قانونية، ثم يعتمدها شخص ثانٍ ويصادق عليها قانونياً شخص ثالث وتُنشر.
+        <a asp-controller="PayrollConfigurations" asp-action="Import" class="alert-link">استيراد حزمة قانونية</a>
+    </div>
+}
 <div class="row">
     <div class="col-lg-3 col-6">
         <div class="small-box bg-info">

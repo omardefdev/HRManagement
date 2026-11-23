@@ -66,7 +66,8 @@ public sealed class Iam052PgServiceHost<TEntry, TContext> : IIam052ScopeHost, IA
         string centralRoles,
         string tokenPage,
         Func<TContext, Guid, Task<Dictionary<Type, Guid>>> seed,
-        Action<IServiceCollection>? testServices = null)
+        Action<IServiceCollection>? testServices = null,
+        IReadOnlyDictionary<string, string?>? settings = null)
     {
         var host = new Iam052PgServiceHost<TEntry, TContext>(registry, tokenPage) { _restrictedRoles = restrictedRoles, _centralRoles = centralRoles };
         var cs = await postgres.CreateDatabaseAsync(TestDatabaseNames.Unique($"iam052_{typeof(TContext).Name.ToLowerInvariant()}_", 50));
@@ -103,6 +104,9 @@ public sealed class Iam052PgServiceHost<TEntry, TContext> : IIam052ScopeHost, IA
             builder.UseSetting("Integration:HrCoreBaseUrl", "http://localhost:5101");
             builder.UseSetting("Keycloak:Authority", "http://localhost:8080/realms/hrmanagement");
             builder.UseSetting("HrAuth:BehindGateway", "true");
+            // PLAN-54: a test's own settings (for example Seed:Profile=None, a service with no seed, as production runs).
+            foreach (var (key, value) in settings ?? new Dictionary<string, string?>())
+                builder.UseSetting(key, value);
             builder.ConfigureAppConfiguration((_, config) => config.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["Database:RunMigrationsAtStartup"] = "false",
@@ -111,7 +115,7 @@ public sealed class Iam052PgServiceHost<TEntry, TContext> : IIam052ScopeHost, IA
                 ["Keycloak:Authority"] = "http://localhost:8080/realms/hrmanagement",
                 ["HrGateway:InternalBaseUrl"] = "http://localhost:5200",
                 ["Integration:HrCoreBaseUrl"] = "http://localhost:5101",
-            }));
+            }.Concat(settings ?? new Dictionary<string, string?>()).ToDictionary(kv => kv.Key, kv => kv.Value)));
             builder.ConfigureTestServices(services =>
             {
                 services.RemoveAll<IHostedService>();

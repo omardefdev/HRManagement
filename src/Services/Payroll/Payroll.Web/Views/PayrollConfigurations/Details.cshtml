@@ -1,66 +1,236 @@
-@model Payroll.Domain.Entities.PayrollConfiguration
+@model Payroll.Web.ViewModels.PayrollFrameworkDetailsViewModel
 @{
     ViewData["Title"] = "تفاصيل الإطار القانوني";
-    var holidays = ViewBag.Holidays as IEnumerable<Payroll.Domain.Entities.OfficialHoliday> ?? [];
+    var v = Model.Version;
+    var isDraft = v.PublicationStatus == PayrollConfigPublicationStatus.Draft;
+    var isApproved = v.PublicationStatus == PayrollConfigPublicationStatus.Approved;
+    var sources = v.FieldSources.ToDictionary(f => f.FieldName, StringComparer.Ordinal);
+    var fields = PayrollConfigurationFieldSource.GovernedFields;
+    var hasInterim = !v.IsLegacyFramework && v.LegalValues().Any(x => x.LegalStatus == PayrollLegalValueStatus.Interim);
 }
 <div class="card">
     <div class="card-header d-flex justify-content-between flex-wrap gap-2">
-        <h3 class="card-title mb-0">@Model.NameAr (@Model.RegimeCode) — v@Model.VersionNumber</h3>
-        <div>
-            @if (Model.PublicationStatus == Payroll.Domain.Enums.PayrollConfigPublicationStatus.Draft)
+        <h3 class="card-title mb-0">@v.NameAr — الإصدار @v.VersionNumber</h3>
+        <div class="d-flex flex-wrap gap-1">
+            @if (isDraft)
             {
-                <form asp-action="Approve" asp-route-id="@Model.Id" method="post" class="d-inline">
+                <form asp-action="Approve" asp-route-id="@v.Id" method="post" class="d-inline">
                     @Html.AntiForgeryToken()
                     <button type="submit" class="btn btn-sm btn-warning">اعتماد</button>
                 </form>
             }
-            @if (Model.PublicationStatus is Payroll.Domain.Enums.PayrollConfigPublicationStatus.Draft
-                or Payroll.Domain.Enums.PayrollConfigPublicationStatus.Approved)
+            @if (isApproved)
             {
-                <form asp-action="LegalAttest" asp-route-id="@Model.Id" method="post" class="d-inline">
+                <form asp-action="LegalAttest" asp-route-id="@v.Id" method="post" class="d-inline">
                     @Html.AntiForgeryToken()
                     <button type="submit" class="btn btn-sm btn-outline-warning">تصديق قانوني</button>
                 </form>
-                <form asp-action="Publish" asp-route-id="@Model.Id" method="post" class="d-inline">
+                <form asp-action="Publish" asp-route-id="@v.Id" method="post" class="d-inline"
+                      data-hr-confirm="نشر هذه النسخة من الإطار القانوني؟ تحكم الرواتب من تاريخ سريانها."
+                      data-hr-confirm-title="تأكيد النشر"
+                      data-hr-confirm-label="نشر">
                     @Html.AntiForgeryToken()
-                    <input type="hidden" name="impactSummary" value="نشر إطار @Model.Code v@Model.VersionNumber" />
                     <button type="submit" class="btn btn-sm btn-success">نشر</button>
                 </form>
+            }
+            <a asp-action="Export" asp-route-id="@v.Id" class="btn btn-sm btn-outline-secondary"><i class="fas fa-download"></i> تصدير الحزمة</a>
+            @if (isDraft)
+            {
+                <a asp-action="Import" asp-route-targetDraftId="@v.Id" class="btn btn-sm btn-outline-primary"><i class="fas fa-upload"></i> استيراد إلى هذه المسودة</a>
             }
         </div>
     </div>
     <div class="card-body">
+        @if (!string.IsNullOrEmpty(Model.Refusal))
+        {
+            <div class="alert alert-danger" role="alert" data-testid="framework-refusal">@Model.Refusal</div>
+        }
+        @if (v.IsLegacyFramework)
+        {
+            <div class="alert alert-secondary" role="alert">
+                نسخة أقدم من حزم الإطار القانوني: خصوماتها النظامية وقواعد أولوية الصرف تُقرأ من الجداول العامة، ولا مرجع قانوني مسجّل لقيمها.
+                لتصنيف قيمها أنشئ منها إصداراً جديداً، ثم صدّر حزمته واستوردها بعد التصنيف.
+            </div>
+        }
+        else if (hasInterim)
+        {
+            <div class="alert alert-warning" role="alert">
+                إطار مؤقت: فيه قيم مؤقتة، كل واحدة تستشهد باستثناء من كتالوج الضوابط القانونية. لا يُعتمد ولا يُنشر ولا يُحسب به إلا والاستثناء نافذ.
+            </div>
+        }
         <dl class="row">
-            <dt class="col-sm-4">الكود</dt><dd class="col-sm-8">@Model.Code</dd>
-            <dt class="col-sm-4">رقم الإصدار</dt><dd class="col-sm-8">@Model.VersionNumber</dd>
-            <dt class="col-sm-4">حالة النشر</dt><dd class="col-sm-8">@Html.HrEnumDisplay(Model.PublicationStatus) @(Model.IsActive ? "(نشط للتشغيلات الجديدة)" : "")</dd>
-            <dt class="col-sm-4">بصمة المحتوى</dt><dd class="col-sm-8"><code>@(Model.ContentHash ?? "—")</code></dd>
+            <dt class="col-sm-4">رمز الإطار</dt><dd class="col-sm-8">@v.Code</dd>
+            <dt class="col-sm-4">النظام القانوني</dt><dd class="col-sm-8">@LegalRegimeCodes.DisplayNameAr(v.RegimeCode)</dd>
+            <dt class="col-sm-4">رقم الإصدار</dt><dd class="col-sm-8">@v.VersionNumber</dd>
+            <dt class="col-sm-4">حالة النشر</dt><dd class="col-sm-8">@Html.HrEnumDisplay(v.PublicationStatus) @(v.IsActive ? "(نشط للتشغيلات الجديدة)" : "")</dd>
+            <dt class="col-sm-4">بصمة المحتوى</dt><dd class="col-sm-8"><code>@(v.ContentHash ?? "—")</code></dd>
             <dt class="col-sm-4">ساري من / إلى</dt>
-            <dd class="col-sm-8">@Html.HrDate(Model.EffectiveFrom) — @Html.HrDate(Model.EffectiveTo, "مفتوح")</dd>
-            <dt class="col-sm-4">العملة / التقريب</dt>
-            <dd class="col-sm-8">@Model.CurrencyCode — @Html.HrEnumDisplay(Model.RoundingMode) (@Model.DecimalPlaces منازل)</dd>
-            <dt class="col-sm-4">أساس التناسب</dt><dd class="col-sm-8">@Html.HrEnumDisplay(Model.ProrationDaysBasis)</dd>
-            <dt class="col-sm-4">أيام العطلة</dt><dd class="col-sm-8">@Model.NonWorkingDays</dd>
-            <dt class="col-sm-4">تعويض نهاية الخدمة</dt>
-            <dd class="col-sm-8">@Model.EosGratuityRateFirstPeriod × @Model.EosGratuityFirstYearsThreshold سنوات، ثم @Model.EosGratuityRateAfterThreshold</dd>
-            <dt class="col-sm-4">أساس الضريبة</dt><dd class="col-sm-8">@Html.HrStoredEnumDisplay("TaxableBaseMode", Model.TaxableBaseMode)</dd>
-            <dt class="col-sm-4">إعفاء ضريبي</dt><dd class="col-sm-8">@Model.TaxExemptionAmount</dd>
+            <dd class="col-sm-8">@Html.HrDate(v.EffectiveFrom) — @Html.HrDate(v.EffectiveTo, "مفتوح")</dd>
+            <dt class="col-sm-4">المحررون</dt>
+            <dd class="col-sm-8">
+                @if (v.Editors.Count == 0)
+                {
+                    <span>—</span>
+                }
+                @foreach (var editor in v.Editors.OrderBy(e => e.At))
+                {
+                    <div>@await Html.PartialAsync("_UserDisplayName", (object)editor.UserId) — @Html.HrEnumDisplay(editor.Kind) — @Html.HrDateTime(editor.At)</div>
+                }
+            </dd>
+            <dt class="col-sm-4">المعتمد</dt>
+            <dd class="col-sm-8">@await Html.PartialAsync("_UserDisplayName", (object?)v.ApprovedBy) @Html.HrDateTime(v.ApprovedAt, "")</dd>
+            <dt class="col-sm-4">المصادق قانونياً</dt>
+            <dd class="col-sm-8">
+                @if (Model.Attestation is { } attestation)
+                {
+                    @await Html.PartialAsync("_UserDisplayName", (object)attestation.AttestedBy) @Html.HrDateTime(attestation.AttestedAt)
+                }
+                else
+                {
+                    <span>—</span>
+                }
+            </dd>
+            <dt class="col-sm-4">الناشر</dt>
+            <dd class="col-sm-8">@await Html.PartialAsync("_UserDisplayName", (object?)v.PublishedBy) @Html.HrDateTime(v.PublishedAt, "")</dd>
         </dl>
+
+        <h5>الحقول العددية ومراجعها</h5>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered" data-testid="framework-fields">
+                <thead><tr><th>الحقل</th><th>القيمة</th><th>المرجع القانوني</th><th>الحالة القانونية</th><th>الاستثناء المؤقت</th></tr></thead>
+                <tbody>
+                    @foreach (var field in fields)
+                    {
+                        sources.TryGetValue(field, out var source);
+                        <tr>
+                            <td>@Html.DisplayName("Version." + field)</td>
+                            <td>
+                                @switch (field)
+                                {
+                                    case nameof(PayrollConfiguration.ProrationDaysBasis): @Html.HrEnumDisplay(v.ProrationDaysBasis) break;
+                                    case nameof(PayrollConfiguration.RoundingMode): @Html.HrEnumDisplay(v.RoundingMode) break;
+                                    case nameof(PayrollConfiguration.TaxableBaseMode): @Html.HrStoredEnumDisplay("TaxableBaseMode", v.TaxableBaseMode) break;
+                                    case nameof(PayrollConfiguration.EnableTrainingPremiums): @(v.EnableTrainingPremiums ? "نعم" : "لا") break;
+                                    case nameof(PayrollConfiguration.UseDbHolidaysOnly): @(v.UseDbHolidaysOnly ? "نعم" : "لا") break;
+                                    default: @Html.Display("Version." + field) break;
+                                }
+                            </td>
+                            <td>@(source?.LegalReference ?? "—")</td>
+                            <td>@if (source is not null) { @Html.HrEnumDisplay(source.LegalStatus) } else { <span>—</span> }</td>
+                            <td>@Model.ExceptionCitation(source)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
         <h5>شرائح الضريبة</h5>
-        <ul>
-            @foreach (var b in Model.TaxBrackets.OrderBy(t => t.SortOrder))
-            {
-                <li>حتى @b.UpperLimit — @b.RatePercent%</li>
-            }
-        </ul>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered" data-testid="framework-brackets">
+                <thead><tr><th>الشريحة</th><th>الحد الأعلى</th><th>النسبة %</th><th>المرجع القانوني</th><th>الحالة القانونية</th><th>الاستثناء المؤقت</th></tr></thead>
+                <tbody>
+                    @foreach (var b in v.TaxBrackets.OrderBy(t => t.SortOrder).ThenBy(t => t.UpperLimit))
+                    {
+                        <tr>
+                            <td>@(b.SortOrder + 1)</td>
+                            <td>@(b.UpperLimit >= 9_999_999_999_999_999.99m ? "بلا سقف" : Html.DisplayFor(_ => b.UpperLimit))</td>
+                            <td>@Html.DisplayFor(_ => b.RatePercent)</td>
+                            <td>@(b.LegalReference ?? "—")</td>
+                            <td>@Html.HrEnumDisplay(b.LegalStatus)</td>
+                            <td>@Model.ExceptionCitation(b)</td>
+                        </tr>
+                    }
+                    @if (v.TaxBrackets.Count == 0)
+                    {
+                        <tr><td colspan="6"><partial name="_HrEmptyState" model="@("لا شرائح ضريبة في هذه النسخة: لا تُنشر قبل استيرادها.")" /></td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <h5>الخصومات النظامية</h5>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered" data-testid="framework-statutory">
+                <thead>
+                    <tr>
+                        <th>الرمز</th><th>الاسم</th><th>حصة الموظف %</th><th>حصة صاحب العمل %</th><th>مبلغ ثابت</th><th>وعاء الاحتساب</th><th>سقف الوعاء</th>
+                        <th>جهة التأمين</th><th>المرجع القانوني</th><th>الحالة القانونية</th><th>الاستثناء المؤقت</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var d in v.StatutoryDeductions.OrderBy(x => x.SortOrder).ThenBy(x => x.Code))
+                    {
+                        <tr>
+                            <td>@d.Code</td>
+                            <td>@d.NameAr</td>
+                            <td>@Html.DisplayFor(_ => d.EmployeePercent)</td>
+                            <td>@Html.DisplayFor(_ => d.EmployerPercent)</td>
+                            <td>@Html.DisplayFor(_ => d.FixedAmount)</td>
+                            <td>@Html.HrEnumDisplay(d.BaseKind)</td>
+                            <td>@(d.Ceiling is null ? "بلا سقف" : Html.DisplayFor(_ => d.Ceiling))</td>
+                            <td>@(d.InsuranceBody ?? "—")</td>
+                            <td>@(d.LegalReference ?? "—")</td>
+                            <td>@Html.HrEnumDisplay(d.LegalStatus)</td>
+                            <td>@Model.ExceptionCitation(d)</td>
+                        </tr>
+                    }
+                    @if (v.StatutoryDeductions.Count == 0)
+                    {
+                        <tr><td colspan="11"><partial name="_HrEmptyState" model="@(v.IsLegacyFramework ? "تُقرأ من جدول أنواع الخصم العام (نسخة أقدم من حزم الإطار)." : "لا خصومات نظامية في هذه النسخة.")" /></td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
         <h5>العطل الرسمية</h5>
-        <ul>
-            @foreach (var h in holidays)
-            {
-                <li>@h.NameAr (@Html.HrDate(h.Date))</li>
-            }
-        </ul>
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">@(Model.IsImmutable ? "إصدار جديد من هذه النسخة" : "تعديل المسودة")</a>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered" data-testid="framework-holidays">
+                <thead><tr><th>التاريخ</th><th>الاسم</th><th>متكررة سنوياً</th><th>المرجع القانوني</th><th>الحالة القانونية</th><th>الاستثناء المؤقت</th></tr></thead>
+                <tbody>
+                    @foreach (var h in v.Holidays.OrderBy(x => x.Date))
+                    {
+                        <tr>
+                            <td>@Html.HrDate(h.Date)</td>
+                            <td>@h.NameAr</td>
+                            <td>@(h.IsRecurring ? "نعم" : "لا")</td>
+                            <td>@(h.LegalReference ?? "—")</td>
+                            <td>@Html.HrEnumDisplay(h.LegalStatus)</td>
+                            <td>@Model.ExceptionCitation(h)</td>
+                        </tr>
+                    }
+                    @if (v.Holidays.Count == 0)
+                    {
+                        <tr><td colspan="6"><partial name="_HrEmptyState" model="@("لا عطل رسمية في هذه النسخة.")" /></td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <h5>قواعد أولوية الصرف</h5>
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered" data-testid="framework-priority-rules">
+                <thead><tr><th>الأولوية</th><th>الفئة</th><th>الحد الأدنى</th><th>المرجع القانوني</th><th>الحالة القانونية</th><th>الاستثناء المؤقت</th></tr></thead>
+                <tbody>
+                    @foreach (var r in v.PriorityRules.OrderBy(x => x.Priority).ThenBy(x => x.Category))
+                    {
+                        <tr>
+                            <td>@r.Priority</td>
+                            <td>@r.Category</td>
+                            <td>@Html.DisplayFor(_ => r.MinimumAmount)</td>
+                            <td>@r.LegalSource</td>
+                            <td>@Html.HrEnumDisplay(r.LegalStatus)</td>
+                            <td>@Model.ExceptionCitation(r)</td>
+                        </tr>
+                    }
+                    @if (v.PriorityRules.Count == 0)
+                    {
+                        <tr><td colspan="6"><partial name="_HrEmptyState" model="@(v.IsLegacyFramework ? "تُقرأ من القواعد العامة النشطة (نسخة أقدم من حزم الإطار)." : "لا قواعد أولوية في هذه النسخة.")" /></td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <a asp-action="Edit" asp-route-id="@v.Id" class="btn btn-primary">@(v.IsImmutable ? "إصدار جديد من هذه النسخة" : "تعديل الحقول وتاريخ السريان")</a>
         <a asp-action="Index" class="btn btn-secondary">رجوع</a>
     </div>
 </div>

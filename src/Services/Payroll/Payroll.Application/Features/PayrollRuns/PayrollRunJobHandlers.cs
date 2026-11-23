@@ -180,7 +180,7 @@ public class StartPayrollRunJobHandler(
         var published = await repository.GetPublishedConfigurationForPeriodAsync(
             periodStart.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc), cancellationToken);
         if (published is null || string.IsNullOrEmpty(published.ContentHash))
-            return (null, "لا توجد نسخة إعدادات معتمدة/منشورة للفترة.");
+            return (null, PayrollFrameworkMessages.NoFrameworkForPeriod);
         return (published, null);
     }
 }

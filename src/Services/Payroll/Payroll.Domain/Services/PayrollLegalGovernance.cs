@@ -80,13 +80,13 @@ public static class PayrollLegalGovernance
         Guid actorId,
         LegalAttestation? attestation,
         string? impactSummary = null,
-        DateTime? effectiveFrom = null)
+        DateTime? latestPostedPeriodEnd = null)
     {
         var (attestOk, attestErr) = EnsureAttestationForPublish(config, attestation);
         if (!attestOk)
             return (false, attestErr, null);
 
-        var (ok, error) = PayrollConfigurationVersioning.TryPublish(config, sameCodeConfigs, actorId, effectiveFrom);
+        var (ok, error) = PayrollConfigurationVersioning.TryPublish(config, sameCodeConfigs, actorId, latestPostedPeriodEnd);
         if (!ok)
             return (false, error, null);
 

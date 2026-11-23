@@ -1,0 +1,447 @@
+{
+  "schema": "payroll-framework-pack.v1",
+  "code": "LAW_50_2004",
+  "regimeCode": "LAW_50_2004",
+  "nameAr": "قانون العاملين الأساسي 50/2004",
+  "effectiveFrom": "2000-01-01",
+  "fields": {
+    "prorationDaysBasis": {
+      "value": "WorkingDays",
+      "legalReference": "LD-PRORATION-BASIS",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    "dailyRateDivisor": {
+      "value": 30,
+      "legalReference": "LD-DAILY-DIVISOR",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    "missionAllowanceAmount": {
+      "value": 0,
+      "legalReference": "LD-MISSION-ALLOWANCE",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    "secondmentAllowancePercent": {
+      "value": 0,
+      "legalReference": "LD-SECONDMENT-PERCENT",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    "enableTrainingPremiums": {
+      "value": false,
+      "legalReference": "LD-TRAINING-PREMIUM",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    "trainingPremiumAmount": {
+      "value": 0,
+      "legalReference": "LD-TRAINING-PREMIUM",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    "medicalCompensationDefaultAmount": {
+      "value": 0,
+      "legalReference": "Platform interim default 0; no register decision yet (D-PAY-1, PAY-E)",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    "maxRetroCorrectionMonths": {
+      "value": 12,
+      "legalReference": "LD-RETRO-MONTHS",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    "eosGratuityRateFirstPeriod": {
+      "value": 0.5,
+      "legalReference": "LD-EOS-FORMULA",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    "eosGratuityFirstYearsThreshold": {
+      "value": 5,
+      "legalReference": "LD-EOS-FORMULA",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    "eosGratuityRateAfterThreshold": {
+      "value": 1,
+      "legalReference": "LD-EOS-FORMULA",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    "nonWorkingDays": {
+      "value": "Friday,Saturday",
+      "legalReference": "LD-NON-WORKING-DAYS",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    "useDbHolidaysOnly": {
+      "value": true,
+      "legalReference": "LD-OFFICIAL-HOLIDAYS",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    "taxableBaseMode": {
+      "value": "GrossPay",
+      "legalReference": "LD-TAXABLE-BASE",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-TAX-INTERIM"
+    },
+    "taxExemptionAmount": {
+      "value": 0,
+      "legalReference": "LD-TAX-EXEMPTION",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-TAX-INTERIM"
+    },
+    "leavePayoutDailyDivisor": {
+      "value": 30,
+      "legalReference": "LD-LEAVE-PAYOUT-DIVISOR",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    "roundingMode": {
+      "value": "AwayFromZero",
+      "legalReference": "LD-ROUNDING",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    "decimalPlaces": {
+      "value": 2,
+      "legalReference": "LD-ROUNDING",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    "currencyCode": {
+      "value": "SYP",
+      "legalReference": "LD-CURRENCY",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    }
+  },
+  "taxBrackets": [
+    {
+      "upperLimit": 5000,
+      "ratePercent": 0,
+      "legalReference": "LD-TAX-BRACKETS",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-TAX-INTERIM"
+    },
+    {
+      "upperLimit": 15000,
+      "ratePercent": 5,
+      "legalReference": "LD-TAX-BRACKETS",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-TAX-INTERIM"
+    },
+    {
+      "upperLimit": 30000,
+      "ratePercent": 10,
+      "legalReference": "LD-TAX-BRACKETS",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-TAX-INTERIM"
+    },
+    {
+      "upperLimit": 50000,
+      "ratePercent": 15,
+      "legalReference": "LD-TAX-BRACKETS",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-TAX-INTERIM"
+    },
+    {
+      "upperLimit": 9999999999999999.99,
+      "ratePercent": 20,
+      "legalReference": "LD-TAX-BRACKETS",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-TAX-INTERIM"
+    }
+  ],
+  "statutoryDeductions": [
+    {
+      "code": "DED-TAX",
+      "nameAr": "ضريبة الدخل",
+      "employeePercent": 5,
+      "employerPercent": 0,
+      "fixedAmount": 0,
+      "baseKind": "GrossPay",
+      "legalReference": "Platform interim statutory deduction DED-TAX: 5% of gross pay, no ceiling (Demo seed); final value D-PAY-1 / PAY-E",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-TAX-INTERIM"
+    },
+    {
+      "code": "DED-SOC",
+      "nameAr": "تأمينات اجتماعية",
+      "employeePercent": 7,
+      "employerPercent": 14,
+      "fixedAmount": 0,
+      "baseKind": "GrossPay",
+      "insuranceBody": "GOSI",
+      "legalReference": "Platform interim statutory deduction DED-SOC: 7% of gross pay, no ceiling (Demo seed); final value D-PAY-1 / PAY-E",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    {
+      "code": "DED-HEALTH",
+      "nameAr": "تأمين صحي",
+      "employeePercent": 2,
+      "employerPercent": 0,
+      "fixedAmount": 0,
+      "baseKind": "GrossPay",
+      "insuranceBody": "GOSI",
+      "legalReference": "Platform interim statutory deduction DED-HEALTH: 2% of gross pay, no ceiling (Demo seed); final value D-PAY-1 / PAY-E",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    {
+      "code": "DED-PENS",
+      "nameAr": "اشتراك تقاعد",
+      "employeePercent": 3,
+      "employerPercent": 0,
+      "fixedAmount": 0,
+      "baseKind": "GrossPay",
+      "legalReference": "Platform interim statutory deduction DED-PENS: 3% of gross pay, no ceiling (Demo seed); final value D-PAY-1 / PAY-E",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    }
+  ],
+  "holidays": [
+    {
+      "date": "2000-01-01",
+      "nameAr": "رأس السنة",
+      "isRecurring": true,
+      "legalReference": "LD-OFFICIAL-HOLIDAYS",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    {
+      "date": "2000-04-17",
+      "nameAr": "عيد الجلاء",
+      "isRecurring": true,
+      "legalReference": "LD-OFFICIAL-HOLIDAYS",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    {
+      "date": "2000-05-01",
+      "nameAr": "عيد العمال",
+      "isRecurring": true,
+      "legalReference": "LD-OFFICIAL-HOLIDAYS",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    {
+      "date": "2000-10-06",
+      "nameAr": "ذكرى حرب أكتوبر",
+      "isRecurring": true,
+      "legalReference": "LD-OFFICIAL-HOLIDAYS",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    }
+  ],
+  "priorityRules": [
+    {
+      "category": "LowIncome",
+      "priority": 1,
+      "minimumAmount": 250000,
+      "legalReference": "Acceptance v2 synthetic treasury directive",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    {
+      "category": "FamilySupport",
+      "priority": 2,
+      "minimumAmount": 150000,
+      "legalReference": "Acceptance v2 synthetic treasury directive",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    },
+    {
+      "category": "General",
+      "priority": 3,
+      "minimumAmount": 0,
+      "legalReference": "Acceptance v2 synthetic treasury directive",
+      "legalStatus": "Interim",
+      "interimExceptionId": "EX-STR2-LAW50-UNCERTIFIED"
+    }
+  ],
+  "decisions": [
+    {
+      "decisionId": "LD-TAX-BRACKETS",
+      "configField": "TaxBrackets",
+      "ruleId": "TaxRule",
+      "officialSource": "Law 50/2004 platform interim brackets",
+      "issueRef": "LAW_50_2004",
+      "effectiveFrom": "2004-01-01",
+      "owner": "Legal+Payroll",
+      "approvalStatus": "ApprovedInterim",
+      "regimeCode": "LAW_50_2004"
+    },
+    {
+      "decisionId": "LD-TAX-EXEMPTION",
+      "configField": "TaxExemptionAmount",
+      "ruleId": "TaxRule",
+      "officialSource": "Platform interim default 0",
+      "issueRef": "LAW_50_2004",
+      "effectiveFrom": "2004-01-01",
+      "owner": "Legal+Payroll",
+      "approvalStatus": "ApprovedInterim",
+      "regimeCode": "LAW_50_2004"
+    },
+    {
+      "decisionId": "LD-TAXABLE-BASE",
+      "configField": "TaxableBaseMode",
+      "ruleId": "TaxRule",
+      "officialSource": "Platform interim GrossPay",
+      "issueRef": "LAW_50_2004",
+      "effectiveFrom": "2004-01-01",
+      "owner": "Legal+Payroll",
+      "approvalStatus": "ApprovedInterim",
+      "regimeCode": "LAW_50_2004"
+    },
+    {
+      "decisionId": "LD-EOS-FORMULA",
+      "configField": "EosGratuity*",
+      "officialSource": "Law 50/2004 EOS interim rates",
+      "issueRef": "LAW_50_2004",
+      "effectiveFrom": "2004-01-01",
+      "owner": "Legal+HR+Payroll",
+      "approvalStatus": "ApprovedInterim",
+      "regimeCode": "LAW_50_2004"
+    },
+    {
+      "decisionId": "LD-DAILY-DIVISOR",
+      "configField": "DailyRateDivisor",
+      "ruleId": "BaseSalaryRule",
+      "officialSource": "Platform interim divisor 30",
+      "issueRef": "LAW_50_2004",
+      "effectiveFrom": "2004-01-01",
+      "owner": "Payroll",
+      "approvalStatus": "ApprovedInterim",
+      "regimeCode": "LAW_50_2004"
+    },
+    {
+      "decisionId": "LD-PRORATION-BASIS",
+      "configField": "ProrationDaysBasis",
+      "ruleId": "BaseSalaryRule",
+      "officialSource": "Platform interim WorkingDays",
+      "issueRef": "LAW_50_2004",
+      "effectiveFrom": "2004-01-01",
+      "owner": "Payroll",
+      "approvalStatus": "ApprovedInterim",
+      "regimeCode": "LAW_50_2004"
+    },
+    {
+      "decisionId": "LD-NON-WORKING-DAYS",
+      "configField": "NonWorkingDays",
+      "officialSource": "Platform interim Fri+Sat",
+      "issueRef": "LAW_50_2004",
+      "effectiveFrom": "2004-01-01",
+      "owner": "HR",
+      "approvalStatus": "ApprovedInterim",
+      "regimeCode": "LAW_50_2004"
+    },
+    {
+      "decisionId": "LD-OFFICIAL-HOLIDAYS",
+      "configField": "OfficialHoliday",
+      "officialSource": "Platform interim holiday seed",
+      "issueRef": "SEED_HOLIDAYS",
+      "effectiveFrom": "2004-01-01",
+      "owner": "HR",
+      "approvalStatus": "ApprovedInterim",
+      "regimeCode": "LAW_50_2004"
+    },
+    {
+      "decisionId": "LD-MISSION-ALLOWANCE",
+      "configField": "MissionAllowanceAmount",
+      "officialSource": "Platform interim default 0",
+      "issueRef": "LAW_50_2004",
+      "effectiveFrom": "2004-01-01",
+      "owner": "Payroll",
+      "approvalStatus": "ApprovedInterim",
+      "regimeCode": "LAW_50_2004"
+    },
+    {
+      "decisionId": "LD-SECONDMENT-PERCENT",
+      "configField": "SecondmentAllowancePercent",
+      "officialSource": "Platform interim default 0",
+      "issueRef": "LAW_50_2004",
+      "effectiveFrom": "2004-01-01",
+      "owner": "Payroll",
+      "approvalStatus": "ApprovedInterim",
+      "regimeCode": "LAW_50_2004"
+    },
+    {
+      "decisionId": "LD-TRAINING-PREMIUM",
+      "configField": "TrainingPremium*",
+      "officialSource": "Platform interim optional off",
+      "issueRef": "LAW_50_2004",
+      "effectiveFrom": "2004-01-01",
+      "owner": "HR+Payroll",
+      "approvalStatus": "ApprovedInterim",
+      "regimeCode": "LAW_50_2004"
+    },
+    {
+      "decisionId": "LD-LEAVE-PAYOUT-DIVISOR",
+      "configField": "LeavePayoutDailyDivisor",
+      "officialSource": "Platform interim 30",
+      "issueRef": "LAW_50_2004",
+      "effectiveFrom": "2004-01-01",
+      "owner": "Payroll",
+      "approvalStatus": "ApprovedInterim",
+      "regimeCode": "LAW_50_2004"
+    },
+    {
+      "decisionId": "LD-RETRO-MONTHS",
+      "configField": "MaxRetroCorrectionMonths",
+      "officialSource": "Platform interim 12 months",
+      "issueRef": "LAW_50_2004",
+      "effectiveFrom": "2004-01-01",
+      "owner": "Legal+Payroll",
+      "approvalStatus": "ApprovedInterim",
+      "regimeCode": "LAW_50_2004"
+    },
+    {
+      "decisionId": "LD-ROUNDING",
+      "configField": "RoundingMode,DecimalPlaces",
+      "ruleId": "RoundingRule",
+      "officialSource": "AwayFromZero scale 2",
+      "issueRef": "LAW_50_2004",
+      "effectiveFrom": "2004-01-01",
+      "owner": "Payroll",
+      "approvalStatus": "ApprovedInterim",
+      "regimeCode": "LAW_50_2004"
+    },
+    {
+      "decisionId": "LD-CURRENCY",
+      "configField": "CurrencyCode",
+      "officialSource": "SYP platform interim",
+      "issueRef": "LAW_50_2004",
+      "effectiveFrom": "2004-01-01",
+      "owner": "Payroll",
+      "approvalStatus": "ApprovedInterim",
+      "regimeCode": "LAW_50_2004"
+    },
+    {
+      "decisionId": "LD-SINGLE-REGIME",
+      "configField": "RegimeCode",
+      "officialSource": "One regime per period",
+      "issueRef": "GOV-002-C",
+      "effectiveFrom": "2004-01-01",
+      "owner": "Legal",
+      "approvalStatus": "ApprovedInterim",
+      "regimeCode": "LAW_50_2004"
+    },
+    {
+      "decisionId": "LD-CIVIL-SERVICE-PENDING",
+      "configField": "*",
+      "officialSource": "Not enacted",
+      "issueRef": "CIVIL_SERVICE_2026",
+      "effectiveFrom": "2004-01-01",
+      "owner": "Legal",
+      "approvalStatus": "PendingEnactment",
+      "regimeCode": "CIVIL_SERVICE_2026",
+      "notes": "Do not treat as enacted"
+    }
+  ]
+}

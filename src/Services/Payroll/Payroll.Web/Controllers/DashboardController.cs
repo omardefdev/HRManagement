@@ -10,10 +10,19 @@ namespace Payroll.Web.Controllers;
 public class DashboardController : Controller
 {
     private readonly PayrollDbContext _db;
-    public DashboardController(PayrollDbContext db) => _db = db;
+    private readonly Payroll.Application.Abstractions.IPayrollRepository _repository;
+
+    public DashboardController(PayrollDbContext db, Payroll.Application.Abstractions.IPayrollRepository repository)
+    {
+        _db = db;
+        _repository = repository;
+    }
 
     public async Task<IActionResult> Index()
     {
+        // PLAN-54 (§1): an agency with no published framework cannot calculate; the dashboard says so and where to start.
+        ViewBag.NoPublishedFramework = await _repository.GetActiveConfigurationAsync(HttpContext.RequestAborted) is null;
+
         ViewBag.TotalRuns = await _db.PayrollRuns.CountAsync();
         ViewBag.TotalProfiles = await _db.EmployeePayProfiles.CountAsync(p => p.IsActive);
         ViewBag.TotalPosted = await _db.PayrollRuns.CountAsync(r => r.Status == PayrollRunStatus.Posted);

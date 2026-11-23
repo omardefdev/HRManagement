@@ -33,9 +33,8 @@ public class Gov002LegalGovernanceTests
         var actor = Guid.NewGuid();
         var attest = PayrollLegalGovernance.CreateAttestation(v2, actor);
 
-        var (ok, error, notice) = PayrollLegalGovernance.TryPublishWithGovernance(
-            v2, [v1, v2], actor, attest,
-            effectiveFrom: new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        // PLAN-54: the version carries its own effective date (2026-01-01, given at the clone); publish takes no date.
+        var (ok, error, notice) = PayrollLegalGovernance.TryPublishWithGovernance(v2, [v1, v2], actor, attest);
         Assert.True(ok, error);
         Assert.NotNull(notice);
         Assert.Equal(v2.Id, notice!.PayrollConfigurationId);

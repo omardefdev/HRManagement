@@ -34,12 +34,24 @@ public interface IPayrollRepository
     IQueryable<DisbursementPriorityRule> DisbursementPriorityRules { get; }
     IQueryable<FraudAlert> FraudAlerts { get; }
     IQueryable<PaymentHold> PaymentHolds { get; }
+    IQueryable<LegalDecisionRecord> LegalDecisionRecords { get; }
+    IQueryable<LegalAttestation> LegalAttestations { get; }
 
     Task<PayrollRun?> GetPayrollRunAsync(Guid id, bool includeLines, CancellationToken ct);
+    /// <summary>The version that governs today (the payroll calendar's date); see <c>PayrollConfigurationVersioning.ResolveGoverning</c>.</summary>
     Task<PayrollConfiguration?> GetActiveConfigurationAsync(CancellationToken ct);
+
+    /// <summary>The version of a regime (or of a code) that governs today.</summary>
     Task<PayrollConfiguration?> GetConfigurationByRegimeCodeAsync(string regimeCode, CancellationToken ct);
+
+    /// <summary>The version a run of the period starting on <paramref name="periodStart"/> is pinned to.</summary>
     Task<PayrollConfiguration?> GetPublishedConfigurationForPeriodAsync(DateTime periodStart, CancellationToken ct);
+
+    /// <summary>A version with every table that governs pay (not tracked): brackets, statutory deductions, holidays, priority rules, field sources.</summary>
     Task<PayrollConfiguration?> GetConfigurationByIdAsync(Guid id, CancellationToken ct);
+
+    /// <summary>PLAN-54: a version with all of its tables and its editors, tracked for a change of the cycle or of a draft.</summary>
+    Task<PayrollConfiguration?> GetFrameworkForUpdateAsync(Guid id, CancellationToken ct);
     Task<EmployeePayProfile?> GetActiveProfileAsync(Guid employeeId, CancellationToken ct);
     Task<PayrollRunJob?> GetActiveJobAsync(Guid payrollRunId, CancellationToken ct);
     Task AddAsync<T>(T entity, CancellationToken ct) where T : class;

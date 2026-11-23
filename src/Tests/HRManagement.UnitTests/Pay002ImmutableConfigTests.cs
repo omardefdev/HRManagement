@@ -73,8 +73,8 @@ public class Pay002ImmutableConfigTests
         PayrollConfigurationVersioning.TryApprove(v2, Guid.NewGuid());
 
         var list = new List<PayrollConfiguration> { v1, v2 };
-        var (ok, error) = PayrollConfigurationVersioning.TryPublish(
-            v2, list, Guid.NewGuid(), new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        // PLAN-54: the version carries its own effective date (2026-01-01, given at the clone); publish takes no date.
+        var (ok, error) = PayrollConfigurationVersioning.TryPublish(v2, list, Guid.NewGuid());
         Assert.True(ok);
         Assert.Null(error);
         Assert.Equal(PayrollConfigPublicationStatus.Published, v2.PublicationStatus);
