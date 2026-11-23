@@ -636,12 +636,43 @@ Reason: the owner's message (`ssh hrm-vps whoami` → `hrm`). Re-check:
     interface guard tests and `ux067-validate.ps1` pass. **Left for a UX plan:** the same summary in four HR.Contracts
     views and one HR.Core view (not key pages).
 
+- **P8 end (2026-11-23T01:59:43Z):**
+  - **Local, with the fixed payroll image** (prod-like stack 01:14Z to 01:30:11Z): `AcIam53SalaryChangeTests` 5/5 and
+    `AcUx67ReadableInterfaceTests` 7/7 (its key pages now open the grade's edit form). Stack down with its volumes.
+  - **Server change 5 — room for the second build:** the local images of the releases `d0e446fe3280` and
+    `92a69960c826` were removed (34 tags; 28 GB → 40 GB free). They stay in the loopback registry. **Undo:**
+    `docker pull 127.0.0.1:5050/hrmanagement/<image>:<tag>`.
+  - **The second build, tag `27cbf35db9cc`,** detached from its start (upload 31.0 MB in 22 s; start 01:12:37Z; build
+    2,035 s, push 34 s, 17 of 17 images; 32 GB free after it).
+  - **The second deploy:** 01:47:39Z to 01:51:27Z (3 min 48 s with the smoke): pull 13 s, up 138 s, bootstrap 60 s
+    (no migration to apply), reconcile 13 s, healthy 15 s; `deployments.log`:
+    `2026-11-23T01:50:41Z|tag=27cbf35db9cc|action=deploy|result=healthy|previous=0640c2ac6db0`. Smoke 50 pass, 0 fail,
+    1 warn (`artifacts/vps/smoke-hrm-vps-20261123T015127Z.json`). **Server change 6:** current-tag `27cbf35db9cc`,
+    previous-tag `0640c2ac6db0`. **Undo:** `scripts/vps/deploy.ps1 -Rollback` (to the first PLAN-53 tag) or
+    `-Tag 1ee455bf1a6f` (to before the plan; its images are still on the server).
+  - **On the final tag (01:51:45Z to 01:57:47Z):** the four `AC_IAM_53_vps` checks **Passed** — the screens check on
+    its second attempt (one network change on this machine), eight screens, HTTP 200, one policy and **no violation**
+    each, Arabic, right-to-left, the requester by the registry's span and no user id printed — with `AC_OPS_36b`
+    (sign-in) and the portal check.
+  - **The demo at the end:** 22 containers, 20 of 20 health checks healthy, 32 GB free; active pay profiles 425 of
+    425, checksum `3b2e10719627b05f17069bfca7a784f2`, the grades' md5 `d964b59013d8ce5845a3dc816ff67c92`, 6 runs, no
+    history row — all as before the deploy. Requests left by the checks: 3 salary requests `Cancelled`, 2 reference
+    requests `Rejected`; none open.
+  - `~/.ssh/config` restored from its backup (no connection reuse; the shared connection closed).
+  - The server suites rewrote 37 files under the committed `acceptance-evidence/*/vps/`: restored with
+    `git checkout`, their new files moved under `artifacts/plan53/vps/` (nothing of a local run is committed).
+  - `docs/OPS_VPS_SINGLE_HOST.md` has the plan's section, the change table and the rollback note; the plan's status
+    and the final report are written.
+- Finished (UTC): 2026-11-23T01:59:43Z — P8 committed.
+
+## P9
+
+- Started (UTC): 2026-11-23T01:59:43Z.
+
 ## Exact next step
 
-P8, continuing: commit the view fix; build the new tag on the server **detached**
-(`ssh hrm-vps 'setsid nohup sh -c "bash /opt/hrm/build-on-host-<tag>.sh <tag> /opt/hrm/src-<tag>.tar.gz 127.0.0.1:5050/hrmanagement > /opt/hrm/build-<tag>.log 2>&1; echo \$? > /opt/hrm/build-<tag>.done" …'`
-after uploading the archive and the script as `build-on-host.ps1` does); meanwhile rebuild `payroll-web` locally
-(the NuGet cache mount must be seeded again: `artifacts/plan53/nuget-seed`), start the prod-like stack and run
-`AcUx67ReadableInterfaceTests` and `AcIam53SalaryChangeTests`; deploy the new tag; run the four `AC_IAM_53_vps` checks
-and the smoke; restore `~/.ssh/config`; commit P8. Then P9 (the report's placeholders, the native CI steps, the
-pre-push check, the release branch, the PR, CI, the merge).
+P9: on the report's commit (clean tree), the CI steps natively (`bash scripts/ci/run-steps.sh --all --skip …`, the
+summary under `artifacts/ci-local/`; `ci-local.ps1`'s container cannot be built safely on this machine: see P9's
+notes), then `scripts/plan035-prepush.ps1`; then `release/plan-53` from `main` (`--no-ff`), `reports/plan53-pr.md`,
+push, `gh pr create`, wait for every check, `gh pr merge <n> --merge` only when all are green; the merge note; stop
+the keep-awake.
