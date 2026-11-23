@@ -100,6 +100,20 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
         return employee;
     }
 
+    /// <summary>
+    /// The client with the antiforgery token of the salary change API on every request (the client keeps the cookie). The API's
+    /// writes validate it: the API is reached with a gateway session as well as with a bearer token.
+    /// </summary>
+    private static async Task<HttpClient> WithApiTokenAsync(HttpClient client)
+    {
+        using var issued = await client.GetAsync("/api/payroll/pay-profile-changes/antiforgery");
+        Assert.Equal(HttpStatusCode.OK, issued.StatusCode);
+        using var token = JsonDocument.Parse(await issued.Content.ReadAsStringAsync());
+        client.DefaultRequestHeaders.Add(
+            token.RootElement.GetProperty("headerName").GetString()!, token.RootElement.GetProperty("requestToken").GetString());
+        return client;
+    }
+
     private static Task<PayProfileChangeState> StateAsync(Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext> host, Guid request) =>
         host.WithDbAsync(db => db.Set<PayProfileChangeRequest>().AsNoTracking().Where(r => r.Id == request).Select(r => r.State).SingleAsync());
 
@@ -142,8 +156,8 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
     {
         Skip.IfNot(RealInfra.IsEnabled);
         await using var host = await StartAsync();
-        using var restricted = host.Restricted();
-        using var central = host.Central();
+        using var restricted = await WithApiTokenAsync(host.Restricted());
+        using var central = await WithApiTokenAsync(host.Central());
         var (ownRequest, foreignRequest) = host.Records[typeof(PayProfileChangeRequest)];
         var (ownEmployee, foreignEmployee) = host.Records[typeof(EmployeePayProfile)];
 
@@ -210,8 +224,8 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
     {
         Skip.IfNot(RealInfra.IsEnabled);
         await using var host = await StartAsync();
-        using var restricted = host.Restricted();
-        using var central = host.Central();
+        using var restricted = await WithApiTokenAsync(host.Restricted());
+        using var central = await WithApiTokenAsync(host.Central());
         var mine = await AddEmployeeAsync(host, host.OwnUnit);
         var alsoMine = await AddEmployeeAsync(host, host.OwnUnit);
         var theirs = await AddEmployeeAsync(host, host.ForeignUnit);
@@ -352,6 +366,57 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
 
     [Trait("Category", "Testcontainers")]
     [SkippableFact]
+    public async Task Every_write_of_the_salary_change_api_needs_the_antiforgery_token_and_without_it_nothing_is_written()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        await using var host = await StartAsync();
+        using var central = host.Central();
+        using var other = await WithApiTokenAsync(host.Restricted());
+        var (ownRequest, _) = host.Records[typeof(PayProfileChangeRequest)];
+        var employee = await AddEmployeeAsync(host, host.OwnUnit);
+        var before = await RequestCountAsync(host);
+
+        // No token: every POST is refused (400) before it reaches its handler, for a user who holds every payroll role.
+        var submit = await central.PostAsJsonAsync("/api/payroll/pay-profile-changes", Body(employee));
+        Assert.Equal(HttpStatusCode.BadRequest, submit.StatusCode);
+        foreach (var action in new[] { "approve", "reject", "cancel" })
+        {
+            var refused = await central.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{ownRequest}/{action}", new { note = "ملاحظة", reason = "سبب" });
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+        }
+
+        Assert.Equal(HttpStatusCode.BadRequest, (await central.PostAsync("/api/payroll/pay-profile-changes/activate-due", null)).StatusCode);
+        Assert.Equal(before, await RequestCountAsync(host));
+        Assert.Equal(PayProfileChangeState.PendingApproval, await StateAsync(host, ownRequest));
+
+        // Another user's token is not this user's: the same client with it is refused too.
+        string header, foreignToken;
+        using (var issued = await other.GetAsync("/api/payroll/pay-profile-changes/antiforgery"))
+        using (var token = JsonDocument.Parse(await issued.Content.ReadAsStringAsync()))
+        {
+            header = token.RootElement.GetProperty("headerName").GetString()!;
+            foreignToken = token.RootElement.GetProperty("requestToken").GetString()!;
+        }
+
+        using (var forged = new HttpRequestMessage(HttpMethod.Post, $"/api/payroll/pay-profile-changes/{ownRequest}/approve"))
+        {
+            forged.Headers.Add(header, foreignToken);
+            forged.Content = JsonContent.Create(new { note = "ملاحظة" });
+            Assert.Equal(HttpStatusCode.BadRequest, (await central.SendAsync(forged)).StatusCode);
+        }
+
+        Assert.Equal(PayProfileChangeState.PendingApproval, await StateAsync(host, ownRequest));
+
+        // Reads need no token; and with his own token the same user's write goes through.
+        Assert.Equal(HttpStatusCode.OK, (await central.GetAsync($"/api/payroll/pay-profile-changes/{ownRequest}")).StatusCode);
+        await WithApiTokenAsync(central);
+        var accepted = await central.PostAsJsonAsync("/api/payroll/pay-profile-changes", Body(employee));
+        Assert.Equal(HttpStatusCode.Created, accepted.StatusCode);
+        Assert.Equal(before + 1, await RequestCountAsync(host));
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
     public async Task The_request_form_opens_and_a_refused_form_post_shows_the_message_with_the_apis_status()
     {
         Skip.IfNot(RealInfra.IsEnabled);
@@ -413,9 +478,9 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
         await using var host = await StartAsync();
         var (ownRequest, _) = host.Records[typeof(PayProfileChangeRequest)];
         var (ownEmployee, _) = host.Records[typeof(EmployeePayProfile)];
-        using var moduleOnly = host.CentralWith(HrManagementRoles.Payroll, Guid.NewGuid());
-        using var approverOnly = host.CentralWith($"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollApprover}", Guid.NewGuid());
-        using var processorOnly = host.CentralWith($"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollProcessor}", Guid.NewGuid());
+        using var moduleOnly = await WithApiTokenAsync(host.CentralWith(HrManagementRoles.Payroll, Guid.NewGuid()));
+        using var approverOnly = await WithApiTokenAsync(host.CentralWith($"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollApprover}", Guid.NewGuid()));
+        using var processorOnly = await WithApiTokenAsync(host.CentralWith($"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollProcessor}", Guid.NewGuid()));
         var before = await RequestCountAsync(host);
 
         // `payroll` alone reads the list and writes nothing.

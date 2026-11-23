@@ -145,7 +145,7 @@ public class AcIam53SalaryChangeTests
     private sealed class Api(HttpClient http, EvidenceRecorder recorder, string persona, string tag) : IDisposable
     {
         public static async Task<Api> OpenAsync(EvidenceRecorder recorder, string persona, string tag) =>
-            new(await AcceptanceHarness.CreateAuthorizedClientAsync(AcceptanceHarness.RequirePersona(persona), Guid.NewGuid().ToString("D")),
+            new(await AcceptanceHarness.CreatePayrollClientAsync(AcceptanceHarness.RequirePersona(persona), Guid.NewGuid().ToString("D")),
                 recorder, persona, tag);
 
         public async Task<(HttpStatusCode Status, JsonElement Body)> SendAsync(string step, HttpMethod method, string path, object? body = null)

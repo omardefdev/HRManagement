@@ -31,7 +31,8 @@ public class Ac25FraudHoldTests
         recorder.WriteMetadata("AC-25 fraud hold four-eyes (FRD-001)", processor.Id);
 
         using var httpProcessor = await AcceptanceHarness.CreateAuthorizedClientAsync(processor, correlationId);
-        using var httpApprover = await AcceptanceHarness.CreateAuthorizedClientAsync(approver, correlationId);
+        // The approver approves the fixture through the salary change API, which validates an antiforgery token (PLAN-53).
+        using var httpApprover = await AcceptanceHarness.CreatePayrollClientAsync(approver, correlationId);
         using var httpPoster = await AcceptanceHarness.CreateAuthorizedClientAsync(poster, correlationId);
 
         // The current month on the service's clock (Localization:TimeZone, Asia/Damascus): its first day is today or earlier there.

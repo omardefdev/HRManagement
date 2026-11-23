@@ -165,6 +165,7 @@
 
 | المسار | السياسة | الجواب |
 |--------|---------|--------|
+| `GET api/payroll/pay-profile-changes/antiforgery` | `Module.Payroll` | `{ headerName, requestToken }` وكعكة الرمز |
 | `GET api/payroll/pay-profile-changes?state=&employeeId=` | `Module.Payroll` | قائمة ضمن النطاق |
 | `GET api/payroll/pay-profile-changes/{id}` | `Module.Payroll` | 200، أو 404 خارج النطاق |
 | `POST api/payroll/pay-profile-changes` | `Payroll.Process` | 201 مع `requestId` و`state` |
@@ -172,6 +173,15 @@
 | `POST .../{id}/cancel` | `Payroll.ChangeCancel` | 200 |
 | `POST .../activate-due` | `Payroll.Approve` | `{ due, applied, blocked, blockedTotal }` |
 | `PUT api/payroll/employees/{employeeId}/pay-profile` | `Payroll.Process` | **اسم مستعار لـ`Submit`: 202 مع `requestId` و`state`** |
+
+**رمز منع التزوير على كتابات هذه الواجهة:** الخمس (`POST` التقديم والاعتماد والرفض والإلغاء و`activate-due`) تحمل
+`[ValidateAntiForgeryToken]`، لأن الواجهة تُبلَغ بجلسة البوابة (كعكة) كما تُبلَغ برمز Bearer، فطلب POST مزوَّر من موقع
+آخر يجب ألا يصل إلى اعتماد. العميل يقرأ الرمز من `GET …/antiforgery` (خلف سياسة الوحدة)، ويحتفظ بالكعكة التي يضعها
+الجواب، ويرسل الرمز في الترويسة المسمّاة في الجواب مع كل كتابة؛ بلا ذلك 400 ولا يتغير شيء. الخدمة تحصر كعكتها في
+مسار واجهتها (`/ui/payroll`)، فعميل يمر من `/api/payroll` يرسلها بنفسه (كما يفعل
+`AcceptanceHarness.CreatePayrollClientAsync` و`scripts/msg040-replay-lost-events.ps1`). النمط نفسه في PLAN-40 وPLAN-43
+وPLAN-47. `PUT …/pay-profile` القديم بلا رمز كما كان (مُدرج في خط أساس CodeQL قبل هذه الخطة). **PLAN-54 يتبع النمط
+نفسه لكل واجهة كتابة جديدة.**
 
 **تغيير لعملاء الـ API (مسار Tier-0):** `PUT .../pay-profile` لم يعد يكتب ملف الأجر ولا يعيد `profileId`؛ يقدّم
 طلباً بمصدر `Api` ويعيد 202. تحويل الجسم القديم: `changeReason` ← السبب، `effectiveFrom` ← تاريخه التقويمي،

@@ -173,7 +173,19 @@ public static class AcceptanceHarness
     /// PLAN-47: a bearer client for HR.Core's policy lifecycle writes (drafts, rules, effective date, discard, publish). It holds
     /// the antiforgery cookie and sends the request token on every call, as those actions require.
     /// </summary>
-    public static async Task<HttpClient> CreatePolicyLifecycleClientAsync(E2ePersona persona, string correlationId)
+    public static Task<HttpClient> CreatePolicyLifecycleClientAsync(E2ePersona persona, string correlationId) =>
+        CreateAntiforgeryClientAsync(persona, correlationId, "api/hr-core/api/policies/antiforgery");
+
+    /// <summary>
+    /// PLAN-53: a bearer client for Payroll's API. Its salary change writes (<c>api/payroll/pay-profile-changes</c>: submit, approve,
+    /// reject, cancel, activate-due) validate an antiforgery token; the client holds the cookie and sends the request token on every
+    /// call. Every other payroll call works with it as with <see cref="CreateAuthorizedClientAsync"/>.
+    /// </summary>
+    public static Task<HttpClient> CreatePayrollClientAsync(E2ePersona persona, string correlationId) =>
+        CreateAntiforgeryClientAsync(persona, correlationId, "api/payroll/pay-profile-changes/antiforgery");
+
+    /// <summary>A bearer client that holds the antiforgery cookie of <paramref name="tokenPath"/> and sends its request token.</summary>
+    private static async Task<HttpClient> CreateAntiforgeryClientAsync(E2ePersona persona, string correlationId, string tokenPath)
     {
         var token = await FetchPasswordGrantTokenAsync(persona, correlationId);
         var baseAddress = new Uri(E2eEnv.BaseUrl.TrimEnd('/') + "/");
@@ -182,10 +194,10 @@ public static class AcceptanceHarness
         http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
         http.DefaultRequestHeaders.Add("X-Correlation-ID", correlationId);
 
-        using var issued = await http.GetAsync("api/hr-core/api/policies/antiforgery");
+        using var issued = await http.GetAsync(tokenPath);
         var body = await issued.Content.ReadAsStringAsync();
-        Assert.True(issued.IsSuccessStatusCode, $"policy antiforgery for {persona.Username}: {(int)issued.StatusCode} {body}");
-        // The service scopes its antiforgery cookie to /ui/hr-core; the policy API sits under /api/hr-core.
+        Assert.True(issued.IsSuccessStatusCode, $"antiforgery ({tokenPath}) for {persona.Username}: {(int)issued.StatusCode} {body}");
+        // The service scopes its antiforgery cookie to its UI path (/ui/<service>); its API sits under /api/<service>.
         if (issued.Headers.TryGetValues("Set-Cookie", out var setCookies))
         {
             foreach (var setCookie in setCookies.Where(c => c.StartsWith(".AspNetCore.Antiforgery.", StringComparison.Ordinal)))

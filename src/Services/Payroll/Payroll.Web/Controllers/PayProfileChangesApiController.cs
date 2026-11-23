@@ -1,7 +1,9 @@
 using HRManagement.ServiceDefaults;
+using HRManagement.ServiceDefaults.Messaging;
 using HRManagement.SharedKernel.Tenancy;
 using HRManagement.SharedKernel.ViewModels;
 using MediatR;
+using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -24,6 +26,15 @@ namespace Payroll.Web.Controllers;
 [OrgScoped(typeof(PayProfileChangeRequest))]
 public sealed class PayProfileChangesApiController(PayrollDbContext db, IMediator mediator) : ControllerBase
 {
+    /// <summary>
+    /// The antiforgery token every POST of this controller must send (the header's name and its value); the matching cookie is set on
+    /// this response. The API is reached with a gateway session as well as with a bearer token, so a forged cross-site POST must not
+    /// reach an approval (as PLAN-40's replay, PLAN-43's definitions and PLAN-47's policies).
+    /// </summary>
+    [HttpGet("antiforgery")]
+    public MessagingRepairAntiforgery Antiforgery([FromServices] IAntiforgery antiforgery) =>
+        MessagingRepairAntiforgery.Issue(antiforgery, HttpContext);
+
     [HttpGet]
     public async Task<IActionResult> List([FromQuery] PayProfileChangeState? state, [FromQuery] Guid? employeeId, CancellationToken ct)
     {
@@ -42,6 +53,7 @@ public sealed class PayProfileChangesApiController(PayrollDbContext db, IMediato
     }
 
     [HttpPost]
+    [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
     public async Task<IActionResult> Submit([FromBody] SubmitPayProfileChangeApiRequest request, CancellationToken ct)
     {
@@ -55,16 +67,19 @@ public sealed class PayProfileChangesApiController(PayrollDbContext db, IMediato
     }
 
     [HttpPost("{id:guid}/approve")]
+    [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
     public Task<IActionResult> Approve(Guid id, [FromBody] PayProfileChangeDecisionApiRequest? request, CancellationToken ct) =>
         DecideAsync(id, PayProfileChangeDecision.Approved, request?.Note, ct);
 
     [HttpPost("{id:guid}/reject")]
+    [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
     public Task<IActionResult> Reject(Guid id, [FromBody] PayProfileChangeDecisionApiRequest? request, CancellationToken ct) =>
         DecideAsync(id, PayProfileChangeDecision.Rejected, request?.Note, ct);
 
     [HttpPost("{id:guid}/cancel")]
+    [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollChangeCancel)]
     public async Task<IActionResult> Cancel(Guid id, [FromBody] PayProfileChangeCancelApiRequest? request, CancellationToken ct)
     {
@@ -76,6 +91,7 @@ public sealed class PayProfileChangesApiController(PayrollDbContext db, IMediato
 
     /// <summary>Applies now the scheduled requests of the caller's agency that are due: the code the activation job runs.</summary>
     [HttpPost("activate-due")]
+    [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
     [OrgScopeCentralOnly("applies every due request of the agency, whatever its branch")]
     public async Task<IActionResult> ActivateDue(

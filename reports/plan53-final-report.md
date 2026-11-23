@@ -265,6 +265,16 @@ Decided and tested: a version replaced on its own first day holds no day (a corr
 Recorded and mitigated, not changed: a Regular run that is calculated and not frozen does not block a change of its month
 (P-6's letter); the approval answers with a warning, and the gap in the run's validation is PLAN-56's (§14).
 
+**The PR's first CI run failed one check, CodeQL, and it was right.** Five new findings of
+`cs/web/missing-token-validation` (security-severity 8.8) on the five POST actions of `PayProfileChangesApiController`: the
+new API is reached with a gateway session (a cookie) as well as with a bearer token, so a forged cross-site POST could have
+reached an approval (the gateway's cookie is `SameSite=Lax`, which stops the plain cross-site case, not a same-site one). The
+local gates could not see it: CodeQL runs in CI only. Fixed as PLAN-40, PLAN-43 and PLAN-47 did for their APIs — a token
+endpoint and `[ValidateAntiForgeryToken]` on the five writes — not by a baseline entry and not by an ignore attribute.
+`Iam053PayrollScopeHttpTests` proves each write answers 400 without the token or with another user's, and writes nothing;
+the acceptance classes and the server check use a client that carries it. The payroll image was built and deployed again for
+it (§12's table shows the two tags deployed before the PR; the tag with this fix is in the merge note of the progress file).
+
 **A consequence of making AC-23, AC-24 and AC-25 required:** their committed evidence is still the «Fail» of the CI run before
 this plan, and evidence is never committed from a local run (D-QA-20). A narrowed local run that does not include them copies
 that evidence in, and its guard reports the three. The full run in CI rewrites them. Until the next evidence-of-record commit,
@@ -356,6 +366,10 @@ The demo is up on `27cbf35db9cc`, 22 containers, 20 of 20 health checks healthy,
 month, not before the current one; the old `effectiveTo` and `isActive` fields are ignored. The policy is `Payroll.Process`, as
 before. New: `api/payroll/pay-profile-changes` (list, get, submit 201, approve, reject, cancel, `activate-due`). An approval's
 answer may carry `warning`.
+
+**The new API's writes need an antiforgery token** (added after the PR's first CI run, see §11): a client reads
+`GET api/payroll/pay-profile-changes/antiforgery` (`{ headerName, requestToken }`, and a cookie), keeps the cookie and sends the
+token in that header with every POST; without it the answer is 400 and nothing changes. The PUT alias needs none, as before.
 
 ## 14. Items other plans own, and defects for later plans
 

@@ -44,8 +44,9 @@ public class Ac23PayrollFreezeTests
         var recorder = new EvidenceRecorder("AC-23", correlationId);
         recorder.WriteMetadata("AC-23 payroll freeze isolation (PAY-003)", processor.Id);
 
-        using var http = await AcceptanceHarness.CreateAuthorizedClientAsync(processor, correlationId);
-        using var httpApprover = await AcceptanceHarness.CreateAuthorizedClientAsync(approver, correlationId);
+        // The salary change API validates an antiforgery token (PLAN-53): the payroll client carries it.
+        using var http = await AcceptanceHarness.CreatePayrollClientAsync(processor, correlationId);
+        using var httpApprover = await AcceptanceHarness.CreatePayrollClientAsync(approver, correlationId);
 
         // The two months follow the service's clock (Localization:TimeZone, Asia/Damascus): a request cannot name a month before the
         // current one, so fixed months would end the scenario's life at their date. Thirteen and fourteen months ahead meet no month

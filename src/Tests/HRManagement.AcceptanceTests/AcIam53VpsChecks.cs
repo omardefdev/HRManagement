@@ -195,6 +195,14 @@ public partial class AcOps36VpsBootTests
             // as its SourceReference; the reason and the legal reference are as a clerk would write them.
             int submitted;
             string submittedBody;
+            // The API's writes validate an antiforgery token: the session reads it (the cookie stays in the client) and sends it.
+            int withoutToken;
+            using (var bare = await processor.PostAsync($"https://{AppDomain}/ui/payroll/api/payroll/pay-profile-changes",
+                       System.Net.Http.Json.JsonContent.Create(new { employeeId = employee, effectiveFrom = from, reason = Iam53Reason })))
+                withoutToken = (int)bare.StatusCode;
+            using (var issued = await processor.GetAsync($"https://{AppDomain}/ui/payroll/api/payroll/pay-profile-changes/antiforgery"))
+            using (var token = System.Text.Json.JsonDocument.Parse(await issued.Content.ReadAsStringAsync()))
+                processor.DefaultRequestHeaders.Add(token.RootElement.GetProperty("headerName").GetString()!, token.RootElement.GetProperty("requestToken").GetString());
             using (var answer = await processor.PostAsync($"https://{AppDomain}/ui/payroll/api/payroll/pay-profile-changes",
                        System.Net.Http.Json.JsonContent.Create(new
                        {
@@ -239,6 +247,7 @@ public partial class AcOps36VpsBootTests
                     employee,
                     request,
                     from,
+                    withoutToken,
                     submitted,
                     marker,
                     formPage,
@@ -258,6 +267,7 @@ public partial class AcOps36VpsBootTests
                     openAfter
                 });
 
+                Assert.Equal(400, withoutToken);
                 Assert.Equal($"{Iam53Marker}|1", marker);   // the source is stored as its number: 1 = Api
                 Assert.Equal(200, formPage);
                 Assert.Equal("0", pending);
