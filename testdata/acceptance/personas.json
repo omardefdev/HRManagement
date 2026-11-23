@@ -197,6 +197,22 @@
       "enabled": true
     },
     {
+      "id": "a-payroll-approver-2",
+      "username": "acc-a-payroll-approver-2",
+      "passwordEnv": "ACCEPTANCE_A_PAYROLL_APPROVER_2_PASSWORD",
+      "roles": [
+        "payroll",
+        "payroll-approver"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 48,
+      "purpose": "PLAN-54 (D-PAY-12): a second payroll approver, the legal attestor of a framework version (neither its editor nor its approver)",
+      "scenarios": [ "AC-PAY-54" ],
+      "enabled": true
+    },
+    {
       "id": "a-executive-reader",
       "username": "acc-a-executive-reader",
       "passwordEnv": "ACCEPTANCE_A_EXECUTIVE_READER_PASSWORD",
@@ -325,7 +341,8 @@
         "AC-12",
         "AC-21",
         "AC-22",
-        "AC-IAM-53"
+        "AC-IAM-53",
+        "AC-PAY-54"
       ],
       "enabled": true
     },
@@ -347,7 +364,8 @@
         "AC-24",
         "AC-25",
         "AC-23",
-        "AC-IAM-53"
+        "AC-IAM-53",
+        "AC-PAY-54"
       ],
       "enabled": true
     },

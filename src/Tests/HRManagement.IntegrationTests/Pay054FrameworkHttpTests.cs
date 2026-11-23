@@ -51,13 +51,14 @@ public sealed class Pay054FrameworkHttpTests(PostgreSqlFixture postgres)
     /// Payroll.Web with no seed (as production runs) and the test's clock: 23 November 2026 unless a test moves it, so the interim
     /// gate (the real catalog's exceptions end on 31 January 2027) never depends on the day the suite runs.
     /// </summary>
-    internal static Task<Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext>> StartAsync(PostgreSqlFixture postgres, Pay054Clock? clock = null) =>
+    internal static Task<Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext>> StartAsync(
+        PostgreSqlFixture postgres, Pay054Clock? clock = null, Action<Microsoft.Extensions.DependencyInjection.IServiceCollection>? moreServices = null) =>
         Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext>.StartAsync(
             postgres, "PayrollDb", PayrollOrgScopeKeys.Registry,
             $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollApprover}",
             $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollProcessor}",
             "/PayrollConfigurations/Create", (_, _) => Task.FromResult(new Dictionary<Type, Guid>()),
-            testServices: Pay054TestLegal.Services(clock ?? new Pay054Clock(Pay054Clock.Default)),
+            testServices: Pay054TestLegal.Services(clock ?? new Pay054Clock(Pay054Clock.Default)) + moreServices,
             // As production runs: no seed. The Development default would seed the Demo frameworks.
             settings: new Dictionary<string, string?> { ["Seed:Profile"] = "None" });
 

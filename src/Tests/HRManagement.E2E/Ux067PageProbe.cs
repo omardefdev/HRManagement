@@ -80,6 +80,11 @@ public static class Ux067PageProbe
         new("payroll-grade-details", "/ui/payroll/PayGrades", @"/PayGrades/Details/[0-9a-fA-F-]{36}"),
         // A form with its validation summary: an empty summary used to write an inline style attribute (PLAN-53's server check).
         new("payroll-grade-edit", "/ui/payroll/PayGrades", @"/PayGrades/Edit/[0-9a-fA-F-]{36}"),
+        // PLAN-54: a legal framework version (its tables with their references and statuses, and the cycle's forms), the import
+        // form, and a manual input list with its approval column.
+        new("payroll-framework-details", "/ui/payroll/PayrollConfigurations", @"/PayrollConfigurations/Details/[0-9a-fA-F-]{36}"),
+        new("payroll-framework-import", "/ui/payroll/PayrollConfigurations/Import"),
+        new("payroll-manual-allowances", "/ui/payroll/AllowanceRecords"),
         new("asset-details", "/ui/admin-logistics/Assets", @"/Assets/Details/[0-9a-fA-F-]{36}"),
         new("transfers", "/ui/hr-movements/TransferRequests"),
     ];
