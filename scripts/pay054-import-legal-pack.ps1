@@ -35,7 +35,7 @@ if (-not $PackPath) { $PackPath = Join-Path $RepoRoot "docs/syr/payroll-framewor
 if (-not (Test-Path $PackPath)) { throw "Pack not found: $PackPath" }
 if (-not $GatewayBaseUrl) { $GatewayBaseUrl = "http://localhost:6200" }
 if (-not $KeycloakBaseUrl) { $KeycloakBaseUrl = "http://localhost:6388" }
-if (-not $Username) { $Username = "acc-a-payroll-processor" }   # the acceptance persona with payroll-processor
+if (-not $Username) { $Username = "e2e-payroll-processor" }   # the acceptance persona with payroll-processor
 
 # The envelope is built as text: PowerShell's JSON conversion would turn the pack's large amounts into floating point.
 if ($Code -and $Code -cnotmatch '^[A-Z][A-Z0-9_]{2,99}$') { throw "Code must be upper-case letters, digits and underscores (3 to 100)." }
