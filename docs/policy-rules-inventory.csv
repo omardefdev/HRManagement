@@ -59,6 +59,7 @@
 "src/Services/HRMovements/HR.Movements.Domain/Services/WorkforceGapAnalysisRules.cs","HRMovements","Movements.Workforce","محلي"
 "src/Services/HRTraining/HR.Training.Domain/Services/LearningCompletionRules.cs","HRTraining","Training.Learning","محلي"
 "src/Services/ITInfrastructure/IT.Infrastructure.Domain/Services/TicketWorkflowRules.cs","ITInfrastructure","IT.Tickets","محلي"
+"src/Services/Payroll/Payroll.Application/Features/PayProfileChanges/PayProfileChangeRules.cs","Payroll","Payroll.Period","محلي"
 "src/Services/Payroll/Payroll.Domain/Services/EmployeePayProfileRules.cs","Payroll","Payroll.Period","محلي"
 "src/Services/Payroll/Payroll.Domain/Services/Engine/Rules/PayrollRules.cs","Payroll","Payroll.Period","محلي"
 "src/Services/Payroll/Payroll.Domain/Services/MedicalCompensationRules.cs","Payroll","Payroll.Period","محلي"

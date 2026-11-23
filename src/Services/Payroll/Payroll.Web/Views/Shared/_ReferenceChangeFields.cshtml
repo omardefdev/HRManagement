@@ -1,0 +1,16 @@
+@model Payroll.Web.ViewModels.PayrollReferenceChangeFieldsViewModel
+@* PLAN-53 (D-53-4): what every request to change a salary scale or a grade states. *@
+<div class="alert alert-info" role="alert">
+    لا يتغيّر السجل عند الحفظ: يُنشأ طلب يعتمده معتمد رواتب آخر من شاشة «طلبات البيانات المرجعية».
+</div>
+<div class="row">
+    <div class="col-md-7 mb-3">
+        <label asp-for="Reason" class="form-label"></label>
+        <textarea asp-for="Reason" class="form-control" rows="2" maxlength="500"></textarea>
+    </div>
+    <div class="col-md-5 mb-3">
+        <label asp-for="LegalReference" class="form-label"></label>
+        <input asp-for="LegalReference" class="form-control" maxlength="200" />
+        <div class="form-text">رقم القرار أو المرسوم أو المادة التي يستند إليها التغيير.</div>
+    </div>
+</div>

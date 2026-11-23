@@ -6,7 +6,13 @@ using HRManagement.ServiceDefaults;
 
 namespace HRManagement.AcceptanceTests;
 
-/// <summary>AC-25: fraud hold blocks pay; four-eyes release allows pay.</summary>
+/// <summary>
+/// AC-25: fraud hold blocks pay; four-eyes release allows pay. PLAN-53: the «hired and paid the same day» fixture is a salary change
+/// the processor requests and the approver approves, effective from the first day of the current month (Damascus), so it is applied
+/// at once and the run of the current month reads it. (An approved change for May 2027 would only be scheduled, and May's run would
+/// not see it.) Every assertion of the scenario is as it was.
+/// </summary>
+[RequiredAcceptance]
 public class Ac25FraudHoldTests
 {
     [SkippableFact]
@@ -28,26 +34,40 @@ public class Ac25FraudHoldTests
         using var httpApprover = await AcceptanceHarness.CreateAuthorizedClientAsync(approver, correlationId);
         using var httpPoster = await AcceptanceHarness.CreateAuthorizedClientAsync(poster, correlationId);
 
-        var periodStart = new DateTime(2027, 5, 1, 0, 0, 0, DateTimeKind.Utc);
+        // The current month on the service's clock (Localization:TimeZone, Asia/Damascus): its first day is today or earlier there.
+        var today = HRManagement.ServiceDefaults.Localization.HrLocalTime.ToLocal(DateTime.UtcNow, HRManagement.ServiceDefaults.Localization.HrLocalTime.DefaultZone);
+        var periodStart = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc);
         var periodEnd = periodStart.AddMonths(1).AddDays(-1);
         var hireDay = periodStart;
 
-        await RequireSuccessAsync(
-            await httpProcessor.PutAsJsonAsync(
-                $"api/payroll/employees/{AcceptanceSeedIds.EmpBr1Id:D}/pay-profile",
-                new
-                {
-                    baseSalary = 475000m,
-                    payGradeId = (Guid?)null,
-                    effectiveFrom = hireDay,
-                    effectiveTo = (DateTime?)null,
-                    isActive = true,
-                    changeReason = "AC-25 deterministic same-day hire-and-pay fixture"
-                }),
-            recorder,
-            "prepare-fraud-fixture",
-            $"/api/payroll/employees/{AcceptanceSeedIds.EmpBr1Id:D}/pay-profile",
-            "PUT");
+        // The fixture, as a request: a salary inside the grade's bounds, from the first day of the month.
+        var (_, fixtureSalary) = await Ac23PayrollFreezeTests.SalaryInsideBoundsAsync(AcceptanceSeedIds.EmpBr1Id);
+        var request = await httpProcessor.PutAsJsonAsync(
+            $"api/payroll/employees/{AcceptanceSeedIds.EmpBr1Id:D}/pay-profile",
+            new
+            {
+                baseSalary = fixtureSalary,
+                payGradeId = (Guid?)null,
+                effectiveFrom = hireDay,
+                changeReason = "AC-25: تثبيت حالة التعيين والدفع في اليوم نفسه",
+                legalReference = "القرار 25 لعام 2026"
+            });
+        var requestBody = await request.Content.ReadAsStringAsync();
+        recorder.CaptureHttp("prepare-fraud-fixture", "PUT", $"/api/payroll/employees/{AcceptanceSeedIds.EmpBr1Id:D}/pay-profile",
+            (int)request.StatusCode, string.IsNullOrWhiteSpace(requestBody) ? null : JsonSerializer.Deserialize<object>(requestBody));
+        Assert.True(request.StatusCode == System.Net.HttpStatusCode.Accepted, $"prepare-fraud-fixture: {requestBody}");
+        Guid requestId;
+        using (var requestDoc = JsonDocument.Parse(requestBody))
+            requestId = requestDoc.RootElement.GetProperty("requestId").GetGuid();
+
+        // The approver, another person, approves: the change is due, so it is applied to the pay profile now.
+        var approveFixture = await httpApprover.PostAsJsonAsync($"api/payroll/pay-profile-changes/{requestId:D}/approve", new { note = "AC-25" });
+        var approveFixtureBody = await approveFixture.Content.ReadAsStringAsync();
+        recorder.CaptureHttp("approve-fraud-fixture", "POST", $"/api/payroll/pay-profile-changes/{requestId:D}/approve",
+            (int)approveFixture.StatusCode, string.IsNullOrWhiteSpace(approveFixtureBody) ? null : JsonSerializer.Deserialize<object>(approveFixtureBody));
+        Assert.True(approveFixture.IsSuccessStatusCode, $"approve-fraud-fixture: {approveFixtureBody}");
+        using (var approved = JsonDocument.Parse(approveFixtureBody))
+            Assert.Equal("Applied", approved.RootElement.GetProperty("state").GetString());
 
         var create = await httpProcessor.PostAsync("api/payroll/runs", JsonContent(new
         {

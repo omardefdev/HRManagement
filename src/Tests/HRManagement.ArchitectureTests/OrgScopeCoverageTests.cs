@@ -34,7 +34,8 @@ public sealed class OrgScopeCoverageTests
         ["hr-core"] = 0,
         ["hr-contracts"] = 0,
         ["admin-logistics"] = 0,
-        ["payroll"] = 24,
+        // 24 until PLAN-53 gave EmployeePayProfiles its stance (and its new controllers theirs from the first commit).
+        ["payroll"] = 23,
         ["hr-movements"] = 8,
         ["hr-training"] = 13,
         ["hr-health"] = 11,
@@ -57,6 +58,7 @@ public sealed class OrgScopeCoverageTests
             ["hr-contracts"] = HR.Contracts.Infrastructure.OrgScope.ContractsOrgScopeKeys.Configure,
             ["admin-logistics"] = Admin.Logistics.Infrastructure.OrgScope.AdminLogisticsOrgScopeKeys.Configure,
             ["hr-movements"] = HR.Movements.Infrastructure.OrgScope.MovementsOrgScopeKeys.Configure,
+            ["payroll"] = Payroll.Infrastructure.OrgScope.PayrollOrgScopeKeys.Configure,
         };
 
     public static OrgScopeKeyRegistry? RegistryOf(string service)

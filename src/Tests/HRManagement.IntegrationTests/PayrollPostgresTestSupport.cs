@@ -24,7 +24,8 @@ internal static class PayrollPostgresTestSupport
     public static async Task<(ServiceProvider Root, AsyncServiceScope Scope, PayrollDbContext Db, IMediator Mediator)> CreateScopeAsync(
         PostgreSqlFixture fixture,
         Action<PayrollBatchOptions>? configure = null,
-        Guid? tenantId = null)
+        Guid? tenantId = null,
+        Action<IServiceCollection>? configureServices = null)
     {
         var dbName = TestDatabaseNames.Unique("payroll_");
         var cs = await fixture.CreateDatabaseAsync(dbName);
@@ -32,6 +33,8 @@ internal static class PayrollPostgresTestSupport
 
         var services = new ServiceCollection();
         services.AddLogging();
+        // Before AddPayrollApplication, whose registrations are TryAdd: a test's clock or event double wins.
+        configureServices?.Invoke(services);
         services.AddSingleton<ITenantContext>(tenant);
         // Mirror Payroll.Web: a real tenant turns the TEN-002 query filter on, so inserts must be stamped with that
         // tenant (TenantIdStampInterceptor) and the RLS session variable set, or every row lands as Guid.Empty and

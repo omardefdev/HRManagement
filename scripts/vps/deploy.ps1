@@ -173,7 +173,9 @@ if ($Local) {
         if ($LASTEXITCODE -ne 0) { throw 'make-deploy-bundle.ps1 failed' }
         $release = Join-Path $localHome "releases\$Tag"
         if (Test-Path $release) { Remove-Item -Recurse -Force $release }
-        $tar = Invoke-Captured 'tar.exe' @('-xzf', $bundle, '-C', (Join-Path $localHome 'releases'))
+        # tar.exe is Windows' own tar; a Linux or macOS machine has tar (PLAN-53: the owner's machine is Linux now).
+        $tarProgram = if ($env:OS -eq 'Windows_NT') { 'tar.exe' } else { 'tar' }
+        $tar = Invoke-Captured $tarProgram @('-xzf', $bundle, '-C', (Join-Path $localHome 'releases'))
         if ($tar.ExitCode -ne 0) { throw "extract failed: $($tar.StdErr)" }
         Rename-Item (Join-Path $localHome "releases\hrm-deploy-$Tag") $release
         $run = Invoke-Streamed $bash @((Join-Path $release 'deploy\vps\remote-deploy.sh').Replace('\', '/'), 'deploy', $Tag) $envVars

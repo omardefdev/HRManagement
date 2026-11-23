@@ -4,7 +4,7 @@
     <div class="card-header"><h3 class="card-title"><i class="fas fa-plus"></i> نوع خصم جديد</h3></div>
     <div class="card-body">
         <form asp-action="Create" method="post">@Html.AntiForgeryToken()
-            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+            <partial name="_FormErrors" />
             <div class="row">
                 <div class="col-md-6 mb-3"><label asp-for="Code" class="form-label"></label><input asp-for="Code" class="form-control" /></div>
                 <div class="col-md-6 mb-3"><label asp-for="NameAr" class="form-label"></label><input asp-for="NameAr" class="form-control" /></div>

@@ -29,6 +29,14 @@ dotnet test src/Tests/HRManagement.ArchitectureTests/HRManagement.ArchitectureTe
 - قوائم السقف تحت `tests/architecture/`: صف لكل سطر `Key | reason`، والسبب يبدأ بالخطة المالكة (`PLAN-53:` أو `IAM-F:`)، والسقف
   مثبّت في الاختبار ولا يرتفع؛ صف لم يعد مخالفاً يُفشل الاختبار حتى يُحذف. بعد PLAN-51: `write-policy-allowlist/payroll.txt` (16، PLAN-53)
   و`entity-binding-allowlist/*.txt` خارج HR.Movements (113، IAM-F) فقط؛ PLAN-65 يراجعها.
+- منذ PLAN-53: قائمة `write-policy-allowlist/payroll.txt` **محذوفة** وسقف الرواتب صفر، و`PLAN-53` خارج `CeilingList.Owners`
+  (المالكون الباقون `IAM-F` و`IAM-H`)؛ `PayrollWriteActionsTests` يثبت سياسة كل كتابة في الرواتب ومن يصلها، و`PayProfileWritersTests`
+  و`PayrollReferenceWritersTests` (في اختبارات الوحدة) يسمّيان كل كاتب لملف الأجر وللسلّم والدرجة ويفشلان عند كاتب جديد.
+  `scripts/iam053-validate.ps1` (ومعه `-SelfTest` بعشرين عيباً مزروعاً) يجمع ثوابت الخطة: لا قائمة سقف، لا كتابة راتب مباشرة،
+  الإعداد ومرآته في مكدس prod-like، الترحيل PAY053، الأحداث الثلاثة، مرشح النطاق ومهمة التفعيل، رقعة نظام الخدمة في بذرة
+  القبول وحدها، و`AcIam53SalaryChangeTests` مطلوبة في prod-like و`AC-23` و`AC-24` و`AC-25` مطلوبة في lab. (`AC-12` خارجها: يرسل
+  التشغيل للمراجعة بلا حساب، وإعادة كتابته في PLAN-59.) واختبارات التكامل `Iam053*` (Testcontainers) تثبت على PostgreSQL:
+  اعتمادين متزامنين، الفهرس المرشَّح، الحفظ الواحد مع الـ outbox، أمان الصفوف بدور غير مالك، مهمة التفعيل، ونطاق الفرع عبر HTTP.
 - منذ PLAN-52 (BOLA v2، بديل `BolaArchitectureTests`): `OrgScopeCoverageTests` يمسح بالانعكاس كل متحكم في التجميعات الخمس عشرة
   والمتحكمات المشتركة: لكل متحكم موقف نطاق معلن (`[OrgScoped]`، `[OrgScopeCentralOnly]`، `[OrgScopeNotApplicable]`،
   `[RecruitmentOrgScope]`) أو صف في `org-scope-allowlist/<service>.txt` موقّع `IAM-H:` مع سبب، ولا يكون الصف لمتحكم يصله مستخدم مقيّد

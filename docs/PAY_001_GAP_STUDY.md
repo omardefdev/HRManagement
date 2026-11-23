@@ -303,6 +303,7 @@
   - **سالب:** إرسال GUID مستخدم آخر لا يُفرج. حلّ تنبيه حرج بلا معتمد ثانٍ يبقيه مفتوحاً. تشغيل فوق العتبة لا يصبح `Approved` باعتماد واحد. ناشر الإطار ≠ معتمده.
 
 #### G-PAY-10 — بيانات مالية أساسية ومدخلات بلا سياسة ولا مدقق
+- **الحالة:** جزئي: السياسات والراتب — [PLAN-53](acceptance-plans/PLAN-53-iam-payroll-salary-change.md). الإجراءات الستة عشر تسمّي سياساتها ودور `payroll` وحده لا يكتب؛ وتغيير الراتب الأساسي والدرجة، والسلالم والدرجات، طلبات يعتمدها معتمد رواتب غير الطالب ([PAYROLL_SALARY_CHANGE.md](PAYROLL_SALARY_CHANGE.md)). **الباقي:** البدلات والخصومات والتسويات اليدوية بمدقق، والخصومات النظامية والعطل داخل نسخة الإطار ← PLAN-54؛ وأنواع البدلات والخصومات (`CompensationTypes`/`DeductionTypes`) صارت بسياسة `Payroll.MasterData` لكنها ما زالت تُكتب مباشرة بلا طلب.
 - **الدليل:**
   - 16 إجراء POST بلا `[Authorize(Policy=…)]`، يكفيها دور الوحدة `payroll`، بما فيه المعتمد والمُرحِّل والعاكس. والبوابة تمرر تعديلات الرواتب بـ `ModulePayroll` فقط ([GatewayPathAuthorizationMiddleware.cs:228-235](../src/Shared/HRManagement.ServiceDefaults/GatewayPathAuthorizationMiddleware.cs)). الإجراءات:
     - `SalaryScales` Create/Edit/Delete ([SalaryScalesController.cs:35-75](../src/Services/Payroll/Payroll.Web/Controllers/SalaryScalesController.cs)).

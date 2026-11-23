@@ -23,7 +23,9 @@ public sealed class MassAssignmentArchitectureTests
         // PLAN-51 (P-8): HR.Movements binds view models; the rest is wave 2 (IAM-F, G-IAM-10).
         ["hr-movements"] = 0,
         ["hr-health"] = 20,
-        ["payroll"] = 16,
+        // 16 until PLAN-53 replaced five entity bindings with view models: the pay profile form (PayProfileChangeRequestViewModel) and
+        // the Create and Edit forms of the grades and the salary scales (PayGradeChangeViewModel, SalaryScaleChangeViewModel).
+        ["payroll"] = 11,
         ["hr-training"] = 14,
         ["it-infra"] = 14,
         ["dev-analytics"] = 12,

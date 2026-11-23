@@ -1,74 +1,59 @@
-@model Payroll.Domain.Entities.EmployeePayProfile
+@model Payroll.Web.ViewModels.PayProfileChangeRequestViewModel
 
-@{ ViewData["Title"] = "ملف راتب جديد"; }
+@{ ViewData["Title"] = "طلب تغيير راتب"; }
 
 <div class="card">
-
-    <div class="card-header"><h3 class="card-title">ملف راتب موظف</h3></div>
+    <div class="card-header"><h3 class="card-title">طلب تغيير راتب أو درجة</h3></div>
 
     <div class="card-body">
+        <div class="alert alert-info" role="alert">
+            لا يتغيّر ملف الأجر عند الحفظ: يُنشأ طلب بانتظار اعتماد معتمد رواتب آخر، ويسري من أول يوم من الشهر المحدد.
+        </div>
 
         <form asp-action="Create" method="post">
-
             @Html.AntiForgeryToken()
-
-            <div asp-validation-summary="All" class="text-danger"></div>
+            <partial name="_FormErrors" />
 
             <div class="mb-3">
-
                 <label asp-for="EmployeeId" class="form-label"></label>
-
-                <select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select>
-
+                <select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف...">
+                    <option value="">— اختر موظف —</option>
+                    @if (Model.EmployeeId is Guid employee)
+                    {
+                        <option value="@employee" selected="selected" data-hr-employee-id="@employee">الموظف المحدد</option>
+                    }
+                </select>
             </div>
 
             <div class="mb-3">
-
-                <label asp-for="PayGradeId" class="form-label"></label>
-
-                <select asp-for="PayGradeId" asp-items="ViewBag.Grades" class="form-select"><option value="">—</option></select>
-
+                <label asp-for="ProposedBaseSalary" class="form-label"></label>
+                <input asp-for="ProposedBaseSalary" class="form-control" type="number" step="0.01" min="0.01" />
+                <div class="form-text">اتركه فارغاً إن كان التغيير في الدرجة وحدها.</div>
             </div>
 
             <div class="mb-3">
-
-                <label asp-for="BaseSalary" class="form-label"></label>
-
-                <input asp-for="BaseSalary" class="form-control" />
-
+                <label asp-for="ProposedPayGradeId" class="form-label"></label>
+                <select asp-for="ProposedPayGradeId" asp-items="ViewBag.Grades" class="form-select"><option value="">— بلا تغيير في الدرجة —</option></select>
             </div>
 
             <div class="mb-3">
-
                 <label asp-for="EffectiveFrom" class="form-label"></label>
-
-                <input asp-for="EffectiveFrom" class="form-control" type="date" />
-
-            </div>
-
-            <div class="mb-3 form-check">
-
-                <input asp-for="IsActive" class="form-check-input" />
-
-                <label asp-for="IsActive" class="form-check-label"></label>
-
+                <input asp-for="EffectiveFrom" class="form-control" type="date" value="@Html.HrDateInputValue(Model.EffectiveFrom)" />
             </div>
 
             <div class="mb-3">
-
-                <label class="form-label">سبب التغيير</label>
-
-                <input name="changeReason" class="form-control" />
-
+                <label asp-for="Reason" class="form-label"></label>
+                <textarea asp-for="Reason" class="form-control" rows="2" maxlength="500"></textarea>
             </div>
 
-            <button type="submit" class="btn btn-primary">حفظ</button>
+            <div class="mb-3">
+                <label asp-for="LegalReference" class="form-label"></label>
+                <input asp-for="LegalReference" class="form-control" maxlength="200" />
+                <div class="form-text">رقم القرار أو المرسوم أو المادة التي يستند إليها التغيير.</div>
+            </div>
 
-            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
-
+            <button type="submit" class="btn btn-primary">تقديم الطلب</button>
+            <a asp-action="Index" class="btn btn-secondary">عودة</a>
         </form>
-
     </div>
-
 </div>
-

@@ -14,6 +14,9 @@ public class PayrollRepository(PayrollDbContext db) : IPayrollRepository
     public IQueryable<PayrollRun> PayrollRuns => db.PayrollRuns;
     public IQueryable<EmployeePayProfile> EmployeePayProfiles => db.EmployeePayProfiles;
     public IQueryable<EmployeePayProfileHistory> EmployeePayProfileHistories => db.EmployeePayProfileHistories;
+    public IQueryable<PayProfileChangeRequest> PayProfileChangeRequests => db.PayProfileChangeRequests;
+    public IQueryable<PayrollReferenceChangeRequest> PayrollReferenceChangeRequests => db.PayrollReferenceChangeRequests;
+    public IQueryable<SalaryScale> SalaryScales => db.SalaryScales;
     public IQueryable<AllowanceRecord> AllowanceRecords => db.AllowanceRecords;
     public IQueryable<DeductionRecord> DeductionRecords => db.DeductionRecords;
     public IQueryable<DeductionType> DeductionTypes => db.DeductionTypes;

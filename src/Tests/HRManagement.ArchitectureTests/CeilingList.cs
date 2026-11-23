@@ -4,15 +4,16 @@ namespace HRManagement.ArchitectureTests;
 
 /// <summary>
 /// PLAN-51 (§6, P-8): a ceiling list under <c>tests/architecture/</c>. One row per line: <c>Key | reason</c>; <c>#</c> starts a comment. A
-/// missing file is an empty list. A row's reason starts with the plan that owns the row (<c>PLAN-53:</c>, <c>IAM-F:</c>): no row exists
+/// missing file is an empty list. A row's reason starts with the plan that owns the row (<c>IAM-F:</c>, <c>IAM-H:</c>): no row exists
 /// to save time, and PLAN-65 reviews them.
 /// </summary>
 public sealed class CeilingList
 {
-    /// <summary>The plans that may own a row: PLAN-53 (Payroll's writes), wave 2 IAM-F (the entity bindings outside HR.Movements) and wave 2
-    /// IAM-H (the org-scope lists' latent controllers, PLAN-52). PLAN-51 owned the rows its P1 seeded until its P4 emptied them; PLAN-52 owned
-    /// the org-scope rows its P2 seeded until its P5 emptied them. PLAN-67 owned the interface rows its P2 seeded until its P6 emptied them.</summary>
-    public static readonly IReadOnlyList<string> Owners = ["PLAN-53", "IAM-F", "IAM-H"];
+    /// <summary>The plans that may own a row: wave 2 IAM-F (the entity bindings outside HR.Movements) and wave 2 IAM-H (the org-scope lists'
+    /// latent controllers, PLAN-52). PLAN-51 owned the rows its P1 seeded until its P4 emptied them; PLAN-52 owned the org-scope rows its
+    /// P2 seeded until its P5 emptied them. PLAN-67 owned the interface rows its P2 seeded until its P6 emptied them. PLAN-53 owned Payroll's
+    /// sixteen write rows until its P1 gave each write its policy: no write-policy list is left, and no plan signs a new row of one.</summary>
+    public static readonly IReadOnlyList<string> Owners = ["IAM-F", "IAM-H"];
 
     private CeilingList(string relativePath, IReadOnlyDictionary<string, string> rows, IReadOnlyList<string> malformed)
     {

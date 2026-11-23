@@ -58,6 +58,36 @@
       "idempotency": "referenceKey"
     },
     {
+      "id": "IPayProfileChangeSubmitted",
+      "kind": "event",
+      "schemaVersion": 1,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "Payroll",
+      "consumers": [],
+      "category": "domain",
+      "compatRule": "additive-only-minor"
+    },
+    {
+      "id": "IPayProfileChangeDecided",
+      "kind": "event",
+      "schemaVersion": 1,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "Payroll",
+      "consumers": [],
+      "category": "domain",
+      "compatRule": "additive-only-minor"
+    },
+    {
+      "id": "IPayProfileChangeApplied",
+      "kind": "event",
+      "schemaVersion": 1,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "Payroll",
+      "consumers": [],
+      "category": "domain",
+      "compatRule": "additive-only-minor"
+    },
+    {
       "id": "ILeaveApproved",
       "kind": "event",
       "schemaVersion": 2,

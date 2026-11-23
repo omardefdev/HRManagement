@@ -77,6 +77,20 @@ var (success, error) = await _mediator.Send(
 | Creator ≠ Approver | `ApprovePayrollRunHandler`: `request.ApproverId == run.CreatedBy` → reject |
 | Approver ≠ Poster | `PostPayrollRunHandler`: `latestApproval.ApproverId == request.PosterId` → reject |
 
+### 3a. Salary and reference data change by a request (PLAN-53)
+
+| Check | Location |
+|-------|----------|
+| A base salary or pay grade changes only through `PayProfileChangeRequest` and one applier | `IPayProfileChangeApplier`; `PayProfileWritersTests` names every other writer of `EmployeePayProfile` and fails on a new one |
+| Requester ≠ Approver | `DecidePayProfileChangeHandler`: `request.RequestedBy == actor` → 403, state unchanged |
+| The decider comes from the server identity | `PayProfileChangeHttp.RequireUserId(User)`; no client field names him |
+| A settled month is not rewritten | `PayProfileChangeRules.FindBlockingRunAsync` → 409 naming the month |
+| A request is applied only over the profile it was written against | `PayProfileChangeRules.IsWrittenAgainst` → 409 |
+| Salary scales and pay grades change by `PayrollReferenceChangeRequest`; a grade in use or a scale with grades is not deleted | `PayrollReferenceChangeApplier`; `PayrollReferenceWritersTests`; the two relations are `Restrict` (PAY053) |
+| Every payroll write names its policy; the `payroll` role alone writes nothing | `PayrollWriteActionsTests`; the payroll ceiling list is deleted |
+
+The contract: [PAYROLL_SALARY_CHANGE.md](PAYROLL_SALARY_CHANGE.md). Validation: `scripts/iam053-validate.ps1` (and `-SelfTest`).
+
 ### 4. Audit Gate Before Post
 
 `PostPayrollRunHandler` requires a closed `PayrollAuditRecord` before allowing the transition to `Posted`.

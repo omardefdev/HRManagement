@@ -353,3 +353,17 @@ Started (UTC): 2026-11-13T08:06:22.4518317Z
   1. `A_time_in_an_hour_the_clocks_skipped_…` passed on Windows only. In ci-local's Linux image, .NET reads the tz database's Asia/Damascus so that the offset changes at midnight on 2021-03-26 (23:30 is +02:00, 00:30 is +03:00) while `IsInvalidTime` stays false for every half hour of 2019 to 2022 (probed in the image), so the test found no skipped hour. **Fix:** every hour of 2021, the night of the change included, converts without failing the request on both platforms; where the platform marks the hour skipped (Windows), it is read as the same time after the change. `HrLocalTime.ToUtc` is unchanged.
   2. `AcceptanceSkipPatternArchitectureTests`: the residue check's opt-in `Skip.IfNot` (`UX067_CLOSE_RESIDUE`) is a raw skip. **Fix:** no gate: the check closes, through the application, any public posting a server check left, and normally finds none (it acts on the checks' own residue only, D-67-6).
   - Unit `Ux067*` and the skip pattern test 73/73; format clean on both files.
+
+## Merge record, rebuilt from GitHub by PLAN-53 (2026-11-22)
+
+The agent's own merge note (commit `cbbbeaab` on the local branch `docs/plan-67-merge-note`) existed only on the owner's
+Windows machine, which was formatted before PLAN-53 started. This record replaces it. It holds only what GitHub shows
+today; the note's own stamp and its waiting times are lost.
+
+- **PR:** https://github.com/omardefdev/HRManagement/pull/51 (`release/plan-67` at `ece7335c`), merged
+  2026-11-15T12:00:18Z as merge commit `d9552bad`.
+- **The checks on the merged head, all pass:** `CI` (42 min 37 s), `CodeQL` (14 min 17 s), `Gitleaks` (1 min 2 s),
+  `E2E` (17 min 46 s), `Acceptance` (33 s), `Acceptance images` (16 min 47 s), and the stages `lab-main` (24 min 8 s),
+  `lab-rest` (18 min 1 s), `leastpriv` (9 min 11 s), `meta` (43 min 42 s), `prodlike` (21 min 31 s), `prodlike-final`
+  (25 min 20 s), `prodlike-policy` (12 min 21 s); `Dedupe post-merge run` and `Reuse check` pass.
+- **After it on `main`:** PR #52 (`fix/dev-scripts-linux`, three dev scripts) merged 2026-11-21T01:14:08Z as `4ce01f59`.
