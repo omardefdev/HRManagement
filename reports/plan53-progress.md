@@ -669,10 +669,36 @@ Reason: the owner's message (`ssh hrm-vps whoami` → `hrm`). Re-check:
 
 - Started (UTC): 2026-11-23T01:59:43Z.
 
+- **P7:** `origin/main` is `4ce01f59`, as at the start: nothing to merge (checked again at 2026-11-23T03:05:41Z).
+- **Local gates on `2dc1c9f9` (the report's commit):**
+  - **`scripts/ci-local.ps1` could not be used on this machine,** and this is a deviation: its image needs the pinned
+    `mcr.microsoft.com/dotnet/sdk:10.0@sha256:de4fe90a…` (880 MB from the registry that gave 14 KB/s), and its «Verify
+    Docker builds» step builds every image at once, which this disk cannot hold (it filled once tonight). The same step
+    list (`scripts/ci/steps.json`) was run **natively with `scripts/ci/run-steps.sh --all`, in a fresh clone of HEAD**
+    (as ci-local's container does), 02:34:29Z to 03:02:54Z (28 min 25 s): **87 steps passed, 0 failed**, 5 not-run and
+    said so — `Integration tests (Testcontainers)` (run natively in P6: 248 passed, 1 skipped; the code it tests changed
+    after it only in the payroll views and one test, and `Iam053*` ran again: 22/22), `Coverage gate`,
+    `Install ReportGenerator` and `Generate coverage report` (they follow the Testcontainers step and would install a
+    global tool on the owner's machine), `Verify Docker builds` (the fifteen service images and the migrator were built
+    on this machine one at a time, and seventeen on the server, twice). In that run: unit tests 506 s, architecture
+    5.8 s, integration (MassTransit InMemory) 371 s, formatting, the Release build with `-warnaserror`, the pending
+    model check for the fifteen contexts, every validate script.
+  - Three false starts of that run, each the agent's or the machine's: the base-image-pin check read this plan's own
+    helper Dockerfiles under `artifacts/` (moved out of the tree); the agent deleted Debug outputs to free the disk
+    while a step was building with them; and stale MSBuild and compiler servers (alive since the disk filled) gave
+    Razor parse errors on files that had not changed, in the tree and in a clean clone, until
+    `dotnet build-server shutdown`.
+  - **`scripts/plan035-prepush.ps1`:** gitleaks PASS, actionlint PASS, cilocal PASS (the five not-run steps allowed
+    by name), forbidden PASS, nonprod PASS, signatures PASS (15 commits, unsigned, not required).
+- This plan's local images (`hrm-acceptance-*`, `hrm-local-dotnet-*`, `hrm-plan53-*`) and the build cache were removed
+  when the disk fell to 5 GB during the Release build; 18 GB free now. Other projects' images, containers and volumes
+  were never touched.
+- `release/plan-53` = `origin/main` + one `--no-ff` merge of the feature branch; `reports/plan53-pr.md` written.
+
 ## Exact next step
 
-P9: on the report's commit (clean tree), the CI steps natively (`bash scripts/ci/run-steps.sh --all --skip …`, the
-summary under `artifacts/ci-local/`; `ci-local.ps1`'s container cannot be built safely on this machine: see P9's
-notes), then `scripts/plan035-prepush.ps1`; then `release/plan-53` from `main` (`--no-ff`), `reports/plan53-pr.md`,
-push, `gh pr create`, wait for every check, `gh pr merge <n> --merge` only when all are green; the merge note; stop
-the keep-awake.
+P9: `git push -u origin release/plan-53`; `gh pr create --base main --head release/plan-53 --title "PLAN-53: payroll
+write policies, and a salary change approved by another person" --body-file reports/plan53-pr.md`; wait with
+`gh pr checks <n> --watch --interval 60`; merge with `gh pr merge <n> --merge` only when every check is green; then
+`git switch main; git pull --ff-only`; the merge note on the local branch `docs/plan-53-merge-note`; stop the
+keep-awake (`pkill -f 'systemd-inhibit --what=sleep:idle --who=plan53'`).
