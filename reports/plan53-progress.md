@@ -541,10 +541,107 @@ Reason: the owner's message (`ssh hrm-vps whoami` → `hrm`). Re-check:
 - The documents of P9 are committed (`79d523f8`); the server build will be of that commit, started when the local
   `isolated` stage is green (one build, on the final code).
 
+- **P8 checkpoint, 2026-11-22T23:17:20Z:**
+  - **The prod-like `isolated` stage (local, fresh stack, 22:34:49Z to 23:04:02Z; stack 922 s):**
+    `AcMsg40AtomicPublishingTests` 8/8, `AcWf44InstanceIntegrityTests` 5/5, `AcWf45AssetApprovalLoopTests` 8/8,
+    `AcWf46CrossServiceApprovalTests` 9/9, `AcPol47RuleLifecycleTests` 1/1, `AcOps39KeycloakDataProtectionTests` 8/8,
+    `AcInt37ProductionWiringTests` 7/8. The one that did not pass, `Ac37b`, was **Blocked by the way the stage was
+    run alone:** it needs the prod-like journey's appointment on the same stack («run Category=JourneyProdLike
+    first»), as CI's `prodlike` job runs them (journey, main, isolated, s2s42). It is run again with the journey before
+    it, with the `s2s42` stage after it (started 23:04Z; log `artifacts/plan53/p6-int37-s2s-job.log`).
+  - **The server build, tag `0640c2ac6db0`** (HEAD: the P6 commit's product code plus documents). `build-on-host.ps1`
+    uploaded the archive (31.0 MB, 139 s) and, as the script is written, started the build **attached** to its ssh
+    session (23:06Z). The prompt wants it detached, so at 23:16Z the agent stopped that run by its process ids (local
+    ssh client, then the server's script and bake processes; the script's cleanup removed its source folder) and
+    started the same script **detached** on the server (`setsid nohup`, start 23:16:53Z, log
+    `/opt/hrm/build-0640c2ac6db0.log`, exit code in `/opt/hrm/build-0640c2ac6db0.done`). One build of the final code;
+    the layers the first ten minutes built are in the server's build cache. Server disk: 37 GB free before, 27 GB at
+    the restart (the cache; the script removes it at its end).
+  - **Server change 2 — the build's files:** `/opt/hrm/build-on-host-0640c2ac6db0.sh` (kept, as for every earlier
+    tag), `/opt/hrm/src-0640c2ac6db0.tar.gz` (the upload; removed after the build), `build-0640c2ac6db0.start|log|done`.
+    **Undo:** `rm /opt/hrm/build-0640c2ac6db0.* /opt/hrm/src-0640c2ac6db0.tar.gz`; the images go to the loopback
+    registry under the tag `0640c2ac6db0` and change nothing until a deploy names them.
+
+- **P8 checkpoint, 2026-11-23T00:06:59Z — deployed; this plan's server checks pass:**
+  - **Local regression, the rest:** the prod-like journey 1/1 and `AcInt37ProductionWiringTests` **8/8** with the
+    journey before it; `AcS2s42TrustBoundaryTests` 8/9 — `Ac42i` needs `kubectl`, which this machine does not have
+    (a local limit; CI's runner has it). The lab job again after the review's fixes (23:28Z to 23:47:19Z; stack 887 s):
+    guard **PASS**, AC-23 (months by the clock), AC-24, AC-25 Passed, `AcHcm29` 3/3, AC-12 Blocked (not required).
+    **The leastpriv stage** (23:49Z to 23:57:43Z; stack 185 s, tests 341 s): guard **PASS**, `AcOps38FirstBootTests`
+    and `AcTen48LeastPrivilegeTests` — PAY053 runs from empty volumes under the least-privilege roles. The migrator
+    image and the stage's tags were removed after it (14 GB free).
+  - **The server build:** started detached 23:16:53Z; build 1,542 s, push 44 s, **17 of 17** images with digests in
+    the loopback registry; the script removed the source, the build cache and the SDK image; 29 GB free after it.
+  - **The deploy.** Attempt 1 (23:48Z) stopped on this machine before it touched the server: `make-deploy-bundle.ps1`
+    called `tar.exe`, which only Windows has. Fixed in both deploy scripts (`tar` when not on Windows; ASCII, 5.1
+    syntax). Attempt 2: 23:49:30Z to 23:54:06Z (4 min 36 s with the smoke): pull 18 s, up 149 s, bootstrap 63 s
+    (PAY053 applied by the migrator), keycloak-reconcile exit 0; `deployments.log`:
+    `2026-11-22T23:53:13Z|tag=0640c2ac6db0|action=deploy|result=healthy|previous=1ee455bf1a6f`. The services were
+    away for about three minutes at most. 22 containers (20 with a health check, all healthy). Smoke: **50 pass,
+    0 fail, 1 warn** (`artifacts/vps/smoke-hrm-vps-20261122T235406Z.json`).
+  - **Server change 3 — the release:** current-tag `0640c2ac6db0`, previous-tag `1ee455bf1a6f`; migration
+    `20261122153208_PAY053_SalaryChangeRequests` in `payroll_db`. **Undo:** `scripts/vps/deploy.ps1 -Rollback` (the
+    rollback note is in `OPS_VPS_SINGLE_HOST.md`).
+  - **`AcIam53VpsChecks` (evidence under `artifacts/plan53/vps/`):**
+    1. the policies — PAY053 recorded, row security on both tables, as `e2e-payroll-approver` the three posts answer
+       403, the processor's approvals 403, no row written: **Passed**;
+    2. the reference change — requested by the processor, pending with the grade as it was, his own approval 403,
+       rejected by the approver with a note; the delete of a grade in use 409 with its message; the grade's row as it
+       was: **Passed**;
+    3. the salary change — first run **failed on the test's own expectation** (the source is stored as a number, the
+       test expected its name) after the request had been accepted; its `finally` cancelled the request. Corrected and
+       run again: request through the API with the marker as `SourceReference` (201), pending, the processor's own
+       approval 403, the approver's approval → `Scheduled`, the outbox sequence advanced, the employee's profiles as
+       they were, cancelled → `Cancelled`: **Passed**.
+  - **Server change 4 — what the checks left:** two salary change requests `Cancelled` (both for 2026-12-01, source
+    reference `PLAN-53 server check`; the first from the failed run) and one reference change request `Rejected`, with
+    their audit rows. **No undo:** requests are records and are not deleted; none is open. After the checks: active
+    pay profiles 425 of 425, checksum `3b2e10719627b05f17069bfca7a784f2`, grades' md5
+    `d964b59013d8ce5845a3dc816ff67c92` — both as before the deploy.
+  - The server suites of PLAN-36..67 started 00:06:36Z (nothing heavy beside them).
+
+- **P8 checkpoint, 2026-11-23T01:11:05Z — the server suites, and a defect the server's browser check found:**
+  - **The server suites of PLAN-36..67** (00:06:36Z to 00:51:28Z, 44 min 52 s; `AcOps36VpsBootTests` without 36j,
+    `AcInt37VpsServerTests`, the server checks of PLAN-38..67): **50 of 55** in the run, then **53 of 55** after the
+    reruns. The five, each with its cause:
+    1. `AC_WF_44_vps_the_job_runs…` — failed once **because of the agent:** it switched on ssh connection reuse for
+       the server alias while the suite ran (each ssh command took 3.5 s over this link; with reuse 0.9 s), and ssh's
+       «ControlSocket … already exists» line entered a command's output. Run again alone: **Passed**.
+    2. `AC_WF_46_vps_the_sweeps_run…` — no sweep cycle yet after the deploy, as in every earlier plan. Run again after
+       a cycle: **Passed**.
+    3. `AC_UX_67_vps_the_portal_is_styled…` — a 30 s page load timeout over this link. Run again: **Passed**.
+    4. `AC_POL_47_vps_the_migration_the_trigger…` — **not passed, a local cause:** it reads
+       `artifacts/plan47/vps/fingerprint-before.json`, an uncommitted file of the formatted Windows machine. Every
+       assertion before that line passed (the migration, the triggers, the roles, the change sets). The comparison it
+       makes (policy versions unchanged since before PLAN-47's deploy) cannot be made from this machine; PLAN-53
+       touches no policy data.
+    5. `AC_UX_67_vps_every_key_page…` — **not passed on this machine:** `net::ERR_NETWORK_CHANGED` twice, on a
+       different page each time. The owner's dev container `hrm-keycloak` restarts about every minute on this
+       machine, and each restart changes a network interface under Chromium during the five-minute tour. The
+       container is not the agent's to stop. The same tour passes on the local prod-like stack (loopback).
+  - **ssh connection reuse (this session only):** `ControlMaster auto`, `ControlPath`, `ControlPersist 10m` under
+    `Host hrm-vps` in `~/.ssh/config`; the host key check is unchanged. Backup `~/.ssh/config.plan53.bak`. **Undo, done
+    at the end of the session:** restore the backup.
+  - **A fourth PLAN-53 server check, `AC_IAM_53_vps_the_salary_and_reference_change_screens…`** (P8's item 5): eight
+    payroll screens in a real Chromium as `e2e-payroll-processor`, a short tour that is run again when the machine's
+    network changes under it. **It found a real defect:** the four screens with a form (the request's details, the
+    request form, the reference request's details, the grade's edit form) raised one `style-src-attr` violation each.
+    Cause: an empty `asp-validation-summary="All"` writes `<li style="display:none"></li>`. PLAN-67's static guard
+    reads the views, not what the tag helper writes, and its key pages held no form of this kind.
+  - **Fix (product code, so a second server build is needed — the «one build» rule is broken for a defect the server
+    check exists to find):** the twelve payroll forms write their errors through `Views/Shared/_FormErrors.cshtml`,
+    which renders the summary only when the model state has errors. `Iam053PayrollScopeHttpTests` asserts the
+    untouched form carries no `style=` attribute; AC-UX-67's key pages gain the grade's edit form, so CI and the
+    server check both open a form from now on. Architecture 358/358, the PLAN-53 integration tests 22/22, the
+    interface guard tests and `ux067-validate.ps1` pass. **Left for a UX plan:** the same summary in four HR.Contracts
+    views and one HR.Core view (not key pages).
+
 ## Exact next step
 
-P8: while the prod-like `isolated` stage runs locally (log `artifacts/plan53/p6-isolated-job.log`; then `-Stage
-prodLike:s2s42`, then the lab job for AC-23, AC-24, AC-25 and AcHcm29), on the server: check SSH and the host key, take
-and verify the backup under `/opt/hrm/backups/pre-plan53-<utc>/`, check the disk (30 GB), start the one detached build
-of the P6 commit, and deploy with `scripts/vps/deploy.ps1 -Tag <sha12>` **only after the local regression is green**.
-Then `AcIam53VpsChecks`, the PLAN-36..67 server checks, the smoke; the rollback note; commit P8. Then P9.
+P8, continuing: commit the view fix; build the new tag on the server **detached**
+(`ssh hrm-vps 'setsid nohup sh -c "bash /opt/hrm/build-on-host-<tag>.sh <tag> /opt/hrm/src-<tag>.tar.gz 127.0.0.1:5050/hrmanagement > /opt/hrm/build-<tag>.log 2>&1; echo \$? > /opt/hrm/build-<tag>.done" …'`
+after uploading the archive and the script as `build-on-host.ps1` does); meanwhile rebuild `payroll-web` locally
+(the NuGet cache mount must be seeded again: `artifacts/plan53/nuget-seed`), start the prod-like stack and run
+`AcUx67ReadableInterfaceTests` and `AcIam53SalaryChangeTests`; deploy the new tag; run the four `AC_IAM_53_vps` checks
+and the smoke; restore `~/.ssh/config`; commit P8. Then P9 (the report's placeholders, the native CI steps, the
+pre-push check, the release branch, the PR, CI, the merge).

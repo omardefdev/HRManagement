@@ -5,7 +5,7 @@
     <div class="card-body">
         <p class="text-muted">تعديل حدود الدرجة لا يغيّر ملفات أجر قائمة: ما يخرج منها عن الحدود الجديدة يُعرض ولا يُعدَّل آلياً.</p>
         <form asp-action="Edit" asp-route-id="@Model.Id" method="post">@Html.AntiForgeryToken()
-            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+            <partial name="_FormErrors" />
             <div class="row">
                 <div class="col-md-6 mb-3"><label asp-for="SalaryScaleId" class="form-label"></label><select asp-for="SalaryScaleId" asp-items="@(ViewBag.Scales as Microsoft.AspNetCore.Mvc.Rendering.SelectList)" class="form-select"><option value="">— اختر الجدول —</option></select></div>
                 <div class="col-md-3 mb-3"><label asp-for="GradeCode" class="form-label"></label><input asp-for="GradeCode" class="form-control" /></div>

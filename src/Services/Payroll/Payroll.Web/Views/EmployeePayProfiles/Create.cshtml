@@ -12,7 +12,7 @@
 
         <form asp-action="Create" method="post">
             @Html.AntiForgeryToken()
-            <div asp-validation-summary="All" class="text-danger"></div>
+            <partial name="_FormErrors" />
 
             <div class="mb-3">
                 <label asp-for="EmployeeId" class="form-label"></label>

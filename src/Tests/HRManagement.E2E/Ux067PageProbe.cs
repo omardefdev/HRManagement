@@ -78,6 +78,8 @@ public static class Ux067PageProbe
         new("payroll-salary-changes", "/ui/payroll/PayProfileChanges"),
         new("payroll-reference-changes", "/ui/payroll/PayrollReferenceChanges"),
         new("payroll-grade-details", "/ui/payroll/PayGrades", @"/PayGrades/Details/[0-9a-fA-F-]{36}"),
+        // A form with its validation summary: an empty summary used to write an inline style attribute (PLAN-53's server check).
+        new("payroll-grade-edit", "/ui/payroll/PayGrades", @"/PayGrades/Edit/[0-9a-fA-F-]{36}"),
         new("asset-details", "/ui/admin-logistics/Assets", @"/Assets/Details/[0-9a-fA-F-]{36}"),
         new("transfers", "/ui/hr-movements/TransferRequests"),
     ];

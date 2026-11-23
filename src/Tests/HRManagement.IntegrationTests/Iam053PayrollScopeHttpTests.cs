@@ -365,6 +365,10 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
         Assert.Equal(HttpStatusCode.OK, form.StatusCode);
         var html = await form.Content.ReadAsStringAsync();
         Assert.Contains("طلب تغيير راتب أو درجة", html, StringComparison.Ordinal);
+        // A form with nothing to report writes no validation summary: an empty one carries an inline style attribute
+        // (<li style="display:none">), which the enforced Content-Security-Policy refuses (found by the server's browser check).
+        Assert.DoesNotContain("style=\"", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("validation-summary-valid", html, StringComparison.Ordinal);
         var token = WebUtility.HtmlDecode(Regex.Match(html, "name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"").Groups[1].Value);
         Assert.NotEqual("", token);
 

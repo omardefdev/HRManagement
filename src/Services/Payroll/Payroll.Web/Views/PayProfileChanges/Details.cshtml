@@ -12,7 +12,7 @@
     </div>
 
     <div class="card-body">
-        <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+        <partial name="_FormErrors" />
 
         @if (blocked)
         {

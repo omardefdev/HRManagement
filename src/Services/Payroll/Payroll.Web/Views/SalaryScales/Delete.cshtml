@@ -9,7 +9,7 @@
               data-hr-confirm-title="تأكيد طلب الحذف"
               data-hr-confirm-variant="danger"
               data-hr-confirm-label="تقديم طلب الحذف">@Html.AntiForgeryToken()
-            <div asp-validation-summary="All" class="text-danger mb-3"></div>
+            <partial name="_FormErrors" />
             <partial name="_ReferenceChangeFields" model="Model" />
             <button type="submit" class="btn btn-danger"><i class="fas fa-paper-plane"></i> تقديم طلب الحذف</button>
             <a asp-action="Index" class="btn btn-secondary">عودة</a>

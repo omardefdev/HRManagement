@@ -9,7 +9,7 @@
         <a asp-action="Index" class="btn btn-secondary btn-sm">عودة إلى الطلبات</a>
     </div>
     <div class="card-body">
-        <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+        <partial name="_FormErrors" />
 
         <dl class="row mb-4">
             <dt class="col-sm-3">السجل</dt><dd class="col-sm-9">@(string.IsNullOrEmpty(r.EntityLabel) ? "—" : r.EntityLabel)</dd>

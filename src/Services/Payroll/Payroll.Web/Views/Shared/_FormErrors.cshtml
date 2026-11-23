@@ -1,0 +1,7 @@
+@* PLAN-53: the errors of a form, written only when there are any. An empty asp-validation-summary="All" writes
+   <li style="display:none"></li>, and the enforced Content-Security-Policy refuses an inline style attribute
+   (style-src-attr): the demo server's browser check found it on every payroll form. *@
+@if (!ViewData.ModelState.IsValid)
+{
+    <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+}

@@ -143,7 +143,9 @@ try {
 
     $archive = Join-Path $artifacts "hrm-deploy-$Tag.tar.gz"
     Remove-Item $archive -ErrorAction SilentlyContinue
-    $tar = Invoke-Native 'tar.exe' @('-czf', $archive, '-C', (Split-Path -Parent $stage), "hrm-deploy-$Tag")
+    # tar.exe is Windows' own tar; a Linux or macOS machine has tar (PLAN-53: the owner's machine is Linux now).
+    $tarProgram = if ($env:OS -eq 'Windows_NT') { 'tar.exe' } else { 'tar' }
+    $tar = Invoke-Native $tarProgram @('-czf', $archive, '-C', (Split-Path -Parent $stage), "hrm-deploy-$Tag")
     if ($tar.ExitCode -ne 0) { throw "tar failed: $($tar.StdErr)" }
     Remove-Item -Recurse -Force $stage
     $size = (Get-Item $archive).Length
