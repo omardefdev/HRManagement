@@ -58,12 +58,10 @@ public class CreateCorrectionRunHandler(
 
         var periodStart = DateOnly.FromDateTime(correction.PeriodStart);
         var periodEnd = DateOnly.FromDateTime(correction.PeriodEnd);
-        var holidays = await repository.OfficialHolidays
-            .Where(h => h.PayrollConfigurationId == null || h.PayrollConfigurationId == config.Id)
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);
-        var extraHolidays = PayrollRunCalculationSupport.BuildHolidaySet(periodStart, periodEnd, holidays);
-        var deductionTypes = await repository.DeductionTypes.AsNoTracking().ToListAsync(cancellationToken);
+        // PLAN-54: a v2 version brings its own holidays and statutory deductions; only a legacy version reads the general tables.
+        var reference = await PayrollFrameworkReferenceData.LoadAsync(repository, config, cancellationToken);
+        var extraHolidays = PayrollRunCalculationSupport.BuildHolidaySet(periodStart, periodEnd, reference.Holidays);
+        var deductionTypes = reference.LegacyDeductionTypes;
 
         foreach (var sourceLine in source.SalaryLines)
         {

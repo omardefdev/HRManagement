@@ -77,13 +77,38 @@ public class ExecutePartialDisbursementHandler(
         if (lines.Count == 0)
             return Empty(false, "لا توجد بنود رواتب للصرف.");
 
+        // PLAN-54 (§2): a run pinned to a v2 version is disbursed by that version's own priority rules, inside its fingerprint. A run
+        // of a version older than PLAN-54 (or pinned to none) reads, as before, the decision's rule set or the general active rules;
+        // «general» now means rules that belong to no version, so a version's rules never leak into a legacy run.
         var ruleSetId = decision.PriorityRuleSetId;
-        var rules = ruleSetId.HasValue
-            ? await repository.DisbursementPriorityRules
+        var pinnedVersion = run.PayrollConfigurationId is Guid pinnedId
+            ? await repository.PayrollConfigurations.AsNoTracking()
+                .Where(c => c.Id == pinnedId)
+                .Select(c => new { c.Id, c.HashSchemaVersion })
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
+        List<DisbursementPriorityRule> rules;
+        if (pinnedVersion is { HashSchemaVersion: >= PayrollConfiguration.CurrentHashSchemaVersion })
+        {
+            if (ruleSetId.HasValue && ruleSetId.Value != pinnedVersion.Id)
+                return Empty(false, "قرار التمويل يسمّي مجموعة قواعد غير قواعد الإطار القانوني المثبت على التشغيل.");
+            rules = await repository.DisbursementPriorityRules
                 .AsNoTracking()
-                .Where(r => r.RuleSetId == ruleSetId.Value)
-                .ToListAsync(cancellationToken)
-            : await repository.DisbursementPriorityRules.AsNoTracking().Where(r => r.IsActive).ToListAsync(cancellationToken);
+                .Where(r => r.PayrollConfigurationId == pinnedVersion.Id)
+                .ToListAsync(cancellationToken);
+        }
+        else
+        {
+            rules = ruleSetId.HasValue
+                ? await repository.DisbursementPriorityRules
+                    .AsNoTracking()
+                    .Where(r => r.RuleSetId == ruleSetId.Value)
+                    .ToListAsync(cancellationToken)
+                : await repository.DisbursementPriorityRules
+                    .AsNoTracking()
+                    .Where(r => r.IsActive && r.PayrollConfigurationId == null)
+                    .ToListAsync(cancellationToken);
+        }
 
         if (rules.Count == 0)
             return Empty(false, "لا توجد قواعد أولوية للصرف الجزئي.");

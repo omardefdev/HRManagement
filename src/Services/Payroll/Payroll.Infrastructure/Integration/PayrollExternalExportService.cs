@@ -16,8 +16,12 @@ public sealed class PayrollExternalExportService(
     IPayrollDisbursementGateway disbursementGateway,
     ISocialInsuranceReporter insuranceReporter)
 {
-    private const decimal DefaultEmployeeInsuranceRate = 0.07m;
-    private const decimal DefaultEmployerInsuranceRate = 0.14m;
+    /// <summary>
+    /// The insurance shares of the legacy path only (a run pinned to a version older than PLAN-54, or to none): 7% and 14% of gross
+    /// pay. A run of a v2 version takes both shares from its version's insurance rules.
+    /// </summary>
+    private const decimal LegacyEmployeeInsuranceRate = 0.07m;
+    private const decimal LegacyEmployerInsuranceRate = 0.14m;
 
     public async Task<(IntegrationResult Disbursement, IntegrationResult Insurance)> ExportRunAsync(
         Guid payrollRunId,
@@ -52,6 +56,17 @@ public sealed class PayrollExternalExportService(
             .GroupBy(p => p.EmployeeId)
             .ToDictionary(g => g.Key, g => g.First());
 
+        // PLAN-54 (§2): the insurance rules of the pinned v2 version (the statutory deductions that name an insurance body).
+        var pinned = run.PayrollConfigurationId is Guid pinnedId
+            ? await db.PayrollConfigurations
+                .Include(c => c.StatutoryDeductions)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(c => c.Id == pinnedId, cancellationToken)
+            : null;
+        var insuranceRules = pinned is { IsLegacyFramework: false }
+            ? pinned.StatutoryDeductions.Where(d => !string.IsNullOrEmpty(d.InsuranceBody)).ToList()
+            : null;
+
         var disbursementLines = new List<PayrollDisbursementLine>();
         var insuranceLines = new List<SocialInsuranceContributionLine>();
         var missingAccounts = new List<Guid>();
@@ -82,16 +97,37 @@ public sealed class PayrollExternalExportService(
                 payableIban));
 
             var lineComponents = componentsByLine.GetValueOrDefault(line.Id) ?? [];
-            var employeeInsurance = lineComponents
-                .Where(c => c.ComponentType == Domain.Enums.SalaryComponentType.Deduction
-                            && (c.ComponentName.Contains("تأمين", StringComparison.OrdinalIgnoreCase)
-                                || c.ComponentName.Contains("Insurance", StringComparison.OrdinalIgnoreCase)))
-                .Sum(c => Math.Abs(c.Amount));
+            decimal employeeInsurance;
+            decimal employerInsurance;
+            if (insuranceRules is not null)
+            {
+                // v2: the employee's share is what the run deducted for the version's insurance rules (each component names its
+                // rule); the employer's share is each rule's employer percentage of the same capped base. No fixed rate, no name.
+                var ruleIds = insuranceRules.Select(r => r.Id).ToHashSet();
+                employeeInsurance = lineComponents
+                    .Where(c => c.ComponentType == Domain.Enums.SalaryComponentType.Deduction
+                                && c.ReferenceId is Guid reference && ruleIds.Contains(reference))
+                    .Sum(c => Math.Abs(c.Amount));
+                var baseSalary = lineComponents
+                    .Where(c => c.ComponentType == Domain.Enums.SalaryComponentType.BaseSalary)
+                    .Sum(c => c.Amount);
+                employerInsurance = insuranceRules.Sum(r =>
+                    pinned!.RoundMoney(r.CappedBase(line.GrossPay, baseSalary) * r.EmployerPercent / 100m));
+            }
+            else
+            {
+                // The legacy path, unchanged: the employee's share by the component's name, else 7% of gross; the employer's 14%.
+                employeeInsurance = lineComponents
+                    .Where(c => c.ComponentType == Domain.Enums.SalaryComponentType.Deduction
+                                && (c.ComponentName.Contains("تأمين", StringComparison.OrdinalIgnoreCase)
+                                    || c.ComponentName.Contains("Insurance", StringComparison.OrdinalIgnoreCase)))
+                    .Sum(c => Math.Abs(c.Amount));
 
-            if (employeeInsurance <= 0)
-                employeeInsurance = decimal.Round(line.GrossPay * DefaultEmployeeInsuranceRate, 2, MidpointRounding.AwayFromZero);
+                if (employeeInsurance <= 0)
+                    employeeInsurance = decimal.Round(line.GrossPay * LegacyEmployeeInsuranceRate, 2, MidpointRounding.AwayFromZero);
 
-            var employerInsurance = decimal.Round(line.GrossPay * DefaultEmployerInsuranceRate, 2, MidpointRounding.AwayFromZero);
+                employerInsurance = decimal.Round(line.GrossPay * LegacyEmployerInsuranceRate, 2, MidpointRounding.AwayFromZero);
+            }
 
             insuranceLines.Add(new SocialInsuranceContributionLine(
                 line.EmployeeId,

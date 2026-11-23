@@ -9,6 +9,10 @@ public static class PayrollEngine
 {
     public record TaxBracketEntry(decimal UpperLimit, decimal Rate);
 
+    /// <summary>
+    /// The built-in brackets of the legacy path: the tax rule's fallback for a version older than PLAN-54 that has none, and the
+    /// default of the old helpers below. No path of a v2 version reads them.
+    /// </summary>
     public static readonly IReadOnlyList<TaxBracketEntry> DefaultBrackets = new[]
     {
         new TaxBracketEntry(5_000m,   0.00m),

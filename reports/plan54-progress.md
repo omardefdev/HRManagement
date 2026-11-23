@@ -11,8 +11,8 @@ Session: one, in the main folder `/home/omar/HRManagement` (Linux notebook), bra
 | P0 baseline | done | 2026-11-23T07:36:53Z |
 | P1 data and fingerprint | done | 2026-11-23T08:50:07Z |
 | P2 create, import, governing version | done | 2026-11-23T09:39:43Z |
-| P3 engine reads the version | next | |
-| P4 governance | | |
+| P3 engine reads the version | done | 2026-11-23T10:56:44Z |
+| P4 governance | next | |
 | P5 manual inputs | | |
 | P6 acceptance and review | | |
 | P7 main | | |
@@ -98,6 +98,33 @@ Session: one, in the main folder `/home/omar/HRManagement` (Linux notebook), bra
   - the shared in-process test host starts in Development and so seeds the Demo frameworks; it takes optional settings now, and these
     tests run with `Seed:Profile=None`.
 
+## P3 — the engine reads the version
+
+- Finished (UTC): 2026-11-23T10:56:44Z.
+- **The engine:** `StatutoryDeductionEngineRule` has two paths. v2: the version's `StatutoryDeductions` in their order,
+  `min(base, ceiling) × EmployeePercent / 100 + FixedAmount`, the base being gross pay or the base salary paid this period. Legacy
+  (v1): the old code, untouched. `TaxRule` falls back to `DefaultBrackets` on the legacy path only.
+- **What a run reads beside its version** (`PayrollFrameworkReferenceData`, used by the calculator and by correction runs): nothing
+  for v2 (its own holidays, no deduction type is even loaded); the general holidays, the version's own and the deduction types for
+  v1, with the line «مسار قديم…» in the job's log.
+- **Partial disbursement:** a run pinned to a v2 version reads that version's rules (a decision naming another rule set is refused);
+  a legacy run reads the decision's rule set or the general active rules, and «general» now excludes rows that belong to a version.
+- **The export:** for a v2 run, the employee's share is what the run deducted for the version's insurance rules (by the component's
+  rule id, not by name) and the employer's share is each rule's employer percentage of the same capped base; 7% and 14% live on in
+  the legacy path only.
+- **`DeductionTypes`:** «إلزامي» is read-only on its screens with «انتقل إلى الإطار القانوني»; a posted value is ignored.
+- **Does any v1 version have no brackets?** No seeded version (each has five) and none on the demo (five each, baseline). Only bare
+  test fixtures reach the fallback; it stays on the legacy path.
+- **Tests:** `Pay054EngineV2Tests` 20 (the v2 rule; the general types ignored by v2; v1 as before; no built-in bracket on v2; **the
+  identity proof on eight cases**: the imported pack pays line for line what the seeded version pays with the Demo seed's deduction
+  types; the same holidays and working days for every month of 2026); `Pay054V2RunPostgreSqlTests` 3 on PostgreSQL (**the same
+  employees and month give identical lines on real runs**, v1 then v2; editing the general tables after pinning moves neither the v2
+  result, its fingerprint nor its export, while September — still the superseded v1's month — follows them; the disbursement rules);
+  `Pay054DeductionTypesHttpTests` 1. Golden pack, pipeline and Pay002 tests unchanged and green.
+  Runs: PLAN-54 PostgreSQL filter 10/10 (43 s); payroll integration 36/36; architecture 371/371; payroll unit filter 972/972.
+- **A finding for D-PAY-1 / PAY-E, recorded, not changed:** the interim values tax income twice (`DED-TAX` 5% of gross as a statutory
+  deduction, and the brackets). A test pins that the pack reproduces it, because the seeds do it today.
+
 ## Decisions (with reasons)
 
 Recorded as they are taken; see each phase.
@@ -148,6 +175,7 @@ None.
 
 ## Exact next step
 
-P3: the engine's v2 paths (statutory deductions from the version with base kind and ceiling, holidays, priority rules, the export's
-insurance shares), the v1 legacy path with its job log line, no `DefaultBrackets` on a v2 path, `IsStatutory` read-only on the
-deduction types screens; tests: the identity proof (seeded v1 against imported v2), a v2 run reads only its rows.
+P4: `PayrollFrameworkGovernance` (editors, approver, attestor, publisher; refusals change nothing), the policy `Payroll.LegalAttest`
+and the setting `Payroll:Legal:AttestorPolicy`, `IPayrollLegalControlGuard.IsExceptionActive(id, asOf)`, the interim gate at approve,
+attest, publish and at a run's start, the attestation's decision check and `InterimExceptionIdsJson`, the indicators on the run and
+the dashboard, 400 on the forms, API endpoints for the acts.

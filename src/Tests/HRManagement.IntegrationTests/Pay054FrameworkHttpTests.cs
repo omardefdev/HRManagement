@@ -342,6 +342,62 @@ public sealed class Pay054FrameworkHttpTests(PostgreSqlFixture postgres)
 }
 
 /// <summary>
+/// PLAN-54 (§2 rule 2): the deduction types table is the catalogue of non-statutory deductions. On its screens «إلزامي» is read-only,
+/// with the way to the legal framework; a posted value is ignored on create and on edit.
+/// </summary>
+[Collection("PostgreSql")]
+public sealed class Pay054DeductionTypesHttpTests(PostgreSqlFixture postgres)
+{
+    private static readonly Regex Token = new("name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"", RegexOptions.Compiled);
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task Is_statutory_is_read_only_on_the_deduction_types_screens_and_a_posted_value_is_ignored()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        await using var host = await Pay054FrameworkHttpTests.StartAsync(postgres);
+        using var processor = host.Central();
+        var legacy = await host.WithDbAsync(async db =>
+        {
+            var type = new DeductionType { Code = "DED-SOC", NameAr = "تأمينات اجتماعية", IsStatutory = true, Percentage = 7m };
+            db.Set<DeductionType>().Add(type);
+            await db.SaveChangesAsync();
+            return type.Id;
+        });
+
+        var create = await Pay054FrameworkHttpTests.PageAsync(processor, "/DeductionTypes/Create");
+        Assert.Contains("انتقل إلى الإطار القانوني", create, StringComparison.Ordinal);
+        Assert.DoesNotContain("name=\"IsStatutory\"", create, StringComparison.Ordinal);
+        var created = await processor.PostAsync("/DeductionTypes/Create", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = Token.Match(create).Groups[1].Value,
+            ["Code"] = "DED-CRAFTED",
+            ["NameAr"] = "اقتطاع مصنوع",
+            ["IsStatutory"] = "true",
+            ["Percentage"] = "50",
+        }));
+        Assert.Equal(HttpStatusCode.Redirect, created.StatusCode);
+        Assert.False(await host.WithDbAsync(db => db.Set<DeductionType>().AsNoTracking().Where(t => t.Code == "DED-CRAFTED").Select(t => t.IsStatutory).SingleAsync()));
+
+        var edit = await Pay054FrameworkHttpTests.PageAsync(processor, $"/DeductionTypes/Edit/{legacy}");
+        Assert.Contains("انتقل إلى الإطار القانوني", edit, StringComparison.Ordinal);
+        Assert.DoesNotContain("name=\"IsStatutory\"", edit, StringComparison.Ordinal);
+        var edited = await processor.PostAsync($"/DeductionTypes/Edit/{legacy}", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = Token.Match(edit).Groups[1].Value,
+            ["Id"] = legacy.ToString("D"),
+            ["Code"] = "DED-SOC",
+            ["NameAr"] = "تأمينات اجتماعية",
+            ["IsStatutory"] = "false",
+            ["Percentage"] = "7",
+        }));
+        Assert.Equal(HttpStatusCode.Redirect, edited.StatusCode);
+        // A row marked statutory before PLAN-54 stays so (legacy runs read it); the posted «false» changed nothing.
+        Assert.True(await host.WithDbAsync(db => db.Set<DeductionType>().AsNoTracking().Where(t => t.Id == legacy).Select(t => t.IsStatutory).SingleAsync()));
+    }
+}
+
+/// <summary>
 /// PLAN-54 (§1): the edit form of a draft is a view model, and it covers every numeric field that governs pay: a field added to the
 /// governed list without a place on the form fails here, as does a field the form reads but does not write back.
 /// </summary>
