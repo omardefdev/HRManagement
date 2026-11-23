@@ -14,7 +14,7 @@ Session: one, in the main folder `/home/omar/HRManagement` (Linux notebook), bra
 | P3 engine reads the version | done | 2026-11-23T10:56:44Z |
 | P4 governance | done | 2026-11-23T11:32:43Z |
 | P5 manual inputs | done | 2026-11-23T12:04:28Z |
-| P6 acceptance and review | next | |
+| P6 acceptance and review | in progress | |
 | P7 main | | |
 | P8 demo server | | |
 | P9 docs, gates, report, merge | | |
@@ -194,6 +194,94 @@ Session: one, in the main folder `/home/omar/HRManagement` (Linux notebook), bra
   The same binaries passed 6787/6787 on the next run with `--blame`; no kernel message was readable. Taken as memory pressure on
   this 15 GB machine (the owner's containers, a browser and the build servers were up). About 6 min lost.
 
+## P6 — acceptance, then the independent review
+
+Started 2026-11-23T12:04Z. Checkpoint 12:41Z (the images are building; nothing below is on a stack yet unless it says so).
+
+- **Committed so far:** `1e74d54e` (an intermediate commit, so the images carry a clean revision): the persona, the acceptance
+  class, the empty-database test, the validate script, the scope and ownership rows, three key pages of AC-UX-67.
+- **The persona `a-payroll-approver-2`** (agency A, HQ, ordinal 48; `payroll` and `payroll-approver`; scenario AC-PAY-54):
+  `testdata/acceptance/personas.json`, `AcceptancePersonaCatalog.cs` (AGENCY-A 46 to 47), `DATA-AUTH` 67 to 68 in
+  `scripts/acceptance-verify.ps1`. No other count was found by search. No local stack or volume existed, so nothing to reset.
+- **`AcPay54LegalFrameworkTests`** (AC-PAY-54a..f; `[RequiredAcceptance]`, ordered, evidence `AC-PAY-54`), `prodLike[]` required,
+  group `main`; `AC-PAY-54` in `ac-ownership.json` (PLAN-54, `provesClaim`). It uses its own codes (`LAW_50_2004_AC54*`) and its own
+  months (2031-01, 2031-02, 2031-06): a version of 2031 governs nothing before 2031 for the other classes of the stack.
+  54a starts with P-10's check (both exceptions active in the catalog today, else it fails naming them and the date). 54c's
+  negative puts a statutory row in the general deduction types table by psql (test-only; the screens no longer create one) and
+  removes it in `finally`. 54e's month is 2031-06. 54f uses the seed's posted runs (pinned to no version: they count for every regime).
+- **`scripts/pay054-validate.ps1`** with `-SelfTest`: passes, 28 planted defects refused. It reads the seeds from their source
+  (`PayrollRegimeSeed`, `DemoPayrollSeeder.DeductionDefs`, `AcceptancePayrollSeeder`) and compares the pack with them, checks every
+  value's reference, status and exception against the catalog, the migration's defaults (and no `UPDATE`), the two settings and their
+  mirror, the antiforgery attribute on every write of the frameworks API, and the class, its ownership and the persona. Like
+  `iam053-validate.ps1` it is run by hand and by the report, not by a CI step.
+- **`Pay054EmptyDatabaseFirstRunPostgreSqlTests`** (P-12; Testcontainers, picked up by CI's filter): Payroll.Web on an empty
+  database with `Seed:Profile=None`; three employees through `EmployeeCreatedConsumer` and `ContractActivatedConsumer` (one joins
+  mid-month); the calculation is refused with the message that names the import page, also while the version is a draft and while
+  it is approved; a pack with a 120% bracket leaves no row in thirteen tables; import, approve, attest, publish by three people
+  over the API; the same run is then calculated, pinned to the version, each line with the version's four statutory deductions to
+  the unit, and no general row exists. **Passes** (15 s). HR.Core's answer to «is anyone blocked from pay?» is the declared double
+  `FakeHrCoreServiceRegimeClient` (another service; every payroll calculation test uses it). `Pay054FrameworkHttpTests.StartAsync`
+  takes optional extra test services for that.
+- **AC-UX-67's key pages** gained `payroll-framework-details`, `payroll-framework-import` and `payroll-manual-allowances`.
+- **Tests at this checkpoint:** build `-warnaserror` 0 errors (42 s); unit **6787/6787** (7 min 25 s); architecture **388/388**;
+  format clean on the changed files.
+- **Images:** no acceptance image existed here. Built one service at a time by the local helper
+  `artifacts/plan54/build-images-sequential.ps1` (PLAN-53's, not committed), revision `1e74d54e`, started 12:37:17Z; the first
+  service took 141 s (the base images were pulled this morning, the link is fast today). Disk 47 GB free.
+- **Images, first build:** 16 services in 1,390 s (12:37:17Z to 13:00:37Z), revision `1e74d54e`. Disk 46 GB free after it.
+- **Independent review:** one fresh read-only subagent, 12:40Z to about 12:52Z, beside the image build (it ran no build and no
+  test). No refuter was used: both high findings were verified by reading the code they name. What it found and what was done
+  (commit `3bc94d27`; every fix has a test):
+  1. **High, fixed.** «استئناف» (`ResumePayrollRunJobCommand`) did not pass the interim gate, and the row that carries a refused
+     calculation (a `Failed` job of a run pinned to nothing) could itself be resumed: an empty, unpinned run would be marked
+     calculated and frozen. Now a job that never started is not resumed (the button is not offered either), a started one passes
+     the gate again, and a repeated refusal reuses its one row. Test: the interim gate run test in `Pay054V2RunPostgreSqlTests`.
+  2. **High, fixed (the acceptance class, before its first run).** AC-PAY-54c and 54e calculated a calculated run again; a
+     calculated run is frozen (AC-23 asserts the 400). 54c's negative now calculates 2031-03, a new snapshot of version 2, beside
+     the planted general row (no component from it, the result equal to February's); 54e's allowance appears in the next month's
+     run, 2031-07. No product path cancels a completed run, so nothing is cancelled by psql.
+  3. **Medium, fixed.** A version had no row version: an edit landing between an approver's read and his save left a version
+     approved with a fingerprint of other content, and two publications could both supersede one version. `PayrollConfiguration`
+     now has the `xmin` token (in PAY054 itself, its designer and the snapshot; `has-pending-model-changes` reports none); every
+     content write also writes the version's row; a late save answers 409 and writes nothing. Behind it, an attestation and a
+     publication of a v2 version recompute the fingerprint. Tests: `A_request_that_lands_between_another_persons_read_and_save…`
+     (PostgreSQL; the other request is landed at the handler's first read of the clock) and `Pay054ReviewFixesTests`.
+  4. **Medium, fixed by design.** A version's priority rules were stored active; PLAN-53's code reads every active row for a
+     decision that names no rule set, so a rollback after any import would mix them into a legacy disbursement. They are stored
+     inactive and are in force through their version (the pinned run's allocation takes them all).
+  5. **Medium/low, part fixed, part a decision (D22).** A correction run of a run pinned to an interim version now passes the
+     gate. End-of-service settlements and the amounts Payroll derives from events (mission, medical, training) are not gated.
+  6. **Low, recorded (D23).** An agency whose first version starts in the future has no governing version today.
+  7. **Low, fixed.** AC-PAY-54a's count of unsourced values skipped a NULL exception and two tables.
+  8. **Low, fixed.** A copy of an unpublished version dropped its authors: they stay editors of the copy.
+  9. **Low.** Fixed: the expiry warning names a superseded version that still governs today; the validate script refuses any
+     data statement in the migration's `Up`, raw strings included (29 planted defects). Recorded, not changed: the migration's
+     `Down` restores the global unique index of the decision register (it fails once two agencies hold one decision; a rollback
+     of this plan is by image tag, never by `Down`); two first publications of one code at the same moment, with no published
+     predecessor to conflict on, both publish (the resolver still answers by date, then version); an approval and a rejection of
+     one manual input at the same moment are last-writer-wins (both are valid decisions of authorised people);
+     `PayrollConfigurationVersioning.TryApprove` stays public for the tests that use it; an import by one master-data holder
+     rewrites decision register rows other versions cite (P-5's design; the register is outside every fingerprint).
+  What it checked and found correct: the v1 fingerprint and the legacy path unchanged; a v2 run, correction, disbursement and
+  export read the version only; fingerprint v2 covers every value the rules read; no gap or back-cut in publishing; refusals
+  change nothing; Damascus dates; the import's limits and transaction; antiforgery and policies on every write; row security;
+  pending inputs filtered in every reader; the migration's defaults; the changed tests keep their meaning; the lists only shrank.
+- **After the fixes:** build `-warnaserror` 0 errors; unit **6791/6791** (7 min 8 s); architecture **388/388**; the plan's
+  PostgreSQL tests 16/16 (47 s); format clean; `pay054-validate` and its self-test pass.
+
+## Stops and resumes
+
+The first two lines were not in this file until 14:30Z (they were only in the session's own record); they are written here as
+they were stamped then.
+
+- Resumed (UTC): 2026-11-23T08:39:12Z. Reason: the owner stopped the turn during a P1 `dotnet test` and then wrote «اكمل».
+  Standstill about 56 min. From then on long commands run detached with a log under `artifacts/plan54/`.
+- Resumed (UTC): 2026-11-23T10:46:11Z. Reason: the machine restarted (boot 10:43:07Z) during P3's PostgreSQL tests; the owner
+  wrote «اكمل». Standstill about 54 min. The keep-awake was started again (PID in `artifacts/plan54/keepawake.pid`).
+- Resumed (UTC): 2026-11-23T14:29:25Z. Reason: the owner stopped the turn in P6, while the review's findings were being verified
+  in the code (the images had finished at 13:00:37Z), and then wrote «اكمل». Standstill about 75 min (from about 13:15Z). No
+  process was running; the machine did not restart; the tree held only this file's edit.
+
 ## Decisions (with reasons)
 
 Recorded as they are taken; see each phase.
@@ -249,6 +337,17 @@ Recorded as they are taken; see each phase.
   forwards `/api/payroll/**` unchanged, as the acceptance classes call PLAN-53's API); the service scopes its antiforgery cookie to
   `/ui/payroll`, so the script sends the cookie back in a `Cookie` header, as the acceptance harness adds it by hand.
 
+- **D22 (what the interim gate stops):** a payroll calculation: a regular run, its resume, and a correction run. It does not
+  stop an end-of-service settlement or the amounts Payroll derives when it consumes an event (a mission, a medical recommendation,
+  a training premium): refusing a message would park it in a retry queue for a legal reason no retry can cure, and every one of
+  those amounts reaches a payslip only through a run, which the gate stops. PAY-E may widen it with the final values.
+- **D23 (no version governs today):** the active configuration is now the version that governs the payroll calendar's date. An
+  agency whose first published version starts in the future has none until that day: an event-derived amount is then 0, as it
+  was for an agency with no framework. `PILOT_DEPLOYMENT.md` tells the operator to give the first framework an effective date
+  on or before the first month the agency works.
+- **D24 (a version's priority rules are stored inactive):** `IsActive` is the general table's switch. A version's rule is in
+  force through the version a run is pinned to; stored active it would be read by the release before PLAN-54 after a rollback.
+
 ## Server changes and their undo commands
 
 None yet.
@@ -260,7 +359,8 @@ None yet.
 
 ## Exact next step
 
-P6: the persona `a-payroll-approver-2` (`testdata/acceptance/personas.json`, `AcceptancePersonaCatalog.cs`, `DATA-AUTH` 67 to 68 in
-`scripts/acceptance-verify.ps1`), `AcPay54LegalFrameworkTests` (AC-PAY-54a..f), `tests/acceptance/ci-scope.json` (`prodLike[]`,
-required, group `main`), `ac-ownership.json`, `scripts/pay054-validate.ps1` with `-SelfTest`; then the images (one service at a
-time, 12 GB free), the prod-like stack, the class and P-14's lists, the Testcontainers step with CI's filter, and the review.
+P6, continuing: when `artifacts/plan54/p6-images.log` ends with `exit=0`, start the prod-like stack
+(`pwsh -NoProfile -File scripts/acceptance-up.ps1 -Profile ProdLike -UseLocalBaseImages`, or `scripts/ci/acceptance-job.ps1 -Profile
+ProdLike -NoBuild -Classes …`), run `AcPay54LegalFrameworkTests`, then P-14's lists (prod-like, lab, leastpriv), the validate
+script, the seeded counts by psql and the import script on the stack; `down -v`; restore the committed evidence; the Testcontainers
+step with CI's filter; fix what the review finds, with tests; commit with P6's message.
