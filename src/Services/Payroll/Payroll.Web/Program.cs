@@ -143,6 +143,13 @@ app.UseHrProductionMiddleware(app.Configuration);
 // the service here rather than leaving attestation open to nobody or to a loop.
 await HRManagement.ServiceDefaults.PayrollLegalAttestPolicy.ValidateAsync(app.Services);
 
+// PLAN-54 (§4 rule 2): skipping the second person of a manual allowance, deduction or adjustment is a Development convenience only.
+{
+    var manualInputs = app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<Payroll.Application.Features.ManualInputs.PayrollManualInputOptions>>().Value;
+    if (Payroll.Application.Features.ManualInputs.ManualInputApproval.IsIgnored(manualInputs, app.Environment))
+        app.Logger.LogWarning(Payroll.Application.Features.ManualInputs.ManualInputApproval.IgnoredWarning, app.Environment.EnvironmentName);
+}
+
 await app.Services.TryMigrateAsync<PayrollDbContext>();
 var seedProfile = SeedProfileResolver.Resolve(app.Configuration, app.Environment);
 HRManagement.ServiceDefaults.TenantIdFlow.Set(HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId);

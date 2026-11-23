@@ -93,6 +93,25 @@ public sealed class PayrollWriteActionsTests
     private static readonly string[] Pay054Controllers = ["PayrollConfigurations", "PayrollFrameworksApi"];
 
     /// <summary>
+    /// PLAN-54 (§4, D-PAY-6): a manual allowance, deduction or adjustment is entered with Payroll.Process and decided, by a second
+    /// person, with Payroll.Approve.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> Pay054ManualInputs = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["AllowanceRecords.Create"] = HrManagementPolicies.PayrollProcess,
+        ["AllowanceRecords.Approve"] = HrManagementPolicies.PayrollApprove,
+        ["AllowanceRecords.Reject"] = HrManagementPolicies.PayrollApprove,
+        ["DeductionRecords.Create"] = HrManagementPolicies.PayrollProcess,
+        ["DeductionRecords.Approve"] = HrManagementPolicies.PayrollApprove,
+        ["DeductionRecords.Reject"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollAdjustments.Create"] = HrManagementPolicies.PayrollProcess,
+        ["PayrollAdjustments.Approve"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollAdjustments.Reject"] = HrManagementPolicies.PayrollApprove,
+    };
+
+    private static readonly string[] ManualInputControllers = ["AllowanceRecords", "DeductionRecords", "PayrollAdjustments"];
+
+    /// <summary>
     /// Reads of the framework that are not open to the module role alone: the forms of a write (a person who cannot submit one does not
     /// open it) and the export of a version as a pack.
     /// </summary>
@@ -256,6 +275,41 @@ public sealed class PayrollWriteActionsTests
         var unlisted = Writes.Where(a => Pay054Controllers.Contains(a.ControllerName)).Select(a => a.Key)
             .Where(k => !Pay054.ContainsKey(k)).Distinct(StringComparer.Ordinal).ToList();
         Assert.True(unlisted.Count == 0, "Write actions with no row in PayrollWriteActionsTests.Pay054: " + string.Join(", ", unlisted));
+    }
+
+    public static TheoryData<string, string> Pay054ManualInputRows()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var (key, policy) in Pay054ManualInputs)
+            data.Add(key, policy);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(Pay054ManualInputRows))]
+    public void Each_manual_input_write_names_its_policy_on_the_action(string key, string policy)
+    {
+        var actions = Writes.Where(a => a.Key == key).ToList();
+        Assert.True(actions.Count > 0, $"{key} is not a write action of Payroll.Web");
+        Assert.All(actions, a => Assert.Equal([policy], a.ActionPolicies));
+    }
+
+    [Fact]
+    public async Task A_processor_enters_a_manual_input_and_only_an_approver_decides_it()
+    {
+        var writes = Writes.Where(a => ManualInputControllers.Contains(a.ControllerName)).ToList();
+        var unlisted = writes.Select(a => a.Key).Where(k => !Pay054ManualInputs.ContainsKey(k)).Distinct(StringComparer.Ordinal).ToList();
+        Assert.True(unlisted.Count == 0, "Manual input writes with no row in PayrollWriteActionsTests.Pay054ManualInputs: " + string.Join(", ", unlisted));
+
+        var processor = User(HrManagementRoles.Payroll, HrManagementRoles.PayrollProcessor);
+        var approver = User(HrManagementRoles.Payroll, HrManagementRoles.PayrollApprover);
+        Assert.Equal(
+            Pay054ManualInputs.Where(p => p.Value == HrManagementPolicies.PayrollProcess).Select(p => p.Key).Order(StringComparer.Ordinal),
+            await ReachedAsync(processor, writes));
+        Assert.Equal(
+            Pay054ManualInputs.Where(p => p.Value == HrManagementPolicies.PayrollApprove).Select(p => p.Key).Order(StringComparer.Ordinal),
+            await ReachedAsync(approver, writes));
+        Assert.Empty(await ReachedAsync(User(HrManagementRoles.Payroll), writes));
     }
 
     [Fact]

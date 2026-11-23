@@ -327,6 +327,89 @@ public sealed class Pay054V2RunPostgreSqlTests(PostgreSqlFixture fixture)
         Assert.Equal(4, againLines);
     }
 
+    /// <summary>
+    /// PLAN-54 (§4, D-PAY-6): on a real run, a manual input counts only after a second person approved it. The run is exercised with
+    /// an allowance and a deduction. An adjustment is proved at the loader (<c>Pay054ManualInputApprovalTests</c>): a run that holds
+    /// any non-zero adjustment, manual or written by a consumer, is refused today by the run's own reconciliation («عدم تطابق صافي
+    /// السطر»: it expects net = gross − deductions and the engine adds the adjustment). That defect is older than this plan and is
+    /// PLAN-56's (the run's state machine and reconciliation); it is recorded in the report, not changed here.
+    /// </summary>
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task A_manual_input_enters_no_run_before_a_second_person_approves_it_and_enters_the_next_run_after()
+    {
+        Skip.IfNot(PostgreSqlFixture.IsEnabled, "Set RUN_TESTCONTAINERS=true and start Docker.");
+        var (root, scope, db, mediator, _, _) = await ScopeAsync();
+        await using var disposeScope = scope;
+        await using var disposeRoot = root;
+        await SeedAsTheDemoSeedDoesAsync(db, employees: 3);
+        var employee = await db.EmployeePayProfiles.AsNoTracking().OrderBy(p => p.EmployeeId).Select(p => p.EmployeeId).FirstAsync();
+        var type = await db.CompensationTypes.AsNoTracking().Select(t => t.Id).SingleAsync();
+        var maker = Importer;
+        var checker = Approver;
+
+        async Task<Guid> EnterAsync(Payroll.Application.Features.ManualInputs.ManualInputKind kind, decimal amount)
+        {
+            var created = await mediator.Send(new Payroll.Application.Features.ManualInputs.CreateManualInputCommand(
+                kind, employee, amount, "قرار الوزير 12 لعام 2026", maker,
+                AllowanceTypeId: kind == Payroll.Application.Features.ManualInputs.ManualInputKind.Allowance ? type : null,
+                DeductionType: kind == Payroll.Application.Features.ManualInputs.ManualInputKind.Deduction ? "Other" : null,
+                EffectiveFrom: kind == Payroll.Application.Features.ManualInputs.ManualInputKind.Allowance ? new DateOnly(2026, 10, 1) : null));
+            Assert.True(created.Success, created.Error);
+            Assert.Equal(ManualInputApprovalStatus.PendingApproval, created.Status);
+            return created.InputId!.Value;
+        }
+
+        var allowance = await EnterAsync(Payroll.Application.Features.ManualInputs.ManualInputKind.Allowance, 1_111.11m);
+        var deduction = await EnterAsync(Payroll.Application.Features.ManualInputs.ManualInputKind.Deduction, 222.22m);
+        // Entered and left pending to the end: a pending adjustment must not reach a run (and so must not trip its reconciliation).
+        var adjustment = await EnterAsync(Payroll.Application.Features.ManualInputs.ManualInputKind.Adjustment, 333.33m);
+        var refused = await EnterAsync(Payroll.Application.Features.ManualInputs.ManualInputKind.Allowance, 999.99m);
+
+        // Pending: the month's run does not see any of them.
+        var (first, before) = await CalculateAsync(db, mediator, October, OctoberEnd);
+        var mine = before.Single(l => l.EmployeeId == employee);
+        decimal[] manual = [1_111.11m, -222.22m, 333.33m, 999.99m];
+        Assert.DoesNotContain(mine.Components, c => manual.Contains(c.Amount));
+        Assert.Null((await db.DeductionRecords.AsNoTracking().SingleAsync(d => d.Id == deduction)).AppliedInRunId);
+        Assert.Null((await db.PayrollAdjustments.AsNoTracking().SingleAsync(a => a.Id == adjustment)).PayrollRunId);
+        await PayrollPostgresTestSupport.CancelRunForDualTestAsync(db, first);
+
+        // The maker cannot approve his own; a second person approves two and rejects one.
+        var own = await mediator.Send(new Payroll.Application.Features.ManualInputs.DecideManualInputCommand(
+            Payroll.Application.Features.ManualInputs.ManualInputKind.Allowance, allowance, Payroll.Application.Features.ManualInputs.ManualInputDecision.Approved, null, maker));
+        Assert.Equal(403, own.StatusCode);
+        foreach (var (kind, id) in new[]
+                 {
+                     (Payroll.Application.Features.ManualInputs.ManualInputKind.Allowance, allowance),
+                     (Payroll.Application.Features.ManualInputs.ManualInputKind.Deduction, deduction),
+                 })
+        {
+            var approved = await mediator.Send(new Payroll.Application.Features.ManualInputs.DecideManualInputCommand(
+                kind, id, Payroll.Application.Features.ManualInputs.ManualInputDecision.Approved, null, checker));
+            Assert.True(approved.Success, approved.Error);
+        }
+
+        Assert.True((await mediator.Send(new Payroll.Application.Features.ManualInputs.DecideManualInputCommand(
+            Payroll.Application.Features.ManualInputs.ManualInputKind.Allowance, refused,
+            Payroll.Application.Features.ManualInputs.ManualInputDecision.Rejected, "لا سند قانوني", checker))).Success);
+
+        // The next run takes the two approved inputs, and never the rejected one nor the adjustment still pending. Everyone else's
+        // lines are as before.
+        var (second, after) = await CalculateAsync(db, mediator, October, OctoberEnd);
+        var mineAfter = after.Single(l => l.EmployeeId == employee);
+        Assert.Contains(mineAfter.Components, c => c.ComponentType == (int)SalaryComponentType.Allowance && c.Amount == 1_111.11m);
+        Assert.Contains(mineAfter.Components, c => c.ComponentType == (int)SalaryComponentType.Deduction && c.Amount == -222.22m);
+        Assert.DoesNotContain(mineAfter.Components, c => c.ComponentType == (int)SalaryComponentType.Adjustment);
+        Assert.DoesNotContain(mineAfter.Components, c => c.Amount == 999.99m);
+        Assert.Null((await db.PayrollAdjustments.AsNoTracking().SingleAsync(a => a.Id == adjustment)).PayrollRunId);
+        Assert.Equal(mine.GrossPay + 1_111.11m, mineAfter.GrossPay);
+        Assert.Equal(
+            before.Where(l => l.EmployeeId != employee).Select(l => (l.EmployeeId, l.GrossPay, l.TotalDeductions, l.NetPay)),
+            after.Where(l => l.EmployeeId != employee).Select(l => (l.EmployeeId, l.GrossPay, l.TotalDeductions, l.NetPay)));
+        Assert.Equal(second, (await db.DeductionRecords.AsNoTracking().SingleAsync(d => d.Id == deduction)).AppliedInRunId);
+    }
+
     [Trait("Category", "Testcontainers")]
     [SkippableFact]
     public async Task A_partial_disbursement_of_a_v2_run_reads_its_versions_rules_and_a_legacy_run_the_general_ones()

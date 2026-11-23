@@ -75,18 +75,28 @@ $token = (Invoke-RestMethod -Method Post -Uri "$($KeycloakBaseUrl.TrimEnd('/'))/
 $Password = $null
 $tokenForm = $null
 
-$api = "$($GatewayBaseUrl.TrimEnd('/'))/api/payroll/api/payroll/frameworks"
+# The gateway forwards /api/payroll/** to the payroll service unchanged, and the service's route is api/payroll/frameworks.
+$api = "$($GatewayBaseUrl.TrimEnd('/'))/api/payroll/frameworks"
 $headers = @{ Authorization = "Bearer $token"; "X-Correlation-ID" = "pay054-import-$([guid]::NewGuid().ToString('N'))" }
 
-# The antiforgery token and its cookie: every write of the frameworks API validates them.
-$issued = Invoke-WebRequest -UseBasicParsing -Method Get -Uri "$api/antiforgery" -Headers $headers -SessionVariable session
+# The antiforgery token and its cookie: every write of the frameworks API validates them. The service scopes the cookie to its
+# UI path (/ui/payroll) and the API sits under /api/payroll, so the cookie is sent back by hand, not by a web session.
+$issued = Invoke-WebRequest -UseBasicParsing -Method Get -Uri "$api/antiforgery" -Headers $headers
 $antiforgery = $issued.Content | ConvertFrom-Json
 $headers[[string]$antiforgery.headerName] = [string]$antiforgery.requestToken
+$cookiePairs = New-Object System.Collections.Generic.List[string]
+foreach ($setCookie in @($issued.Headers["Set-Cookie"])) {
+    foreach ($m in [regex]::Matches([string]$setCookie, '(\.AspNetCore\.Antiforgery\.[A-Za-z0-9_\-]+)=([^;,\s]+)')) {
+        $cookiePairs.Add($m.Groups[1].Value + "=" + $m.Groups[2].Value)
+    }
+}
+if ($cookiePairs.Count -eq 0) { throw "The antiforgery endpoint set no cookie." }
+$headers["Cookie"] = ($cookiePairs -join "; ")
 
 $status = 0
 $answer = $null
 try {
-    $response = Invoke-WebRequest -UseBasicParsing -Method Post -Uri "$api/import" -Headers $headers -WebSession $session -ContentType "application/json; charset=utf-8" -Body $body
+    $response = Invoke-WebRequest -UseBasicParsing -Method Post -Uri "$api/import" -Headers $headers -ContentType "application/json; charset=utf-8" -Body $body
     $status = [int]$response.StatusCode
     $answer = $response.Content | ConvertFrom-Json
 }

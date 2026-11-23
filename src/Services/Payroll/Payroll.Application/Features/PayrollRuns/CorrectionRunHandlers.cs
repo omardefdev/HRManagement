@@ -73,7 +73,9 @@ public class CreateCorrectionRunHandler(
                 continue;
 
             var newAdjustments = await repository.PayrollAdjustments
-                .Where(a => a.EmployeeId == sourceLine.EmployeeId && a.PayrollRunId == null)
+                // PLAN-54 (D-PAY-6): a manual adjustment counts only after a second person approved it.
+                .Where(a => a.EmployeeId == sourceLine.EmployeeId && a.PayrollRunId == null
+                            && a.ApprovalStatus == ManualInputApprovalStatus.Approved)
                 .ToListAsync(cancellationToken);
 
             var deltaGross = newAdjustments.Sum(a => a.Amount);

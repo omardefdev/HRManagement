@@ -665,6 +665,181 @@ public sealed class Pay054DeductionTypesHttpTests(PostgreSqlFixture postgres)
 }
 
 /// <summary>
+/// PLAN-54 (§4, D-PAY-6) over HTTP on Payroll.Web itself (PostgreSQL), through the pages a user opens: a processor enters an
+/// allowance, a deduction and an adjustment; each is pending and says so; fields a form does not have (the run, the approval state)
+/// are ignored; the processor cannot approve; a second person approves or rejects, a rejection with its reason; and a person who
+/// holds both roles is refused his own input.
+/// </summary>
+[Collection("PostgreSql")]
+public sealed class Pay054ManualInputHttpTests(PostgreSqlFixture postgres)
+{
+    private static readonly Regex Token = new("name=\"__RequestVerificationToken\"[^>]*value=\"([^\"]+)\"", RegexOptions.Compiled);
+    private static readonly Guid BothUser = Guid.Parse("54000000-0000-4000-8000-0000000000d4");
+
+    private static async Task<HttpResponseMessage> PostAsync(HttpClient client, string tokenPage, string url, Dictionary<string, string> fields)
+    {
+        fields["__RequestVerificationToken"] = await Pay054FrameworkHttpTests.FormTokenAsync(client, tokenPage);
+        return await client.PostAsync(url, new FormUrlEncodedContent(fields));
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task A_manual_input_waits_for_a_second_person_on_the_three_screens()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        await using var host = await Pay054FrameworkHttpTests.StartAsync(postgres);
+        using var processor = host.Central();
+        using var approver = host.Restricted();
+        using var both = Pay054FrameworkHttpTests.Person(
+            host, BothUser, $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollProcessor},{HrManagementRoles.PayrollApprover}");
+        var tenant = HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId;
+        var (employee, type, postedRun) = await host.WithDbAsync(async db =>
+        {
+            var id = Guid.NewGuid();
+            var allowanceType = new CompensationType { TenantId = tenant, Code = "ALL-NAT", NameAr = "بدل طبيعة عمل" };
+            db.Set<CompensationType>().Add(allowanceType);
+            db.Set<EmployeePayProfile>().Add(new EmployeePayProfile
+            {
+                TenantId = tenant,
+                EmployeeId = id,
+                BaseSalary = 100_000m,
+                IsActive = true,
+                EffectiveFrom = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            });
+            var run = new PayrollRun
+            {
+                TenantId = tenant,
+                Status = PayrollRunStatus.Posted,
+                RunDate = DateTime.UtcNow,
+                PeriodStart = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc),
+                PeriodEnd = new DateTime(2026, 9, 30, 0, 0, 0, DateTimeKind.Utc),
+            };
+            db.Set<PayrollRun>().Add(run);
+            await db.SaveChangesAsync();
+            return (id, allowanceType.Id, run.Id);
+        });
+
+        // The three forms and the three lists render for the processor.
+        foreach (var url in new[] { "/AllowanceRecords", "/AllowanceRecords/Create", "/DeductionRecords", "/DeductionRecords/Create", "/PayrollAdjustments", "/PayrollAdjustments/Create" })
+            await Pay054FrameworkHttpTests.PageAsync(processor, url);
+        Assert.DoesNotContain("AppliedInRunId", await Pay054FrameworkHttpTests.PageAsync(processor, "/DeductionRecords/Create"), StringComparison.Ordinal);
+        Assert.DoesNotContain("PayrollRunId", await Pay054FrameworkHttpTests.PageAsync(processor, "/PayrollAdjustments/Create"), StringComparison.Ordinal);
+
+        // The processor enters one of each. The crafted fields are not on the forms and are ignored.
+        var crafted = new Dictionary<string, string>
+        {
+            ["AppliedInRunId"] = postedRun.ToString("D"),
+            ["PayrollRunId"] = postedRun.ToString("D"),
+            ["ApprovalStatus"] = "Approved",
+            ["Origin"] = "System",
+            ["ApprovedBy"] = Guid.NewGuid().ToString("D"),
+            ["CreatedBy"] = Guid.NewGuid().ToString("D"),
+        };
+        Dictionary<string, string> With(Dictionary<string, string> fields) => fields.Concat(crafted).ToDictionary(kv => kv.Key, kv => kv.Value);
+        Assert.Equal(HttpStatusCode.Redirect, (await PostAsync(processor, "/AllowanceRecords/Create", "/AllowanceRecords/Create", With(new()
+        {
+            ["EmployeeId"] = employee.ToString("D"),
+            ["AllowanceTypeId"] = type.ToString("D"),
+            ["Amount"] = "1500.75",
+            ["EffectiveFrom"] = "2026-10-01",
+            ["Reason"] = "قرار الوزير 12 لعام 2026",
+        }))).StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, (await PostAsync(processor, "/DeductionRecords/Create", "/DeductionRecords/Create", With(new()
+        {
+            ["EmployeeId"] = employee.ToString("D"),
+            ["DeductionType"] = "Other",
+            ["Amount"] = "250.5",
+            ["Reason"] = "استرداد مبلغ صُرف خطأً",
+        }))).StatusCode);
+        Assert.Equal(HttpStatusCode.Redirect, (await PostAsync(processor, "/PayrollAdjustments/Create", "/PayrollAdjustments/Create", With(new()
+        {
+            ["EmployeeId"] = employee.ToString("D"),
+            ["Amount"] = "-75.25",
+            ["AdjustmentReason"] = "تسوية فرق تقريب",
+        }))).StatusCode);
+
+        var (allowance, deduction, adjustment) = await host.WithDbAsync(async db => (
+            await db.Set<AllowanceRecord>().AsNoTracking().SingleAsync(),
+            await db.Set<DeductionRecord>().AsNoTracking().SingleAsync(),
+            await db.Set<PayrollAdjustment>().AsNoTracking().SingleAsync()));
+        foreach (IManualPayInput input in new IManualPayInput[] { allowance, deduction, adjustment })
+        {
+            Assert.Equal(ManualInputApprovalStatus.PendingApproval, input.ApprovalStatus);
+            Assert.Equal(ManualInputOrigin.Manual, input.Origin);
+            Assert.NotNull(input.CreatedBy);
+            Assert.Null(input.ApprovedBy);
+        }
+
+        Assert.Equal(1500.75m, allowance.Amount);                                   // a fraction binds under the Arabic culture
+        Assert.Equal(-75.25m, adjustment.Amount);
+        Assert.Null(deduction.AppliedInRunId);                                      // the posted run id was ignored
+        Assert.Null(adjustment.PayrollRunId);
+
+        // A form with no reason is refused, 400, and writes nothing.
+        var noReason = await PostAsync(processor, "/PayrollAdjustments/Create", "/PayrollAdjustments/Create", new()
+        {
+            ["EmployeeId"] = employee.ToString("D"),
+            ["Amount"] = "10",
+        });
+        Assert.Equal(HttpStatusCode.BadRequest, noReason.StatusCode);
+        Assert.Equal(1, await host.WithDbAsync(db => db.Set<PayrollAdjustment>().CountAsync()));
+
+        // The lists say the inputs wait. The processor sees no decision form and a crafted decision is refused (403).
+        var list = await Pay054FrameworkHttpTests.PageAsync(processor, "/AllowanceRecords");
+        Assert.Contains("بانتظار الاعتماد", list, StringComparison.Ordinal);
+        Assert.Contains("يدوي", list, StringComparison.Ordinal);
+        Assert.DoesNotContain($"/AllowanceRecords/Approve/{allowance.Id}", list, StringComparison.Ordinal);
+        foreach (var url in new[] { $"/AllowanceRecords/Approve/{allowance.Id}", $"/DeductionRecords/Reject/{deduction.Id}", $"/PayrollAdjustments/Approve/{adjustment.Id}" })
+            Assert.Equal(HttpStatusCode.Forbidden, (await PostAsync(processor, "/AllowanceRecords/Create", url, new() { ["note"] = "x" })).StatusCode);
+
+        // A person with both roles who entered an input is refused his own (403, the list with the message), not another's.
+        Assert.Equal(HttpStatusCode.Redirect, (await PostAsync(both, "/PayrollAdjustments/Create", "/PayrollAdjustments/Create", new()
+        {
+            ["EmployeeId"] = employee.ToString("D"),
+            ["Amount"] = "40",
+            ["AdjustmentReason"] = "تسوية أدخلها صاحب الدورين",
+        })).StatusCode);
+        var ownId = await host.WithDbAsync(db => db.Set<PayrollAdjustment>().AsNoTracking().Where(a => a.CreatedBy == BothUser).Select(a => a.Id).SingleAsync());
+        var bothList = await Pay054FrameworkHttpTests.PageAsync(both, "/PayrollAdjustments");
+        Assert.DoesNotContain($"/PayrollAdjustments/Approve/{ownId}", bothList, StringComparison.Ordinal);     // no form for his own
+        Assert.Contains($"/PayrollAdjustments/Approve/{adjustment.Id}", bothList, StringComparison.Ordinal);   // a form for another's
+        var own = await both.PostAsync($"/PayrollAdjustments/Approve/{ownId}", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = Token.Match(bothList).Groups[1].Value,
+        }));
+        Assert.Equal(HttpStatusCode.Forbidden, own.StatusCode);
+        Assert.Contains("لا يعتمد المدخل اليدوي ولا يرفضه من أدخله", WebUtility.HtmlDecode(await own.Content.ReadAsStringAsync()), StringComparison.Ordinal);
+        Assert.Equal(ManualInputApprovalStatus.PendingApproval,
+            await host.WithDbAsync(db => db.Set<PayrollAdjustment>().AsNoTracking().Where(a => a.Id == ownId).Select(a => a.ApprovalStatus).SingleAsync()));
+
+        // The approver, a second person: he approves the allowance, rejects the deduction with a reason (not without one).
+        var approverList = await Pay054FrameworkHttpTests.PageAsync(approver, "/AllowanceRecords");
+        Assert.Contains($"/AllowanceRecords/Approve/{allowance.Id}", approverList, StringComparison.Ordinal);
+        Assert.Contains("data-hr-confirm=", approverList, StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.Redirect, (await PostAsync(approver, "/AllowanceRecords", $"/AllowanceRecords/Approve/{allowance.Id}", new())).StatusCode);
+        var bare = await PostAsync(approver, "/DeductionRecords", $"/DeductionRecords/Reject/{deduction.Id}", new() { ["note"] = " " });
+        Assert.Equal(HttpStatusCode.BadRequest, bare.StatusCode);
+        Assert.Contains("ملاحظة الرفض إلزامية", WebUtility.HtmlDecode(await bare.Content.ReadAsStringAsync()), StringComparison.Ordinal);
+        Assert.Equal(HttpStatusCode.Redirect,
+            (await PostAsync(approver, "/DeductionRecords", $"/DeductionRecords/Reject/{deduction.Id}", new() { ["note"] = "لا سند للاسترداد" })).StatusCode);
+        // A decision is not taken twice: 409.
+        Assert.Equal(HttpStatusCode.Conflict, (await PostAsync(approver, "/AllowanceRecords", $"/AllowanceRecords/Approve/{allowance.Id}", new())).StatusCode);
+
+        var decided = await host.WithDbAsync(async db => (
+            await db.Set<AllowanceRecord>().AsNoTracking().SingleAsync(),
+            await db.Set<DeductionRecord>().AsNoTracking().SingleAsync()));
+        Assert.Equal(ManualInputApprovalStatus.Approved, decided.Item1.ApprovalStatus);
+        Assert.NotNull(decided.Item1.ApprovedBy);
+        Assert.NotEqual(decided.Item1.CreatedBy, decided.Item1.ApprovedBy);
+        Assert.Equal((ManualInputApprovalStatus.Rejected, "لا سند للاسترداد"), (decided.Item2.ApprovalStatus, decided.Item2.DecisionNote));
+        var after = await Pay054FrameworkHttpTests.PageAsync(processor, "/DeductionRecords");
+        Assert.Contains("مرفوض", after, StringComparison.Ordinal);
+        Assert.Contains("لا سند للاسترداد", after, StringComparison.Ordinal);
+        Assert.Contains("معتمد", await Pay054FrameworkHttpTests.PageAsync(processor, "/AllowanceRecords"), StringComparison.Ordinal);
+    }
+}
+
+/// <summary>
 /// PLAN-54 (§1): the edit form of a draft is a view model, and it covers every numeric field that governs pay: a field added to the
 /// governed list without a place on the form fails here, as does a field the form reads but does not write back.
 /// </summary>

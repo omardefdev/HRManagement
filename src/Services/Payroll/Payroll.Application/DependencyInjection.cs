@@ -33,6 +33,7 @@ public static class DependencyInjection
         services.TryAddSingleton(TimeProvider.System);
         services.TryAddSingleton<IPayrollCalendar, PayrollCalendar>();
         services.AddOptions<Options.PayProfileChangeOptions>().BindConfiguration(Options.PayProfileChangeOptions.SectionName);
+        services.AddOptions<Features.ManualInputs.PayrollManualInputOptions>().BindConfiguration(Features.ManualInputs.PayrollManualInputOptions.SectionName);
         services.AddOptions<Options.PayrollMasterDataOptions>().BindConfiguration(Options.PayrollMasterDataOptions.SectionName);
         services.AddScoped<Features.PayProfileChanges.PayProfileChangeRules>();
         services.AddScoped<Features.PayProfileChanges.IPayProfileChangeApplier, Features.PayProfileChanges.PayProfileChangeApplier>();

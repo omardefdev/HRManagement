@@ -381,12 +381,28 @@ public sealed class ScopedIndexHost : IAsyncDisposable
             "Contracts/HireWizard" => await With(new ContractsControllers.HireWizardController(repo, mediator, cdb, lookup)).Index(null, employeeId),
             "Payroll/PaymentHolds" => await With(new PayrollControllers.PaymentHoldsController(pdb, null!, employees)).Index(employeeId, null, null, null, null),
             "Payroll/EndOfService" => await With(new PayrollControllers.EndOfServiceController(pdb, mediator, employees)).Index(employeeId, null, null, null),
-            "Payroll/AllowanceRecords" => await With(new PayrollControllers.AllowanceRecordsController(pdb, employees)).Index(employeeId, null, null, null),
-            "Payroll/DeductionRecords" => await With(new PayrollControllers.DeductionRecordsController(pdb, employees)).Index(employeeId, null, null, null, null),
-            "Payroll/PayrollAdjustments" => await With(new PayrollControllers.PayrollAdjustmentsController(pdb, employees)).Index(employeeId, null, null, null),
+            "Payroll/AllowanceRecords" => await With(new PayrollControllers.AllowanceRecordsController(pdb, employees, mediator, NobodyApproves)).Index(employeeId, null, null, null),
+            "Payroll/DeductionRecords" => await With(new PayrollControllers.DeductionRecordsController(pdb, employees, mediator, NobodyApproves)).Index(employeeId, null, null, null, null),
+            "Payroll/PayrollAdjustments" => await With(new PayrollControllers.PayrollAdjustmentsController(pdb, employees, mediator, NobodyApproves)).Index(employeeId, null, null, null),
             "Payroll/FraudAlerts" => await With(new PayrollControllers.FraudAlertsController(pdb, null!, employees)).Index(null, null, null, employeeId, null, null),
             _ => throw new ArgumentOutOfRangeException(nameof(action), action, null)
         };
+    }
+
+    /// <summary>
+    /// PLAN-54: the three manual input lists ask whether the caller may approve an input (to show the decision forms). These tests
+    /// read the lists' branch scope only, so the answer is «no».
+    /// </summary>
+    private static Microsoft.AspNetCore.Authorization.IAuthorizationService NobodyApproves
+    {
+        get
+        {
+            var authorization = new Mock<Microsoft.AspNetCore.Authorization.IAuthorizationService>();
+            authorization
+                .Setup(a => a.AuthorizeAsync(It.IsAny<ClaimsPrincipal>(), It.IsAny<object?>(), It.IsAny<string>()))
+                .ReturnsAsync(Microsoft.AspNetCore.Authorization.AuthorizationResult.Failed());
+            return authorization.Object;
+        }
     }
 
     public async ValueTask DisposeAsync()

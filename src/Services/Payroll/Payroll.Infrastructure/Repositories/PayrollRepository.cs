@@ -53,6 +53,7 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
     }
 
     public IQueryable<LegalDecisionRecord> LegalDecisionRecords => db.LegalDecisionRecords;
+    public IQueryable<CompensationType> CompensationTypes => db.CompensationTypes;
     public IQueryable<LegalAttestation> LegalAttestations => db.LegalAttestations;
 
     /// <summary>Every table of a version that governs pay.</summary>

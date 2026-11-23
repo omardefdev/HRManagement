@@ -13,8 +13,8 @@ Session: one, in the main folder `/home/omar/HRManagement` (Linux notebook), bra
 | P2 create, import, governing version | done | 2026-11-23T09:39:43Z |
 | P3 engine reads the version | done | 2026-11-23T10:56:44Z |
 | P4 governance | done | 2026-11-23T11:32:43Z |
-| P5 manual inputs | next | |
-| P6 acceptance and review | | |
+| P5 manual inputs | done | 2026-11-23T12:04:28Z |
+| P6 acceptance and review | next | |
 | P7 main | | |
 | P8 demo server | | |
 | P9 docs, gates, report, merge | | |
@@ -160,6 +160,40 @@ Session: one, in the main folder `/home/omar/HRManagement` (Linux notebook), bra
 - **Found while testing:** the integration hosts validate their container and register no legal catalog, so the cycle's handlers
   could not be built; the guard is optional in them and the gate fails closed without it.
 
+## P5 — manual inputs with a second person
+
+- Finished (UTC): 2026-11-23T12:04:28Z.
+- **Commands** (`Payroll.Application/Features/ManualInputs/ManualInputCommands.cs`): `CreateManualInputCommand` (an allowance, a
+  deduction or an adjustment: the employee, the type, the amount, the dates, the reason; written `PendingApproval`, `Manual`, with
+  who entered it; it has no field for a run, a state or an approver) and `DecideManualInputCommand` (the decider is not the person
+  who entered it: 403; a rejection needs a reason; a decision is not taken twice: 409; a system row is never decided).
+  `Payroll:ManualInputs:RequireApproval=false` is honoured in Development only, with a warning at start elsewhere.
+- **Readers that feed pay, all filtered on `Approved`:** the loader (allowances, deductions, adjustments), the correction run's
+  adjustments, the separation consumer's outstanding advance instalments. The medical-recommendation consumer's «already handled»
+  read takes rows of origin `System` only, so a manual input never suppresses an event.
+- **Web:** `ManualInputViewModels.cs` (three allowlist forms with the invariant decimal binder), `Create` through the command,
+  `Approve` and `Reject` (`Payroll.Approve`) on the three controllers, the lists with the state, the origin, who entered and who
+  decided, and the decision forms for a second person (`data-hr-confirm` on reject). The forms name no run any more.
+- **Lists that shrank:** `tests/architecture/entity-binding-allowlist/payroll.txt` lost `AllowanceRecords.Create`,
+  `DeductionRecords.Create` and `PayrollAdjustments.Create`.
+- **Tests:** `Pay054ManualInputApprovalTests` 19; the manual input rows of `PayrollWriteActionsTests`;
+  `Pay054V2RunPostgreSqlTests.A_manual_input_enters_no_run…` (a real run); `Pay054ManualInputHttpTests` (the three screens as three
+  users; crafted `AppliedInRunId`, `PayrollRunId`, `ApprovalStatus`, `Origin` ignored; a fraction binds).
+  Runs: full unit suite 6787/6787 (7 min 41 s); architecture 388/388; PLAN-54 PostgreSQL 14/14; integration (not Testcontainers,
+  payroll and the hosts) 122/122; build `-warnaserror` 0/0; format clean.
+- **Existing test changed:** `Plan034ScopedIndexTests` constructs the three controllers with their two new constructor arguments
+  (the mediator, and an authorization service that says «no»); what it tests, the lists' branch scope, is as it was.
+- **Found while testing:**
+  - the create handler added the entity as `object`, which EF has no set for; each kind is added by its own type;
+  - **a defect older than this plan, for PLAN-56:** a run that holds any non-zero `PayrollAdjustment` (manual, or written by a
+    consumer: mission, secondment, training…) is refused by the run's own reconciliation («عدم تطابق صافي السطر»):
+    `PayrollRunReconciliation.ValidateLineIntegrity` expects `net = gross − deductions` while `RoundingRule` adds the adjustments to
+    the net. Not changed here (the run's state machine and reconciliation are PLAN-56's). The real-run test uses an allowance and a
+    deduction; an adjustment is proved at the loader.
+- **Machine incident:** the first full unit run was aborted at 4239 tests («Test host process crashed», no failing test, exit 1).
+  The same binaries passed 6787/6787 on the next run with `--blame`; no kernel message was readable. Taken as memory pressure on
+  this 15 GB machine (the owner's containers, a browser and the build servers were up). About 6 min lost.
+
 ## Decisions (with reasons)
 
 Recorded as they are taken; see each phase.
@@ -209,16 +243,24 @@ Recorded as they are taken; see each phase.
 - **D19 (a refused run leaves a job row):** «the job's log says…» for a run that never got a job: a `Failed` job row (not an
   active job) carries the refusal; the run is neither pinned nor started.
 
+- **D20 (a manual input needs a pay profile):** entering an input for an employee who has no pay profile is refused (the old
+  forms accepted any id).
+- **D21 (the operator script's path and cookie):** through the gateway the frameworks API is `/api/payroll/frameworks` (the gateway
+  forwards `/api/payroll/**` unchanged, as the acceptance classes call PLAN-53's API); the service scopes its antiforgery cookie to
+  `/ui/payroll`, so the script sends the cookie back in a `Cookie` header, as the acceptance harness adds it by hand.
+
 ## Server changes and their undo commands
 
 None yet.
 
 ## Open issues
 
-None.
+- For PLAN-56 (older than this plan): a run with a non-zero `PayrollAdjustment` fails its own reconciliation (see P5).
+- For D-PAY-1 / PAY-E: the interim values tax income twice (see P3).
 
 ## Exact next step
 
-P5: manual inputs with a second person: view models (`ManualInputViewModels.cs`), `Features/ManualInputs/` create and decide
-commands, the loader and every reader that feeds pay filtered on `Approved`, the screens (state column, approve, reject with
-`data-hr-confirm`), `Payroll:ManualInputs:RequireApproval` honoured in Development only; the three `IAM-F` entity-binding rows leave.
+P6: the persona `a-payroll-approver-2` (`testdata/acceptance/personas.json`, `AcceptancePersonaCatalog.cs`, `DATA-AUTH` 67 to 68 in
+`scripts/acceptance-verify.ps1`), `AcPay54LegalFrameworkTests` (AC-PAY-54a..f), `tests/acceptance/ci-scope.json` (`prodLike[]`,
+required, group `main`), `ac-ownership.json`, `scripts/pay054-validate.ps1` with `-SelfTest`; then the images (one service at a
+time, 12 GB free), the prod-like stack, the class and P-14's lists, the Testcontainers step with CI's filter, and the review.

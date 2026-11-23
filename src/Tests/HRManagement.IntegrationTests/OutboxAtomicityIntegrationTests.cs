@@ -66,6 +66,7 @@ public class OutboxAtomicityIntegrationTests
         public IQueryable<FraudAlert> FraudAlerts => _inner.FraudAlerts;
         public IQueryable<PaymentHold> PaymentHolds => _inner.PaymentHolds;
         public IQueryable<LegalDecisionRecord> LegalDecisionRecords => _inner.LegalDecisionRecords;
+        public IQueryable<CompensationType> CompensationTypes => _inner.CompensationTypes;
         public IQueryable<LegalAttestation> LegalAttestations => _inner.LegalAttestations;
 
         public Task<PayrollRun?> GetPayrollRunAsync(Guid id, bool includeLines, CancellationToken ct) =>

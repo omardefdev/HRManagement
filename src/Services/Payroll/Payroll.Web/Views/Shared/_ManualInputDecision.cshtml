@@ -1,0 +1,36 @@
+@model Payroll.Web.ViewModels.ManualInputDecisionCell
+@* PLAN-54 (§4): the approval state of a manual pay input, and the decision forms for a second person. *@
+<td data-testid="manual-input-status">
+    @Html.HrEnumDisplay(Model.Status)
+    <div class="small text-muted">@Html.HrEnumDisplay(Model.Origin)</div>
+    @if (Model.Origin == ManualInputOrigin.Manual)
+    {
+        <div class="small text-muted">أدخله: @await Html.PartialAsync("_UserDisplayName", (object?)Model.EnteredBy)</div>
+        @if (Model.Status != ManualInputApprovalStatus.PendingApproval && Model.DecidedBy is not null)
+        {
+            <div class="small text-muted">قرّر فيه: @await Html.PartialAsync("_UserDisplayName", (object?)Model.DecidedBy)</div>
+        }
+        @if (!string.IsNullOrEmpty(Model.DecisionNote))
+        {
+            <div class="small">@Model.DecisionNote</div>
+        }
+    }
+</td>
+<td>
+    @if (Model.CanDecide)
+    {
+        <form asp-controller="@Model.Controller" asp-action="Approve" asp-route-id="@Model.InputId" method="post" class="d-inline">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-check"></i> اعتماد</button>
+        </form>
+        <form asp-controller="@Model.Controller" asp-action="Reject" asp-route-id="@Model.InputId" method="post" class="d-inline-flex gap-1 mt-1"
+              data-hr-confirm="رفض هذا المدخل اليدوي؟ لن يدخل أي حساب."
+              data-hr-confirm-title="تأكيد الرفض"
+              data-hr-confirm-variant="danger"
+              data-hr-confirm-label="رفض">
+            @Html.AntiForgeryToken()
+            <input name="note" class="form-control form-control-sm" maxlength="500" placeholder="ملاحظة الرفض (إلزامية)" aria-label="ملاحظة الرفض" required />
+            <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-times"></i> رفض</button>
+        </form>
+    }
+</td>

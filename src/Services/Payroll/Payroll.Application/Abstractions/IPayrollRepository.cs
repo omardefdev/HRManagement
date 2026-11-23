@@ -13,6 +13,7 @@ public interface IPayrollRepository
     IQueryable<PayrollReferenceChangeRequest> PayrollReferenceChangeRequests { get; }
     IQueryable<SalaryScale> SalaryScales { get; }
     IQueryable<AllowanceRecord> AllowanceRecords { get; }
+    IQueryable<CompensationType> CompensationTypes { get; }
     IQueryable<DeductionRecord> DeductionRecords { get; }
     IQueryable<DeductionType> DeductionTypes { get; }
     IQueryable<PayrollAdjustment> PayrollAdjustments { get; }
