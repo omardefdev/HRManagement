@@ -14,9 +14,9 @@ Session: one, in the main folder `/home/omar/HRManagement` (Linux notebook), bra
 | P3 engine reads the version | done | 2026-11-23T10:56:44Z |
 | P4 governance | done | 2026-11-23T11:32:43Z |
 | P5 manual inputs | done | 2026-11-23T12:04:28Z |
-| P6 acceptance and review | in progress | |
-| P7 main | | |
-| P8 demo server | | |
+| P6 acceptance and review | done | 2026-11-23T17:18:00Z |
+| P7 main | done: `origin/main` did not move (`53690e0e`) | 2026-11-23T17:18:00Z |
+| P8 demo server | in progress | |
 | P9 docs, gates, report, merge | | |
 
 ## P0 — timing, keep-awake, preconditions, baseline
@@ -268,6 +268,53 @@ Started 2026-11-23T12:04Z. Checkpoint 12:41Z (the images are building; nothing b
   pending inputs filtered in every reader; the migration's defaults; the changed tests keep their meaning; the lists only shrank.
 - **After the fixes:** build `-warnaserror` 0 errors; unit **6791/6791** (7 min 8 s); architecture **388/388**; the plan's
   PostgreSQL tests 16/16 (47 s); format clean; `pay054-validate` and its self-test pass.
+- **The prod-like stack, first start (15:00Z to 15:15Z, 891 s)** stopped at its own verification: `DATA-DIRECTORY` 59, expected
+  58. The new persona adds a directory entry as well as a user; the count is raised to 59 beside `DATA-AUTH` 68 (commit
+  `0a926937`). Verification then **Pass** on the same stack.
+- **`AcPay54LegalFrameworkTests` on that stack: 6/6 Passed at its first run** (68 s; evidence
+  `artifacts/plan54/runs/ac54-run1/`). Read from the evidence: 54a a draft of fingerprint 2 with 5 brackets, 4 statutory
+  deductions, 4 holidays, 3 priority rules and 19 field sources, 0 values unsourced; approved, attested and published by three
+  people; the run of 2031-01 has 1102 lines pinned to the version, each with the version's four statutory deductions. 54c
+  version 2 has another fingerprint, version 1 is superseded to 2031-01-31, January's result is the same md5 before and after,
+  March equals February beside the planted 50% general row. 54e 635,000.00 in June, 640,432.10 in July. 54f refused for the
+  posted period ending 2026-07-31.
+- **The other prod-like classes of P-14, on the same stack** (the helper, the job's environment): `AcIam53SalaryChangeTests`
+  5/5, `AcIam51ExplicitPolicyTests` 7/7, `AcIam52BranchScopeTests` 5/5, `AcHcm25ProductionApprovalTests` 8/8 (160 s);
+  `AcUx67ReadableInterfaceTests` **7/7** in Chromium with the three new key pages opened (HTTP 200, one policy, no
+  violation each).
+- **The import script on the stack:** `pay054-import-legal-pack.ps1 -Code LAW_50_2004_OPS -EffectiveFrom 2032-01-01` imported
+  a draft and printed the three next steps; a pack with a 120% bracket was refused with the field named and nothing written.
+  The script's default acceptance user was wrong (`acc-a-payroll-processor`; the persona is `e2e-payroll-processor`): fixed.
+- **The prod-like journey and the `isolated` group, fresh stack** (`acceptance-job.ps1 -Stage prodLike:journey,prodLike:isolated
+  -NoBuild`, 15:23:49Z to 15:56:13Z, 1,944 s; stack 999 s): journey 1/1, `AcInt37ProductionWiringTests` 8/8,
+  `AcMsg40AtomicPublishingTests` 8/8, `AcWf44InstanceIntegrityTests` 5/5, `AcWf45AssetApprovalLoopTests` 8/8,
+  `AcWf46CrossServiceApprovalTests` 9/9, `AcPol47RuleLifecycleTests` 1/1, `AcOps39KeycloakDataProtectionTests` 8/8.
+  `acceptance-guard: PASS (8 classes in 8 trx files)`.
+- **Written while the stacks started:** `AcPay54VpsChecks` (P8's four server checks), the documents of P9 (commit
+  `a87a4522`), and one more change the server check asked for: an import whose pack repeats the decision register writes no
+  register row (it used to rewrite every row's `UpdatedAt`), so the check can assert that no decision row of the demo is
+  written. Unit test in `Pay054ReviewFixesTests`.
+- **A note on the images:** the classes above ran on the payroll image of `14070764` (the review's fixes). The register change
+  (`a87a4522`) came after them; the payroll image was rebuilt from it (118 s) for the lab stage. CI runs every class on the final
+  code.
+- **The lab stage, fresh stack, the payroll image of `a87a4522`** (`acceptance-job.ps1 -Profile Lab -NoBuild -Classes
+  Ac21…, Ac23…, Ac24…, Ac25…, AcHcm29…, RecruitmentToHireJourneyE2ETests`; 15:57:51Z to 16:21:04Z, 1,393 s with the reset
+  and the image; stack 903 s, verification Pass): `Ac21PayrollDeterminismTests`, `Ac23PayrollFreezeTests`,
+  `Ac24PartialDisbursementTests`, `Ac25FraudHoldTests` and `AcHcm29HireContractTests` **7/7**, the lab journey 1/1;
+  `acceptance-guard: PASS (6 classes in 2 trx files)`. These are v1 runs (the seed's versions): they compute as before.
+- **The leastpriv stage** (the migration under the least-privilege roles, from empty volumes). The job's own
+  `docker build` of the migrator cannot run here (no buildx: the legacy builder does not know `COPY --exclude`), so the image
+  was built through `docker compose build` with a one-service file in the scratchpad (16:22:30Z to 16:47:44Z, 1,514 s,
+  fifteen bundles, 5.13 GB; 36 GB free at the lowest, 40 GB after pruning the build stages). Then
+  `acceptance-job.ps1 -Stage prodLike:leastpriv -NoBuild` (16:48Z to 16:58Z, 614 s; stack 209 s, tests 379 s):
+  `AcOps38FirstBootTests` and `AcTen48LeastPrivilegeTests` **9/9**, `acceptance-guard: PASS (2 classes in 1 trx files)`.
+  PAY054 is applied by the migrator's role and Payroll starts on it as its own role.
+- **Stacks down** after each stage (`acceptance-reset.ps1`; the leastpriv job removes its own). No local evidence was copied
+  into the committed `acceptance-evidence/`.
+- **The Testcontainers step on the host, CI's filter** (`Category=Testcontainers&Category!=ObjectStorage`; 17:03:47Z to
+  17:16:58Z, 791 s): **264 passed, 1 skipped, 0 failed** (13 min 4 s), on the final code.
+- **P7:** `origin/main` is still `53690e0e` (fetched 16:00Z): nothing to merge.
+- Finished (UTC): 2026-11-23T17:18:00Z.
 
 ## Stops and resumes
 
@@ -281,6 +328,17 @@ they were stamped then.
 - Resumed (UTC): 2026-11-23T14:29:25Z. Reason: the owner stopped the turn in P6, while the review's findings were being verified
   in the code (the images had finished at 13:00:37Z), and then wrote «اكمل». Standstill about 75 min (from about 13:15Z). No
   process was running; the machine did not restart; the tree held only this file's edit.
+
+## P8 — the demo server
+
+- Started (UTC): 2026-11-23T16:00Z (the read-only checks and the disk, beside the local lab stage; the build waits for the
+  local regression).
+- **SSH and P-17's condition:** `ssh hrm-vps` → `hrm`; the known host key is `SHA256:qWIfQls882KM/nQ99yV/WFU2Wk08t6DIb8o+pUMGsto`.
+  Running tag `5aa61b78e3a6`, contained in `origin/main`. 22 containers, up 1 day 4 h.
+- **The picture before the deploy (17:05Z, read-only, the same statements as P0):** identical to P0's, line for line
+  (`artifacts/plan54/vps/p8-picture-before.txt`): three v1 versions (checksum `3efb4119f16c75a8e3daab570ef03f0b`), the decision
+  register 17 rows (`4ee88def8114915fcd22ee453ec904fb`), no attestation, six runs (none pinned), inputs 800 / 500 / 80,
+  last payroll migration `PAY053_SalaryChangeRequests`.
 
 ## Decisions (with reasons)
 
@@ -350,7 +408,14 @@ Recorded as they are taken; see each phase.
 
 ## Server changes and their undo commands
 
-None yet.
+1. **2026-11-23T16:01Z, the disk before the build.** The server had 29 GB free (the line is 30 GB), no build cache, and the local
+   images of three releases. The local images of the two older ones, `27cbf35db9cc` and `1ee455bf1a6f` (17 each), were removed
+   with `docker rmi`; the running release `5aa61b78e3a6` was not touched. 41 GB free after it. Both tags stay in the loopback
+   registry. **Undo:** `docker pull 127.0.0.1:5050/hrmanagement/<image>:<tag>` for the image wanted back.
+2. **2026-11-23T17:04:49Z, the backup.** `/opt/hrm/backups/pre-plan54-20261123T170449Z` (700): `pg_dumpall.sql`
+   (35,538,324 bytes), `env.backup`, `SHA256SUMS` (each 600). Verified: both sums OK; 17 `CREATE DATABASE` lines (the sixteen
+   databases and `hrm_admin`); the dump ends with «PostgreSQL database cluster dump complete». **Undo:** delete the folder when it
+   is no longer needed (`rm -rf /opt/hrm/backups/pre-plan54-20261123T170449Z`).
 
 ## Open issues
 
@@ -359,8 +424,8 @@ None yet.
 
 ## Exact next step
 
-P6, continuing: when `artifacts/plan54/p6-images.log` ends with `exit=0`, start the prod-like stack
-(`pwsh -NoProfile -File scripts/acceptance-up.ps1 -Profile ProdLike -UseLocalBaseImages`, or `scripts/ci/acceptance-job.ps1 -Profile
-ProdLike -NoBuild -Classes …`), run `AcPay54LegalFrameworkTests`, then P-14's lists (prod-like, lab, leastpriv), the validate
-script, the seeded counts by psql and the import script on the stack; `down -v`; restore the committed evidence; the Testcontainers
-step with CI's filter; fix what the review finds, with tests; commit with P6's message.
+P8: commit, then the server build of HEAD, detached (`git archive` and `deploy/vps/build-on-host.sh` uploaded as
+`scripts/vps/build-on-host.ps1` does; log `/opt/hrm/build-<tag>.log`, exit code in `/opt/hrm/build-<tag>.done`); then
+`pwsh -NoProfile -File scripts/vps/deploy.ps1 -Tag <tag>`; then `AcPay54VpsChecks` (the helper `artifacts/plan54/run-vps.ps1`,
+filter `AC_PAY_54_vps`), the PLAN-36..53 server checks and `scripts/vps/smoke.ps1 -RequireIntegrationWiring`; the rollback note
+and the change table in `docs/OPS_VPS_SINGLE_HOST.md`; then P9.
