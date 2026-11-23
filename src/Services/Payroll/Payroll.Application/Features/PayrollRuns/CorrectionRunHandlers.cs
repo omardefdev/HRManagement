@@ -14,7 +14,9 @@ public record CreateCorrectionRunCommand(
 
 public class CreateCorrectionRunHandler(
     IPayrollRepository repository,
-    IPayrollEngine engine)
+    IPayrollEngine engine,
+    IPayrollLegalControlGuard? legalControlGuard = null,
+    IPayrollCalendar? calendar = null)
     : IRequestHandler<CreateCorrectionRunCommand, (bool Success, Guid? CorrectionRunId, string? Error)>
 {
     public async Task<(bool Success, Guid? CorrectionRunId, string? Error)> Handle(
@@ -33,6 +35,12 @@ public class CreateCorrectionRunHandler(
             return (false, null, "نسخة الإعدادات المثبتة على التشغيل المرجعي غير موجودة.");
         if (!string.Equals(source.ConfigContentHash, config.ContentHash, StringComparison.OrdinalIgnoreCase))
             return (false, null, "بصمة إعدادات التشغيل المرجعي لا تطابق النسخة القانونية.");
+
+        // PLAN-54 (§3): a correction is a calculation with the source's pinned version. If that version holds interim values, every
+        // exception it cites must be active today (the payroll calendar's date), as for the run itself. Nothing is written on refusal.
+        if (Features.PayrollConfigurations.PayrollInterimGate.RefusalForRun(
+                config, legalControlGuard, calendar ?? new PayrollCalendar(TimeProvider.System)) is { } interimRefusal)
+            return (false, null, interimRefusal);
 
         if (config.MaxRetroCorrectionMonths > 0)
         {

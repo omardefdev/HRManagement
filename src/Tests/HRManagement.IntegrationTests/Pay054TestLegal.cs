@@ -12,7 +12,23 @@ internal sealed class Pay054Clock(DateTimeOffset now) : TimeProvider
 
     public DateTimeOffset Now { get; set; } = now;
 
-    public override DateTimeOffset GetUtcNow() => Now;
+    /// <summary>
+    /// Runs once, at the next read of the clock: a handler reads the clock after it has read its rows and before it saves, so this is
+    /// where a test lands another person's request in between.
+    /// </summary>
+    public Action? BeforeNextRead { get; set; }
+
+    public override DateTimeOffset GetUtcNow()
+    {
+        var hook = BeforeNextRead;
+        if (hook is not null)
+        {
+            BeforeNextRead = null;
+            hook();
+        }
+
+        return Now;
+    }
 }
 
 /// <summary>PLAN-54: the STR-002 catalog as a test holds it: each exception with its last day (the real catalog's two, by default).</summary>

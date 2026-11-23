@@ -174,8 +174,8 @@ public sealed class Pay054HashV2Tests
             Bookkeeping(nameof(OfficialHoliday.PayrollConfigurationId), nameof(OfficialHoliday.PayrollConfiguration)));
         AssertCovered(typeof(PayrollConfigurationFieldSource), canonical,
             Bookkeeping(nameof(PayrollConfigurationFieldSource.PayrollConfigurationId), nameof(PayrollConfigurationFieldSource.PayrollConfiguration)));
-        // A rule inside a version is always in force (IsActive is the general table's switch), the version is its rule set, and
-        // LegalSource is written as the rule's legal reference.
+        // A rule inside a version is in force through its version (IsActive is the general table's switch and is stored off for a
+        // version's rule), the version is its rule set, and LegalSource is written as the rule's legal reference.
         AssertCovered(typeof(DisbursementPriorityRule), canonical,
             Bookkeeping(nameof(DisbursementPriorityRule.PayrollConfigurationId), nameof(DisbursementPriorityRule.PayrollConfiguration),
                 nameof(DisbursementPriorityRule.RuleSetId), nameof(DisbursementPriorityRule.IsActive), nameof(DisbursementPriorityRule.LegalSource)));

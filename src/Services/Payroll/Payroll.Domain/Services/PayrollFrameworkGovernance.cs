@@ -20,6 +20,17 @@ public static class PayrollFrameworkGovernance
     public const string PublisherNotApproverOrAttestor = "ينشر النسخة معتمدها أو المصادق عليها قانونياً";
     public const string LegacyDraft = "مسودة أقدم من حزم الإطار القانوني: أنشئ منها إصداراً جديداً وصنّف قيمه قبل الاعتماد";
     public const string UnknownActor = "تعذّر تحديد هوية المستخدم";
+    public const string ContentChangedAfterApproval =
+        "محتوى النسخة لا يطابق بصمتها المعتمدة: تغيّر بعد الاعتماد. لا تُصادَق ولا تُنشر؛ استنسخها في مسودة جديدة وأعد دورتها";
+
+    /// <summary>
+    /// The approved fingerprint is still the fingerprint of the content read now. An approval fixes the content; this is the second
+    /// line behind the row version of the version (an attestor attests, and a publisher publishes, what the approver approved). A
+    /// version older than legal packs keeps the fingerprint it was given and is not recomputed here.
+    /// </summary>
+    public static bool FingerprintHolds(PayrollConfiguration config) =>
+        config.IsLegacyFramework
+        || string.Equals(PayrollConfigurationHashService.ComputeContentHash(config), config.ContentHash, StringComparison.OrdinalIgnoreCase);
 
     /// <summary>The most findings a refusal lists; the count of the rest is added.</summary>
     public const int MaxFindingsListed = 5;
@@ -145,6 +156,8 @@ public static class PayrollFrameworkGovernance
             return (false, PayrollFrameworkMessages.AttestNeedsApproved, null);
         if (string.IsNullOrEmpty(config.ContentHash))
             return (false, PayrollFrameworkMessages.NoFingerprint, null);
+        if (!FingerprintHolds(config))
+            return (false, ContentChangedAfterApproval, null);
         if (IsEditor(config, actorId))
             return (false, AttestorIsEditor, null);
         if (config.ApprovedBy == actorId)
@@ -177,6 +190,8 @@ public static class PayrollFrameworkGovernance
             return (false, UnknownActor, null);
         if (config.PublicationStatus != PayrollConfigPublicationStatus.Approved)
             return (false, PayrollFrameworkMessages.PublishNeedsApproved, null);
+        if (!string.IsNullOrEmpty(config.ContentHash) && !FingerprintHolds(config))
+            return (false, ContentChangedAfterApproval, null);
         if (IsEditor(config, actorId))
             return (false, PublisherIsEditor, null);
 

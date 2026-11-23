@@ -54,6 +54,15 @@ namespace Payroll.Infrastructure.Migrations
                 maxLength: 4000,
                 nullable: true);
 
+            // The row version of a framework version (the system column xmin: nothing is added to the table).
+            migrationBuilder.AddColumn<uint>(
+                name: "xmin",
+                table: "PayrollConfigurations",
+                type: "xid",
+                rowVersion: true,
+                nullable: false,
+                defaultValue: 0u);
+
             migrationBuilder.AddColumn<int>(
                 name: "HashSchemaVersion",
                 table: "PayrollConfigurations",
@@ -416,6 +425,10 @@ namespace Payroll.Infrastructure.Migrations
             migrationBuilder.DropColumn(
                 name: "Log",
                 table: "PayrollRunJobs");
+
+            migrationBuilder.DropColumn(
+                name: "xmin",
+                table: "PayrollConfigurations");
 
             migrationBuilder.DropColumn(
                 name: "HashSchemaVersion",

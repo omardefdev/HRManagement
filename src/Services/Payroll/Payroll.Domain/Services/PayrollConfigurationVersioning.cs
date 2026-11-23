@@ -262,7 +262,9 @@ public static class PayrollConfigurationVersioning
             Priority = source.Priority,
             MinimumAmount = source.MinimumAmount,
             LegalSource = source.LegalSource,
-            IsActive = true,
+            // Never the general table's switch: a version's rule is in force through its version. Stored off, so that code older
+            // than PLAN-54 (a rollback), which reads every active row for a decision that names no rule set, never mixes it in.
+            IsActive = false,
             LegalStatus = legalStatus,
             InterimExceptionId = interimExceptionId,
             TenantId = clone.TenantId

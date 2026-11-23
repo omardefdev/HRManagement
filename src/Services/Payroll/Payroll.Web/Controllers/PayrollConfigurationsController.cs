@@ -262,7 +262,18 @@ public class PayrollConfigurationsController(
         config.RecordEditor(actor, PayrollFrameworkEditKind.Edited, calendar.UtcNow);
         // A row added to a tracked version's collection is a new row, whatever key it was given.
         db.PayrollConfigurationEditors.AddRange(config.Editors.Skip(editorsBefore));
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Another person changed or approved the draft since this form was opened: nothing of this edit is written.
+            db.ChangeTracker.Clear();
+            TempData["Error"] = PayrollFrameworkImportMessages.ChangedConcurrently;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         TempData["Success"] = "تم تحديث مسودة الإعدادات القانونية";
         return RedirectToAction(nameof(Details), new { id });
     }

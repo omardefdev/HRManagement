@@ -51,7 +51,8 @@ public sealed class Pay054FrameworkPackImporterTests
         {
             Assert.Equal(draft.Id, r.PayrollConfigurationId);
             Assert.Equal(draft.Id, r.RuleSetId);
-            Assert.True(r.IsActive);
+            // In force through its version, never as an active row of the general table (see Pay054ReviewFixesTests).
+            Assert.False(r.IsActive);
         });
         Assert.All(draft.LegalValues(), v =>
         {
@@ -432,7 +433,8 @@ public sealed class Pay054FrameworkPackImporterTests
         Assert.Equal(4, clone.Holidays.Count);
         Assert.Equal(3, clone.PriorityRules.Count);
         Assert.All(clone.LegalValues(), v => Assert.False(string.IsNullOrEmpty(v.InterimExceptionId)));
-        Assert.Equal(H.OtherEditor, Assert.Single(clone.Editors).UserId);
+        // The source is still a draft: its author stays an editor of the copy, beside the person who made the copy.
+        Assert.Equal(new[] { H.Editor, H.OtherEditor }.OrderBy(id => id), clone.Editors.Select(e => e.UserId).OrderBy(id => id));
     }
 
     [Fact]

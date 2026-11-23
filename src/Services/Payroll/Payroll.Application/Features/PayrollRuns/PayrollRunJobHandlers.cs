@@ -84,18 +84,28 @@ public class StartPayrollRunJobHandler(
         // today. The refusal is closed: the run is not pinned and not started, and a failed job row carries the reason in its log.
         if (Features.PayrollConfigurations.PayrollInterimGate.RefusalForRun(config, legalControlGuard, _calendar) is { } interimRefusal)
         {
-            var refused = new PayrollRunJob
+            // One row carries the refusal however often the calculation is asked for: a job that never took a snapshot.
+            var refused = await repository.PayrollRunJobs
+                .Where(j => j.PayrollRunId == run.Id && j.Status == PayrollRunJobStatus.Failed && j.TotalEmployeeCount == 0)
+                .OrderByDescending(j => j.CreatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (refused is null)
             {
-                PayrollRunId = run.Id,
-                Phase = PayrollRunJobPhase.Snapshot,
-                Status = PayrollRunJobStatus.Failed,
-                Attempt = 1,
-                Error = interimRefusal,
-                LastCheckpointAt = _calendar.UtcNow,
-                TenantId = run.TenantId
-            };
+                refused = new PayrollRunJob
+                {
+                    PayrollRunId = run.Id,
+                    Phase = PayrollRunJobPhase.Snapshot,
+                    Status = PayrollRunJobStatus.Failed,
+                    Attempt = 0,
+                    TenantId = run.TenantId
+                };
+                await repository.AddAsync(refused, cancellationToken);
+            }
+
+            refused.Attempt++;
+            refused.Error = interimRefusal;
+            refused.LastCheckpointAt = _calendar.UtcNow;
             refused.AppendLog(interimRefusal);
-            await repository.AddAsync(refused, cancellationToken);
             await repository.SaveChangesAsync(cancellationToken);
             return (false, 0, refused.Id, interimRefusal);
         }
@@ -261,9 +271,17 @@ public class ResumePayrollRunJobHandler(
     IPayrollRepository repository,
     IPayrollEngine engine,
     IServiceScopeFactory scopeFactory,
-    IOptions<PayrollBatchOptions> batchOptions)
+    IOptions<PayrollBatchOptions> batchOptions,
+    IPayrollLegalControlGuard? legalControlGuard = null,
+    IPayrollCalendar? calendar = null)
     : IRequestHandler<ResumePayrollRunJobCommand, (bool Success, int LinesGenerated, Guid? JobId, string? Error)>
 {
+    public const string NeverStarted =
+        "هذه المهمة لم تبدأ الحساب: رُفض الحساب قبل بدئه. بعد زوال سبب الرفض استخدم «حساب» من صفحة التشغيل، لا «استئناف».";
+
+    /// <summary>«Today» for the interim gate: the payroll calendar's date (Damascus), never the UTC date.</summary>
+    private readonly IPayrollCalendar _calendar = calendar ?? new PayrollCalendar(TimeProvider.System);
+
     public async Task<(bool Success, int LinesGenerated, Guid? JobId, string? Error)> Handle(
         ResumePayrollRunJobCommand request,
         CancellationToken cancellationToken)
@@ -274,6 +292,26 @@ public class ResumePayrollRunJobHandler(
         if (job is null) return (false, 0, null, "المهمة غير موجودة.");
         if (job.Status is not (PayrollRunJobStatus.Paused or PayrollRunJobStatus.Failed))
             return (false, 0, job.Id, "لا يمكن الاستئناف إلا لمهمة متوقفة أو فاشلة.");
+
+        // PLAN-54 (§3): a resumed calculation is a calculation. A job that never started (the row that carries a refusal: the run
+        // is pinned to no version and has no snapshot) is not resumed, or an empty run would be marked calculated and frozen. And a
+        // job that did start passes the interim gate again: an exception may have expired while it was paused.
+        var run = await repository.GetPayrollRunAsync(job.PayrollRunId, includeLines: false, cancellationToken);
+        if (run is null) return (false, 0, job.Id, "التشغيل غير موجود.");
+        if (!run.PayrollConfigurationId.HasValue)
+            return (false, 0, job.Id, NeverStarted);
+        if (run.ValidateCanCalculate() is { } cannotCalculate)
+            return (false, 0, job.Id, cannotCalculate);
+        var pinned = await StartPayrollRunJobHandler.ResolveConfigAsync(repository, run, DateOnly.FromDateTime(run.PeriodStart), cancellationToken);
+        if (pinned.Error is not null)
+            return (false, 0, job.Id, pinned.Error);
+        if (Features.PayrollConfigurations.PayrollInterimGate.RefusalForRun(pinned.Config!, legalControlGuard, _calendar) is { } expired)
+        {
+            job.Error = expired;
+            job.AppendLog(expired);
+            await repository.SaveChangesAsync(cancellationToken);
+            return (false, 0, job.Id, expired);
+        }
 
         job.Status = PayrollRunJobStatus.Running;
         job.Attempt++;

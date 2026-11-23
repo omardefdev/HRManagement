@@ -4,6 +4,7 @@ using HRManagement.Integration.Abstractions.Insurance;
 using HRManagement.Integration.Abstractions.Payroll;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Moq;
 using Payroll.Application.Abstractions;
 using Payroll.Application.Features.PartialDisbursement;
@@ -288,6 +289,33 @@ public sealed class Pay054V2RunPostgreSqlTests(PostgreSqlFixture fixture)
         Assert.Equal(error, refusedJob.Error);
         Assert.Contains("انتهى الاستثناء القانوني EX-STR2-TAX-INTERIM", refusedJob.Log ?? string.Empty, StringComparison.Ordinal);
 
+        // That row is not a calculation that can be resumed: resuming it would mark an empty, unpinned run calculated and frozen.
+        var resumeRefusal = await mediator.Send(new ResumePayrollRunJobCommand(refusedJob.Id));
+        Assert.False(resumeRefusal.Success);
+        Assert.Equal(ResumePayrollRunJobHandler.NeverStarted, resumeRefusal.Error);
+        db.ChangeTracker.Clear();
+        refusedRun = await db.PayrollRuns.AsNoTracking().SingleAsync(r => r.Id == november);
+        Assert.Equal(PayrollRunStatus.Draft, refusedRun.Status);
+        Assert.False(refusedRun.ResultsFrozen);
+        Assert.Null(refusedRun.PayrollConfigurationId);
+        Assert.Equal(0, await db.SalaryLines.CountAsync(l => l.PayrollRunId == november));
+        Assert.Equal(PayrollRunJobStatus.Failed, (await db.PayrollRunJobs.AsNoTracking().SingleAsync(j => j.Id == refusedJob.Id)).Status);
+        // Asking again is refused again, on the same row: the refusals do not pile up.
+        Assert.False((await mediator.Send(new CalculatePayrollRunCommand(november.Value))).Success);
+        db.ChangeTracker.Clear();
+        var sameRow = await db.PayrollRunJobs.AsNoTracking().SingleAsync(j => j.PayrollRunId == november);
+        Assert.Equal(refusedJob.Id, sameRow.Id);
+        Assert.Equal(2, sameRow.Attempt);
+
+        // A correction is a calculation with the source's pinned version: October's is refused too, and no correction run is written.
+        await db.PayrollRuns.Where(r => r.Id == october).ExecuteUpdateAsync(s => s.SetProperty(r => r.Status, PayrollRunStatus.Posted));
+        var correction = await mediator.Send(new CreateCorrectionRunCommand(october, new DateTime(2027, 2, 1, 0, 0, 0, DateTimeKind.Utc)));
+        Assert.False(correction.Success);
+        Assert.Equal(error, correction.Error);
+        Assert.Equal(0, await db.PayrollRuns.CountAsync(r => r.RunType == PayrollRunType.Correction));
+        await db.PayrollRuns.Where(r => r.Id == october).ExecuteUpdateAsync(s => s.SetProperty(r => r.Status, PayrollRunStatus.Calculated));
+        db.ChangeTracker.Clear();
+
         // A paused calculation of the interim version is not resumed either, and its job says why; it stays paused for the day the
         // exception is renewed.
         var pinned = new PayrollRun
@@ -312,6 +340,15 @@ public sealed class Pay054V2RunPostgreSqlTests(PostgreSqlFixture fixture)
         Assert.Equal(PayrollRunJobStatus.Paused, stillPaused.Status);
         Assert.Equal(1, stillPaused.Attempt);
         Assert.Equal(error, stillPaused.Error);
+        // Nor by the resume command itself (the «استئناف» button and the API's resume): the same refusal, the job as it was.
+        var resumedByCommand = await mediator.Send(new ResumePayrollRunJobCommand(paused.Id));
+        Assert.False(resumedByCommand.Success);
+        Assert.Equal(error, resumedByCommand.Error);
+        db.ChangeTracker.Clear();
+        stillPaused = await db.PayrollRunJobs.AsNoTracking().SingleAsync(j => j.Id == paused.Id);
+        Assert.Equal(PayrollRunJobStatus.Paused, stillPaused.Status);
+        Assert.Equal(1, stillPaused.Attempt);
+        Assert.Equal(0, await db.SalaryLines.CountAsync(l => l.PayrollRunId == pinned.Id));
 
         // September is the superseded legacy version's month: it cites no exception and calculates as before.
         var (september, septemberLines) = await CalculateAsync(
@@ -325,6 +362,95 @@ public sealed class Pay054V2RunPostgreSqlTests(PostgreSqlFixture fixture)
         var (again, againLines, againError) = await mediator.Send(new CalculatePayrollRunCommand(november.Value));
         Assert.True(again, againError);
         Assert.Equal(4, againLines);
+    }
+
+    /// <summary>
+    /// PLAN-54 (§3): an approval fixes the content it fingerprinted, also when two people act at the same moment. Another person's
+    /// request is landed between a handler's read and its save (at the handler's first read of the clock): the version's row version
+    /// has moved, so the late save writes nothing and answers a conflict.
+    /// </summary>
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task A_request_that_lands_between_another_persons_read_and_save_is_a_conflict_and_nothing_of_the_late_one_is_written()
+    {
+        Skip.IfNot(PostgreSqlFixture.IsEnabled, "Set RUN_TESTCONTAINERS=true and start Docker.");
+        var (root, scope, db, mediator, clock, _) = await ScopeAsync();
+        await using var disposeScope = scope;
+        await using var disposeRoot = root;
+
+        // Another person's request, in its own scope (its own context and transaction), run to its end from inside the first one.
+        T Meanwhile<T>(MediatR.IRequest<T> request) => Task.Run(async () =>
+        {
+            await using var other = root.CreateAsyncScope();
+            return await other.ServiceProvider.GetRequiredService<IMediator>().Send(request);
+        }).GetAwaiter().GetResult();
+
+        var imported = await mediator.Send(new ImportPayrollFrameworkPackCommand(
+            Pay054FrameworkHttpTests.InterimPackJson(), "LAW_50_2004_RACE", new DateOnly(2031, 1, 1), null, Importer));
+        Assert.True(imported.Success, imported.Error);
+        var id = imported.FrameworkId!.Value;
+
+        // 1. The editor moves the draft's date while the approver's request holds the content it read: the approval is a conflict.
+        PayrollFrameworkResult? edit = null;
+        clock.BeforeNextRead = () => edit = Meanwhile(new SetPayrollFrameworkEffectiveFromCommand(id, new DateOnly(2031, 3, 1), Importer));
+        var approval = await mediator.Send(new ApprovePayrollFrameworkCommand(id, Approver));
+        Assert.True(edit is { Success: true }, edit?.Error);
+        Assert.False(approval.Success);
+        Assert.Equal(409, approval.StatusCode);
+        Assert.Equal(PayrollFrameworkImportMessages.ChangedConcurrently, approval.Error);
+        db.ChangeTracker.Clear();
+        var draft = await db.PayrollConfigurations.AsNoTracking().SingleAsync(c => c.Id == id);
+        Assert.Equal(PayrollConfigPublicationStatus.Draft, draft.PublicationStatus);  // not approved with a fingerprint of other content
+        Assert.Null(draft.ContentHash);
+        Assert.Null(draft.ApprovedBy);
+        Assert.Equal(new DateTime(2031, 3, 1, 0, 0, 0, DateTimeKind.Utc), draft.EffectiveFrom);
+
+        // 2. The other way round: the approval lands while the editor's request holds the draft. The edit is a conflict, and the
+        // approved content is the content that was fingerprinted.
+        PayrollFrameworkResult? landed = null;
+        clock.BeforeNextRead = () => landed = Meanwhile(new ApprovePayrollFrameworkCommand(id, Approver));
+        var lateEdit = await mediator.Send(new SetPayrollFrameworkEffectiveFromCommand(id, new DateOnly(2031, 6, 1), Importer));
+        Assert.True(landed is { Success: true }, landed?.Error);
+        Assert.False(lateEdit.Success);
+        Assert.Equal(409, lateEdit.StatusCode);
+        db.ChangeTracker.Clear();
+        var approved = await mediator.Send(new ExportPayrollFrameworkQuery(id));
+        var version = await db.PayrollConfigurations.AsNoTracking().SingleAsync(c => c.Id == id);
+        Assert.Equal(PayrollConfigPublicationStatus.Approved, version.PublicationStatus);
+        Assert.Equal(new DateTime(2031, 3, 1, 0, 0, 0, DateTimeKind.Utc), version.EffectiveFrom);
+        Assert.NotNull(approved);
+        var reloaded = await scope.ServiceProvider.GetRequiredService<IPayrollRepository>().GetConfigurationByIdAsync(id, CancellationToken.None);
+        Assert.True(PayrollFrameworkGovernance.FingerprintHolds(reloaded!));
+
+        // 3. Two publications that supersede the same version: the first one to save wins, the other is a conflict and stays approved.
+        Assert.True((await mediator.Send(new AttestPayrollFrameworkCommand(id, Attestor))).Success);
+        Assert.True((await mediator.Send(new PublishPayrollFrameworkCommand(id, Approver, null))).Success);
+        async Task<Guid> ApprovedAndAttestedAsync(DateOnly from)
+        {
+            var next = await mediator.Send(new ImportPayrollFrameworkPackCommand(Pay054FrameworkHttpTests.InterimPackJson(), "LAW_50_2004_RACE", from, null, Importer));
+            Assert.True(next.Success, next.Error);
+            Assert.True((await mediator.Send(new ApprovePayrollFrameworkCommand(next.FrameworkId!.Value, Approver))).Success);
+            Assert.True((await mediator.Send(new AttestPayrollFrameworkCommand(next.FrameworkId.Value, Attestor))).Success);
+            return next.FrameworkId.Value;
+        }
+
+        var second = await ApprovedAndAttestedAsync(new DateOnly(2031, 7, 1));
+        var third = await ApprovedAndAttestedAsync(new DateOnly(2031, 9, 1));
+        PayrollFrameworkResult? other = null;
+        clock.BeforeNextRead = () => other = Meanwhile(new PublishPayrollFrameworkCommand(third, Attestor, null));
+        var late = await mediator.Send(new PublishPayrollFrameworkCommand(second, Approver, null));
+        Assert.True(other is { Success: true }, other?.Error);
+        Assert.False(late.Success);
+        Assert.Equal(409, late.StatusCode);
+        db.ChangeTracker.Clear();
+        var versions = await db.PayrollConfigurations.AsNoTracking().Where(c => c.Code == "LAW_50_2004_RACE").ToDictionaryAsync(c => c.Id);
+        Assert.Equal(PayrollConfigPublicationStatus.Superseded, versions[id].PublicationStatus);
+        Assert.Equal(new DateTime(2031, 8, 31, 0, 0, 0, DateTimeKind.Utc), versions[id].EffectiveTo);    // ended once, by the third
+        Assert.Equal(PayrollConfigPublicationStatus.Approved, versions[second].PublicationStatus);
+        Assert.Null(versions[second].PublishedBy);
+        Assert.Equal(PayrollConfigPublicationStatus.Published, versions[third].PublicationStatus);
+        Assert.Equal(1, await db.PayrollConfigChangeNotices.CountAsync(n => n.PayrollConfigurationId == third));
+        Assert.Equal(0, await db.PayrollConfigChangeNotices.CountAsync(n => n.PayrollConfigurationId == second));
     }
 
     /// <summary>
@@ -457,7 +583,10 @@ public sealed class Pay054V2RunPostgreSqlTests(PostgreSqlFixture fixture)
             mediator.Send(new ExecutePartialDisbursementCommand(x.Run.Id, x.Decision.Id, Persist: false));
 
         // No general rule exists: a legacy run finds none, although the v2 version holds three (they never leak into a legacy run).
-        Assert.Equal(3, await db.DisbursementPriorityRules.CountAsync(r => r.PayrollConfigurationId == v2.Id && r.IsActive));
+        // And none of the three is an active row of the general table: the release before PLAN-54 reads every active row for a
+        // decision that names no rule set, so a rollback to it finds none either.
+        Assert.Equal(3, await db.DisbursementPriorityRules.CountAsync(r => r.PayrollConfigurationId == v2.Id && !r.IsActive));
+        Assert.Equal(0, await db.DisbursementPriorityRules.CountAsync(r => r.IsActive));
         var legacy = await PostedRunAsync(v1.Id, ruleSet: null, month: 1);
         var unpinned = await PostedRunAsync(null, ruleSet: null, month: 2);
         Assert.Equal("لا توجد قواعد أولوية للصرف الجزئي.", (await PreviewAsync(legacy)).Error);

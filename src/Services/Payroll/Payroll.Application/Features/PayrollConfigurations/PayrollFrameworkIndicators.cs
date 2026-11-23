@@ -59,8 +59,11 @@ public static class PayrollFrameworkIndicators
         IPayrollCalendar calendar,
         CancellationToken ct)
     {
+        // In force: a published version, and a superseded one that still governs today (its last day has not passed).
+        var todayStart = calendar.Today.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var inForce = await repository.PayrollConfigurations.AsNoTracking()
-            .Where(c => c.PublicationStatus == PayrollConfigPublicationStatus.Published
+            .Where(c => (c.PublicationStatus == PayrollConfigPublicationStatus.Published
+                         || (c.PublicationStatus == PayrollConfigPublicationStatus.Superseded && c.EffectiveTo >= todayStart))
                         && c.HashSchemaVersion >= Domain.Entities.PayrollConfiguration.CurrentHashSchemaVersion)
             .Select(c => c.Id)
             .ToListAsync(ct);

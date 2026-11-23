@@ -17,7 +17,7 @@ namespace HRManagement.AcceptanceTests;
 /// not attest, an editor does not approve or publish, nothing is published from a draft; an interim value that cites an exception the
 /// catalog does not hold stops the approval; a version is not published into a posted period; and a manual allowance waits for a
 /// second person and enters no calculation before that.
-/// The class uses its own codes (<c>LAW_50_2004_AC54*</c>) and its own months (2031-01, 2031-02, 2031-06): a version of 2031 changes
+/// The class uses its own codes (<c>LAW_50_2004_AC54*</c>) and its own months (2031-01 to 2031-03, 2031-06, 2031-07): a version of 2031 changes
 /// nothing before 2031 for any other class on the stack. Its steps run in order (54c needs 54a's version and run). A second run of the
 /// class on the same stack finds its code already there and stops at 54a's precondition: it needs a fresh stack. Nothing stops or
 /// recreates a container.
@@ -47,7 +47,9 @@ public class AcPay54LegalFrameworkTests
     private static readonly string TenantA = AcceptanceSeedIds.AgencyAId.ToString("D");
     private static readonly DateOnly FirstMonth = new(2031, 1, 1);
     private static readonly DateOnly SecondMonth = new(2031, 2, 1);
+    private static readonly DateOnly ThirdMonth = new(2031, 3, 1);
     private static readonly DateOnly ManualInputMonth = new(2031, 6, 1);
+    private static readonly DateOnly NextMonth = new(2031, 7, 1);
 
     private static Task<string> Db(string sql) => AcceptanceMessagingHelper.QueryAcceptancePostgresTextAsync(Payroll, sql);
 
@@ -307,10 +309,16 @@ public class AcPay54LegalFrameworkTests
             "(SELECT count(*) FROM \"DisbursementPriorityRules\" r WHERE r.\"PayrollConfigurationId\" = c.\"Id\")::text || '|' || " +
             "(SELECT count(*) FROM \"PayrollConfigurationFieldSources\" f WHERE f.\"PayrollConfigurationId\" = c.\"Id\")::text " +
             $"FROM \"PayrollConfigurations\" c WHERE c.\"Id\"='{id}';");
+        // Every value of the version: interim, with a reference, under one of the two exceptions. COALESCE: a missing exception
+        // or reference must be counted, not skipped by a NULL comparison.
+        static string NotSourced(string reference) =>
+            "(\"LegalStatus\" <> 'Interim' OR COALESCE(\"InterimExceptionId\", '') NOT IN ('" + TaxException + "','" + Law50Exception + "') OR COALESCE(\"" + reference + "\", '') = '')";
         var unclassified = await Count(
-            "SELECT (SELECT count(*) FROM \"TaxBrackets\" WHERE \"PayrollConfigurationId\"='" + id + "' AND (\"LegalStatus\" <> 'Interim' OR \"InterimExceptionId\" NOT IN ('" + TaxException + "','" + Law50Exception + "') OR \"LegalReference\" IS NULL)) + " +
-            "(SELECT count(*) FROM \"StatutoryDeductionRules\" WHERE \"PayrollConfigurationId\"='" + id + "' AND (\"LegalStatus\" <> 'Interim' OR \"InterimExceptionId\" NOT IN ('" + TaxException + "','" + Law50Exception + "') OR \"LegalReference\" IS NULL)) + " +
-            "(SELECT count(*) FROM \"PayrollConfigurationFieldSources\" WHERE \"PayrollConfigurationId\"='" + id + "' AND (\"LegalStatus\" <> 'Interim' OR \"InterimExceptionId\" NOT IN ('" + TaxException + "','" + Law50Exception + "') OR \"LegalReference\" IS NULL));");
+            "SELECT (SELECT count(*) FROM \"TaxBrackets\" WHERE \"PayrollConfigurationId\"='" + id + "' AND " + NotSourced("LegalReference") + ") + " +
+            "(SELECT count(*) FROM \"StatutoryDeductionRules\" WHERE \"PayrollConfigurationId\"='" + id + "' AND " + NotSourced("LegalReference") + ") + " +
+            "(SELECT count(*) FROM \"OfficialHolidays\" WHERE \"PayrollConfigurationId\"='" + id + "' AND " + NotSourced("LegalReference") + ") + " +
+            "(SELECT count(*) FROM \"DisbursementPriorityRules\" WHERE \"PayrollConfigurationId\"='" + id + "' AND " + NotSourced("LegalSource") + ") + " +
+            "(SELECT count(*) FROM \"PayrollConfigurationFieldSources\" WHERE \"PayrollConfigurationId\"='" + id + "' AND " + NotSourced("LegalReference") + ");");
 
         // 4. The cycle, by three people.
         await ActAsync(approver, "approve", id, "approve");
@@ -480,7 +488,7 @@ public class AcPay54LegalFrameworkTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync(Ac, "54c",
-            "AC-PAY-54c: a second version of the framework changes a statutory percentage from 2031-02-01 and has a new fingerprint; the run of 2031-01 stays pinned to the first version; a statutory row of the general deduction types table changes nothing in a recalculation of that run.",
+            "AC-PAY-54c: a second version of the framework changes a statutory percentage from 2031-02-01 and has a new fingerprint; the run of 2031-01 stays pinned to the first version; a statutory row put in the general deduction types table changes nothing in a new calculation of the second version.",
             Processor, Approver, Attestor);
         s.Steps("""
             1. Precondition, in before.json: 54a's version of LAW_50_2004_AC54 is Published and its run of 2031-01 is calculated
@@ -493,9 +501,11 @@ public class AcPay54LegalFrameworkTests
             4. payroll-processor creates and calculates the run of 2031-02 → pinned to version 2; DED-SOC on a line is 8% of its
                gross pay.
             5. Negative: a statutory row is put in the general deduction types table for agency A, 50% of gross (test-only, psql:
-               the table's screens no longer create a statutory type; an old database may hold one). payroll-processor
-               recalculates the run of 2031-01 (not frozen) on a new snapshot → the same version, the same fingerprint, the same
-               result to the unit. The row is deleted at the end, whatever happens.
+               the table's screens no longer create a statutory type; an old database may hold one). payroll-processor creates and
+               calculates the run of 2031-03, a new snapshot of the same version 2 (a calculated run is frozen and is not calculated
+               again) → pinned to version 2, no component of any line comes from the general row, and the result equals February's
+               to the unit: the same people, the same version, nothing read from the general table. The run of 2031-01, read once
+               more, is as it was. The row is deleted at the end, whatever happens.
             """);
 
         using var processor = await Api.OpenAsync(s.Recorder, Processor, "54c");
@@ -542,14 +552,21 @@ public class AcPay54LegalFrameworkTests
             "ORDER BY l.\"EmployeeId\" LIMIT 1;");
 
         // 5. The general table moves nothing.
+        var februaryResult = await RunResultAsync(february);
         var legacyRow = Guid.NewGuid().ToString("D");
-        string januaryPinAfterEdit, januaryResultAfterEdit;
+        string januaryPinAfterEdit, januaryResultAfterEdit, march, marchPin, marchResult;
+        long fromTheGeneralRow;
         try
         {
             await Db(
                 "INSERT INTO \"DeductionTypes\" (\"Id\",\"TenantId\",\"CreatedAt\",\"UpdatedAt\",\"Code\",\"NameAr\",\"IsStatutory\",\"Percentage\") " +
                 $"VALUES ('{legacyRow}','{TenantA}',now(),now(),'AC54-LEGACY-STAT','اقتطاع نظامي قديم لاختبار القبول',true,50);");
-            await CalculateAsync(processor, "54c-recalculate-january", january);
+            march = await CreateAndCalculateAsync(processor, "54c-march", ThirdMonth);
+            marchPin = await PinAsync(march);
+            marchResult = await RunResultAsync(march);
+            fromTheGeneralRow = await Count(
+                "SELECT count(*) FROM \"SalaryLineComponents\" c JOIN \"SalaryLines\" l ON l.\"Id\" = c.\"SalaryLineId\" " +
+                $"WHERE l.\"PayrollRunId\"='{march}' AND (c.\"ReferenceId\"='{legacyRow}' OR c.\"ComponentName\"='اقتطاع نظامي قديم لاختبار القبول');");
             januaryPinAfterEdit = await PinAsync(january);
             januaryResultAfterEdit = await RunResultAsync(january);
         }
@@ -562,7 +579,7 @@ public class AcPay54LegalFrameworkTests
         var gross = decimal.Parse(socOnALine.Split('|')[0], CultureInfo.InvariantCulture);
         var socAmount = decimal.Parse(socOnALine.Split('|')[1], CultureInfo.InvariantCulture);
 
-        await AuditAsync(s, first, second, january, february);
+        await AuditAsync(s, first, second, january, february, march);
         s.Checks(new
         {
             firstVersion = first,
@@ -585,6 +602,11 @@ public class AcPay54LegalFrameworkTests
             runResultFormat = "lines:md5(employee|kind|name|amount of every component)",
             february,
             februaryPin,
+            februaryResult,
+            march,
+            marchPin,
+            marchResult,
+            componentsFromTheGeneralRowInMarch = fromTheGeneralRow,
             socOnALine,
             socOnALineFormat = "gross|DED-SOC amount",
             legacyRowLeft
@@ -603,6 +625,9 @@ public class AcPay54LegalFrameworkTests
         Assert.Equal($"{second}|{secondState.Split('|')[2]}", februaryPin);
         // 8% of gross pay, to the version's rounding: a unit of tolerance tells 8% from 7% on any salary.
         Assert.True(Math.Abs(gross * 8m / 100m - socAmount) <= 1m, $"54c: DED-SOC on a line of February is {socAmount} for a gross pay of {gross}; expected 8%.");
+        Assert.Equal(februaryPin, marchPin);                                            // March is version 2's too
+        Assert.Equal(0, fromTheGeneralRow);
+        Assert.Equal(februaryResult, marchResult);                                      // a 50% row would have halved every net pay
         Assert.Equal(januaryPin, januaryPinAfterEdit);
         Assert.Equal(januaryResult, januaryResultAfterEdit);
         Assert.Equal(0, legacyRowLeft);
@@ -656,13 +681,13 @@ public class AcPay54LegalFrameworkTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync(Ac, "54e",
-            "AC-PAY-54e: a processor enters an allowance by hand; it waits and the month's calculation does not hold it; he cannot approve it; the approver approves it and the next calculation holds it. A posted run id on a manual deduction's form is ignored.",
+            "AC-PAY-54e: a processor enters an allowance by hand; it waits and the month's run does not hold it; he cannot approve it; the approver approves it and the next month's run holds it. A posted run id on a manual deduction's form is ignored.",
             Processor, Approver);
         s.Steps("""
             1. Precondition, in before.json: an agency-A employee with an active pay profile and no manual input yet; an allowance
-               type of agency A; a posted run of agency A (for the negative); no payroll run of 2031-06 for agency A (the month
-               this scenario takes for itself).
-            2. payroll-processor opens the allowance form and enters an allowance for June 2031 with a reason → the list says
+               type of agency A; a posted run of agency A (for the negative); no payroll run of 2031-06 or 2031-07 for agency A
+               (the months this scenario takes for itself).
+            2. payroll-processor opens the allowance form and enters an allowance for June and July 2031 with a reason → the list says
                «بانتظار الاعتماد»; the row is PendingApproval, of origin Manual, entered by him.
             3. payroll-processor creates and calculates the run of 2031-06 → the employee's line holds no component of the
                allowance.
@@ -672,8 +697,8 @@ public class AcPay54LegalFrameworkTests
                ApprovalStatus=Approved) → the row is PendingApproval with no run: the fields are not the form's and are ignored.
                payroll-approver rejects it with a reason → Rejected.
             6. payroll-approver approves the allowance from the list → Approved, by another person than its author.
-            7. payroll-processor recalculates the run of 2031-06 → the employee's line holds the allowance, and his gross pay rose by
-               its amount.
+            7. payroll-processor creates and calculates the next run, 2031-07 (June's run is calculated and frozen: it is not
+               calculated again) → the employee's line holds the allowance, and his gross pay is June's plus its amount.
             """);
 
         var processorUi = s[Processor];
@@ -691,17 +716,17 @@ public class AcPay54LegalFrameworkTests
         var type = await Db($"SELECT COALESCE(min(\"Id\"::text), '') FROM \"CompensationTypes\" WHERE \"TenantId\"='{TenantA}';");
         var postedRun = await Db($"SELECT COALESCE(max(\"Id\"::text), '') FROM \"PayrollRuns\" WHERE \"TenantId\"='{TenantA}' AND \"Status\"=2;");
         var runsOfJune = await Count(
-            $"SELECT count(*) FROM \"PayrollRuns\" WHERE \"TenantId\"='{TenantA}' AND \"PeriodStart\" <= '2031-06-30' AND \"PeriodEnd\" >= '2031-06-01';");
-        s.Recorder.WriteBefore(new { scenario = "54e", explicitDomainSnapshot = true, employee, allowanceType = type, postedRun, runsOf2031_06 = runsOfJune });
+            $"SELECT count(*) FROM \"PayrollRuns\" WHERE \"TenantId\"='{TenantA}' AND \"PeriodStart\" <= '2031-07-31' AND \"PeriodEnd\" >= '2031-06-01';");
+        s.Recorder.WriteBefore(new { scenario = "54e", explicitDomainSnapshot = true, employee, allowanceType = type, postedRun, runsOf2031_06_and_07 = runsOfJune });
         AcceptanceGate.RequireData(s.Recorder, employee.Length > 0 && type.Length > 0 && postedRun.Length > 0,
             "لا موظف بملف أجر فعّال بلا مدخل يدوي، أو لا نوع بدل، أو لا تشغيل مرحّل للجهة A",
             "No agency-A employee with an active pay profile and no manual input, or no allowance type, or no posted run.");
         AcceptanceGate.RequireData(s.Recorder, runsOfJune == 0,
-            "للجهة A تشغيل رواتب في 2031-06", "Agency A already holds a payroll run of 2031-06: this class needs a fresh stack.");
+            "للجهة A تشغيل رواتب في 2031-06 أو 2031-07", "Agency A already holds a payroll run of 2031-06 or 2031-07: this class needs a fresh stack.");
 
         // 2. The allowance, by hand.
         var (entered, enteredBody) = await processorUi.PostWithStatusAsync("54e-enter-allowance", $"{allowancesUi}/Create", $"{allowancesUi}/Create", F(
-            ("EmployeeId", employee), ("AllowanceTypeId", type), ("Amount", "5432.10"), ("EffectiveFrom", "2031-06-01"), ("EffectiveTo", "2031-06-30"),
+            ("EmployeeId", employee), ("AllowanceTypeId", type), ("Amount", "5432.10"), ("EffectiveFrom", "2031-06-01"), ("EffectiveTo", "2031-07-31"),
             ("Reason", reason)));
         var allowance = await Db($"SELECT COALESCE(max(\"Id\"::text), '') FROM \"AllowanceRecords\" WHERE \"EmployeeId\"='{employee}' AND \"Reason\"='{reason}';");
         Assert.True(allowance.Length > 0, $"54e: the allowance was not entered ({(int)entered}): {Snip(enteredBody)}");
@@ -738,13 +763,14 @@ public class AcPay54LegalFrameworkTests
         var afterApproval = await Db(
             "SELECT \"ApprovalStatus\" || '|' || \"Origin\" || '|' || (\"ApprovedBy\" IS NOT NULL AND \"ApprovedBy\" <> \"CreatedBy\")::text FROM \"AllowanceRecords\" WHERE \"Id\"='" + allowance + "';");
 
-        // 7. The next calculation holds it.
-        await CalculateAsync(processor, "54e-recalculate", run);
-        var lineAfter = await Db(lineSql + allowance + "')::text FROM \"SalaryLines\" l WHERE l.\"PayrollRunId\"='" + run + "' AND l.\"EmployeeId\"='" + employee + "';");
+        // 7. The next run holds it; June's, frozen, still does not.
+        var nextRun = await CreateAndCalculateAsync(processor, "54e-next-month", NextMonth);
+        var lineAfter = await Db(lineSql + allowance + "')::text FROM \"SalaryLines\" l WHERE l.\"PayrollRunId\"='" + nextRun + "' AND l.\"EmployeeId\"='" + employee + "';");
+        var juneAgain = await Db(lineSql + allowance + "')::text FROM \"SalaryLines\" l WHERE l.\"PayrollRunId\"='" + run + "' AND l.\"EmployeeId\"='" + employee + "';");
         var grossBefore = decimal.Parse(lineBefore.Split('|')[0], CultureInfo.InvariantCulture);
         var grossAfter = decimal.Parse(lineAfter.Split('|')[0], CultureInfo.InvariantCulture);
 
-        await AuditAsync(s, allowance, deduction, run);
+        await AuditAsync(s, allowance, deduction, run, nextRun);
         s.Checks(new
         {
             employee,
@@ -766,7 +792,9 @@ public class AcPay54LegalFrameworkTests
             approverSeesTheApprovalForm = approverList.Contains($"AllowanceRecords/Approve/{allowance}", StringComparison.OrdinalIgnoreCase),
             approved = (int)approved,
             afterApproval,
+            nextRun,
             lineAfter,
+            juneAgain,
             grossRoseBy = grossAfter - grossBefore
         });
 
@@ -783,6 +811,7 @@ public class AcPay54LegalFrameworkTests
         Assert.Equal("Approved|Manual|true", afterApproval);
         Assert.EndsWith("|1", lineAfter, StringComparison.Ordinal);
         Assert.Equal(amount, grossAfter - grossBefore);
+        Assert.Equal(lineBefore, juneAgain);
         s.Recorder.WriteResult("Pass");
     }
 

@@ -409,6 +409,11 @@ public class PayrollDbContext : TenantAwareDbContext
                   .WithOne(x => x.PayrollConfiguration)
                   .HasForeignKey(x => x.PayrollConfigurationId)
                   .OnDelete(DeleteBehavior.Cascade);
+
+            // PLAN-54 (§3): an approval fixes the content it fingerprinted. Every write of a version's content also writes the
+            // version's own row (UpdatedAt), so an edit that lands between an approver's read and his save, or two publications
+            // that supersede the same version, fail on this token instead of leaving a fingerprint of other content.
+            entity.ConfigureOptimisticConcurrency(this);
         });
 
         modelBuilder.Entity<TaxBracket>(entity =>

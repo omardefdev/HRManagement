@@ -139,6 +139,28 @@ public static class PayrollFrameworkQueries
     /// D-PAY-13: the latest period end of the posted runs of <paramref name="regimeCode"/>. A run's regime is its pinned version's; a
     /// posted run pinned to no version (the Demo seed's) counts for every regime.
     /// </summary>
+    /// <summary>
+    /// Another person changed the same version, or the same code's versions, between this request's read and its save: the row
+    /// version of the version moved (PLAN-54: an approval fixes the content it fingerprinted), or a unique index refused the row.
+    /// </summary>
+    public static bool IsConcurrentChange(DbUpdateException ex) =>
+        ex is DbUpdateConcurrencyException || ConcurrencyExtensions.IsUniqueViolation(ex);
+
+    /// <summary>Saves; a concurrent change writes nothing and is answered as a conflict (null when saved).</summary>
+    public static async Task<PayrollFrameworkResult?> SaveAsync(IPayrollRepository repository, CancellationToken ct)
+    {
+        try
+        {
+            await repository.SaveChangesAsync(ct);
+            return null;
+        }
+        catch (DbUpdateException ex) when (IsConcurrentChange(ex))
+        {
+            repository.ClearChangeTracker();
+            return PayrollFrameworkResult.Conflict(PayrollFrameworkImportMessages.ChangedConcurrently);
+        }
+    }
+
     public static async Task<DateTime?> LatestPostedPeriodEndAsync(IPayrollRepository repository, string regimeCode, CancellationToken ct)
     {
         var versionsOfRegime = repository.PayrollConfigurations.Where(c => c.RegimeCode == regimeCode).Select(c => (Guid?)c.Id);
@@ -302,7 +324,7 @@ public sealed class ImportPayrollFrameworkPackHandler(IPayrollRepository reposit
             await transaction.CommitAsync(cancellationToken);
             return PayrollFrameworkResult.Ok(draft);
         }
-        catch (DbUpdateException ex) when (ConcurrencyExtensions.IsUniqueViolation(ex))
+        catch (DbUpdateException ex) when (PayrollFrameworkQueries.IsConcurrentChange(ex))
         {
             await transaction.RollbackAsync(cancellationToken);
             repository.ClearChangeTracker();
@@ -344,6 +366,18 @@ public sealed class CreatePayrollFrameworkHandler(IPayrollRepository repository,
                 await PayrollFrameworkQueries.NextVersionNumberAsync(repository, source.Code, cancellationToken),
                 effectiveFrom,
                 legacy: legacy);
+            // A copy of a version nobody has published yet still holds its authors' content: they stay its editors, so the author
+            // of a draft cannot approve a colleague's copy of it. A published version's content was approved and attested.
+            if (source.PublicationStatus is PayrollConfigPublicationStatus.Draft or PayrollConfigPublicationStatus.Approved)
+            {
+                var authors = await repository.PayrollConfigurations.AsNoTracking()
+                    .Where(c => c.Id == sourceId)
+                    .SelectMany(c => c.Editors)
+                    .Select(e => new { e.UserId, e.Kind, e.At })
+                    .ToListAsync(cancellationToken);
+                foreach (var author in authors)
+                    draft.RecordEditor(author.UserId, author.Kind, author.At);
+            }
             if (!string.IsNullOrWhiteSpace(request.NameAr))
                 draft.NameAr = request.NameAr.Trim();
         }
@@ -375,7 +409,7 @@ public sealed class CreatePayrollFrameworkHandler(IPayrollRepository repository,
         {
             await repository.SaveChangesAsync(cancellationToken);
         }
-        catch (DbUpdateException ex) when (ConcurrencyExtensions.IsUniqueViolation(ex))
+        catch (DbUpdateException ex) when (PayrollFrameworkQueries.IsConcurrentChange(ex))
         {
             repository.ClearChangeTracker();
             return PayrollFrameworkResult.Conflict(PayrollFrameworkImportMessages.ChangedConcurrently);
@@ -406,8 +440,7 @@ public sealed class SetPayrollFrameworkEffectiveFromHandler(IPayrollRepository r
         draft.RecordEditor(request.ActorId, PayrollFrameworkEditKind.Edited, calendar.UtcNow);
         foreach (var added in draft.Editors.Skip(before))
             repository.MarkAsAdded(added);
-        await repository.SaveChangesAsync(cancellationToken);
-        return PayrollFrameworkResult.Ok(draft);
+        return await PayrollFrameworkQueries.SaveAsync(repository, cancellationToken) ?? PayrollFrameworkResult.Ok(draft);
     }
 }
 

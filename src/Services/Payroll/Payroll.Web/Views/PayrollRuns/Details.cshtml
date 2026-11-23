@@ -87,7 +87,8 @@
                         <button type="submit" class="btn btn-warning btn-sm">إيقاف</button>
                     </form>
                 }
-                @if (canProcess && (job.Status is PayrollRunJobStatus.Paused or PayrollRunJobStatus.Failed))
+                @* PLAN-54: a job that never started (the row of a refused calculation; the run is pinned to no version) is not resumed. *@
+                @if (canProcess && Model.PayrollConfigurationId.HasValue && (job.Status is PayrollRunJobStatus.Paused or PayrollRunJobStatus.Failed))
                 {
                     <form asp-action="ResumeJob" method="post" class="d-inline me-1">
                         @Html.AntiForgeryToken()

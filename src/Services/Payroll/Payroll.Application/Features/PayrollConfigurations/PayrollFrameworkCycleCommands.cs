@@ -86,8 +86,7 @@ public sealed class ApprovePayrollFrameworkHandler(IPayrollRepository repository
         }
 
         version.UpdatedAt = calendar.UtcNow;
-        await repository.SaveChangesAsync(cancellationToken);
-        return PayrollFrameworkResult.Ok(version);
+        return await PayrollFrameworkQueries.SaveAsync(repository, cancellationToken) ?? PayrollFrameworkResult.Ok(version);
     }
 }
 
@@ -123,8 +122,9 @@ public sealed class AttestPayrollFrameworkHandler(IPayrollRepository repository,
         foreach (var previous in earlier)
             previous.Status = "Voided";
         await repository.AddAsync(attestation!, cancellationToken);
-        await repository.SaveChangesAsync(cancellationToken);
-        return PayrollFrameworkResult.Ok(version);
+        // The attestation is of this row version: an attestation never lands on a version that changed meanwhile.
+        version.UpdatedAt = calendar.UtcNow;
+        return await PayrollFrameworkQueries.SaveAsync(repository, cancellationToken) ?? PayrollFrameworkResult.Ok(version);
     }
 }
 
@@ -159,8 +159,7 @@ public sealed class PublishPayrollFrameworkHandler(IPayrollRepository repository
         version.UpdatedAt = calendar.UtcNow;
         notice!.PublishedAt = calendar.UtcNow;
         await repository.AddAsync(notice, cancellationToken);
-        await repository.SaveChangesAsync(cancellationToken);
-        return PayrollFrameworkResult.Ok(version);
+        return await PayrollFrameworkQueries.SaveAsync(repository, cancellationToken) ?? PayrollFrameworkResult.Ok(version);
     }
 }
 
@@ -183,7 +182,6 @@ public sealed class ActivatePayrollFrameworkHandler(IPayrollRepository repositor
             return PayrollFrameworkResult.Invalid(error!, version);
         }
 
-        await repository.SaveChangesAsync(cancellationToken);
-        return PayrollFrameworkResult.Ok(version);
+        return await PayrollFrameworkQueries.SaveAsync(repository, cancellationToken) ?? PayrollFrameworkResult.Ok(version);
     }
 }

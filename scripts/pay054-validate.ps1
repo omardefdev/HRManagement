@@ -225,7 +225,9 @@ function Test-Migration([byte[]]$bytes, [string]$text) {
         $pattern = 'AddColumn<\w+>\(\s*name:\s*"' + $column[0] + '",\s*table:\s*"' + $column[1] + '",[^;]*?nullable:\s*false,\s*defaultValue:\s*' + $column[2] + '\)'
         if ($up -notmatch $pattern) { $problems += "the migration does not set $($column[1]).$($column[0]) of the existing rows by a column default of $($column[2] -replace '\\', '')" }
     }
-    if ($up -match 'migrationBuilder\.Sql\(\s*@?\$?"[^"]*\bUPDATE\b') { $problems += "the migration updates rows: existing rows are set by column defaults only" }
+    foreach ($statement in [regex]::Matches($up, '(?s)migrationBuilder\.Sql\((.*?)\);')) {
+        if ($statement.Groups[1].Value -match '(?i)\b(UPDATE|INSERT\s+INTO|DELETE\s+FROM)\b') { $problems += "the migration changes rows: existing rows are set by column defaults only"; break }
+    }
     if ($up -notmatch 'EnableRls\(\s*migrationBuilder,\s*"StatutoryDeductionRules",\s*"PayrollConfigurationFieldSources",\s*"PayrollConfigurationEditors"\)') { $problems += "the migration does not enable row security on the three new tables" }
     return $problems
 }
@@ -362,6 +364,8 @@ if ($SelfTest) {
     $planted++; if ((Test-Migration $migration.Bytes ($migration.Text -replace '(name:\s*"HashSchemaVersion",[^;]*?defaultValue:\s*)1\)', '${1}2)')).Count -eq 0) { $failures += "a migration that gives existing versions fingerprint schema 2 was not refused" }
     $planted++; if ((Test-Migration $migration.Bytes ($migration.Text -replace 'defaultValue:\s*"Approved"', 'defaultValue: "PendingApproval"')).Count -eq 0) { $failures += "a migration that leaves existing inputs pending was not refused" }
     $planted++; if ((Test-Migration $migration.Bytes ($migration.Text -replace 'protected override void Up\(MigrationBuilder migrationBuilder\)\s*\{', ('$0' + "`n" + '            migrationBuilder.Sql("UPDATE \"PayrollConfigurations\" SET \"HashSchemaVersion\" = 2");'))).Count -eq 0) { $failures += "a migration that updates existing rows was not refused" }
+    $rawString = '            migrationBuilder.Sql("""' + "`n" + '                UPDATE "AllowanceRecords" SET "ApprovalStatus" = ''PendingApproval'';' + "`n" + '                """);'
+    $planted++; if ((Test-Migration $migration.Bytes ($migration.Text -replace 'protected override void Up\(MigrationBuilder migrationBuilder\)\s*\{', ('$0' + "`n" + $rawString))).Count -eq 0) { $failures += "a migration that updates existing rows in a raw string was not refused" }
     $planted++; if ((Test-Migration $migration.Bytes ($migration.Text -replace 'EnableRls\(', 'Nothing(')).Count -eq 0) { $failures += "new tables without row security were not refused" }
 
     $production = Get-Json (Read-Text $paths.Production)

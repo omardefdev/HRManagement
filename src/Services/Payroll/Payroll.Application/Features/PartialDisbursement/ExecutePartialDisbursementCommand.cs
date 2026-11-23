@@ -96,6 +96,10 @@ public class ExecutePartialDisbursementHandler(
                 .AsNoTracking()
                 .Where(r => r.PayrollConfigurationId == pinnedVersion.Id)
                 .ToListAsync(cancellationToken);
+            // A version's rules are in force through the version the run is pinned to; their stored IsActive is off (see the pack
+            // mapper), and the allocation takes them all. These are untracked copies: nothing is written.
+            foreach (var rule in rules)
+                rule.IsActive = true;
         }
         else
         {
