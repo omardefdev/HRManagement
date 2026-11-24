@@ -65,6 +65,9 @@ public class OutboxAtomicityIntegrationTests
         public IQueryable<DisbursementPriorityRule> DisbursementPriorityRules => _inner.DisbursementPriorityRules;
         public IQueryable<FraudAlert> FraudAlerts => _inner.FraudAlerts;
         public IQueryable<PaymentHold> PaymentHolds => _inner.PaymentHolds;
+        public IQueryable<LegalDecisionRecord> LegalDecisionRecords => _inner.LegalDecisionRecords;
+        public IQueryable<CompensationType> CompensationTypes => _inner.CompensationTypes;
+        public IQueryable<LegalAttestation> LegalAttestations => _inner.LegalAttestations;
 
         public Task<PayrollRun?> GetPayrollRunAsync(Guid id, bool includeLines, CancellationToken ct) =>
             _inner.GetPayrollRunAsync(id, includeLines, ct);
@@ -80,6 +83,9 @@ public class OutboxAtomicityIntegrationTests
 
         public Task<PayrollConfiguration?> GetConfigurationByIdAsync(Guid id, CancellationToken ct) =>
             _inner.GetConfigurationByIdAsync(id, ct);
+
+        public Task<PayrollConfiguration?> GetFrameworkForUpdateAsync(Guid id, CancellationToken ct) =>
+            _inner.GetFrameworkForUpdateAsync(id, ct);
 
         public Task<EmployeePayProfile?> GetActiveProfileAsync(Guid employeeId, CancellationToken ct) =>
             _inner.GetActiveProfileAsync(employeeId, ct);

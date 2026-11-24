@@ -10,10 +10,25 @@ namespace Payroll.Web.Controllers;
 public class DashboardController : Controller
 {
     private readonly PayrollDbContext _db;
-    public DashboardController(PayrollDbContext db) => _db = db;
+    private readonly Payroll.Application.Abstractions.IPayrollRepository _repository;
+
+    public DashboardController(PayrollDbContext db, Payroll.Application.Abstractions.IPayrollRepository repository)
+    {
+        _db = db;
+        _repository = repository;
+    }
 
     public async Task<IActionResult> Index()
     {
+        // PLAN-54 (§1): an agency with no published framework cannot calculate; the dashboard says so and where to start.
+        ViewBag.NoPublishedFramework = await _repository.GetActiveConfigurationAsync(HttpContext.RequestAborted) is null;
+        // PLAN-54 (§3, P-10): from 60 days before an exception a published framework cites ends, the dashboard names it and its date.
+        ViewBag.ExceptionWarnings = await Payroll.Application.Features.PayrollConfigurations.PayrollFrameworkIndicators.ExpiringAsync(
+            _repository,
+            HttpContext.RequestServices.GetRequiredService<Payroll.Application.Abstractions.IPayrollLegalControlGuard>(),
+            HttpContext.RequestServices.GetRequiredService<Payroll.Application.Services.IPayrollCalendar>(),
+            HttpContext.RequestAborted);
+
         ViewBag.TotalRuns = await _db.PayrollRuns.CountAsync();
         ViewBag.TotalProfiles = await _db.EmployeePayProfiles.CountAsync(p => p.IsActive);
         ViewBag.TotalPosted = await _db.PayrollRuns.CountAsync(r => r.Status == PayrollRunStatus.Posted);

@@ -99,6 +99,9 @@ services:
       Payroll__SalaryChange__Activation__Enabled: "true"
       Payroll__SalaryChange__Activation__IntervalMinutes: "60"
       Payroll__MasterData__RequireApproval: "true"
+      # PLAN-54 (D-PAY-6, D-PAY-12): mirror of the Payroll:ManualInputs and Payroll:Legal values of appsettings.Production.json.
+      Payroll__ManualInputs__RequireApproval: "true"
+      Payroll__Legal__AttestorPolicy: "Payroll.Approve"
 
   idcard-web:
     environment:

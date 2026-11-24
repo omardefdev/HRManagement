@@ -1,10 +1,11 @@
 using System.ComponentModel.DataAnnotations;
 using HRManagement.SharedKernel.Entities;
+using Payroll.Domain.Enums;
 
 namespace Payroll.Domain.Entities;
 
 [Display(Name = "خصم / اقتطاع")]
-public class DeductionRecord : AuditableEntity
+public class DeductionRecord : AuditableEntity, IManualPayInput
 {
     [Required(ErrorMessage = "الموظف مطلوب")]
     [Display(Name = "الموظف")]
@@ -40,6 +41,23 @@ public class DeductionRecord : AuditableEntity
 
     [Display(Name = "مطبق في تشغيل")]
     public Guid? AppliedInRunId { get; set; }
+
+    /// <summary>PLAN-54 (D-PAY-6): only an approved input counts in a calculation. Existing and system rows are approved.</summary>
+    [Display(Name = "حالة الاعتماد")]
+    public ManualInputApprovalStatus ApprovalStatus { get; set; } = ManualInputApprovalStatus.Approved;
+
+    [Display(Name = "المصدر")]
+    public ManualInputOrigin Origin { get; set; } = ManualInputOrigin.System;
+
+    [Display(Name = "قرّر فيه")]
+    public Guid? ApprovedBy { get; set; }
+
+    [Display(Name = "تاريخ القرار")]
+    public DateTime? ApprovedAt { get; set; }
+
+    [MaxLength(ManualPayInputRules.DecisionNoteMaxLength)]
+    [Display(Name = "ملاحظة القرار")]
+    public string? DecisionNote { get; set; }
 
     public PayrollRun? AppliedInRun { get; set; }
 }

@@ -87,7 +87,8 @@
                         <button type="submit" class="btn btn-warning btn-sm">إيقاف</button>
                     </form>
                 }
-                @if (canProcess && (job.Status is PayrollRunJobStatus.Paused or PayrollRunJobStatus.Failed))
+                @* PLAN-54: a job that never started (the row of a refused calculation: it has no partition) is not resumed. *@
+                @if (canProcess && job is { Partitions.Count: > 0, Status: PayrollRunJobStatus.Paused or PayrollRunJobStatus.Failed })
                 {
                     <form asp-action="ResumeJob" method="post" class="d-inline me-1">
                         @Html.AntiForgeryToken()
@@ -143,6 +144,17 @@
                 <div>العملة/التقريب: @Model.PayrollConfiguration.CurrencyCode / @Html.HrEnumDisplay(Model.PayrollConfiguration.RoundingMode)</div>
                 <div>البصمة: <code>@(Model.ConfigContentHash ?? Model.PayrollConfiguration.ContentHash ?? "—")</code></div>
                 <div>اعتماد/نشر: @Html.HrDate(Model.PayrollConfiguration.ApprovedAt) / @Html.HrDate(Model.PayrollConfiguration.PublishedAt)</div>
+                @if (ViewBag.FrameworkNote is Payroll.Application.Features.PayrollConfigurations.PayrollRunFrameworkNote note)
+                {
+                    if (note.IsLegacy)
+                    {
+                        <div class="text-muted" data-testid="run-framework-legacy">@Payroll.Application.Features.PayrollConfigurations.PayrollRunFrameworkNote.LegacyNote</div>
+                    }
+                    else if (note.InterimIndicator is not null)
+                    {
+                        <div class="text-warning-emphasis fw-bold" data-testid="run-framework-interim">@note.InterimIndicator</div>
+                    }
+                }
             }
             else if (!string.IsNullOrEmpty(Model.ConfigContentHash))
             {

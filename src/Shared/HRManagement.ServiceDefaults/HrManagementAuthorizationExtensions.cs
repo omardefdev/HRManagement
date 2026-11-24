@@ -228,6 +228,9 @@ public static class HrManagementAuthorizationExtensions
             // for a scale or a grade) or decide one (Payroll.Approve). Whose request he may cancel is the handler's rule.
             options.AddPolicy(HrManagementPolicies.PayrollChangeCancel, p => p.AddRequirements(new PayrollChangeCancelRequirement()));
 
+            // PLAN-54 (D-PAY-12): whoever meets the policy Payroll:Legal:AttestorPolicy names (Payroll.Approve by default).
+            options.AddPolicy(HrManagementPolicies.PayrollLegalAttest, p => p.AddRequirements(new PayrollLegalAttestRequirement()));
+
             // PLAN-50 (§5, rule 3): or an active delegate of hr-management-approver for the action's entity type. With no lookup registered
             // (the gateway, HR.Contracts' HireWizard.Step3Approve) it is the two roles only.
             options.AddPolicy(HrManagementPolicies.HrManagementApprove, p => p.AddRequirements(
@@ -289,6 +292,7 @@ public static class HrManagementAuthorizationExtensions
         services.AddSingleton<IAuthorizationHandler, InteractiveStaffOrServiceScopeHandler>();
         services.AddSingleton<IAuthorizationHandler, ConfiguredRolesHandler>();
         services.AddSingleton<IAuthorizationHandler, PayrollChangeCancelHandler>();
+        services.AddSingleton<IAuthorizationHandler, PayrollLegalAttestHandler>();
         services.AddSingleton<IAuthorizationHandler, Delegation.RoleOrDelegationHandler>();
         services.AddServiceToServiceAuthorizationPolicies();
         services.AddHrMvcSecurityDefaults();

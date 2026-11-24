@@ -426,7 +426,9 @@ public partial class AcOps36VpsBootTests
         {
             attempts++;
             var playwright = await Playwright.CreateAsync();
-            var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true });
+            // Without HTTP/3: over QUIC a connection whose local path changed (the machine that runs the check) stalls until the page
+            // load times out; over TCP it fails at once. What the pages must show does not depend on the transport (PLAN-54, P8).
+            var browser = await playwright.Chromium.LaunchAsync(new() { Headless = true, Args = ["--disable-quic"] });
             var state = Path.Combine(Path.GetTempPath(), $"iam53-state-{Guid.NewGuid():N}.json");
             try
             {

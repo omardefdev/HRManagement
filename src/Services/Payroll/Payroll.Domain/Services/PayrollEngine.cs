@@ -9,6 +9,10 @@ public static class PayrollEngine
 {
     public record TaxBracketEntry(decimal UpperLimit, decimal Rate);
 
+    /// <summary>
+    /// The built-in brackets of the legacy path: the tax rule's fallback for a version older than PLAN-54 that has none, and the
+    /// default of the old helpers below. No path of a v2 version reads them.
+    /// </summary>
     public static readonly IReadOnlyList<TaxBracketEntry> DefaultBrackets = new[]
     {
         new TaxBracketEntry(5_000m,   0.00m),
@@ -23,7 +27,7 @@ public static class PayrollEngine
         new Engine.Rules.BaseSalaryRule(),
         new Engine.Rules.AllowanceRule(),
         new Engine.Rules.AbsenceRule(),
-        new Engine.Rules.StatutoryDeductionRule(),
+        new Engine.Rules.StatutoryDeductionEngineRule(),
         new Engine.Rules.AdHocDeductionRule(),
         new Engine.Rules.AdvanceRecoveryRule(),
         new Engine.Rules.AdjustmentRule(),

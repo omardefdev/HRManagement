@@ -7,7 +7,13 @@
     var publicationStatus = ViewBag.PublicationStatus as PayrollConfigPublicationStatus?;
 }
 <div class="card">
-    <div class="card-header"><h3 class="card-title">الأطر القانونية للرواتب (الإصدارات) <span class="hr-internal-code">PAY-002</span></h3></div>
+    <div class="card-header d-flex justify-content-between flex-wrap gap-2">
+        <h3 class="card-title mb-0">الأطر القانونية للرواتب (الإصدارات) <span class="hr-internal-code">PAY-002</span></h3>
+        <div class="d-flex flex-wrap gap-1">
+            <a asp-action="Import" class="btn btn-sm btn-primary" data-testid="framework-import-link"><i class="fas fa-upload"></i> استيراد حزمة قانونية</a>
+            <a asp-action="Create" class="btn btn-sm btn-outline-primary"><i class="fas fa-plus"></i> مسودة جديدة</a>
+        </div>
+    </div>
     <div class="card-body">
         <form method="get" class="row g-2 mb-3">
             <div class="col-auto">
@@ -44,6 +50,7 @@
                     <th>الاسم</th>
                     <th>الإطار</th>
                     <th>النشر</th>
+                    <th>ساري من</th>
                     <th>نشط</th>
                     <th></th>
                 </tr>
@@ -55,8 +62,9 @@
                     <td>@item.Code</td>
                     <td>v@item.VersionNumber</td>
                     <td>@item.NameAr</td>
-                    <td>@item.RegimeCode</td>
+                    <td>@LegalRegimeCodes.DisplayNameAr(item.RegimeCode)</td>
                     <td>@Html.HrEnumDisplay(item.PublicationStatus)</td>
+                    <td>@Html.HrDate(item.EffectiveFrom)</td>
                     <td>@(item.IsActive ? "نعم" : "لا")</td>
                     <td>
                         <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-info">تفاصيل</a>
@@ -68,20 +76,12 @@
                                 <button type="submit" class="btn btn-sm btn-success">تفعيل</button>
                             </form>
                         }
-                        @if (item.PublicationStatus is PayrollConfigPublicationStatus.Draft
-                            or PayrollConfigPublicationStatus.Approved)
-                        {
-                            <form asp-action="Publish" asp-route-id="@item.Id" method="post" class="d-inline">
-                                @Html.AntiForgeryToken()
-                                <button type="submit" class="btn btn-sm btn-success">نشر</button>
-                            </form>
-                        }
                     </td>
                 </tr>
             }
             @if (!(Model).Any())
                 {
-                    <tr><td colspan="7"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    <tr><td colspan="8"><partial name="_HrEmptyState" model="@("لا يوجد إطار قانوني بعد: استورد حزمة قانونية لتبدأ.")" /></td></tr>
                 }
             </tbody>
         </table>

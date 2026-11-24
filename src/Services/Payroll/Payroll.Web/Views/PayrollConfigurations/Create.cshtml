@@ -1,0 +1,44 @@
+@model Payroll.Web.ViewModels.PayrollFrameworkCreateViewModel
+@{
+    ViewData["Title"] = "مسودة إطار قانوني جديدة";
+}
+<form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
+    <div class="card">
+        <div class="card-header"><h3 class="card-title">مسودة إطار قانوني جديدة</h3></div>
+        <div class="card-body">
+            <partial name="_FormErrors" />
+            <p class="text-muted">
+                تُنشأ المسودة من قالب نظام قانوني أو باستنساخ نسخة قائمة. قيم المسودة الجديدة غير مصنّفة قانونياً: صدّر حزمتها، صنّف كل قيمة بمرجعها وحالتها،
+                ثم استوردها. ولاستيراد حزمة قانونية جاهزة استعمل «استيراد حزمة».
+            </p>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="RegimeCode" class="form-label"></label>
+                    <select asp-for="RegimeCode" class="form-select" asp-items="ViewBag.Regimes"><option value="">—</option></select>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label asp-for="CloneFromId" class="form-label"></label>
+                    <select asp-for="CloneFromId" class="form-select" asp-items="ViewBag.Versions"><option value="">—</option></select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Code" class="form-label"></label>
+                    <input asp-for="Code" class="form-control" maxlength="100" dir="ltr" />
+                    <div class="form-text">للقالب فقط. أحرف لاتينية كبيرة وأرقام وشرطة سفلية. المستنسخة تحمل رمز أصلها.</div>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="NameAr" class="form-label"></label>
+                    <input asp-for="NameAr" class="form-control" maxlength="200" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="EffectiveFrom" class="form-label"></label>
+                    <input asp-for="EffectiveFrom" class="form-control" type="date" value="@Html.HrDateInputValue(Model.EffectiveFrom)" required />
+                </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">إنشاء المسودة</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </div>
+</form>

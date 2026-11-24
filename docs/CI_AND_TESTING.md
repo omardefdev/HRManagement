@@ -37,6 +37,17 @@ dotnet test src/Tests/HRManagement.ArchitectureTests/HRManagement.ArchitectureTe
   القبول وحدها، و`AcIam53SalaryChangeTests` مطلوبة في prod-like و`AC-23` و`AC-24` و`AC-25` مطلوبة في lab. (`AC-12` خارجها: يرسل
   التشغيل للمراجعة بلا حساب، وإعادة كتابته في PLAN-59.) واختبارات التكامل `Iam053*` (Testcontainers) تثبت على PostgreSQL:
   اعتمادين متزامنين، الفهرس المرشَّح، الحفظ الواحد مع الـ outbox، أمان الصفوف بدور غير مالك، مهمة التفعيل، ونطاق الفرع عبر HTTP.
+- منذ PLAN-54: `PayrollWriteActionsTests` يثبت سياسات إجراءات الإطار القانوني (الإنشاء والاستيراد والتعديل بـ`Payroll.MasterData`،
+  والاعتماد والنشر والتفعيل بـ`Payroll.Approve`، والمصادقة بـ`Payroll.LegalAttest` التي تتبع `Payroll:Legal:AttestorPolicy`)،
+  وسياسات المدخلات اليدوية (الإدخال `Payroll.Process`، والقرار `Payroll.Approve`)، وأن كل قراءة محروسة باقية.
+  `Pay054FrameworkWritersTests` (في اختبارات الوحدة) يسمّي كل كاتب لنسخة الإطار وجداولها ويفشل عند كاتب جديد.
+  قائمتا `org-scope-allowlist/payroll.txt` و`entity-binding-allowlist/payroll.txt` نقصتا (الأطر القانونية ونماذج
+  المدخلات اليدوية خرجت منهما). `scripts/pay054-validate.ps1` (ومعه `-SelfTest` بتسعة وعشرين عيباً مزروعاً) يجمع ثوابت
+  الخطة: الحزمة المؤقتة تساوي البذور قيمةً قيمةً ولكل قيمة مرجع وحالة واستثناء من الكتالوج، والهجرة PAY054 بلا BOM وتضبط
+  الصفوف القائمة بافتراضات الأعمدة بلا أي عبارة بيانات، والإعدادان ومرآتهما في مكدس prod-like، ورمز منع التزوير على كل
+  كتابة في واجهة الأطر، و`AcPay54LegalFrameworkTests` مطلوبة في prod-like ومعها شخصية المصادق `a-payroll-approver-2`.
+  `Pay054EmptyDatabaseFirstRunPostgreSqlTests` (Testcontainers) يثبت أن قاعدة فارغة بـ`Seed:Profile=None` تصل أول حساب
+  بالاستيراد والاعتماد والمصادقة والنشر وحدها.
 - منذ PLAN-52 (BOLA v2، بديل `BolaArchitectureTests`): `OrgScopeCoverageTests` يمسح بالانعكاس كل متحكم في التجميعات الخمس عشرة
   والمتحكمات المشتركة: لكل متحكم موقف نطاق معلن (`[OrgScoped]`، `[OrgScopeCentralOnly]`، `[OrgScopeNotApplicable]`،
   `[RecruitmentOrgScope]`) أو صف في `org-scope-allowlist/<service>.txt` موقّع `IAM-H:` مع سبب، ولا يكون الصف لمتحكم يصله مستخدم مقيّد
@@ -202,6 +213,16 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -SkipTe
 `DatedObligationsTests` يفشل عند ملف JSON جديد يحمل مفتاحاً مؤرخاً دون تسجيل. الالتزام لا يتغير بتمديد التاريخ، بل بحالته
 (`Closed`/`Renewed`) وبقرار مسجّل. اختبارات الوحدة لا تقرأ الساعة الحقيقية (`FixedTimeProvider`، `-AsOfDate`)، عدا الكناري
 `RuntimeGovernanceDocumentsTests`.
+
+**حدّ مؤرخ من PLAN-54 (2027-01-31):** الحزمة القانونية المؤقتة للرواتب تستشهد بالاستثناءين `EX-STR2-TAX-INTERIM`
+و`EX-STR2-LAW50-UNCERTIFIED` من `docs/str-legal/control-catalog.json`، وكلاهما ينتهي في 2027-01-31 (الالتزام
+`STR002-CONTROL-EXCEPTIONS`). من 2027-02-01، بتوقيت دمشق:
+
+- `AcPay54LegalFrameworkTests` تفشل عند أول فحص في 54a برسالة تسمّي الاستثناءين والتاريخ، **عمداً**: لا تسلك طريقاً
+  آخر ولا تعدّل الكتالوج. فحص الالتزامات المؤرخة يُنذر قبل ذلك بثلاثين يوماً ويُفشل CI قبله بسبعة أيام.
+- أي جهة تحكمها الحزمة المؤقتة لا تُحسب رواتبها (البوابة في الخدمة نفسها، لا في الاختبار).
+- المخرج قرار STR-002 بيد صاحب العمل: تجديد الاستثناءين في الكتالوج، أو نشر نسخة إطار بقيم موقّعة (D-PAY-1، PAY-E).
+  اختبارات الوحدة والتكامل لهذه الخطة تضبط ساعتها (15 و23 تشرين الثاني 2026) ولا تتأثر بالتاريخ.
 
 ## ثقافة الاختبارات
 

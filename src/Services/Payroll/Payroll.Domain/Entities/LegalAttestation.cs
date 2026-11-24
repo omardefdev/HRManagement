@@ -22,6 +22,10 @@ public class LegalAttestation : BaseEntity
     [Required, MaxLength(64)]
     public string ContentHash { get; set; } = string.Empty;
 
+    /// <summary>PLAN-54: JSON array of the STR-002 exception ids the attested version's interim values rely on.</summary>
+    [Required]
+    public string InterimExceptionIdsJson { get; set; } = "[]";
+
     /// <summary>Active | Voided</summary>
     [Required, MaxLength(32)]
     public string Status { get; set; } = "Active";

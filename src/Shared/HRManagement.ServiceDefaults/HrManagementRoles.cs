@@ -223,6 +223,13 @@ public static class HrManagementPolicies
     /// </summary>
     public const string PayrollChangeCancel = "Payroll.ChangeCancel";
 
+    /// <summary>
+    /// PLAN-54 (D-PAY-12): the legal attestation of a payroll framework version. Met when the user meets the policy named by
+    /// <c>Payroll:Legal:AttestorPolicy</c> (by default <see cref="PayrollApprove"/>), so a legal role's policy can take its place later
+    /// without a code change. That the attestor is neither an editor nor the approver of the version is the handler's rule.
+    /// </summary>
+    public const string PayrollLegalAttest = "Payroll.LegalAttest";
+
     public const string HrManagementApprove = "HrManagement.Approve";
 
     /// <summary>

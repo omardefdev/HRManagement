@@ -9,14 +9,16 @@ namespace HRManagement.UnitTests;
 
 public class Gov002LegalGovernanceTests
 {
+    // PLAN-54: the rules of publication moved from PayrollLegalGovernance to PayrollFrameworkGovernance. These two tests keep their
+    // meaning on the new rules: no publication without a legal attestation, and a publication with a matching one writes the notice.
     [Fact]
     public void Publish_WithoutAttestation_Fails()
     {
         var config = PayrollRegimeSeed.CreateLaw50Configuration();
         config.Id = Guid.NewGuid();
         config.PublicationStatus = PayrollConfigPublicationStatus.Approved;
-        var (ok, error, notice) = PayrollLegalGovernance.TryPublishWithGovernance(
-            config, [config], Guid.NewGuid(), attestation: null);
+        var (ok, error, notice) = PayrollFrameworkGovernance.TryPublish(
+            config, [config], Guid.NewGuid(), attestation: null, _ => true, latestPostedPeriodEnd: null);
         Assert.False(ok);
         Assert.Null(notice);
         Assert.Contains("تصديق", error ?? "", StringComparison.Ordinal);
@@ -27,15 +29,21 @@ public class Gov002LegalGovernanceTests
     {
         var v1 = PayrollRegimeSeed.CreateLaw50Configuration();
         v1.Id = Guid.NewGuid();
-        var v2 = PayrollConfigurationVersioning.CloneAsDraft(v1, 2, c => c.TaxExemptionAmount = 100);
+        // A classified v2 version of the same code (PLAN-54: an unclassified clone is not approved), from a later date.
+        var v2 = Pay054TestFrameworks.FullV2(v1.Code);
         v2.Id = Guid.NewGuid();
-        PayrollConfigurationVersioning.TryApprove(v2, Guid.NewGuid());
-        var actor = Guid.NewGuid();
-        var attest = PayrollLegalGovernance.CreateAttestation(v2, actor);
+        v2.VersionNumber = 2;
+        v2.SupersedesConfigurationId = v1.Id;
+        v2.TaxExemptionAmount = 100;
+        v2.EffectiveFrom = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        var approver = Guid.NewGuid();
+        var attestor = Guid.NewGuid();
+        Assert.True(PayrollFrameworkGovernance.TryApprove(v2, approver, _ => true, DateTime.UtcNow).Ok);
+        var (attested, attestError, attest) = PayrollFrameworkGovernance.TryAttest(
+            v2, attestor, _ => true, PayrollFrameworkGovernance.CitedDecisionIds(v2).ToList(), DateTime.UtcNow);
+        Assert.True(attested, attestError);
 
-        var (ok, error, notice) = PayrollLegalGovernance.TryPublishWithGovernance(
-            v2, [v1, v2], actor, attest,
-            effectiveFrom: new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc));
+        var (ok, error, notice) = PayrollFrameworkGovernance.TryPublish(v2, [v1, v2], attestor, attest, _ => true, latestPostedPeriodEnd: null);
         Assert.True(ok, error);
         Assert.NotNull(notice);
         Assert.Equal(v2.Id, notice!.PayrollConfigurationId);

@@ -1,0 +1,982 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "payroll-framework-pack.v1",
+  "title": "Payroll legal framework pack, version 1 (PLAN-54)",
+  "description": "The legal pack of a payroll framework version. Every value that governs pay carries its legal reference, its status (Signed or Interim) and, when interim, the STR-002 exception that allows it. The importer (PayrollFrameworkPackValidator) enforces this contract in code; the unit test Pay054FrameworkPackImporterTests keeps this file and the importer in line. Rules a schema cannot say: tax brackets ascend with no gap and the last has the open-ended limit 9999999999999999.99; codes, categories, decision ids and holiday dates are unique; every decision a value cites exists in decisions[] or in the agency register after the import.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema",
+    "code",
+    "regimeCode",
+    "nameAr",
+    "effectiveFrom",
+    "fields",
+    "taxBrackets",
+    "statutoryDeductions",
+    "holidays",
+    "priorityRules",
+    "decisions"
+  ],
+  "properties": {
+    "schema": {
+      "const": "payroll-framework-pack.v1"
+    },
+    "code": {
+      "type": "string",
+      "pattern": "^[A-Z][A-Z0-9_]{2,99}$"
+    },
+    "regimeCode": {
+      "enum": [
+        "LAW_50_2004",
+        "LAW_53_2021",
+        "CIVIL_SERVICE_2026"
+      ]
+    },
+    "nameAr": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "effectiveFrom": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "fields": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "prorationDaysBasis",
+        "dailyRateDivisor",
+        "missionAllowanceAmount",
+        "secondmentAllowancePercent",
+        "enableTrainingPremiums",
+        "trainingPremiumAmount",
+        "medicalCompensationDefaultAmount",
+        "maxRetroCorrectionMonths",
+        "eosGratuityRateFirstPeriod",
+        "eosGratuityFirstYearsThreshold",
+        "eosGratuityRateAfterThreshold",
+        "nonWorkingDays",
+        "useDbHolidaysOnly",
+        "taxableBaseMode",
+        "taxExemptionAmount",
+        "leavePayoutDailyDivisor",
+        "roundingMode",
+        "decimalPlaces",
+        "currencyCode"
+      ],
+      "properties": {
+        "prorationDaysBasis": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "enum": [
+                "WorkingDays",
+                "Calendar30"
+              ]
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "dailyRateDivisor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 31
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "missionAllowanceAmount": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "type": "number",
+              "minimum": 0,
+              "multipleOf": 0.01
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "secondmentAllowancePercent": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100,
+              "multipleOf": 0.01
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "enableTrainingPremiums": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "type": "boolean"
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "trainingPremiumAmount": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "type": "number",
+              "minimum": 0,
+              "multipleOf": 0.01
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "medicalCompensationDefaultAmount": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "type": "number",
+              "minimum": 0,
+              "multipleOf": 0.01
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "maxRetroCorrectionMonths": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 120
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "eosGratuityRateFirstPeriod": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 12,
+              "multipleOf": 0.01
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "eosGratuityFirstYearsThreshold": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 60
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "eosGratuityRateAfterThreshold": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 12,
+              "multipleOf": 0.01
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "nonWorkingDays": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "type": "string",
+              "description": "Comma-separated English day names, for example Friday,Saturday."
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "useDbHolidaysOnly": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "type": "boolean"
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "taxableBaseMode": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "enum": [
+                "GrossPay",
+                "NetOfStatutory"
+              ]
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "taxExemptionAmount": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "type": "number",
+              "minimum": 0,
+              "multipleOf": 0.01
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "leavePayoutDailyDivisor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 31
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "roundingMode": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "enum": [
+                "AwayFromZero",
+                "ToEven"
+              ]
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "decimalPlaces": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 6
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        },
+        "currencyCode": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "value",
+            "legalReference",
+            "legalStatus"
+          ],
+          "properties": {
+            "value": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            },
+            "legalReference": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 512,
+              "description": "A decision id of the register (starts with LD-) or a free legal citation."
+            },
+            "legalStatus": {
+              "enum": [
+                "Signed",
+                "Interim"
+              ]
+            },
+            "interimExceptionId": {
+              "type": "string",
+              "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+              "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+            }
+          }
+        }
+      }
+    },
+    "taxBrackets": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "upperLimit",
+          "ratePercent",
+          "legalReference",
+          "legalStatus"
+        ],
+        "properties": {
+          "upperLimit": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 9999999999999999.99
+          },
+          "ratePercent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "multipleOf": 0.01
+          },
+          "legalReference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "description": "A decision id of the register (starts with LD-) or a free legal citation."
+          },
+          "legalStatus": {
+            "enum": [
+              "Signed",
+              "Interim"
+            ]
+          },
+          "interimExceptionId": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+            "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+          }
+        }
+      }
+    },
+    "statutoryDeductions": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "code",
+          "nameAr",
+          "employeePercent",
+          "employerPercent",
+          "fixedAmount",
+          "baseKind",
+          "legalReference",
+          "legalStatus"
+        ],
+        "properties": {
+          "code": {
+            "type": "string",
+            "pattern": "^[A-Z][A-Z0-9-]{1,49}$"
+          },
+          "nameAr": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "employeePercent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "multipleOf": 0.01
+          },
+          "employerPercent": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 100,
+            "multipleOf": 0.01
+          },
+          "fixedAmount": {
+            "type": "number",
+            "minimum": 0,
+            "multipleOf": 0.01
+          },
+          "baseKind": {
+            "enum": [
+              "GrossPay",
+              "BaseSalary"
+            ]
+          },
+          "ceiling": {
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "multipleOf": 0.01
+          },
+          "insuranceBody": {
+            "enum": [
+              "GOSI",
+              "GOIP"
+            ]
+          },
+          "legalReference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "description": "A decision id of the register (starts with LD-) or a free legal citation."
+          },
+          "legalStatus": {
+            "enum": [
+              "Signed",
+              "Interim"
+            ]
+          },
+          "interimExceptionId": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+            "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+          }
+        }
+      }
+    },
+    "holidays": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "date",
+          "nameAr",
+          "isRecurring",
+          "legalReference",
+          "legalStatus"
+        ],
+        "properties": {
+          "date": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          },
+          "nameAr": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "isRecurring": {
+            "type": "boolean"
+          },
+          "legalReference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "description": "A decision id of the register (starts with LD-) or a free legal citation."
+          },
+          "legalStatus": {
+            "enum": [
+              "Signed",
+              "Interim"
+            ]
+          },
+          "interimExceptionId": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+            "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+          }
+        }
+      }
+    },
+    "priorityRules": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "category",
+          "priority",
+          "minimumAmount",
+          "legalReference",
+          "legalStatus"
+        ],
+        "properties": {
+          "category": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9]{1,99}$"
+          },
+          "priority": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 1000
+          },
+          "minimumAmount": {
+            "type": "number",
+            "minimum": 0,
+            "multipleOf": 0.01
+          },
+          "legalReference": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512,
+            "description": "A decision id of the register (starts with LD-) or a free legal citation."
+          },
+          "legalStatus": {
+            "enum": [
+              "Signed",
+              "Interim"
+            ]
+          },
+          "interimExceptionId": {
+            "type": "string",
+            "pattern": "^[A-Z0-9][A-Z0-9-]{2,63}$",
+            "description": "Required when legalStatus is Interim: an exception id of the STR-002 control catalog. Absent when Signed."
+          }
+        }
+      }
+    },
+    "decisions": {
+      "type": "array",
+      "maxItems": 500,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "decisionId",
+          "officialSource",
+          "effectiveFrom",
+          "owner",
+          "approvalStatus"
+        ],
+        "properties": {
+          "decisionId": {
+            "type": "string",
+            "pattern": "^LD-[A-Z0-9-]{1,61}$"
+          },
+          "configField": {
+            "type": "string",
+            "maxLength": 256
+          },
+          "ruleId": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "officialSource": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 512
+          },
+          "issueRef": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "effectiveFrom": {
+            "type": "string",
+            "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+          },
+          "owner": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "approvalStatus": {
+            "enum": [
+              "ApprovedInterim",
+              "PendingEnactment",
+              "Superseded",
+              "Enacted"
+            ]
+          },
+          "regimeCode": {
+            "type": "string",
+            "maxLength": 50
+          },
+          "notes": {
+            "type": "string",
+            "maxLength": 2000
+          }
+        }
+      }
+    }
+  }
+}

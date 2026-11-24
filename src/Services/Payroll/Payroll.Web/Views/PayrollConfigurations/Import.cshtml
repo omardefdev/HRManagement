@@ -1,0 +1,49 @@
+@model Payroll.Web.ViewModels.PayrollFrameworkImportViewModel
+@{
+    ViewData["Title"] = "استيراد حزمة قانونية";
+    var packErrors = ViewBag.PackErrors as IReadOnlyList<Payroll.Application.Features.PayrollConfigurations.PackError> ?? [];
+}
+<form asp-action="Import" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+    <div class="card">
+        <div class="card-header"><h3 class="card-title">استيراد حزمة قانونية للإطار</h3></div>
+        <div class="card-body">
+            <partial name="_FormErrors" />
+            @if (packErrors.Count > 0)
+            {
+                <ul class="list-group mb-3" data-testid="pack-errors">
+                    @foreach (var error in packErrors)
+                    {
+                        <li class="list-group-item"><code dir="ltr">@error.Path</code> — @error.Message</li>
+                    }
+                </ul>
+            }
+            <p class="text-muted">
+                الحزمة ملف JSON فيه كل قيمة تحكم الراتب بمرجعها القانوني وحالتها: الحقول العددية، شرائح الضريبة، الخصومات النظامية، العطل الرسمية، قواعد أولوية الصرف،
+                والقرارات القانونية. تُستورد مسودةً، ثم يعتمدها شخص ثانٍ، ويصادق عليها قانونياً شخص ثالث، ثم تُنشر. الحزمة المرفوضة لا يُكتب منها شيء.
+            </p>
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label asp-for="PackFile" class="form-label"></label>
+                    <input asp-for="PackFile" class="form-control" type="file" accept=".json,application/json" required />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="Code" class="form-label"></label>
+                    <input asp-for="Code" class="form-control" maxlength="100" dir="ltr" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="EffectiveFrom" class="form-label"></label>
+                    <input asp-for="EffectiveFrom" class="form-control" type="date" value="@Html.HrDateInputValue(Model.EffectiveFrom)" />
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label asp-for="TargetDraftId" class="form-label"></label>
+                    <select asp-for="TargetDraftId" class="form-select" asp-items="ViewBag.Drafts"><option value="">مسودة جديدة</option></select>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-upload"></i> استيراد</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </div>
+</form>

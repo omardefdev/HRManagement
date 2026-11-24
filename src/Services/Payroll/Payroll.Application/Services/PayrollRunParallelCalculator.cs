@@ -79,12 +79,12 @@ public static class PayrollRunParallelCalculator
             .GroupBy(p => p.EmployeeId)
             .ToDictionary(g => g.Key, g => g.OrderByDescending(p => p.UpdatedAt).First());
 
-        var holidays = await repository.OfficialHolidays
-            .Where(h => h.PayrollConfigurationId == null || h.PayrollConfigurationId == config.Id)
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);
-        var extraHolidays = PayrollRunCalculationSupport.BuildHolidaySet(periodStart, periodEnd, holidays);
-        var deductionTypes = await repository.DeductionTypes.AsNoTracking().ToListAsync(cancellationToken);
+        // PLAN-54: a v2 version brings its own holidays and statutory deductions; only a legacy version reads the general tables.
+        var reference = await PayrollFrameworkReferenceData.LoadAsync(repository, config, cancellationToken);
+        var extraHolidays = PayrollRunCalculationSupport.BuildHolidaySet(periodStart, periodEnd, reference.Holidays);
+        var deductionTypes = reference.LegacyDeductionTypes;
+        if (reference.IsLegacy)
+            job.AppendLog(PayrollFrameworkReferenceData.LegacyLogLine);
 
         job.Phase = PayrollRunJobPhase.Calculate;
         job.Status = PayrollRunJobStatus.Running;
@@ -442,7 +442,7 @@ public static class PayrollRunParallelCalculator
         var published = await repository.GetPublishedConfigurationForPeriodAsync(
             periodStart.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc), cancellationToken);
         if (published is null || string.IsNullOrEmpty(published.ContentHash))
-            return (null, "لا توجد نسخة إعدادات معتمدة/منشورة للفترة.");
+            return (null, PayrollFrameworkMessages.NoFrameworkForPeriod);
         return (published, null);
     }
 }
