@@ -1,4 +1,5 @@
 Started (UTC): 2026-11-24T05:14:03Z
+Resumed (UTC): 2026-11-24T20:06:20Z — the turn ended on its own at 10:28:11Z while it waited for the fourth start of the prod-like stack (the wait reached the tool's limit and no further call was made); the owner wrote «Try again» at 20:06Z. The session stood still 9 h 38 min. No restart of the machine (up 1 day 9 h); the keep-awake process was gone and was started again (new PID in `artifacts/plan55/keepawake.pid`).
 
 # PLAN-55 — progress (the session's checkpoint)
 
@@ -15,9 +16,9 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 | P3 the versions | done | 2026-11-24T07:17:16Z |
 | P4 the repair | done | 2026-11-24T07:49:45Z |
 | P5 PostgreSQL proofs | done | 2026-11-24T08:21:43Z |
-| P6 acceptance, review | next | |
-| P7 main | | |
-| P8 demo server | | |
+| P6 acceptance, review | done | 2026-11-24T21:52:09Z |
+| P7 main | done: `origin/main` is still `12b83970` (fetched 21:44:43Z), nothing to merge | 2026-11-24T21:52:09Z |
+| P8 demo server | next | |
 | P9 docs, gates, report, merge | | |
 
 ## Timing log
@@ -42,9 +43,29 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 | P3 full build `-warnaserror` + architecture tests | 07:12:45 | 07:15:37 | 0 warnings, 0 errors; 400 passed |
 | P5 `Pay055BankAccountPostgreSqlTests` (8) | 07:57 | 07:58 | 8 passed, 34 s |
 | P5 CI's full Testcontainers filter on the host (`Category=Testcontainers&Category!=ObjectStorage`) | 07:59:30 | 08:20:06 | 282 passed, 1 skipped, 20 min 28 s |
+| P6 validate script: `pay055-validate.ps1` and `-SelfTest` | 08:38 | 08:39 | pass; 27 planted defects refused |
+| P6 guard tests of scope, ownership, personas and scripts (unit filter) | 08:40 | 08:46 | 529 passed |
+| P6 acceptance reset (`acceptance-reset.ps1`) | 08:47:34 | 08:47:37 | volumes of `hrm-acceptance` reset; credentials kept |
+| P6 image build, 16 services one at a time (`artifacts/plan55/build-images-sequential.ps1`) | 08:48 | 09:17 | 1,746 s, revision `31349e50`, disk 42 GB free after |
+| P6 independent review (one read-only subagent, beside the image build) | 08:49 | 09:00 | 13 findings: 2 high, 4 medium, 7 low |
+| P6 review fixes: unit filter 381, PostgreSQL filter 36 | 09:30 | 09:37 | all passed |
+| P6 chain after the fixes: full build, architecture (401), full unit suite | 09:38:26 | 09:51:20 | build 0 errors; 401 passed; **the unit run was aborted by a test host crash after 6316 passes** (swap 3.6 of 4 GB used; the machine's known crash) |
+| P6 full unit suite again, with `--blame` | 09:51:33 | 10:02:45 | 6950 passed, 10 min 58 s, no crash |
+| P6 payroll image rebuilt from the review-fix commit | 10:04:55 | 10:07:51 | 155 s, revision `31f3cc00` |
+| P6 prod-like stack start, four runs of `acceptance-up.ps1 -Profile ProdLike -UseLocalBaseImages -NoBuild` | 10:08:00 | 10:50:08 | 1: RabbitMQ's 5 s health check timed out under a load of 54 (every service starting at once, swap full); 2: the same; 3: a Keycloak admin call answered 401 during the identity sync; 4: ready at 10:50:08Z (32 min) |
+| P6 on the first prod-like stack, after the resume: the repair script's dry run; AC-PAY-55; the other prod-like classes; AC-UX-67 | 20:06:20 | 20:16:08 | repair: the path was wrong (`/api/payroll/api/payroll/admin` is 404; the gateway serves `/api/payroll/admin`), fixed; dry run of agency A: 0 fillable, 1102 not fillable, nothing changed. AC-PAY-55: a, b, c, e passed, **55d failed on its own SQL** (`PaymentOrders.Status` is text), fixed, passed alone. `AcIam53` + `AcPay54` + `AcIam51` + `AcIam52` + `AcHcm25`: 31 of 31. `AcUx67`: 7 of 7, the three new key pages opened (200, one policy, no violation) |
+| P6 stack down (`acceptance-reset.ps1`) | 20:16:30 | 20:17:05 | volumes removed |
+| P6 acceptance job, prod-like, fresh stack (`acceptance-job.ps1 -Profile ProdLike -NoBuild -Stage prodLike:journey,prodLike:main,prodLike:isolated -Classes <14>`) | 20:17:29 | 20:50:53 | **PASS**, 2,004 s: stack 882 s; journey 1 of 1 (37 s); main 36 of 36 (208 s: AC-PAY-55a..e with AC-IAM-51/52/53, AC-PAY-54, AC-HCM-25 in the group's own order); isolated: AcInt37 8, AcMsg40, AcWf44 5, AcWf45 8, AcWf46 9, AcPol47 1, AcOps39 8 (805 s); `acceptance-guard: PASS (14 classes in 9 trx files)`; the job removed its stack |
+| P6 acceptance job, lab (`-Profile Lab -NoBuild -Stage lab:main,lab:journey -Classes Ac21,Ac23,Ac24,Ac25,AcHcm29,RecruitmentToHireJourneyE2ETests`) | 20:51:18 | 21:11:37 | **PASS**, 1,219 s: stack 921 s; main 7 of 7 (247 s); lab journey 1 of 1 (22 s); `acceptance-guard: PASS (6 classes in 2 trx files)` |
+| P6 seeded counts by psql on the fresh lab stack, before its tests (`artifacts/plan55/p6-seeded-counts.txt`) | 21:07:01 | 21:07:05 | the 32 tables of `acceptance-verify.ps1` have their expected counts (pay profiles 1489, runs 57, orders 72, holds 12); `EmployeeBankAccounts` 0: the seed adds no account |
+| P6 migrator image (`hr-migrate:local`) through `docker compose build` from a one-service file (no buildx here) | 21:13:27 | 21:34:02 | 1,235 s, fifteen bundles, 5.13 GB; disk 40 GB before, 31 GB at the end, 36 GB after pruning the build stages (4.73 GB) |
+| P6 acceptance job, leastpriv (`-Stage prodLike:leastpriv -NoBuild`) | 21:34:21 | 21:44:30 | **PASS**, 609 s: stack 191 s; `AcOps38FirstBootTests` + `AcTen48LeastPrivilegeTests` 9 of 9 (367 s): PAY055 is applied by the migrator's role from empty volumes and Payroll starts on it as its own role; `acceptance-guard: PASS (2 classes in 1 trx files)`; the job removed its stack |
+| P6 full build `-warnaserror` (with `AcPay55VpsChecks.cs`, written during the waits), format check of the new file | 21:44:47 | 21:52:09 | 0 warnings, 0 errors (6 min 53 s); format clean |
 | P4 chain: full build, architecture, PLAN-55 integration, full unit suite | 07:30:27 | 07:45:51 | 0 errors; 401 passed; 19 of 20 (one test of mine assumed a branch-restricted hr-admin; rewritten, 6 of 6 after); 6920 passed, 10 min 2 s |
 
-Stops: none so far.
+Stops:
+- **10:28:11Z to 20:06:20Z, 9 h 38 min: the turn ended on its own** while waiting for the prod-like stack's start script (the fourth
+  start; it finished «ready» at 10:50:08Z with nobody to read it). Resumed on the owner's «Try again».
 
 ## P0 — what was done
 
@@ -153,6 +174,47 @@ Stops: none so far.
   force or waiting written directly is refused by `IX_EmployeeBankAccounts_OneActiveOnePending`. D3 is proved: sixteen replacements
   in a row, each retiring the account in force and activating the new one in one save.
 
+- **The independent review (P6).** One fresh read-only subagent read the prompt, the plan, the decision log and the diff, beside the
+  image build (it built and ran nothing). No refuter was used: both high findings were verified against the code they name. What it
+  found and what was done (commit `31f3cc00`; every fix has a test):
+  1. **High, fixed.** The treasury file was produced and submitted while a retired pinned account's hold was active (the hold only
+     stopped the batch). Now the file and the disbursement gate both refuse a line whose pinned account was retired and that no
+     person released (`BankAccountPinning.RetiredAndNotReleasedAsync`): an active `ACCOUNT-RETIRED` hold, or no released one. A
+     released hold is a person's decision to pay the pinned account. The PostgreSQL proof now shows the refusal, the four-eyes
+     release, and then the file.
+  2. **High, fixed.** A retirement between the run's snapshot and the writing of its line placed no hold (the hold looked at lines
+     only). The hold now also covers a run whose snapshot pinned the account while the employee has no line in it yet; and the
+     gate/file rule of (1) refuses a retired pinned account with no hold at all (the safety net).
+  3. **Medium, fixed in part.** «Disbursed» (D1) is now: a payment order that left for the channel **in a batch the channel did not
+     reject, return, fail or reverse** (such a batch may be submitted again to the same account). The other half stays and is
+     recorded for PLAN-58: a run paid by the treasury file alone has no payment order, so it counts as not yet disbursed and a later
+     retirement holds it (nothing records that a treasury file was paid until the disbursement path is unified).
+  4. **Medium, fixed.** The contract activation threw a bare `InvalidOperationException` on a concurrent save, which the bus sends
+     to the error queue without a retry. It now throws `DbUpdateConcurrencyException`, which `MessagingFaults.IsTransient` retries
+     (D21.3 corrected).
+  5. **Medium, texts fixed; the rest is PLAN-58's.** Releasing an `ACCOUNT-RETIRED` hold pays the retired account the line pinned,
+     and one held employee blocks the whole batch. The hold's reason, the run's card, the notice and the file's refusal now say so,
+     and say that recalculating a run before it is frozen pins the account in force. An approver's action that re-pins a frozen
+     line, or leaves the employee out of the batch, belongs to PLAN-58's disbursement path.
+  6. **Medium-low, fixed.** A second refused activation of the same employee was consumed with nothing recorded (one hold per rule).
+     The refusal hold is now one per refused contract (the contract's id in its reason).
+  7. **Low-medium, narrowed.** `IEmployeeCreated` and the first `IContractActivated` handled at the same moment both read no
+     profile. The event now reads again after it writes its placeholder and fills the activation's version. Two transactions that
+     are both still open do not see each other: what is left then is exactly what the repair fills, from that placeholder.
+  8. **Low, fixed.** The repair: one transaction for the fills and the audit entry; a real run given the dry run's list changes
+     nothing outside it (the script always does a dry run first and sends its list); it is refused (409) while a calculation of the
+     agency is pending, running or paused (a filled profile changes the version a snapshot compares).
+  9. **Low, fixed.** The verification page showed the whole number to the registrar and for accounts with no registrar: now only
+     to a person who can verify.
+  10. **Low, fixed.** A bank's pattern with alternatives was matched at its first alternative: now anchored whole; and the service
+      refuses to start on a bank list it cannot use (no code or name, a code twice, a pattern that does not compile).
+  11. **Low, fixed.** `EmployeePayProfiles/Index.cshtml` had been rewritten whole by an edit that normalised its line endings:
+      restored from `main`, one line added.
+  12. **Low, fixed.** The readiness report said «held» from the account's status alone: it now reads the holds
+      (`employeesHeldForRetiredAccount`), and the card shows the held and the released separately.
+  13. **Low.** The hold's reason no longer carries the account's id (fixed). The framework's English answer to a malformed JSON
+      body is the same on every API of the system: not changed here, recorded.
+
 ## Notes for later phases (so documents are not read twice)
 
 - Patterns to follow: `PayProfileChangesApiController` (antiforgery endpoint, `[OrgScoped]`, policies per action, `PayProfileChangeHttp`),
@@ -220,12 +282,11 @@ None.
 
 ## The exact next step
 
-P6: move the two drafts from the session's scratchpad into the tree (`scripts/pay055-validate.ps1`,
-`src/Tests/HRManagement.AcceptanceTests/AcPay55BankAccountTests.cs`); add the class to `tests/acceptance/ci-scope.json` (`prodLike[]`,
-required, group `main`) and `AC-PAY-55` to `tests/acceptance/ac-ownership.json`; add `AC-PAY-55` to the scenarios of the personas it
-uses (`payroll-processor`, `payroll-approver`, `a-directory-checker`, `b-payroll-processor`, `b-payroll-approver`) — before any
-image build; update AC-IAM-53's reason text and class summary (no bank account in the copy any more); add the accounts' pages and
-the run's readiness card to AC-UX-67's key pages. Then: check the disk, `scripts/acceptance-reset.ps1`, build the images one service
-at a time, start the prod-like stack, verify on it which gateway path reaches `api/payroll/admin/…` (the repair script uses
-`/api/payroll/api/payroll/admin`), run `AcPay55BankAccountTests`, then P-13's lists, `pay055-validate.ps1` (and `-SelfTest`), the
-seeded counts, `down -v`. Then the independent review.
+P8, the demo server. `origin/main` = `12b83970` (unchanged); the server ran `014db7e3a01a` with 24 GB free at P0. In order: check ssh
+(`whoami` = `hrm`) and that the running tag is on `origin/main`; `pg_dumpall` to `/opt/hrm/backups/pre-plan55-<utc>/` and verify it;
+free the disk to 30 GB (build cache, local images of older releases; each removal recorded with its undo); commit
+`AcPay55VpsChecks.cs`, then build once, detached, on that commit; `scripts/vps/deploy.ps1 -Tag <sha12>`; the repair's dry run, then
+its real run of that list (expected: 425 not fillable, 0 changed); the five PLAN-55 server checks
+(`artifacts/plan55/run-vps.ps1`, with `PAY055_VPS_PROFILES_MD5=f409f25a00f0f1ecafb418e9bf6c93e4` and
+`PAY055_VPS_PROFILES_AMOUNTS_MD5=7c1359efefdbdd1a637f62393f9411c5`); the PLAN-36..54 server checks and the smoke. Local stacks: all
+down; `hr-migrate:local` (5.13 GB) is still here for a rerun and is removed at the end.
