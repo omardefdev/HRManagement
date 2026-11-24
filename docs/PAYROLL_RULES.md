@@ -35,7 +35,7 @@ stateDiagram-v2
 1. **BaseSalaryRule** — profile or PayGrade base; prorate by `EffectiveFrom`/`EffectiveTo` vs period working days  
 2. **AllowanceRule** — effective allowances  
 3. **AbsenceRule** — unpaid leave / absence deductions in period  
-4. **StatutoryDeductionRule** — `DeductionType.IsStatutory`  
+4. **StatutoryDeductionEngineRule** — for a run pinned to a **v2** framework version (PLAN-54): the version's own `StatutoryDeductionRule` rows and nothing else, each `min(base, ceiling) × EmployeePercent / 100 + FixedAmount`, the base being gross pay or the base salary paid this period. For a **v1** version (older than PLAN-54): `DeductionType.IsStatutory` from the general table, on gross pay, exactly as before  
 5. **AdHocDeductionRule** — pending `DeductionRecord`  
 6. **AdjustmentRule** — unassigned `PayrollAdjustment`  
 7. **TaxRule** — progressive brackets from configuration  
@@ -43,9 +43,29 @@ stateDiagram-v2
 
 Same inputs → same outputs. Rules do not access the database.
 
+### What a run reads (PLAN-54)
+
+| | v2 version (created, imported or cloned since PLAN-54) | v1 version (legacy) |
+|---|---|---|
+| Tax brackets | the version's; none means the version is not published | the version's, else the built-in defaults |
+| Statutory deductions | the version's `StatutoryDeductionRules` | `DeductionTypes` where `IsStatutory` (general table) |
+| Holidays | the version's `OfficialHolidays` | the version's and the general ones |
+| Disbursement priority rules | the version's (a funding decision that names another rule set is refused) | the decision's rule set, else the active general rules |
+| Insurance export shares | the version's rules that name an `InsuranceBody` | 7% / 14% and the deductions named «تأمين» |
+| Interim gate | every STR-002 exception the version cites must be active today (Damascus), at start, at resume and for a correction | none: a v1 version cites nothing |
+
+A v1 version, its fingerprint and every result computed with it are unchanged. The general statutory flag of a deduction type
+is read-only on its screens: a statutory deduction now belongs to a framework version.
+
+Manual inputs (PLAN-54 §4): an allowance, a deduction or an adjustment a person enters is `PendingApproval` until a second
+person approves it; the loader, corrections and the separation settlement read `Approved` rows only.
+
 ## Configuration
 
-Default seed in `PayrollConfiguration` (see migration). Override via DB admin UI or seed.
+Demo and acceptance seeds write v1 versions. A production agency (`Seed:Profile=None`) has none: it imports a legal pack
+(`docs/syr/payroll-framework-packs/`), and three people approve, attest and publish it — see
+[PAYROLL_CONFIG_VERSIONING.md](./PAYROLL_CONFIG_VERSIONING.md). Each of the nineteen governed fields then carries its legal
+reference and status inside the version.
 
 | Setting | Default | Notes |
 |---------|---------|-------|

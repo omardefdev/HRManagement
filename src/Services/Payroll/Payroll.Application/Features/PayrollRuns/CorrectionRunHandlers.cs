@@ -14,7 +14,9 @@ public record CreateCorrectionRunCommand(
 
 public class CreateCorrectionRunHandler(
     IPayrollRepository repository,
-    IPayrollEngine engine)
+    IPayrollEngine engine,
+    IPayrollLegalControlGuard? legalControlGuard = null,
+    IPayrollCalendar? calendar = null)
     : IRequestHandler<CreateCorrectionRunCommand, (bool Success, Guid? CorrectionRunId, string? Error)>
 {
     public async Task<(bool Success, Guid? CorrectionRunId, string? Error)> Handle(
@@ -33,6 +35,12 @@ public class CreateCorrectionRunHandler(
             return (false, null, "نسخة الإعدادات المثبتة على التشغيل المرجعي غير موجودة.");
         if (!string.Equals(source.ConfigContentHash, config.ContentHash, StringComparison.OrdinalIgnoreCase))
             return (false, null, "بصمة إعدادات التشغيل المرجعي لا تطابق النسخة القانونية.");
+
+        // PLAN-54 (§3): a correction is a calculation with the source's pinned version. If that version holds interim values, every
+        // exception it cites must be active today (the payroll calendar's date), as for the run itself. Nothing is written on refusal.
+        if (Features.PayrollConfigurations.PayrollInterimGate.RefusalForRun(
+                config, legalControlGuard, calendar ?? new PayrollCalendar(TimeProvider.System)) is { } interimRefusal)
+            return (false, null, interimRefusal);
 
         if (config.MaxRetroCorrectionMonths > 0)
         {
@@ -58,12 +66,10 @@ public class CreateCorrectionRunHandler(
 
         var periodStart = DateOnly.FromDateTime(correction.PeriodStart);
         var periodEnd = DateOnly.FromDateTime(correction.PeriodEnd);
-        var holidays = await repository.OfficialHolidays
-            .Where(h => h.PayrollConfigurationId == null || h.PayrollConfigurationId == config.Id)
-            .AsNoTracking()
-            .ToListAsync(cancellationToken);
-        var extraHolidays = PayrollRunCalculationSupport.BuildHolidaySet(periodStart, periodEnd, holidays);
-        var deductionTypes = await repository.DeductionTypes.AsNoTracking().ToListAsync(cancellationToken);
+        // PLAN-54: a v2 version brings its own holidays and statutory deductions; only a legacy version reads the general tables.
+        var reference = await PayrollFrameworkReferenceData.LoadAsync(repository, config, cancellationToken);
+        var extraHolidays = PayrollRunCalculationSupport.BuildHolidaySet(periodStart, periodEnd, reference.Holidays);
+        var deductionTypes = reference.LegacyDeductionTypes;
 
         foreach (var sourceLine in source.SalaryLines)
         {
@@ -75,7 +81,9 @@ public class CreateCorrectionRunHandler(
                 continue;
 
             var newAdjustments = await repository.PayrollAdjustments
-                .Where(a => a.EmployeeId == sourceLine.EmployeeId && a.PayrollRunId == null)
+                // PLAN-54 (D-PAY-6): a manual adjustment counts only after a second person approved it.
+                .Where(a => a.EmployeeId == sourceLine.EmployeeId && a.PayrollRunId == null
+                            && a.ApprovalStatus == ManualInputApprovalStatus.Approved)
                 .ToListAsync(cancellationToken);
 
             var deltaGross = newAdjustments.Sum(a => a.Amount);

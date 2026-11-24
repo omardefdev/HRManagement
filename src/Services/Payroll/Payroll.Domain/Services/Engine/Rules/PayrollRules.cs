@@ -123,11 +123,48 @@ public sealed class AbsenceRule : IPayrollRule
     }
 }
 
-public sealed class StatutoryDeductionRule : IPayrollRule
+/// <summary>
+/// The statutory deductions (PLAN-54, §2). For a version of fingerprint v2 the rule reads the version's own
+/// <see cref="StatutoryDeductionRule"/> rows and nothing else: the employee's share of each is
+/// <c>min(base, ceiling) × EmployeePercent / 100 + FixedAmount</c>, the base being gross pay or the base salary paid this period. For
+/// a version older than PLAN-54 it computes exactly as before, from the general deduction types the caller loaded (the legacy path).
+/// </summary>
+public sealed class StatutoryDeductionEngineRule : IPayrollRule
 {
     public int Order => 40;
 
     public void Apply(PayrollCalculationContext context, PayrollCalculationResult result)
+    {
+        if (context.Configuration.IsLegacyFramework)
+            ApplyLegacy(context, result);
+        else
+            ApplyFromVersion(context, result);
+    }
+
+    private static void ApplyFromVersion(PayrollCalculationContext context, PayrollCalculationResult result)
+    {
+        var baseSalary = result.Components.Where(c => c.ComponentType == SalaryComponentType.BaseSalary).Sum(c => c.Amount);
+        foreach (var rule in context.Configuration.StatutoryDeductions
+                     .OrderBy(r => r.SortOrder)
+                     .ThenBy(r => r.Code, StringComparer.Ordinal))
+        {
+            var amount = context.Configuration.RoundMoney(rule.CappedBase(result.GrossPay, baseSalary) * rule.EmployeePercent / 100m)
+                         + rule.FixedAmount;
+            if (amount <= 0) continue;
+
+            result.Components.Add(new SalaryLineComponent
+            {
+                ComponentType = SalaryComponentType.Deduction,
+                ComponentName = rule.NameAr,
+                Amount = -amount,
+                ReferenceId = rule.Id
+            });
+            result.TotalDeductions += amount;
+        }
+    }
+
+    /// <summary>The path of a version older than PLAN-54, unchanged: the general deduction types marked statutory, on gross pay.</summary>
+    private static void ApplyLegacy(PayrollCalculationContext context, PayrollCalculationResult result)
     {
         foreach (var dt in context.StatutoryDeductionTypes.Where(t => t.IsStatutory))
         {
@@ -262,8 +299,14 @@ public sealed class TaxRule : IPayrollRule
             .Select(b => new PayrollEngine.TaxBracketEntry(b.UpperLimit, b.RatePercent / 100m))
             .ToList();
 
+        // The built-in brackets are a fallback of the legacy path only. A v2 version without brackets is never published, and if one
+        // were calculated it would be taxed by no bracket rather than by brackets nobody approved.
         if (brackets.Count == 0)
+        {
+            if (!context.Configuration.IsLegacyFramework)
+                return;
             brackets = PayrollEngine.DefaultBrackets.ToList();
+        }
 
         var taxableBase = result.GrossPay;
         if (string.Equals(context.Configuration.TaxableBaseMode, "NetOfStatutory", StringComparison.OrdinalIgnoreCase))

@@ -48,7 +48,7 @@ public class PayrollRegimeAndRulesTests
             GrossPay = 10_000m
         };
 
-        new StatutoryDeductionRule().Apply(context, result);
+        new StatutoryDeductionEngineRule().Apply(context, result);
         Assert.Equal(500m, result.TotalDeductions);
     }
 

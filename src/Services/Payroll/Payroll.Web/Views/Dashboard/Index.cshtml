@@ -1,4 +1,30 @@
 @{ ViewData["Title"] = "لوحة تحكم الرواتب"; }
+@if (ViewBag.NoPublishedFramework == true)
+{
+    <div class="alert alert-danger" role="alert" data-testid="no-published-framework">
+        <strong>@Payroll.Domain.Services.PayrollFrameworkMessages.NoPublishedFramework.</strong>
+        لا يُحسب أي تشغيل رواتب قبل نشر إطار قانوني: استورد حزمة قانونية، ثم يعتمدها شخص ثانٍ ويصادق عليها قانونياً شخص ثالث وتُنشر.
+        <a asp-controller="PayrollConfigurations" asp-action="Import" class="alert-link">استيراد حزمة قانونية</a>
+    </div>
+}
+@foreach (var warning in ViewBag.ExceptionWarnings as IReadOnlyList<Payroll.Application.Features.PayrollConfigurations.PayrollExceptionExpiryWarning> ?? [])
+{
+    <div class="alert @(warning.Expired ? "alert-danger" : "alert-warning")" role="alert" data-testid="exception-expiry-warning">
+        @if (warning.ExpiresOn is null)
+        {
+            <span><strong>الاستثناء القانوني @warning.Citation غير نافذ في كتالوج الضوابط القانونية.</strong></span>
+        }
+        else if (warning.Expired)
+        {
+            <span><strong>انتهى الاستثناء القانوني @warning.Citation في @Html.HrDate(warning.ExpiresOn).</strong></span>
+        }
+        else
+        {
+            <span><strong>ينتهي الاستثناء القانوني @warning.Citation في @Html.HrDate(warning.ExpiresOn)</strong> (بعد @warning.DaysLeft يوماً).</span>
+        }
+        <span>بعد آخر يوم له لا يُحسب ولا يُنشر الإطار المؤقت الذي يستشهد به: @string.Join("، ", warning.Frameworks). تجديد الاستثناء أو استبدال القيم بقيم موقّعة قرار قانوني.</span>
+    </div>
+}
 <div class="row">
     <div class="col-lg-3 col-6">
         <div class="small-box bg-info">

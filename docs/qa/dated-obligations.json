@@ -71,10 +71,12 @@
       "statusField": "status",
       "closedStatuses": ["Closed", "Renewed", "Expired"],
       "enforcedBy": [
-        "ci:Dated obligations horizon (QA-034) only - LegalControlCatalogProvider.IsExceptionActive reads the status, not the date"
+        "ci:Dated obligations horizon (QA-034) - LegalControlCatalogProvider.IsExceptionActive (the shared start-up check) reads the status, not the date",
+        "runtime:Payroll's interim gate (PLAN-54) - PayrollLegalControlGuard reads the last day in the payroll calendar (Damascus): from the day after expiresOn a framework version whose values cite the exception is not approved, attested, published or calculated",
+        "acceptance:AcPay54LegalFrameworkTests (AC-PAY-54a) fails at its first check once EX-STR2-TAX-INTERIM or EX-STR2-LAW50-UNCERTIFIED is not active"
       ],
       "owner": "legal",
-      "note": "Partial controls depend on these Active exceptions; once expired they must be renewed by the signing roles or the controls re-classified."
+      "note": "Partial controls depend on these Active exceptions; once expired they must be renewed by the signing roles or the controls re-classified. PLAN-54: the interim payroll framework pack (docs/syr/payroll-framework-packs/law50-interim.json) cites EX-STR2-TAX-INTERIM and EX-STR2-LAW50-UNCERTIFIED, both ending on 2027-01-31; from 2027-02-01 no payroll is calculated with it until the owner renews them or a version of signed values is published (D-PAY-1, PAY-E)."
     },
     {
       "id": "MIG001-SOURCE-INVENTORY-EXCEPTIONS",

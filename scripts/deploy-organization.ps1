@@ -7,7 +7,8 @@
   scripts/vps/deploy.ps1. On the server the name is written to the HRM_ORGANIZATION_NAME line of
   /opt/hrm/shared/.env (that one key only; it is not a secret); with -Local it is passed in the process environment,
   which takes precedence over the env file.
-  The legal regime is not a deployment setting: activate it in Payroll > Legal frameworks after the deployment. The
+  The legal regime is not a deployment setting: after the deployment, import the payroll legal framework pack with
+  scripts/pay054-import-legal-pack.ps1 (PLAN-54), then approve, attest and publish it in Payroll > Legal frameworks. The
   former HR_LEGAL_REGIME / HR_LICENSE_* variables were read by nothing and are gone; licensing is
   Deployment__RequireLicenseKey (HRM_REQUIRE_LICENSE in the server's .env, off by default, D-OPS-9).
   PowerShell 5.1:
@@ -44,4 +45,7 @@ else {
 }
 if ($LASTEXITCODE -ne 0) { throw "deployment failed" }
 Write-Host "Deployed for: $OrganizationName"
-Write-Host "Activate the organization's legal framework in Payroll > Legal frameworks."
+# PLAN-54: no payroll run calculates before a legal framework is imported, approved, attested and published.
+Write-Host "Next: import the payroll legal framework pack (a production deployment seeds none), as a holder of Payroll.MasterData:"
+Write-Host "  powershell -NoProfile -ExecutionPolicy Bypass -File scripts/pay054-import-legal-pack.ps1 -PackPath <pack.json> -EffectiveFrom <yyyy-MM-dd> -GatewayBaseUrl <https://gateway> -KeycloakBaseUrl <https://sso> -Username <user>"
+Write-Host "Then, in Payroll > Legal frameworks, a second person approves the draft, a third attests it, and one of the two publishes it."

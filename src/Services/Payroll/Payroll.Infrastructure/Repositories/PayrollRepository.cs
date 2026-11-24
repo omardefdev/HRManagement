@@ -9,8 +9,11 @@ using Payroll.Infrastructure.Data;
 
 namespace Payroll.Infrastructure.Repositories;
 
-public class PayrollRepository(PayrollDbContext db) : IPayrollRepository
+public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar = null) : IPayrollRepository
 {
+    /// <summary>«Today» when no calendar is injected (a test that builds the repository by hand): the system clock in the default zone.</summary>
+    private static readonly IPayrollCalendar DefaultCalendar = new PayrollCalendar(TimeProvider.System);
+
     public IQueryable<PayrollRun> PayrollRuns => db.PayrollRuns;
     public IQueryable<EmployeePayProfile> EmployeePayProfiles => db.EmployeePayProfiles;
     public IQueryable<EmployeePayProfileHistory> EmployeePayProfileHistories => db.EmployeePayProfileHistories;
@@ -49,37 +52,56 @@ public class PayrollRepository(PayrollDbContext db) : IPayrollRepository
         return q.FirstOrDefaultAsync(r => r.Id == id, ct);
     }
 
-    public Task<PayrollConfiguration?> GetActiveConfigurationAsync(CancellationToken ct) =>
+    public IQueryable<LegalDecisionRecord> LegalDecisionRecords => db.LegalDecisionRecords;
+    public IQueryable<CompensationType> CompensationTypes => db.CompensationTypes;
+    public IQueryable<LegalAttestation> LegalAttestations => db.LegalAttestations;
+
+    /// <summary>Every table of a version that governs pay.</summary>
+    private IQueryable<PayrollConfiguration> WithContent() =>
         db.PayrollConfigurations
             .Include(c => c.TaxBrackets)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c => c.IsActive
-                && c.PublicationStatus == PayrollConfigPublicationStatus.Published, ct);
+            .Include(c => c.StatutoryDeductions)
+            .Include(c => c.Holidays)
+            .Include(c => c.PriorityRules)
+            .Include(c => c.FieldSources)
+            .AsSplitQuery();
 
-    public Task<PayrollConfiguration?> GetConfigurationByRegimeCodeAsync(string regimeCode, CancellationToken ct) =>
-        db.PayrollConfigurations
-            .Include(c => c.TaxBrackets)
-            .AsNoTracking()
-            .FirstOrDefaultAsync(c =>
-                (c.RegimeCode == regimeCode || c.Code == regimeCode)
-                && c.PublicationStatus == PayrollConfigPublicationStatus.Published, ct);
-
-    public async Task<PayrollConfiguration?> GetPublishedConfigurationForPeriodAsync(
-        DateTime periodStart,
-        CancellationToken ct)
+    /// <summary>
+    /// PLAN-54 (P-6): the version that governs <paramref name="day"/>, among every version that was ever published (a superseded
+    /// version still governs its own dates). The choice is made in memory by <see cref="PayrollConfigurationVersioning.ResolveGoverning"/>
+    /// over the agency's handful of versions, then that one version is loaded with its tables.
+    /// </summary>
+    private async Task<PayrollConfiguration?> GoverningAsync(DateTime day, string? regimeOrCode, CancellationToken ct)
     {
-        var configs = await db.PayrollConfigurations
-            .Include(c => c.TaxBrackets)
+        var candidates = await db.PayrollConfigurations
             .AsNoTracking()
-            .Where(c => c.PublicationStatus == PayrollConfigPublicationStatus.Published)
+            .Where(c => c.PublicationStatus == PayrollConfigPublicationStatus.Published
+                        || c.PublicationStatus == PayrollConfigPublicationStatus.Superseded)
             .ToListAsync(ct);
-        return PayrollConfigurationVersioning.ResolvePublishedForPeriod(configs, periodStart);
+        var governing = PayrollConfigurationVersioning.ResolveGoverning(candidates, day, regimeOrCode);
+        return governing is null ? null : await GetConfigurationByIdAsync(governing.Id, ct);
     }
 
+    private DateTime Today() => (calendar ?? DefaultCalendar).Today.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+
+    public Task<PayrollConfiguration?> GetActiveConfigurationAsync(CancellationToken ct) =>
+        GoverningAsync(Today(), null, ct);
+
+    public Task<PayrollConfiguration?> GetConfigurationByRegimeCodeAsync(string regimeCode, CancellationToken ct) =>
+        GoverningAsync(Today(), regimeCode, ct);
+
+    public Task<PayrollConfiguration?> GetPublishedConfigurationForPeriodAsync(
+        DateTime periodStart,
+        CancellationToken ct) => GoverningAsync(periodStart, null, ct);
+
     public Task<PayrollConfiguration?> GetConfigurationByIdAsync(Guid id, CancellationToken ct) =>
-        db.PayrollConfigurations
-            .Include(c => c.TaxBrackets)
+        WithContent()
             .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == id, ct);
+
+    public Task<PayrollConfiguration?> GetFrameworkForUpdateAsync(Guid id, CancellationToken ct) =>
+        WithContent()
+            .Include(c => c.Editors)
             .FirstOrDefaultAsync(c => c.Id == id, ct);
 
     public Task<EmployeePayProfile?> GetActiveProfileAsync(Guid employeeId, CancellationToken ct) =>

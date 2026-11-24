@@ -4,6 +4,8 @@ using Payroll.Application.Abstractions;
 
 using Payroll.Domain.Entities;
 
+using Payroll.Domain.Enums;
+
 
 
 namespace Payroll.Application.Services;
@@ -128,6 +130,8 @@ public static class PayrollPartitionInputLoader
 
                             && (d.AppliedInRunId == null || d.AppliedInRunId == run.Id)
 
+                            && d.ApprovalStatus == ManualInputApprovalStatus.Approved
+
                             && (d.DueDate == null || d.DueDate <= periodEnd)),
 
             cancellationToken);
@@ -141,7 +145,8 @@ public static class PayrollPartitionInputLoader
                 .AsNoTracking()
 
                 .Where(a => idSet.Contains(a.EmployeeId)
-                            && (a.PayrollRunId == null || a.PayrollRunId == run.Id)),
+                            && (a.PayrollRunId == null || a.PayrollRunId == run.Id)
+                            && a.ApprovalStatus == ManualInputApprovalStatus.Approved),
 
             cancellationToken);
 
@@ -222,6 +227,8 @@ public static class PayrollPartitionInputLoader
                 .Where(a => idSet.Contains(a.EmployeeId)
 
                             && a.EffectiveFrom <= run.PeriodEnd
+
+                            && a.ApprovalStatus == ManualInputApprovalStatus.Approved
 
                             && (a.EffectiveTo == null || a.EffectiveTo >= run.PeriodStart))
 

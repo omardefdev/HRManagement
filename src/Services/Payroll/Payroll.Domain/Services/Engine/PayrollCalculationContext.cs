@@ -14,6 +14,10 @@ public sealed class PayrollCalculationContext
     public required decimal MonthlyBaseSalary { get; init; }
     public required IReadOnlyList<AllowanceRecord> Allowances { get; init; }
     public required IReadOnlyList<DeductionRecord> Deductions { get; init; }
+    /// <summary>
+    /// The general deduction types, read by the legacy path only (a version older than PLAN-54). A run of a v2 version passes none:
+    /// its statutory deductions are <see cref="PayrollConfiguration.StatutoryDeductions"/> of <see cref="Configuration"/>.
+    /// </summary>
     public required IReadOnlyList<DeductionType> StatutoryDeductionTypes { get; init; }
     public required IReadOnlyList<PayrollAdjustment> Adjustments { get; init; }
     public required IReadOnlyList<AbsenceDeduction> AbsenceDeductions { get; init; }

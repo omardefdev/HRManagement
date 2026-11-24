@@ -8,6 +8,7 @@ using Payroll.Application.Abstractions;
 using Payroll.Application.Options;
 using Payroll.Domain.Constants;
 using Payroll.Domain.Entities;
+using Payroll.Domain.Enums;
 using Payroll.Domain.Services;
 
 namespace Payroll.Application.Features.InboundEvents;
@@ -215,7 +216,9 @@ public class HandleSeparationCompletedHandler(IPayrollRepository repository)
             var outstanding = await repository.DeductionRecords
                 .Where(d => d.EmployeeId == request.EmployeeId
                             && d.AppliedInRunId == null
-                            && d.DeductionType == "AdvanceRecovery")
+                            && d.DeductionType == "AdvanceRecovery"
+                            // PLAN-54 (D-PAY-6): a manual deduction counts only after a second person approved it.
+                            && d.ApprovalStatus == ManualInputApprovalStatus.Approved)
                 .SumAsync(d => d.Amount, cancellationToken);
 
             var config = await ResolveConfigurationAsync(repository, request.PayrollRegimeCode, cancellationToken);
@@ -691,6 +694,8 @@ public class HandleMedicalRecommendationIssuedHandler(IPayrollRepository reposit
         var marker = $"MedicalRecommendation-{request.RecommendationId}";
         var exists = await repository.PayrollAdjustments.AnyAsync(
             a => a.EmployeeId == request.EmployeeId
+                 // PLAN-54: only a row the system wrote marks the event as handled; a manual input never suppresses it.
+                 && a.Origin == ManualInputOrigin.System
                  && a.AdjustmentReason != null
                  && a.AdjustmentReason.Contains(marker),
             cancellationToken);

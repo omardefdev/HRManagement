@@ -25,6 +25,23 @@ public class PayrollRunJob : AuditableEntity
     [MaxLength(2000)]
     public string? Error { get; set; }
 
+    /// <summary>
+    /// PLAN-54: the job's log, one Arabic line per fact a reader of the run must know: the legacy path of a framework older than
+    /// PLAN-54, an interim framework and its exception, an expired exception.
+    /// </summary>
+    [MaxLength(LogMaxLength)]
+    public string? Log { get; set; }
+
+    public const int LogMaxLength = 4000;
+
+    public void AppendLog(string line)
+    {
+        if (string.IsNullOrWhiteSpace(line) || (Log?.Contains(line, StringComparison.Ordinal) ?? false))
+            return;
+        var next = string.IsNullOrEmpty(Log) ? line : Log + "\n" + line;
+        Log = next.Length <= LogMaxLength ? next : next[^LogMaxLength..];
+    }
+
     public int PartitionSize { get; set; } = 200;
 
     public bool ResultsValidated { get; set; }

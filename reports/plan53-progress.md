@@ -695,10 +695,72 @@ Reason: the owner's message (`ssh hrm-vps whoami` → `hrm`). Re-check:
   were never touched.
 - `release/plan-53` = `origin/main` + one `--no-ff` merge of the feature branch; `reports/plan53-pr.md` written.
 
+## The pull request, the fix CodeQL asked for, and the merge
+
+- **PR #53** <https://github.com/omardefdev/HRManagement/pull/53>: `release/plan-53` pushed 03:05:47Z, opened
+  03:05:59Z.
+- **Waiting for CI:** this session runs in the Claude desktop app, which forbids the agent to poll CI and watches the
+  PR itself («Auto-fix», switched on for #53). The agent ended its turn at about 03:12Z with the checks running (a
+  deviation from the prompt's «wait in the turn») and was woken at 03:27Z by the app's event: **CodeQL failed.**
+- **Run 1** (<https://github.com/omardefdev/HRManagement/actions/runs/45103935080>, head `a583a739`): **CodeQL
+  failed**, rightly — five new `cs/web/missing-token-validation` findings (security-severity 8.8) on the five POST
+  actions of `PayProfileChangesApiController`. The new API is reached with a gateway session (a cookie) as well as
+  with a bearer token, so a forged cross-site POST could have reached an approval (`SameSite=Lax` on the gateway's
+  cookie stops the plain cross-site case only). No local gate runs CodeQL, and the independent review missed it.
+- **The fix, on the release branch (`5aa61b78`):** `GET api/payroll/pay-profile-changes/antiforgery` and
+  `[ValidateAntiForgeryToken]` on the five writes — the pattern of PLAN-40, PLAN-43 and PLAN-47. **No baseline entry,
+  no ignore attribute.** `Iam053PayrollScopeHttpTests` gained a test (each write answers 400 without the token or
+  with another user's, and nothing is written); the acceptance classes (AC-IAM-53, AC-23, AC-25) and the server check
+  use a client that carries the token (`AcceptanceHarness.CreatePayrollClientAsync`); the contract document and the
+  final report say so. Before the push: unit 6562/6562, architecture 358/358, the PLAN-53 integration tests 22/22,
+  format clean. Pushed 03:48:14Z (that branch only).
+- **Run 2** (<https://github.com/omardefdev/HRManagement/actions/runs/45108118556>, head `5aa61b78`, 03:48:21Z to
+  04:36:01Z, 47 min 40 s): **all 15 checks passed** — Acceptance, Acceptance images, Acceptance stage (lab-main,
+  lab-rest, leastpriv, meta, prodlike, prodlike-final, prodlike-policy), CI, CodeQL, Dedupe post-merge run, E2E,
+  Gitleaks, Reuse check. **The evidence of record** is that run's artifact `acceptance-evidence` (and
+  `acceptance-stage-*`, `test-results`, `codeql-sarif`); nothing of a local run is committed.
+- **Merged by agent on owner instruction (UTC): 2026-11-23T04:37:43Z** — `gh pr merge 53 --merge` (no auto-merge), with
+  every check green at the pushed head and `main` unchanged since the start. Merge commit **`53690e0e0900`**.
+  `git switch main; git pull --ff-only`: `main` = `origin/main` = `53690e0e`.
+- **The post-merge run** <https://github.com/omardefdev/HRManagement/actions/runs/45112995268> (push to `main`,
+  04:37:45Z): **completed, success** — Gitleaks and «Dedupe post-merge run» passed, and the other jobs were skipped
+  by design (the run reuses the PR's green run of the same tree).
+- **CI wait:** 03:06:01Z to 04:36:01Z = **1 h 30 min** for the two runs (42 min of it the run that failed and was
+  replaced). **Actions minutes** (sum of the jobs' durations): run 1 about 202, run 2 about 204, **about 406**, plus the
+  post-merge run.
+
+## The server after the fix (the deployed tag is the merged code)
+
+- **Third build, tag `5aa61b78e3a6`,** detached (upload 31.0 MB in 56 s; start 03:49:40Z; build 1,819 s, push 31 s,
+  17 of 17 images). **The server's disk fell to 5.4 GB at the build's lowest point** (32 GB before it; three
+  releases' local images were on the disk with the build cache); the agent watched it with a stop line at 3 GB, and
+  the script's cleanup brought it back to 24 GB. For the next plan: remove the local images of older releases
+  **before** the build even when 30 GB are free.
+- **Third deploy:** 04:21:20Z to 04:25:11Z (3 min 51 s): pull 3 s, up 126 s, bootstrap 55 s, reconcile 13 s, healthy
+  14 s; `2026-11-23T04:24:23Z|tag=5aa61b78e3a6|action=deploy|result=healthy|previous=27cbf35db9cc`; smoke 50 pass,
+  0 fail, 1 warn (`artifacts/vps/smoke-hrm-vps-20261123T042511Z.json`). **Server change 7:** current-tag
+  `5aa61b78e3a6`, previous-tag `27cbf35db9cc`. **Undo:** `scripts/vps/deploy.ps1 -Rollback` (to the tag without the
+  token), or `-Tag 1ee455bf1a6f` (to before the plan).
+- **On the final tag (04:26Z to 04:36:52Z):** the four `AC_IAM_53_vps` checks and the sign-in check **Passed**. The
+  salary change check now also proves, through the gateway session, that a write without the token answers 400 and
+  with it 201.
+- **Server change 8:** the local images of the first PLAN-53 tag `0640c2ac6db0` removed (17 tags; they stay in the
+  loopback registry; 24 GB → 30 GB free). **Undo:** `docker pull 127.0.0.1:5050/hrmanagement/<image>:0640c2ac6db0`.
+- **The demo at the end:** tag `5aa61b78e3a6`, 22 containers, 20 of 20 health checks healthy, 30 GB free; active pay
+  profiles 425 of 425 with the checksum `3b2e10719627b05f17069bfca7a784f2` and the grades' md5
+  `d964b59013d8ce5845a3dc816ff67c92`, both as before the plan; 6 runs. Requests left by the checks' four runs:
+  **4 salary requests `Cancelled`, 3 reference requests `Rejected`**, none open.
+
+## Timing, final
+
+- Started 2026-11-21T00:15:16Z; merged 2026-11-23T04:37:43Z: **52 h 22 min** wall-clock.
+- Stopped: 36 h 15 min 55 s (the preconditions) + 2 h 24 min 49 s (the owner's stop and the restart) + about 15 min
+  between the end of the turn and the app's wake-up = **about 38 h 56 min**.
+- Working: **about 13 h 26 min**, of which waiting for CI 1 h 30 min (overlapped with the third server build, deploy
+  and checks).
+- The keep-awake process was stopped after the merge (`pkill -f 'systemd-inhibit --what=sleep:idle --who=plan53'`).
+
 ## Exact next step
 
-P9: `git push -u origin release/plan-53`; `gh pr create --base main --head release/plan-53 --title "PLAN-53: payroll
-write policies, and a salary change approved by another person" --body-file reports/plan53-pr.md`; wait with
-`gh pr checks <n> --watch --interval 60`; merge with `gh pr merge <n> --merge` only when every check is green; then
-`git switch main; git pull --ff-only`; the merge note on the local branch `docs/plan-53-merge-note`; stop the
-keep-awake (`pkill -f 'systemd-inhibit --what=sleep:idle --who=plan53'`).
+None: PLAN-53 is merged (`53690e0e0900`) and deployed (`5aa61b78e3a6`). This note lives on the local branch
+`docs/plan-53-merge-note`; the next plan brings it in. No second PR for it.

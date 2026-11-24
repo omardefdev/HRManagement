@@ -35,6 +35,9 @@ public class DeductionTypesController : Controller
     public async Task<IActionResult> Create(DeductionType model)
     {
         if (!ModelState.IsValid) return View(model);
+        // PLAN-54 (§2 rule 2): this table is the catalogue of non-statutory deductions. A statutory deduction is a row of a legal
+        // framework version (Payroll > Legal frameworks), so a type created here is never statutory, whatever the form posted.
+        model.IsStatutory = false;
         _db.DeductionTypes.Add(model);
         await _db.SaveChangesAsync();
         TempData["Success"] = "تم الإضافة";
@@ -56,7 +59,9 @@ public class DeductionTypesController : Controller
         if (!ModelState.IsValid) return View(model);
         var e = await _db.DeductionTypes.FindAsync(id);
         if (e is null) return NotFound();
-        e.Code = model.Code; e.NameAr = model.NameAr; e.IsStatutory = model.IsStatutory;
+        // PLAN-54 (§2 rule 2): IsStatutory is read-only here; the posted value is ignored. The rows marked statutory before PLAN-54
+        // stay as they are and are read only by runs of a framework version older than PLAN-54 (the legacy path).
+        e.Code = model.Code; e.NameAr = model.NameAr;
         e.Percentage = model.Percentage; e.FixedAmount = model.FixedAmount;
         await _db.SaveChangesAsync();
         TempData["Success"] = "تم التحديث";
