@@ -29,15 +29,20 @@ public sealed class PayrollAdminController(IMediator mediator) : ControllerBase
     /// <summary>
     /// For each active pay profile whose unit or regime is empty: copies the value from the employee's latest profile that carries it.
     /// It never overwrites a value and touches nothing else. <paramref name="dryRun"/> (the default) reports the counts and the
-    /// profile ids and changes nothing; a real run changes exactly what the dry run listed and writes one audit entry.
+    /// profile ids and changes nothing; a real run changes exactly what the dry run listed (the caller sends that list back) and
+    /// writes one audit entry, in one transaction. 409 while a payroll calculation of the agency is in progress.
     /// </summary>
     [HttpPost("backfill-profile-orgunit")]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollRepair)]
-    public async Task<ActionResult<ProfileOrgUnitBackfillReport>> BackfillProfileOrgUnit([FromQuery] bool dryRun = true, CancellationToken ct = default)
+    public async Task<ActionResult<ProfileOrgUnitBackfillReport>> BackfillProfileOrgUnit(
+        [FromQuery] bool dryRun = true, [FromBody] BackfillProfileOrgUnitApiRequest? request = null, CancellationToken ct = default)
     {
         var report = await mediator.Send(
-            new BackfillProfileOrgUnitCommand(dryRun, PayProfileChangeHttp.RequireUserId(User), PayProfileChangeHttp.UserName(User)), ct);
+            new BackfillProfileOrgUnitCommand(
+                dryRun, PayProfileChangeHttp.RequireUserId(User), PayProfileChangeHttp.UserName(User), request?.ProfileIds), ct);
+        if (report.Refusal is not null)
+            return Conflict(new { error = report.Refusal });
         if (!report.DryRun && report.Changed > 0)
         {
             SecurityAudit.Log(
@@ -50,3 +55,9 @@ public sealed class PayrollAdminController(IMediator mediator) : ControllerBase
         return Ok(report);
     }
 }
+
+/// <summary>
+/// The body of the repair: <c>profileIds</c> are the profiles a dry run listed. A real run that is given them changes nothing else
+/// (a profile that became fillable since is reported in <c>notInTheDryRun</c>). Without them it fills whatever is listed now.
+/// </summary>
+public sealed record BackfillProfileOrgUnitApiRequest(IReadOnlyCollection<Guid>? ProfileIds);

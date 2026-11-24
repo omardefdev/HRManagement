@@ -48,7 +48,7 @@ public sealed class PayrollExternalExportService(
 
         // PLAN-55 (D-PAY-15): the beneficiary account of a row is the account its line pinned at the run's snapshot: an account that
         // changed after the calculation applies from the next cycle. An account is pinned only when it was in force (verified by a
-        // second person), so a pinned account needs no second look here.
+        // second person). One that was retired since is checked below.
         var pinnedAccounts = await BankAccountPinning.PinnedAccountsAsync(db.EmployeeBankAccounts, run.SalaryLines, cancellationToken);
 
         // PLAN-54 (§2): the insurance rules of the pinned v2 version (the statutory deductions that name an insurance body).
@@ -128,6 +128,13 @@ public sealed class PayrollExternalExportService(
                 employeeInsurance,
                 employerInsurance));
         }
+
+        // PLAN-55 (§1 rule 5): the file is an instruction to pay. A pinned account that was retired since, and whose hold no person
+        // released, is not written into it (the disbursement gate refuses the batch for the same reason).
+        var retiredAndHeld = await BankAccountPinning.RetiredAndNotReleasedAsync(
+            db.EmployeeBankAccounts, db.PaymentHolds, db.PaymentOrders, db.PaymentBatches, run.Id, run.SalaryLines.ToList(), cancellationToken);
+        if (retiredAndHeld.Count > 0)
+            throw new RetiredPinnedBankAccountsException(retiredAndHeld, names);
 
         if (missingAccounts.Count > 0)
         {

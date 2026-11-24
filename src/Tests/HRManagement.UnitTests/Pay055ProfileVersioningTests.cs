@@ -362,6 +362,33 @@ public sealed class Pay055ProfileVersioningTests
     }
 
     [Fact]
+    public async Task An_activation_written_while_the_employees_record_was_being_handled_gets_the_unit_and_the_regime()
+    {
+        // Both handlers read no profile; the activation's version (no unit, no regime) is saved while this event writes the
+        // placeholder. The event reads again after its save and fills what that version lacks.
+        var h = await new H().SeedAsync();
+        await using (var db = h.Db())
+        {
+            var once = false;
+            db.SavedChanges += (_, _) =>
+            {
+                if (once) return;
+                once = true;
+                using var other = h.Db();
+                other.Add(new EmployeePayProfile { EmployeeId = NewHire, IsActive = true, BaseSalary = 5000m, EffectiveFrom = Utc(2026, 12, 1) });
+                other.SaveChanges();
+            };
+            await new HandleEmployeeCreatedHandler(new PayrollRepository(db), h.Calendar)
+                .Handle(new HandleEmployeeCreatedCommand(NewHire, Unit, "law50"), CancellationToken.None);
+        }
+
+        var profiles = await ProfilesAsync(h, NewHire);
+        var active = Assert.Single(profiles, p => p.IsActive);
+        Assert.Equal(((Guid?)Unit, "law50", 5000m), (active.OrgUnitId, active.RegimeCode, active.BaseSalary));
+        Assert.Single(profiles, p => !p.IsActive);                       // the placeholder stays, as the record of the event
+    }
+
+    [Fact]
     public async Task An_activation_over_the_profile_in_force_keeps_the_unit_and_the_regime_and_counts_no_day_twice()
     {
         var h = await new H().SeedAsync();                // active from 1 January 2026, Unit, law50, G5, 4500
@@ -499,6 +526,19 @@ public sealed class Pay055ProfileVersioningTests
         // Delivered again, it does not loop and places no second hold.
         await ActivateAsync(h, H.Employee, Utc(2025, 6, 1), 5000m, "G5", contract);
         Assert.Equal((1, 0, 0, 1, 1, 0), await CountsAsync(h, H.Employee));
+
+        // Another contract refused while the first still waits is recorded too: one hold per refused contract, each naming its own.
+        var other = Guid.NewGuid();
+        await ActivateAsync(h, H.Employee, Utc(2025, 7, 1), 5000m, "G5", other);
+        await ActivateAsync(h, H.Employee, Utc(2025, 7, 1), 5000m, "G5", other);
+        Assert.Equal((1, 0, 0, 2, 2, 0), await CountsAsync(h, H.Employee));
+        await using (var db = h.Db())
+        {
+            var reasons = await db.PaymentHolds.AsNoTracking().Where(x => x.EmployeeId == H.Employee).Select(x => x.Reason).ToListAsync();
+            Assert.Single(reasons, r => r.Contains(contract.ToString("D"), StringComparison.OrdinalIgnoreCase));
+            Assert.Single(reasons, r => r.Contains(other.ToString("D"), StringComparison.OrdinalIgnoreCase));
+            Assert.All(reasons, r => Assert.StartsWith(HandleContractActivatedHandler.RuleActivationRefused + ":", r));
+        }
     }
 
     [Fact]
@@ -558,8 +598,11 @@ public sealed class Pay055ProfileVersioningTests
     {
         var h = await new H().SeedAsync();
 
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+        var thrown = await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() =>
             ActivateAsync(h, H.Employee, Utc(2026, 12, 1), 7000m, "G5", applier: new ConflictingApplier()));
+        // The bus retries a concurrency failure, and sends any other InvalidOperationException to the error queue without a retry.
+        Assert.True(HRManagement.ServiceDefaults.Messaging.MessagingFaults.IsTransient(thrown));
+        Assert.False(HRManagement.ServiceDefaults.Messaging.MessagingFaults.IsTransient(new InvalidOperationException("x")));
 
         // Not the adjustment and not the PAY-029 hold the handler had staged.
         Assert.Equal((1, 0, 0, 0, 0, 0), await CountsAsync(h, H.Employee));

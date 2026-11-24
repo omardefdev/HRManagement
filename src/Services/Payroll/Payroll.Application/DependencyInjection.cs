@@ -41,7 +41,11 @@ public static class DependencyInjection
         services.AddScoped<Features.ReferenceChanges.PayrollReferenceChangeApplier>();
 
         // PLAN-55: the employee's bank account (registered by one person, verified by another), and the banks whose local numbers count.
-        services.AddOptions<Features.BankAccounts.PayrollBankOptions>().BindConfiguration(Features.BankAccounts.PayrollBankOptions.SectionName);
+        services.AddOptions<Features.BankAccounts.PayrollBankOptions>()
+            .BindConfiguration(Features.BankAccounts.PayrollBankOptions.SectionName)
+            // A bank whose pattern does not compile would refuse every number of that bank without a word: the service names it at start.
+            .Validate(options => options.Problems().Count == 0, "Payroll:Bank:Banks is not usable: a bank needs a code, an Arabic name and an account pattern that compiles, and a code is defined once.")
+            .ValidateOnStart();
         services.AddScoped<Features.BankAccounts.BankAccountRules>();
 
         return services;

@@ -40,6 +40,17 @@ public sealed class PaymentDisbursementGate(PayrollDbContext db) : IPaymentDisbu
             }
         }
 
+        // PLAN-55 (§1 rule 5): a line whose pinned account was retired and that no person released is not paid, whether or not a
+        // hold row exists for it (a retirement that met neither a line nor a snapshot of this run places none).
+        var lines = await db.SalaryLines.AsNoTracking().Where(l => l.PayrollRunId == batch.PayrollRunId).ToListAsync(cancellationToken);
+        var retiredAndHeld = await Payroll.Application.Features.BankAccounts.BankAccountPinning.RetiredAndNotReleasedAsync(
+            db.EmployeeBankAccounts, db.PaymentHolds, db.PaymentOrders, db.PaymentBatches, batch.PayrollRunId, lines, cancellationToken);
+        if (retiredAndHeld.Count > 0)
+        {
+            return DisbursementGateResult.Block(
+                FormattableString.Invariant($"{Payroll.Application.Features.BankAccounts.BankAccountMessages.RetiredPinnedAccountBlocksBatch} ({retiredAndHeld.Count})."));
+        }
+
         var openCriticalAlerts = await db.FraudAlerts
             .AsNoTracking()
             .CountAsync(

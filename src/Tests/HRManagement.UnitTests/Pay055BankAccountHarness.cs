@@ -192,4 +192,39 @@ public sealed class Pay055BankAccountHarness
         await db.SaveChangesAsync();
         return (run.Id, line.Id);
     }
+
+    /// <summary>A run that is being calculated: its job's snapshot pinned <paramref name="accountId"/> and the employee's line is not written yet.</summary>
+    public async Task<Guid> RunSnapshotAsync(Guid? accountId, PayrollRunStatus status = PayrollRunStatus.Calculating, int month = 11, Guid? employee = null)
+    {
+        await using var db = Db();
+        var run = new PayrollRun
+        {
+            PeriodStart = new DateTime(2026, month, 1, 0, 0, 0, DateTimeKind.Utc),
+            PeriodEnd = new DateTime(2026, month, 28, 0, 0, 0, DateTimeKind.Utc),
+            RunDate = new DateTime(2026, month, 28, 0, 0, 0, DateTimeKind.Utc),
+            Status = status,
+        };
+        var job = new PayrollRunJob { PayrollRunId = run.Id, Status = PayrollRunJobStatus.Paused, Phase = PayrollRunJobPhase.Calculate };
+        job.InputSnapshots.Add(new PayrollRunInputSnapshot
+        {
+            EmployeeId = employee ?? Employee,
+            ProfileVersion = "v",
+            BankAccountId = accountId,
+            SortOrder = 0,
+        });
+        db.AddRange(run, job);
+        await db.SaveChangesAsync();
+        return run.Id;
+    }
+
+    /// <summary>Gives the line's payment order a real batch in <paramref name="status"/>.</summary>
+    public async Task SetBatchOfLineAsync(Guid lineId, PaymentBatchStatus status)
+    {
+        await using var db = Db();
+        var order = await db.PaymentOrders.SingleAsync(o => o.SalaryLineId == lineId);
+        var batch = new PaymentBatch { PayrollRunId = order.PayrollRunId, TotalAmount = order.Amount, Status = status, BatchKind = PaymentBatchKind.Disbursement };
+        db.Add(batch);
+        order.PaymentBatchId = batch.Id;
+        await db.SaveChangesAsync();
+    }
 }

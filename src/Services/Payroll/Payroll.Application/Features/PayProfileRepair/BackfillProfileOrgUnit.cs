@@ -13,7 +13,9 @@ namespace Payroll.Application.Features.PayProfileRepair;
 /// the regime. For each <b>active</b> profile of the caller's agency whose unit or regime is empty, the value is copied from the
 /// employee's latest profile that carries it. A dry run (the default) lists and changes nothing.
 /// </summary>
-public sealed record BackfillProfileOrgUnitCommand(bool DryRun, Guid? ActorId, string? ActorName) : IRequest<ProfileOrgUnitBackfillReport>;
+/// <param name="OnlyProfileIds">A real run changes only these profiles: the ids a dry run listed. Null: whatever is listed now.</param>
+public sealed record BackfillProfileOrgUnitCommand(
+    bool DryRun, Guid? ActorId, string? ActorName, IReadOnlyCollection<Guid>? OnlyProfileIds = null) : IRequest<ProfileOrgUnitBackfillReport>;
 
 /// <summary>
 /// One active profile the repair fills: the value it takes for each empty field (null when that field is not filled), and the profile
@@ -48,18 +50,30 @@ public sealed record ProfileOrgUnitBackfillReport(
 
     /// <summary>The audit entry of a real run that changed something.</summary>
     public Guid? AuditEntryId { get; init; }
+
+    /// <summary>
+    /// Fillable profiles a real run left alone because the caller's list (the dry run's) did not name them: they became fillable
+    /// after that dry run. A new dry run lists them.
+    /// </summary>
+    public IReadOnlyList<Guid> NotInTheDryRun { get; init; } = [];
+
+    /// <summary>Why a real run was refused (Arabic); nothing was changed.</summary>
+    public string? Refusal { get; init; }
 }
 
 /// <summary>
 /// The repair. It reads; the write itself is <see cref="HandleEmployeeCreatedHandler"/>'s — the one rule that fills the unit and the
 /// regime of an employee's current profile <b>where they are empty and never overwrites</b> — so the repair adds no writer of pay
 /// profiles (<c>PayProfileWritersTests</c>) and a second run finds nothing. One agency per call: the caller's (the context's tenant
-/// filter and row security). A real run writes one audit entry that names the operator and the profiles.
+/// filter and row security). A real run is one transaction: the fills and one audit entry that names the operator and the profiles
+/// are written together or not at all. It is refused while a payroll calculation of the agency is in progress: a run compares each
+/// pay profile with the version its snapshot read, and a profile filled under it would stop that calculation.
 /// </summary>
 public sealed class BackfillProfileOrgUnitHandler(IPayrollRepository repository, ISender sender, IPayrollCalendar calendar)
     : IRequestHandler<BackfillProfileOrgUnitCommand, ProfileOrgUnitBackfillReport>
 {
     public const string AuditAction = "PayProfileOrgUnitBackfill";
+    public const string CalculationInProgress = "يوجد حساب رواتب قيد التنفيذ أو متوقف مؤقتاً: يُشغَّل الإصلاح بعد انتهائه";
 
     /// <summary>The most employee ids one history query names.</summary>
     private const int Chunk = 1000;
@@ -71,9 +85,28 @@ public sealed class BackfillProfileOrgUnitHandler(IPayrollRepository repository,
         if (request.DryRun || listed.Items.Count == 0)
             return listed with { DryRun = request.DryRun };
 
+        // A real run changes exactly what the dry run listed: when the caller sends that list, nothing outside it is touched.
+        var notInTheDryRun = new List<Guid>();
+        if (request.OnlyProfileIds is { } only)
+        {
+            var allowed = only.ToHashSet();
+            notInTheDryRun = listed.Items.Where(i => !allowed.Contains(i.ProfileId)).Select(i => i.ProfileId).ToList();
+            listed = listed with { Items = listed.Items.Where(i => allowed.Contains(i.ProfileId)).ToList() };
+            if (listed.Items.Count == 0)
+                return listed with { DryRun = false, NotInTheDryRun = notInTheDryRun };
+        }
+
+        var calculating = await repository.PayrollRunJobs.AsNoTracking().AnyAsync(
+            j => j.Status == Domain.Enums.PayrollRunJobStatus.Pending || j.Status == Domain.Enums.PayrollRunJobStatus.Running
+                 || j.Status == Domain.Enums.PayrollRunJobStatus.Paused,
+            cancellationToken);
+        if (calculating)
+            return listed with { DryRun = false, NotInTheDryRun = notInTheDryRun, Refusal = CalculationInProgress };
+
+        await using var transaction = await repository.BeginTransactionAsync(cancellationToken);
         foreach (var item in listed.Items)
         {
-            // The fill of an employee's current profile, where empty: the named writer's rule, in its own save.
+            // The fill of an employee's current profile, where empty: the named writer's rule.
             await sender.Send(new HandleEmployeeCreatedCommand(item.EmployeeId, item.OrgUnitId, item.RegimeCode), cancellationToken);
         }
 
@@ -104,8 +137,9 @@ public sealed class BackfillProfileOrgUnitHandler(IPayrollRepository repository,
         };
         await repository.AddAsync(audit, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
 
-        return listed with { DryRun = false, Changed = changed.Count, AuditEntryId = audit.Id };
+        return listed with { DryRun = false, Changed = changed.Count, AuditEntryId = audit.Id, NotInTheDryRun = notInTheDryRun };
     }
 
     private async Task<ProfileOrgUnitBackfillReport> ListAsync(DateTime now, CancellationToken ct)

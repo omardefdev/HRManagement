@@ -12,7 +12,8 @@
 #
 # Usage:
 #   pwsh -NoProfile -File scripts/pay055-backfill-profile-orgunit.ps1                # dry run: counts and profile ids
-#   pwsh -NoProfile -File scripts/pay055-backfill-profile-orgunit.ps1 -Apply         # fills exactly what the dry run listed
+#   pwsh -NoProfile -File scripts/pay055-backfill-profile-orgunit.ps1 -Apply         # a dry run, then fills exactly what it listed
+# A real run is refused (409) while a payroll calculation of the agency is in progress.
 #   ... -GatewayBaseUrl https://gateway.example -KeycloakBaseUrl https://sso.example -Username ops-admin
 #
 # The report (JSON) and the list of profiles (CSV, with each profile's former empty values: the undo list) are written to -OutDir.
@@ -77,8 +78,16 @@ $postHeaders = @{}
 foreach ($key in $headers.Keys) { $postHeaders[$key] = $headers[$key] }
 $postHeaders[[string]$antiforgery.headerName] = [string]$antiforgery.requestToken
 
-$dryRun = if ($Apply) { "false" } else { "true" }
-$report = Invoke-RestMethod -Method Post -Uri "$base/backfill-profile-orgunit?dryRun=$dryRun" -Headers $postHeaders -WebSession $session -ContentType "application/json" -Body "{}"
+# Always a dry run first. With -Apply, the real run is then given the dry run's own list: it changes those profiles and no other.
+$report = Invoke-RestMethod -Method Post -Uri "$base/backfill-profile-orgunit?dryRun=true" -Headers $postHeaders -WebSession $session -ContentType "application/json" -Body "{}"
+if ($Apply) {
+    $listed = @(@($report.items) | ForEach-Object { [string]$_.profileId })
+    Write-Host ("pay055-backfill (dryrun before apply): fillable={0}" -f $listed.Count)
+    if ($listed.Count -gt 0) {
+        $body = @{ profileIds = $listed } | ConvertTo-Json -Depth 3
+        $report = Invoke-RestMethod -Method Post -Uri "$base/backfill-profile-orgunit?dryRun=false" -Headers $postHeaders -WebSession $session -ContentType "application/json" -Body $body
+    }
+}
 
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
 $stamp = (Get-Date).ToUniversalTime().ToString("yyyyMMdd-HHmmss")
@@ -103,4 +112,6 @@ if ($notFillable -gt 0) {
 }
 Write-Host "CSV (the undo list): $csv"
 Write-Host "JSON: $jsonOut"
+$late = @($report.notInTheDryRun).Count
+if ($late -gt 0) { Write-Host ("  {0} profile(s) became fillable after the dry run and were left alone: run the script again." -f $late) }
 if ($Apply -and $report.changed -ne $report.found) { exit 2 }

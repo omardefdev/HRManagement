@@ -263,6 +263,91 @@ public sealed class Pay055PinningTests
         var later = (await new GetRunBankReadinessHandler(new PayrollRepository(after)).Handle(new GetRunBankReadinessQuery(run), CancellationToken.None))!;
         Assert.Equal((3, 1, 2), (later.Lines, later.LinesWithAccount, later.LinesWithoutAccount));
         Assert.Equal(new[] { H.Employee }, later.EmployeesWithRetiredAccount);
+        Assert.Equal(new[] { H.Employee }, later.EmployeesHeldForRetiredAccount);       // read from the holds: his hold is active
+
+        // A person releases the hold: the report says the line is no longer held (it will be paid into the retired account).
+        await using (var release = h.Db())
+        {
+            var hold = await release.PaymentHolds.SingleAsync();
+            hold.Status = PaymentHoldStatus.Released;
+            await release.SaveChangesAsync();
+        }
+
+        await using var afterRelease = h.Db();
+        var released = (await new GetRunBankReadinessHandler(new PayrollRepository(afterRelease)).Handle(new GetRunBankReadinessQuery(run), CancellationToken.None))!;
+        Assert.Equal(new[] { H.Employee }, released.EmployeesWithRetiredAccount);
+        Assert.Empty(released.EmployeesHeldForRetiredAccount);
+    }
+
+    // --- a retired pinned account that no person released ---
+
+    private static async Task<IReadOnlyList<Guid>> BlockedAsync(H h, Guid run)
+    {
+        await using var db = h.Db();
+        var lines = await db.SalaryLines.AsNoTracking().Where(l => l.PayrollRunId == run).ToListAsync();
+        return await BankAccountPinning.RetiredAndNotReleasedAsync(
+            db.EmployeeBankAccounts, db.PaymentHolds, db.PaymentOrders, db.PaymentBatches, run, lines, CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task A_retired_pinned_account_blocks_until_a_person_releases_its_hold()
+    {
+        var h = await SeededAsync();
+        var account = await h.ActiveAccountAsync();
+        var (run, _) = await h.RunLineAsync(account);
+        Assert.Empty(await BlockedAsync(h, run));                                   // in force: nothing blocks
+
+        Assert.Equal(1, (await h.RetireAsync(account)).HoldsPlaced);
+        Assert.Equal(new[] { H.Employee }, await BlockedAsync(h, run));             // retired, hold active
+
+        await using (var db = h.Db())
+        {
+            var hold = await db.PaymentHolds.SingleAsync();
+            hold.Status = PaymentHoldStatus.Released;
+            await db.SaveChangesAsync();
+        }
+
+        Assert.Empty(await BlockedAsync(h, run));                                   // a person decided: the pinned account is paid
+    }
+
+    [Fact]
+    public async Task A_retired_pinned_account_with_no_hold_at_all_still_blocks()
+    {
+        // The safety net: a retirement that met neither a line nor a snapshot of the run placed no hold.
+        var h = await SeededAsync();
+        var account = await h.ActiveAccountAsync();
+        Assert.Equal(0, (await h.RetireAsync(account)).HoldsPlaced);
+        var (run, _) = await h.RunLineAsync(account);                                // the line is written afterwards, pinned to it
+
+        Assert.Empty(await h.HoldsAsync());
+        Assert.Equal(new[] { H.Employee }, await BlockedAsync(h, run));
+    }
+
+    [Fact]
+    public async Task A_line_that_was_already_disbursed_when_its_account_was_retired_blocks_nothing()
+    {
+        var h = await SeededAsync();
+        var account = await h.ActiveAccountAsync();
+        var (run, _) = await h.RunLineAsync(account, order: PaymentOrderStatus.Settled);
+
+        Assert.Equal(0, (await h.RetireAsync(account)).HoldsPlaced);
+
+        Assert.Empty(await BlockedAsync(h, run));                                   // a later batch of the same run is not stopped by him
+    }
+
+    [Fact]
+    public void The_refusal_for_retired_pinned_accounts_lists_names_and_carries_the_ids()
+    {
+        var (named, unnamed) = (Guid.NewGuid(), Guid.NewGuid());
+
+        var refusal = new RetiredPinnedBankAccountsException([named, unnamed], new Dictionary<Guid, string> { [named] = "سلمى الحسن" });
+
+        Assert.Equal(new[] { named, unnamed }, refusal.EmployeeIds);
+        Assert.Contains("سلمى الحسن", refusal.Message, StringComparison.Ordinal);
+        Assert.Contains("و1 آخرون", refusal.Message, StringComparison.Ordinal);
+        Assert.Contains("الحساب المحال نفسه", refusal.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(unnamed.ToString("D"), refusal.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.IsAssignableFrom<InvalidOperationException>(refusal);
     }
 
     // --- the treasury file's refusal ---

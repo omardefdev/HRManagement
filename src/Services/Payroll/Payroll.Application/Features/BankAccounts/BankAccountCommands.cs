@@ -85,19 +85,11 @@ public sealed class BankAccountRules(IPayrollRepository repository)
     }
 
     /// <summary>
-    /// «Not yet disbursed»: a salary line is disbursed once a payment order of it has left for the channel (<c>Submitted</c>,
-    /// <c>Acknowledged</c>, <c>Settled</c>, <c>PartiallySettled</c>). A line with no order, a draft order or a rejected order is not; a
-    /// reversed or cancelled run pays nothing and is left alone.
-    /// </summary>
-    public static readonly PaymentOrderStatus[] DisbursedOrderStatuses =
-    [
-        PaymentOrderStatus.Submitted, PaymentOrderStatus.Acknowledged, PaymentOrderStatus.Settled, PaymentOrderStatus.PartiallySettled,
-    ];
-
-    /// <summary>
-    /// A retirement is a retirement, whatever caused it (a person's act, or the verification of a replacement): every run line that
-    /// pinned this account and is not yet disbursed gets one active hold for its employee in its run, <c>ACCOUNT-RETIRED</c> at the start
-    /// of its reason. The money then waits for a person (the hold's existing release). Staged in the unit of work, unsaved.
+    /// A retirement is a retirement, whatever caused it (a person's act, or the verification of a replacement): every run that pinned
+    /// this account for the employee and has not yet disbursed his line gets one active hold for him, <c>ACCOUNT-RETIRED</c> at the
+    /// start of its reason. A run pins the account on its <b>snapshot</b> first and writes the line later (a long, paused or resumed
+    /// calculation), so both are read: a line that carries the account, and a snapshot that carries it while the employee has no line
+    /// in that run yet. The money then waits for a person (the hold's existing release). Staged in the unit of work, unsaved.
     /// </summary>
     public async Task<int> StageRetirementHoldsAsync(
         EmployeeBankAccount account, Guid actorId, string reason, DateTime now, CancellationToken ct)
@@ -107,20 +99,36 @@ public sealed class BankAccountRules(IPayrollRepository repository)
                         && l.PayrollRun.Status != PayrollRunStatus.Reversed && l.PayrollRun.Status != PayrollRunStatus.Cancelled)
             .Select(l => new { l.Id, l.PayrollRunId, l.EmployeeId })
             .ToListAsync(ct);
-        if (lines.Count == 0)
+
+        // «Not yet disbursed» is BankAccountPinning.DisbursedLineIdsAsync's rule, the one the gate and the treasury file read too.
+        var disbursed = await BankAccountPinning.DisbursedLineIdsAsync(
+            repository.PaymentOrders, repository.PaymentBatches, lines.Select(l => l.Id).ToList(), ct);
+        var runsToHold = lines.Where(l => !disbursed.Contains(l.Id)).Select(l => l.PayrollRunId).ToHashSet();
+
+        // The runs whose snapshot pinned the account and whose line for this employee is not written yet.
+        var snapshotRuns = await repository.PayrollRunInputSnapshots.AsNoTracking()
+            .Where(s => s.BankAccountId == account.Id && s.EmployeeId == account.EmployeeId
+                        && s.Job.PayrollRun.Status != PayrollRunStatus.Reversed && s.Job.PayrollRun.Status != PayrollRunStatus.Cancelled)
+            .Select(s => s.Job.PayrollRunId)
+            .Distinct()
+            .ToListAsync(ct);
+        if (snapshotRuns.Count > 0)
+        {
+            var runsWithALine = (await repository.SalaryLines.AsNoTracking()
+                    .Where(l => snapshotRuns.Contains(l.PayrollRunId) && l.EmployeeId == account.EmployeeId)
+                    .Select(l => l.PayrollRunId)
+                    .ToListAsync(ct))
+                .ToHashSet();
+            foreach (var run in snapshotRuns.Where(run => !runsWithALine.Contains(run)))
+                runsToHold.Add(run);
+        }
+
+        if (runsToHold.Count == 0)
             return 0;
 
-        var lineIds = lines.Select(l => l.Id).ToList();
-        var disbursed = (await repository.PaymentOrders.AsNoTracking()
-                .Where(o => lineIds.Contains(o.SalaryLineId) && DisbursedOrderStatuses.Contains(o.Status))
-                .Select(o => o.SalaryLineId)
-                .ToListAsync(ct))
-            .ToHashSet();
-
-        var runIds = lines.Select(l => l.PayrollRunId).Distinct().ToList();
         var held = (await repository.PaymentHolds.AsNoTracking()
                 .Where(h => h.EmployeeId == account.EmployeeId
-                            && h.PayrollRunId != null && runIds.Contains(h.PayrollRunId.Value)
+                            && h.PayrollRunId != null && runsToHold.Contains(h.PayrollRunId.Value)
                             && h.Status == PaymentHoldStatus.Active
                             && h.HoldType == PaymentHoldType.Manual
                             && h.Reason.StartsWith(EmployeeBankAccount.RetiredHoldRule))
@@ -129,15 +137,13 @@ public sealed class BankAccountRules(IPayrollRepository repository)
             .ToHashSet();
 
         var placed = 0;
-        foreach (var line in lines.Where(l => !disbursed.Contains(l.Id)).DistinctBy(l => l.PayrollRunId))
+        foreach (var run in runsToHold.Where(run => !held.Contains(run)).Order())
         {
-            if (held.Contains(line.PayrollRunId))
-                continue;
             await repository.AddAsync(new PaymentHold
             {
-                EmployeeId = line.EmployeeId,
-                PayrollRunId = line.PayrollRunId,
-                Reason = BankAccountMessages.RetiredHoldReason(account.Id, reason),
+                EmployeeId = account.EmployeeId,
+                PayrollRunId = run,
+                Reason = BankAccountMessages.RetiredHoldReason(reason),
                 HoldType = PaymentHoldType.Manual,
                 Status = PaymentHoldStatus.Active,
                 HeldAtUtc = now,

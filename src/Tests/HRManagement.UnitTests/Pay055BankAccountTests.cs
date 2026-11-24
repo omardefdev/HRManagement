@@ -481,6 +481,85 @@ public sealed class Pay055BankAccountTests
     }
 
     [Fact]
+    public async Task A_retirement_between_the_snapshot_and_the_writing_of_the_line_holds_the_run()
+    {
+        // The run pins the account on its snapshot first and writes the line later (a long, paused or resumed calculation).
+        var h = await SeededAsync();
+        var account = await h.ActiveAccountAsync();
+        var calculating = await h.RunSnapshotAsync(account, month: 11);
+        await h.RunSnapshotAsync(account, PayrollRunStatus.Cancelled, month: 4);                     // pays nothing
+        await h.RunSnapshotAsync(accountId: null, month: 3);                                         // pinned nothing
+        await h.RunSnapshotAsync(account, month: 2, employee: H.OtherEmployee);                      // another employee's snapshot row
+
+        var result = await h.RetireAsync(account);
+
+        Assert.Equal(1, result.HoldsPlaced);
+        var hold = Assert.Single(await h.HoldsAsync());
+        Assert.Equal((H.Employee, (Guid?)calculating), (hold.EmployeeId, hold.PayrollRunId));
+        Assert.StartsWith("ACCOUNT-RETIRED", hold.Reason);
+    }
+
+    [Fact]
+    public async Task A_run_whose_line_is_written_is_judged_by_its_line_not_by_an_older_snapshot()
+    {
+        var h = await SeededAsync();
+        var first = await h.ActiveAccountAsync(H.Iban1);
+        var replacement = await h.RegisterAsync(H.Iban2);
+        Assert.True((await h.VerifyAsync(replacement.AccountId!.Value)).Success);
+        // The run was calculated again after the replacement: its line pins the new account; an older job's snapshot still names the first.
+        var (run, _) = await h.RunLineAsync(replacement.AccountId.Value, month: 10);
+        await using (var db = h.Db())
+        {
+            var job = new PayrollRunJob { PayrollRunId = run, Status = PayrollRunJobStatus.Cancelled };
+            job.InputSnapshots.Add(new PayrollRunInputSnapshot { EmployeeId = H.Employee, ProfileVersion = "v", BankAccountId = first });
+            db.Add(job);
+            await db.SaveChangesAsync();
+        }
+
+        // Retiring the replacement holds the run (its line); the first account, already retired, placed nothing through the old snapshot.
+        Assert.Empty(await h.HoldsAsync());
+        Assert.Equal(1, (await h.RetireAsync(replacement.AccountId.Value)).HoldsPlaced);
+    }
+
+    [Theory]
+    [InlineData(PaymentBatchStatus.Submitted, 0)]
+    [InlineData(PaymentBatchStatus.Acked, 0)]
+    [InlineData(PaymentBatchStatus.Settled, 0)]
+    [InlineData(PaymentBatchStatus.Processed, 0)]
+    [InlineData(PaymentBatchStatus.Rejected, 1)]
+    [InlineData(PaymentBatchStatus.Returned, 1)]
+    [InlineData(PaymentBatchStatus.Failed, 1)]
+    [InlineData(PaymentBatchStatus.Reversed, 1)]
+    public async Task A_line_whose_batch_the_channel_sent_back_is_not_disbursed_and_is_held(PaymentBatchStatus batch, int expectedHolds)
+    {
+        // The bank returns a batch because an account is closed: its orders stay «settled», and the batch may be submitted again.
+        var h = await SeededAsync();
+        var account = await h.ActiveAccountAsync();
+        var (_, line) = await h.RunLineAsync(account, order: PaymentOrderStatus.Settled);
+        await h.SetBatchOfLineAsync(line, batch);
+
+        var result = await h.RetireAsync(account);
+
+        Assert.Equal(expectedHolds, result.HoldsPlaced);
+    }
+
+    [Fact]
+    public async Task The_holds_reason_says_what_a_release_means_and_names_no_number_and_no_id()
+    {
+        var h = await SeededAsync();
+        var account = await h.ActiveAccountAsync();
+        var (run, line) = await h.RunLineAsync(account);
+
+        Assert.Equal(1, (await h.RetireAsync(account, reason: "أغلق الموظف حسابه")).HoldsPlaced);
+
+        var reason = Assert.Single(await h.HoldsAsync()).Reason;
+        Assert.Contains("الإفراج عن هذا الحجز يعني الصرف إلى الحساب المحال نفسه", reason, StringComparison.Ordinal);
+        foreach (var id in new[] { account, run, line, H.Employee })
+            Assert.DoesNotContain(id.ToString("D"), reason, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain(H.Iban1, reason, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public async Task A_line_pinned_to_another_account_is_not_held()
     {
         var h = await SeededAsync();

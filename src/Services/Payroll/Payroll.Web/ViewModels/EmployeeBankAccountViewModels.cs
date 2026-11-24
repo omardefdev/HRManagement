@@ -77,8 +77,8 @@ public sealed class VerifyBankAccountViewModel
 
     public bool CanVerify => !IsOwnRegistration && !HasNoRegistrar && Account.Status == BankAccountStatus.PendingVerification;
 
-    /// <summary>The whole number is shown only while the account waits, and never to its own registrar's verification attempt.</summary>
-    public bool ShowWholeNumber => Account.Status == BankAccountStatus.PendingVerification;
+    /// <summary>The whole number is shown only to a person who can verify the account: while it waits, and never to its registrar.</summary>
+    public bool ShowWholeNumber => CanVerify;
 
     public string? VerificationReference { get; init; }
 }

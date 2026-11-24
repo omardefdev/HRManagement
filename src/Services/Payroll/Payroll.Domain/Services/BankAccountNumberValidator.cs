@@ -137,8 +137,8 @@ public static class BankAccountNumberValidator
     {
         try
         {
-            var match = Regex.Match(number, pattern, RegexOptions.CultureInvariant, PatternTimeout);
-            return match.Success && match.Index == 0 && match.Length == number.Length;
+            // Anchored as a whole: an unanchored pattern with alternatives («\d{10}|\d{12}») would stop at its first alternative.
+            return Regex.IsMatch(number, WholePattern(pattern), RegexOptions.CultureInvariant, PatternTimeout);
         }
         catch (RegexMatchTimeoutException)
         {
@@ -146,7 +146,25 @@ public static class BankAccountNumberValidator
         }
         catch (ArgumentException)
         {
-            // A pattern that does not compile accepts nothing; the options' start-up check names it.
+            // A pattern that does not compile accepts nothing; the service refuses to start on one (PayrollBankOptions.Problems).
+            return false;
+        }
+    }
+
+    private static string WholePattern(string pattern) => @"\A(?:" + pattern + @")\z";
+
+    /// <summary>Whether a bank's pattern compiles: checked when the service starts, so a bad one is named instead of refusing every number.</summary>
+    public static bool IsUsablePattern(string? pattern)
+    {
+        if (string.IsNullOrWhiteSpace(pattern))
+            return false;
+        try
+        {
+            _ = new Regex(WholePattern(pattern), RegexOptions.CultureInvariant, PatternTimeout);
+            return true;
+        }
+        catch (ArgumentException)
+        {
             return false;
         }
     }

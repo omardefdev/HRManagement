@@ -390,7 +390,7 @@
         <div class="card-header"><h3 class="card-title"><i class="fas fa-university me-2"></i>جاهزية الحسابات المصرفية</h3></div>
         <div class="card-body">
             <p class="text-muted">
-                يُثبَّت لكل موظف حسابه النافذ لحظة حساب التشغيل، وإليه تُوجَّه أوامر الدفع وملف الخزينة. تبديل الحساب بعد الحساب يسري من الدورة التالية.
+                يُثبَّت لكل موظف حسابه النافذ لحظة حساب التشغيل، وإليه تُوجَّه أوامر الدفع وملف الخزينة. تبديل الحساب أو تسجيله بعد الحساب يسري من الدورة التالية، أو من هذا التشغيل إن أُعيد حسابه قبل تجميده.
             </p>
             <dl class="row mb-0">
                 <dt class="col-sm-4">بنود بحساب مثبَّت</dt>
@@ -417,15 +417,33 @@
             }
             @if (readiness.EmployeesWithRetiredAccount.Count > 0)
             {
-                <div class="alert alert-warning mt-3 mb-0" role="alert">
-                    أُحيل الحساب المثبَّت لهؤلاء بعد حساب التشغيل، وعلى كل منهم حجز صرف في هذا التشغيل إلى أن يُفرج عنه:
-                    <ul class="mb-0" data-testid="run-bank-readiness-retired-names">
-                        @foreach (var employeeId in readiness.EmployeesWithRetiredAccount)
-                        {
-                            <li>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(employeeId, employeeNames.GetValueOrDefault(employeeId)))</li>
-                        }
-                    </ul>
-                </div>
+                var held = readiness.EmployeesHeldForRetiredAccount;
+                var released = readiness.EmployeesWithRetiredAccount.Where(e => !held.Contains(e)).ToList();
+                @if (held.Count > 0)
+                {
+                    <div class="alert alert-warning mt-3 mb-0" role="alert">
+                        أُحيل الحساب المثبَّت لهؤلاء بعد حساب التشغيل، ولا يُصرف لهم في هذا التشغيل ولا يُصدَّر ملف صرفه ما لم يُفرج شخص عن حجز صرفهم.
+                        بند التشغيل يبقى على الحساب الذي ثُبّت فيه: الإفراج يعني الصرف إلى الحساب المحال نفسه، وإعادة حساب التشغيل قبل تجميده تثبّت الحساب النافذ.
+                        <ul class="mb-0" data-testid="run-bank-readiness-retired-names">
+                            @foreach (var employeeId in held)
+                            {
+                                <li>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(employeeId, employeeNames.GetValueOrDefault(employeeId)))</li>
+                            }
+                        </ul>
+                    </div>
+                }
+                @if (released.Count > 0)
+                {
+                    <div class="alert alert-secondary mt-3 mb-0" role="alert">
+                        أُحيل الحساب المثبَّت لهؤلاء وأُفرج عن حجز صرفهم: يُصرف لهم في هذا التشغيل إلى الحساب المحال الذي ثُبّت فيه.
+                        <ul class="mb-0" data-testid="run-bank-readiness-released-names">
+                            @foreach (var employeeId in released)
+                            {
+                                <li>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(employeeId, employeeNames.GetValueOrDefault(employeeId)))</li>
+                            }
+                        </ul>
+                    </div>
+                }
             }
         </div>
     </div>

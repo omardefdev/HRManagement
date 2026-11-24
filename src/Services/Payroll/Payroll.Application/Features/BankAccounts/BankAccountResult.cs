@@ -21,6 +21,27 @@ public sealed class PayrollBankOptions
         set => _banks = value ?? [];
     }
 
+    /// <summary>
+    /// What is wrong with the list, for the start-up check: a bank without a code or a name, two banks of one code, a pattern that
+    /// does not compile. Empty when the list is usable (an empty list is).
+    /// </summary>
+    public IReadOnlyList<string> Problems()
+    {
+        var problems = new List<string>();
+        for (var i = 0; i < Banks.Count; i++)
+        {
+            var bank = Banks[i];
+            if (string.IsNullOrWhiteSpace(bank.Code) || string.IsNullOrWhiteSpace(bank.NameAr))
+                problems.Add($"{SectionName}:Banks:{i} needs a code and an Arabic name.");
+            if (!BankAccountNumberValidator.IsUsablePattern(bank.AccountRegex))
+                problems.Add($"{SectionName}:Banks:{i}:AccountRegex is empty or does not compile.");
+        }
+
+        foreach (var duplicate in Banks.Where(b => !string.IsNullOrWhiteSpace(b.Code)).GroupBy(b => b.Code.Trim(), StringComparer.OrdinalIgnoreCase).Where(g => g.Count() > 1))
+            problems.Add($"{SectionName}:Banks defines the code {duplicate.Key} more than once.");
+        return problems;
+    }
+
     /// <summary>The bank a code names, or null. Codes are compared without case and without surrounding space.</summary>
     public PayrollBankDefinition? Find(string? code)
     {
@@ -133,7 +154,14 @@ public static class BankAccountMessages
         _ => NumberMissing,
     };
 
-    /// <summary>The reason of the hold a retirement places on a run line that had pinned the account. No number: the account's id only.</summary>
-    public static string RetiredHoldReason(Guid accountId, string reason) =>
-        $"{EmployeeBankAccount.RetiredHoldRule}: أُحيل الحساب المصرفي المثبَّت في هذا التشغيل قبل صرفه ({accountId:D}) — {reason}";
+    /// <summary>
+    /// The reason of the hold a retirement places on a run that had pinned the account. It names no number and no id; and it says
+    /// what a release means, because the run's line keeps the account it pinned.
+    /// </summary>
+    public static string RetiredHoldReason(string reason) =>
+        $"{EmployeeBankAccount.RetiredHoldRule}: أُحيل الحساب المصرفي المثبَّت للموظف في هذا التشغيل قبل صرفه — {reason}. "
+        + "الإفراج عن هذا الحجز يعني الصرف إلى الحساب المحال نفسه؛ وإن لم يُجمَّد التشغيل فإعادة حسابه تثبّت الحساب النافذ.";
+
+    public const string RetiredPinnedAccountBlocksBatch =
+        "في هذه الدفعة موظفون أُحيل حسابهم المصرفي المثبَّت في التشغيل ولم يُفرج شخص عن حجزهم: لا يُصرف إلى حساب سُحب";
 }

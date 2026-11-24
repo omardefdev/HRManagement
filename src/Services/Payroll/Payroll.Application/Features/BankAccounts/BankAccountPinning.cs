@@ -39,6 +39,76 @@ public static class BankAccountPinning
             .Select(a => new PinnedAccount(a.Id, a.AccountNumber, a.Status))
             .ToDictionaryAsync(a => a.Id, ct);
     }
+
+    /// <summary>
+    /// «Disbursed»: the lines, among <paramref name="lineIds"/>, of which a payment order has left for the channel (<c>Submitted</c>,
+    /// <c>Acknowledged</c>, <c>Settled</c>, <c>PartiallySettled</c>) in a batch the channel did not send back. A line with no order, a
+    /// draft order or a rejected order is not disbursed; neither is a line whose batch was rejected, returned, failed or reversed
+    /// (that batch may be submitted again, to the same account).
+    /// </summary>
+    public static async Task<HashSet<Guid>> DisbursedLineIdsAsync(
+        IQueryable<PaymentOrder> orders, IQueryable<PaymentBatch> batches, IReadOnlyCollection<Guid> lineIds, CancellationToken ct)
+    {
+        if (lineIds.Count == 0)
+            return [];
+        var disbursed = await (from order in orders.AsNoTracking()
+                               join batch in batches.AsNoTracking() on order.PaymentBatchId equals batch.Id into joined
+                               from batch in joined.DefaultIfEmpty()
+                               where lineIds.Contains(order.SalaryLineId) && DisbursedOrderStatuses.Contains(order.Status)
+                                     && (batch == null || !UnpaidBatchStatuses.Contains(batch.Status))
+                               select order.SalaryLineId)
+            .ToListAsync(ct);
+        return disbursed.ToHashSet();
+    }
+
+    public static readonly PaymentOrderStatus[] DisbursedOrderStatuses =
+    [
+        PaymentOrderStatus.Submitted, PaymentOrderStatus.Acknowledged, PaymentOrderStatus.Settled, PaymentOrderStatus.PartiallySettled,
+    ];
+
+    /// <summary>The batch states in which nothing was paid, or what was paid came back: its lines are to be paid again.</summary>
+    public static readonly PaymentBatchStatus[] UnpaidBatchStatuses =
+    [
+        PaymentBatchStatus.Rejected, PaymentBatchStatus.Returned, PaymentBatchStatus.Failed, PaymentBatchStatus.Reversed,
+    ];
+
+    /// <summary>
+    /// The employees of these lines whose pinned account was retired and whom no person released: an <c>ACCOUNT-RETIRED</c> hold of
+    /// theirs in this run is still active, or none was ever released (a retirement that met neither a line nor a snapshot leaves no
+    /// hold: the money still does not go to an account the employee withdrew). A released hold is a person's decision to pay the
+    /// pinned account: such a line is not listed. Neither is a line that was already disbursed when its account was retired. The
+    /// disbursement gate and the treasury file both refuse while this is not empty.
+    /// </summary>
+    public static async Task<IReadOnlyList<Guid>> RetiredAndNotReleasedAsync(
+        IQueryable<EmployeeBankAccount> accounts,
+        IQueryable<PaymentHold> holds,
+        IQueryable<PaymentOrder> orders,
+        IQueryable<PaymentBatch> batches,
+        Guid payrollRunId,
+        IReadOnlyCollection<SalaryLine> lines,
+        CancellationToken ct)
+    {
+        var pinned = await PinnedAccountsAsync(accounts, lines, ct);
+        var retiredLines = lines
+            .Where(l => l.BankAccountId is Guid id && pinned.TryGetValue(id, out var account) && account.Status == BankAccountStatus.Retired)
+            .ToList();
+        if (retiredLines.Count == 0)
+            return [];
+        var disbursed = await DisbursedLineIdsAsync(orders, batches, retiredLines.Select(l => l.Id).ToList(), ct);
+        var retired = retiredLines.Where(l => !disbursed.Contains(l.Id)).Select(l => l.EmployeeId).Distinct().ToList();
+        if (retired.Count == 0)
+            return retired;
+
+        var ofTheRun = await holds.AsNoTracking()
+            .Where(h => h.PayrollRunId == payrollRunId && retired.Contains(h.EmployeeId)
+                        && h.HoldType == Domain.Constants.PaymentHoldType.Manual
+                        && h.Reason.StartsWith(EmployeeBankAccount.RetiredHoldRule))
+            .Select(h => new { h.EmployeeId, h.Status })
+            .ToListAsync(ct);
+        var active = ofTheRun.Where(h => h.Status == Domain.Constants.PaymentHoldStatus.Active).Select(h => h.EmployeeId).ToHashSet();
+        var released = ofTheRun.Where(h => h.Status == Domain.Constants.PaymentHoldStatus.Released).Select(h => h.EmployeeId).ToHashSet();
+        return retired.Where(e => active.Contains(e) || !released.Contains(e)).Order().ToList();
+    }
 }
 
 /// <summary>A pinned account as a reader needs it: its number (for the payment instruction only) and its status now.</summary>
@@ -58,7 +128,14 @@ public sealed record RunBankReadiness(
     int LinesWithAccount,
     int LinesWithoutAccount,
     IReadOnlyList<Guid> EmployeesWithoutAccount,
-    IReadOnlyList<Guid> EmployeesWithRetiredAccount);
+    IReadOnlyList<Guid> EmployeesWithRetiredAccount)
+{
+    /// <summary>
+    /// Of <see cref="EmployeesWithRetiredAccount"/>, those the run will not pay: no person released their hold (read from the holds,
+    /// not assumed). The others were released: their line is paid into the retired account it pinned.
+    /// </summary>
+    public IReadOnlyList<Guid> EmployeesHeldForRetiredAccount { get; init; } = [];
+}
 
 public sealed class GetRunBankReadinessHandler(IPayrollRepository repository) : IRequestHandler<GetRunBankReadinessQuery, RunBankReadiness?>
 {
@@ -69,7 +146,7 @@ public sealed class GetRunBankReadinessHandler(IPayrollRepository repository) : 
 
         var lines = await repository.SalaryLines.AsNoTracking()
             .Where(l => l.PayrollRunId == request.PayrollRunId)
-            .Select(l => new { l.EmployeeId, l.BankAccountId })
+            .Select(l => new { l.Id, l.EmployeeId, l.BankAccountId })
             .ToListAsync(cancellationToken);
         var pinnedIds = lines.Where(l => l.BankAccountId.HasValue).Select(l => l.BankAccountId!.Value).Distinct().ToList();
         var retired = pinnedIds.Count == 0
@@ -81,13 +158,26 @@ public sealed class GetRunBankReadinessHandler(IPayrollRepository repository) : 
 
         var without = lines.Where(l => !l.BankAccountId.HasValue).Select(l => l.EmployeeId).Distinct().Order().ToList();
         var withRetired = lines.Where(l => l.BankAccountId is Guid id && retired.Contains(id)).Select(l => l.EmployeeId).Distinct().Order().ToList();
+        var held = withRetired.Count == 0
+            ? []
+            : await BankAccountPinning.RetiredAndNotReleasedAsync(
+                repository.EmployeeBankAccounts,
+                repository.PaymentHolds,
+                repository.PaymentOrders,
+                repository.PaymentBatches,
+                request.PayrollRunId,
+                lines.Select(l => new SalaryLine { Id = l.Id, EmployeeId = l.EmployeeId, BankAccountId = l.BankAccountId }).ToList(),
+                cancellationToken);
         return new RunBankReadiness(
             request.PayrollRunId,
             lines.Count,
             lines.Count(l => l.BankAccountId.HasValue),
             lines.Count(l => !l.BankAccountId.HasValue),
             without,
-            withRetired);
+            withRetired)
+        {
+            EmployeesHeldForRetiredAccount = held,
+        };
     }
 }
 
@@ -126,6 +216,39 @@ public sealed class MissingPinnedBankAccountsException : InvalidOperationExcepti
                 : FormattableString.Invariant($"، و{others} آخرون");
         return "لا يمكن تصدير ملف الصرف: موظفون بلا حساب مصرفي مثبَّت في هذا التشغيل"
                + list + rest
-               + ". سجّل الحساب وتحقّق منه؛ يُثبَّت في التشغيل عند حسابه، والقائمة الكاملة في تقرير جاهزية الحسابات للتشغيل.";
+               + ". الحساب يُثبَّت عند حساب التشغيل: حساب يُسجَّل ويُتحقق منه الآن يسري من التشغيل التالي، أو من هذا التشغيل إن أُعيد حسابه"
+               + " قبل تجميده. القائمة الكاملة في تقرير جاهزية الحسابات للتشغيل.";
     }
+
+    /// <summary>The names of up to <see cref="NamesShown"/> employees and a count of the rest; never an id.</summary>
+    internal static string Names(IReadOnlyList<Guid> employeeIds, IReadOnlyDictionary<Guid, string> names)
+    {
+        var known = employeeIds.Select(id => names.TryGetValue(id, out var name) ? name?.Trim() : null)
+            .Where(name => !string.IsNullOrEmpty(name))
+            .Select(name => name!)
+            .Order(StringComparer.Ordinal)
+            .ToList();
+        var shown = known.Take(NamesShown).ToList();
+        var others = employeeIds.Count - shown.Count;
+        if (shown.Count == 0)
+            return FormattableString.Invariant($" (عددهم {others})");
+        return ": " + string.Join("، ", shown) + (others <= 0 ? string.Empty : FormattableString.Invariant($"، و{others} آخرون"));
+    }
+}
+
+/// <summary>
+/// PLAN-55 (§1 rule 5): the treasury file of a run is refused while an employee's pinned account was retired and no person released
+/// his hold. The file is an instruction to pay: it must not name an account the employee withdrew.
+/// </summary>
+public sealed class RetiredPinnedBankAccountsException : InvalidOperationException
+{
+    public RetiredPinnedBankAccountsException(IReadOnlyList<Guid> employeeIds, IReadOnlyDictionary<Guid, string> names)
+        : base("لا يمكن تصدير ملف الصرف: موظفون أُحيل حسابهم المصرفي المثبَّت في هذا التشغيل ولم يُفرج عن حجز صرفهم"
+               + MissingPinnedBankAccountsException.Names(employeeIds, names)
+               + ". يُفرج عن الحجز من شاشة حجوزات الصرف (فيُصرف إلى الحساب المحال نفسه)، أو يُعاد حساب التشغيل قبل تجميده ليثبّت الحساب النافذ.")
+    {
+        EmployeeIds = employeeIds;
+    }
+
+    public IReadOnlyList<Guid> EmployeeIds { get; }
 }

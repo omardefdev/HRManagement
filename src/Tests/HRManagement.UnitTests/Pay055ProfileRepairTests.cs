@@ -30,7 +30,9 @@ public sealed class Pay055ProfileRepairTests : IAsyncDisposable
         var services = new ServiceCollection();
         services.AddLogging();
         var database = Guid.NewGuid().ToString();
-        services.AddDbContext<PayrollDbContext>(o => o.UseInMemoryDatabase(database));
+        // The repair runs in one transaction; the in-memory store has none (the transaction itself is proved on PostgreSQL).
+        services.AddDbContext<PayrollDbContext>(o => o.UseInMemoryDatabase(database)
+            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning)));
         services.AddPayrollInfrastructure();
         services.AddSingleton(Mock.Of<IPublishEndpoint>());
         services.AddSingleton<IConfiguration>(new ConfigurationBuilder().Build());
@@ -60,10 +62,10 @@ public sealed class Pay055ProfileRepairTests : IAsyncDisposable
         await db.SaveChangesAsync();
     }
 
-    private async Task<ProfileOrgUnitBackfillReport> RunAsync(bool dryRun)
+    private async Task<ProfileOrgUnitBackfillReport> RunAsync(bool dryRun, IReadOnlyCollection<Guid>? only = null)
     {
         await using var scope = _root.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<IMediator>().Send(new BackfillProfileOrgUnitCommand(dryRun, Operator, "ops-admin"));
+        return await scope.ServiceProvider.GetRequiredService<IMediator>().Send(new BackfillProfileOrgUnitCommand(dryRun, Operator, "ops-admin", only));
     }
 
     private async Task<List<(Guid Id, Guid? Unit, string? Regime, decimal Salary, bool Active, DateTime Updated)>> SnapshotAsync()
@@ -178,6 +180,60 @@ public sealed class Pay055ProfileRepairTests : IAsyncDisposable
         var real = await RunAsync(dryRun: false);
 
         Assert.Equal((0, 0, 0, 0), (real.Found, real.Changed, real.ActiveProfilesWithEmptyUnit, real.NotFillableProfileIds.Count));
+        Assert.Equal(before, await SnapshotAsync());
+        Assert.Empty(await RepairAuditsAsync());
+    }
+
+    [Fact]
+    public async Task A_real_run_given_the_dry_runs_list_changes_nothing_outside_it()
+    {
+        var (listed, late) = (Guid.NewGuid(), Guid.NewGuid());
+        var listedActive = Profile(listed, true, Utc(2026, 6, 1), null, null);
+        await SeedAsync(listedActive, Profile(listed, false, Utc(2025, 1, 1), UnitA, "law50"));
+        var dry = await RunAsync(dryRun: true);
+        Assert.Equal(new[] { listedActive.Id }, dry.Items.Select(i => i.ProfileId));
+
+        // Another employee becomes fillable after the dry run.
+        var lateActive = Profile(late, true, Utc(2026, 6, 1), null, null);
+        await SeedAsync(lateActive, Profile(late, false, Utc(2025, 1, 1), UnitB, "contract"));
+
+        var real = await RunAsync(dryRun: false, only: dry.Items.Select(i => i.ProfileId).ToList());
+
+        Assert.Equal((1, 1), (real.Found, real.Changed));
+        Assert.Equal(new[] { lateActive.Id }, real.NotInTheDryRun);
+        var after = (await SnapshotAsync()).ToDictionary(p => p.Id);
+        Assert.Equal((UnitA, "law50"), (after[listedActive.Id].Unit, after[listedActive.Id].Regime));
+        Assert.Equal(((Guid?)null, (string?)null), (after[lateActive.Id].Unit, after[lateActive.Id].Regime));
+
+        // A list that names nothing fillable changes nothing and writes no audit entry beyond the first run's.
+        var none = await RunAsync(dryRun: false, only: [Guid.NewGuid()]);
+        Assert.Equal((0, 0), (none.Found, none.Changed));
+        Assert.Single(await RepairAuditsAsync());
+    }
+
+    [Theory]
+    [InlineData(Payroll.Domain.Enums.PayrollRunJobStatus.Pending)]
+    [InlineData(Payroll.Domain.Enums.PayrollRunJobStatus.Running)]
+    [InlineData(Payroll.Domain.Enums.PayrollRunJobStatus.Paused)]
+    public async Task A_real_run_is_refused_while_a_calculation_is_in_progress_and_a_dry_run_is_not(Payroll.Domain.Enums.PayrollRunJobStatus status)
+    {
+        var employee = Guid.NewGuid();
+        var active = Profile(employee, true, Utc(2026, 6, 1), null, null);
+        await SeedAsync(active, Profile(employee, false, Utc(2025, 1, 1), UnitA, "law50"));
+        await using (var scope = _root.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<PayrollDbContext>();
+            db.Add(new PayrollRunJob { PayrollRunId = Guid.NewGuid(), Status = status });
+            await db.SaveChangesAsync();
+        }
+
+        var before = await SnapshotAsync();
+
+        var dry = await RunAsync(dryRun: true);
+        var real = await RunAsync(dryRun: false);
+
+        Assert.Equal((1, (string?)null), (dry.Found, dry.Refusal));
+        Assert.Equal((BackfillProfileOrgUnitHandler.CalculationInProgress, 0), (real.Refusal, real.Changed));
         Assert.Equal(before, await SnapshotAsync());
         Assert.Empty(await RepairAuditsAsync());
     }

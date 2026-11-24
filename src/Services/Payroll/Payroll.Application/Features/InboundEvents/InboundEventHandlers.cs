@@ -134,9 +134,11 @@ public class HandleContractActivatedHandler(
         repository.ClearChangeTracker();
         if (result.Failure == PayProfileChangeFailure.Conflict)
         {
-            // Another save of the same employee won between the read and the save. The message is delivered again and meets the
-            // settled state: either this contract is applied by then (nothing to do) or its version is made over the new one.
-            throw new InvalidOperationException(
+            // Another save of the same employee won between the read and the save. Thrown as the concurrency failure it is: the bus
+            // retries that (MessagingFaults.IsTransient) and sends any other InvalidOperationException to the error queue. The
+            // redelivery meets the settled state: either this contract is applied by then (nothing to do) or its version is made
+            // over the new one.
+            throw new DbUpdateConcurrencyException(
                 $"ContractActivated {request.ContractId}: the pay profile of employee {request.EmployeeId} changed concurrently; the message is retried.");
         }
 
@@ -144,12 +146,15 @@ public class HandleContractActivatedHandler(
         _logger.LogWarning(
             "ContractActivated {ContractId}: the activation was not applied to the pay profile of employee {EmployeeId} ({Failure}); review hold raised.",
             request.ContractId, request.EmployeeId, result.Failure);
+        // One hold per refused contract (the contract's id is in the hold's reason): a second contract refused while the first
+        // still waits is recorded too; the same contract delivered again places no second hold.
         await RaiseReviewHoldAsync(
             request,
             RuleActivationRefused,
-            ActivationRefusedReasonAr,
+            $"{ActivationRefusedReasonAr} — العقد {request.ContractId:D}",
             $"{ActivationRefusedReasonAr}: {result.Error} — العقد {request.ContractId}",
-            cancellationToken);
+            cancellationToken,
+            sameReasonOnly: true);
         await repository.SaveChangesAsync(cancellationToken);
     }
 
@@ -193,13 +198,16 @@ public class HandleContractActivatedHandler(
         string ruleId,
         string reasonAr,
         string details,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        bool sameReasonOnly = false)
     {
+        // PAY-029: one open hold per rule and employee. PLAN-55's refusal hold: one per rule, employee and reason (its contract).
+        var reason = $"{ruleId}: {reasonAr}";
         if (await repository.PaymentHolds.AnyAsync(
                 h => h.EmployeeId == request.EmployeeId
                      && h.Status == PaymentHoldStatus.Active
                      && h.HoldType == PaymentHoldType.Manual
-                     && h.Reason.StartsWith(ruleId),
+                     && (sameReasonOnly ? h.Reason == reason : h.Reason.StartsWith(ruleId)),
                 cancellationToken))
             return;
 
@@ -217,7 +225,7 @@ public class HandleContractActivatedHandler(
         {
             EmployeeId = request.EmployeeId,
             FraudAlertId = alert.Id,
-            Reason = $"{ruleId}: {reasonAr}",
+            Reason = reason,
             HoldType = PaymentHoldType.Manual,
             Status = PaymentHoldStatus.Active,
             HeldAtUtc = DateTime.UtcNow
@@ -701,11 +709,29 @@ public class HandleEmployeeCreatedHandler(IPayrollRepository repository, IPayrol
                     _calendar.Today, OrgUnitId: request.OrgUnitId, RegimeCode: request.PayrollRegimeCode, IsActive: false));
             await repository.AddAsync(step.Next, cancellationToken);
             await repository.SaveChangesAsync(cancellationToken);
+
+            // The employee's first contract may have been activated while this event was being handled: both read no profile, and
+            // the activation made its version with no unit and no regime. Read again, and fill what that version lacks. (Two
+            // transactions that are both still open do not see each other: what is left then is what the repair
+            // api/payroll/admin/backfill-profile-orgunit fills, from this very placeholder.)
+            var written = await repository.EmployeePayProfiles
+                .Where(p => p.EmployeeId == request.EmployeeId && p.Id != step.Next.Id)
+                .ToListAsync(cancellationToken);
+            if (written.Count == 0 || !FillEmpty(EmployeePayProfileVersioning.PreviousOf(written)!, request))
+                return;
+            await repository.SaveChangesAsync(cancellationToken);
             return;
         }
 
         // The profile in force, else the latest: the one a later version starts from.
         var current = EmployeePayProfileVersioning.PreviousOf(profiles)!;
+        if (FillEmpty(current, request))
+            await repository.SaveChangesAsync(cancellationToken);
+    }
+
+    /// <summary>Fills the unit and the regime of <paramref name="current"/> where they are empty; never overwrites. True when it changed one.</summary>
+    private static bool FillEmpty(EmployeePayProfile current, HandleEmployeeCreatedCommand request)
+    {
         var changed = false;
         if (current.OrgUnitId is null && request.OrgUnitId is Guid unit)
         {
@@ -719,8 +745,7 @@ public class HandleEmployeeCreatedHandler(IPayrollRepository repository, IPayrol
             changed = true;
         }
 
-        if (changed)
-            await repository.SaveChangesAsync(cancellationToken);
+        return changed;
     }
 }
 

@@ -185,7 +185,7 @@ public sealed class EmployeeBankAccountsController(
 
     private static string HoldsNotice(int holds) =>
         FormattableString.Invariant(
-            $"كان الحساب المحال مثبَّتاً في {holds} تشغيل لم يُصرف بعد: وُضع حجز صرف للموظف في كل منها إلى أن يُفرج عنه من شاشة حجوزات الصرف");
+            $"كان الحساب المحال مثبَّتاً في {holds} تشغيل لم يُصرف بعد: وُضع حجز صرف للموظف في كل منها. بند التشغيل يبقى على الحساب الذي ثُبّت فيه: الإفراج عن الحجز يعني الصرف إلى الحساب المحال نفسه، وإعادة حساب التشغيل قبل تجميده تثبّت الحساب النافذ");
 
     private async Task<EmployeeBankAccountsViewModel?> IndexModelAsync(Guid employeeId)
     {

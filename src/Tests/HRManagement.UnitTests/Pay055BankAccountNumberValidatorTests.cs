@@ -133,6 +133,59 @@ public sealed class Pay055BankAccountNumberValidatorTests
         Assert.True(BankAccountNumberValidator.Validate(BankAccountKind.Local, "12345678", true, "[0-9]{8}").IsValid);
     }
 
+    [Theory]
+    [InlineData("1234567890", true)]
+    [InlineData("123456789012", true)]          // the second alternative: an unanchored match would stop at the first
+    [InlineData("12345678901", false)]
+    [InlineData("1234567890123", false)]
+    public void A_pattern_with_alternatives_is_matched_whole(string number, bool accepted)
+    {
+        var check = BankAccountNumberValidator.Validate(BankAccountKind.Local, number, true, @"\d{10}|\d{12}");
+
+        Assert.Equal(accepted, check.IsValid);
+    }
+
+    [Theory]
+    [InlineData("^[0-9]{12}$", true)]
+    [InlineData(@"\d{10}|\d{12}", true)]
+    [InlineData("[0-9", false)]
+    [InlineData("", false)]
+    [InlineData(null, false)]
+    public void A_banks_pattern_is_usable_when_it_compiles(string? pattern, bool usable)
+    {
+        Assert.Equal(usable, BankAccountNumberValidator.IsUsablePattern(pattern));
+    }
+
+    [Fact]
+    public void The_service_refuses_to_start_on_a_bank_list_it_cannot_use()
+    {
+        static PayrollBankOptions Options(params PayrollBankDefinition[] banks) => new() { Banks = [.. banks] };
+        static PayrollBankDefinition Bank(string code, string name, string pattern) => new() { Code = code, NameAr = name, AccountRegex = pattern };
+
+        Assert.Empty(new PayrollBankOptions().Problems());                                         // the production list: empty
+        Assert.Empty(Options(Bank("CBS", "المصرف التجاري السوري", LocalPattern), Bank("REB", "المصرف العقاري", @"\d{10}")).Problems());
+        Assert.Single(Options(Bank("CBS", "المصرف التجاري السوري", "[0-9")).Problems());             // a pattern that does not compile
+        Assert.Single(Options(Bank("", "المصرف التجاري السوري", LocalPattern)).Problems());          // no code
+        Assert.Single(Options(Bank("CBS", " ", LocalPattern)).Problems());                          // no name
+        Assert.Single(Options(Bank("CBS", "أ", LocalPattern), Bank("cbs", "ب", LocalPattern)).Problems());   // one code twice
+
+        // The host: the options fail their validation, so the service does not start.
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        Microsoft.Extensions.DependencyInjection.ServiceCollectionServiceExtensions.AddSingleton<IConfiguration>(
+            services,
+            new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                ["Payroll:Bank:Banks:0:Code"] = "CBS",
+                ["Payroll:Bank:Banks:0:NameAr"] = "المصرف التجاري السوري",
+                ["Payroll:Bank:Banks:0:AccountRegex"] = "[0-9",
+            }).Build());
+        Payroll.Application.DependencyInjection.AddPayrollApplication(services);
+        using var provider = Microsoft.Extensions.DependencyInjection.ServiceCollectionContainerBuilderExtensions.BuildServiceProvider(services);
+        var options = Microsoft.Extensions.DependencyInjection.ServiceProviderServiceExtensions
+            .GetRequiredService<Microsoft.Extensions.Options.IOptions<PayrollBankOptions>>(provider);
+        Assert.Throws<Microsoft.Extensions.Options.OptionsValidationException>(() => options.Value);
+    }
+
     [Fact]
     public void A_local_number_needs_a_bank_and_a_defined_one()
     {

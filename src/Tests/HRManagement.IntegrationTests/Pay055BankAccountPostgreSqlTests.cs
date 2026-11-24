@@ -140,6 +140,7 @@ public sealed partial class Pay055BankAccountPostgreSqlTests(PostgreSqlFixture f
         Assert.Equal((3, 3, 0), (readiness.Lines, readiness.LinesWithAccount, readiness.LinesWithoutAccount));
         Assert.Empty(readiness.EmployeesWithoutAccount);
         Assert.Equal(new[] { e1, e2 }, readiness.EmployeesWithRetiredAccount);
+        Assert.Equal(new[] { e1, e2 }, readiness.EmployeesHeldForRetiredAccount);
 
         // The payment orders carry the pinned account of each line: e1's first account, not the one in force now.
         var total = await db.SalaryLines.AsNoTracking().Where(l => l.PayrollRunId == october).SumAsync(l => l.NetPay);
@@ -153,7 +154,35 @@ public sealed partial class Pay055BankAccountPostgreSqlTests(PostgreSqlFixture f
             orders.ToDictionary(o => o.EmployeeId, o => o.BeneficiaryIban));
         db.ChangeTracker.Clear();
 
-        // The treasury file of the posted run carries the pinned accounts too.
+        // While a retired pinned account's hold is active, no money goes to it: the disbursement gate refuses the batch, and the
+        // treasury file is refused too, naming the employees (never an id, never a number).
+        var gate = scope.ServiceProvider.GetRequiredService<IPaymentDisbursementGate>();
+        var stored = await db.PaymentBatches.AsNoTracking().SingleAsync(b => b.Id == batch.Id);
+        var blocked = await gate.EvaluateAsync(stored, CancellationToken.None);
+        Assert.False(blocked.Allowed, "the gate let a batch through while two retired pinned accounts are held");
+        var heldFile = await Assert.ThrowsAsync<RetiredPinnedBankAccountsException>(() => ExportTreasuryAsync(db, october, names));
+        Assert.Equal(new[] { e1, e2 }, heldFile.EmployeeIds);
+        Assert.Contains("أحمد الخطيب", heldFile.Message, StringComparison.Ordinal);
+        Assert.Contains("سلمى الحسن", heldFile.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("SY", heldFile.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(e1.ToString("D"), heldFile.Message, StringComparison.OrdinalIgnoreCase);
+
+        // Two people release each hold (the hold's existing four-eyes release): a person's decision to pay the pinned account.
+        db.ChangeTracker.Clear();
+        foreach (var hold in holds)
+        {
+            var (released, releaseError) = await mediator.Send(new Payroll.Application.Features.Fraud.ReleasePaymentHoldCommand(
+                hold.Id, Approver, OtherApprover, "راجع المعتمدان الحساب المثبَّت مع الموظف"));
+            Assert.True(released, releaseError);
+        }
+
+        db.ChangeTracker.Clear();
+        Assert.True((await gate.EvaluateAsync(stored, CancellationToken.None)).Allowed);
+        var afterRelease = (await mediator.Send(new GetRunBankReadinessQuery(october)))!;
+        Assert.Equal(new[] { e1, e2 }, afterRelease.EmployeesWithRetiredAccount);
+        Assert.Empty(afterRelease.EmployeesHeldForRetiredAccount);
+
+        // The treasury file of the posted run then carries the pinned accounts: e1's first account, not the one in force now.
         var file = await ExportTreasuryAsync(db, october, names);
         Assert.Equal(
             new Dictionary<Guid, string?> { [e1] = Pay055TestAccounts.Iban(e1, 0), [e2] = Pay055TestAccounts.Iban(e2, 0), [e3] = Pay055TestAccounts.Iban(e3, 0) },
