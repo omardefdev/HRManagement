@@ -72,7 +72,8 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
         return new Dictionary<Type, Guid> { [typeof(EmployeePayProfile)] = employee };
     }
 
-    private Task<Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext>> StartAsync(RecordingAudit? audit = null) =>
+    private Task<Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext>> StartAsync(
+        RecordingAudit? audit = null, IReadOnlyDictionary<string, string?>? settings = null) =>
         Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext>.StartAsync(
             postgres, "PayrollDb", PayrollOrgScopeKeys.Registry, RestrictedRoles, CentralRoles, "/EmployeePayProfiles/Create", SeedAsync,
             testServices: audit is null
@@ -81,11 +82,12 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
                 {
                     services.RemoveAll<ISecurityAuditSink>();
                     services.AddSingleton<ISecurityAuditSink>(audit);
-                });
+                },
+            settings: settings);
 
-    private static async Task<HttpClient> WithApiTokenAsync(HttpClient client)
+    private static async Task<HttpClient> WithApiTokenAsync(HttpClient client, string tokenPath = "/api/payroll/bank-accounts/antiforgery")
     {
-        using var issued = await client.GetAsync("/api/payroll/bank-accounts/antiforgery");
+        using var issued = await client.GetAsync(tokenPath);
         Assert.Equal(HttpStatusCode.OK, issued.StatusCode);
         using var token = JsonDocument.Parse(await issued.Content.ReadAsStringAsync());
         client.DefaultRequestHeaders.Add(
@@ -396,5 +398,110 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
             new Payroll.Application.Features.InboundEvents.HandleContractActivatedCommand(Guid.NewGuid(), foreign, "PERM", start, 5300m, null)));
         Assert.Equal((Guid?)host.ForeignUnit, (await ActiveProfileAsync(host, foreign)).OrgUnitId);
         await AssertListedInHisBranchOnlyAsync("after another unit's activation");
+    }
+
+    // --- P-8: the repair of old pay profiles ---
+
+    private const string Repair = "/api/payroll/admin/backfill-profile-orgunit";
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task The_repair_is_an_administrators_central_act_with_a_dry_run_first_and_brings_the_employee_back_into_his_branchs_list()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        await using var host = await StartAsync();
+        var (own, _) = host.Records[typeof(EmployeePayProfile)];
+        // As a build before PLAN-55 left it: the active version (made by a contract activation) has no unit and no regime, and the
+        // employee's earlier profile carries both.
+        var activeId = await host.WithDbAsync(async db =>
+        {
+            var active = await db.Set<EmployeePayProfile>().SingleAsync(p => p.EmployeeId == own);
+            active.OrgUnitId = null;
+            active.RegimeCode = null;
+            db.Add(new EmployeePayProfile
+            {
+                TenantId = Tenant,
+                EmployeeId = own,
+                IsActive = false,
+                BaseSalary = 4000m,
+                OrgUnitId = host.OwnUnit,
+                RegimeCode = "law50",
+                EffectiveFrom = new DateTime(2025, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                EffectiveTo = new DateTime(2025, 12, 31, 0, 0, 0, DateTimeKind.Utc),
+            });
+            await db.SaveChangesAsync();
+            return active.Id;
+        });
+        using var restricted = host.Restricted();
+        Assert.DoesNotContain(own.ToString("D"), await restricted.GetStringAsync("/EmployeePayProfiles"), StringComparison.OrdinalIgnoreCase);
+
+        // Not an administrator (a processor and approver): neither the token nor the repair.
+        using var payroll = await WithApiTokenAsync(host.Central());
+        Assert.Equal(HttpStatusCode.Forbidden, (await payroll.GetAsync("/api/payroll/admin/antiforgery")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await payroll.PostAsync($"{Repair}?dryRun=false", null)).StatusCode);
+        // The module role alone: the same.
+        using var reader = host.CentralWith(HrManagementRoles.Payroll, Guid.NewGuid());
+        Assert.Equal(HttpStatusCode.Forbidden, (await reader.GetAsync("/api/payroll/admin/antiforgery")).StatusCode);
+        // An administrator without the antiforgery token: refused before it runs.
+        using var noToken = host.CentralWith(HrManagementRoles.Admin, Guid.NewGuid());
+        Assert.Equal(HttpStatusCode.BadRequest, (await noToken.PostAsync($"{Repair}?dryRun=false", null)).StatusCode);
+
+        async Task<(Guid? Unit, string? Regime)> StoredAsync()
+        {
+            var profile = await host.WithDbAsync(db => db.Set<EmployeePayProfile>().AsNoTracking().SingleAsync(p => p.Id == activeId));
+            return (profile.OrgUnitId, profile.RegimeCode);
+        }
+
+        Assert.Equal(((Guid?)null, (string?)null), await StoredAsync());
+
+        // The dry run is the default: it lists the profile and changes nothing.
+        using var admin = await WithApiTokenAsync(host.CentralWith(HrManagementRoles.Admin, Guid.NewGuid()), "/api/payroll/admin/antiforgery");
+        var dry = await JsonAsync(await admin.PostAsync(Repair, null));
+        Assert.True(dry.GetProperty("dryRun").GetBoolean());
+        Assert.Equal((1, 0), (dry.GetProperty("found").GetInt32(), dry.GetProperty("changed").GetInt32()));
+        var listed = dry.GetProperty("items")[0];
+        Assert.Equal((activeId, own, host.OwnUnit, "law50"),
+            (listed.GetProperty("profileId").GetGuid(), listed.GetProperty("employeeId").GetGuid(), listed.GetProperty("orgUnitId").GetGuid(), listed.GetProperty("regimeCode").GetString()));
+        Assert.Equal(((Guid?)null, (string?)null), await StoredAsync());
+
+        // The real run changes exactly that, and the branch lists its employee again.
+        var real = await JsonAsync(await admin.PostAsync($"{Repair}?dryRun=false", null));
+        Assert.False(real.GetProperty("dryRun").GetBoolean());
+        Assert.Equal((1, 1), (real.GetProperty("found").GetInt32(), real.GetProperty("changed").GetInt32()));
+        Assert.Equal(((Guid?)host.OwnUnit, "law50"), await StoredAsync());
+        Assert.Contains(own.ToString("D"), await restricted.GetStringAsync("/EmployeePayProfiles"), StringComparison.OrdinalIgnoreCase);
+        var audits = await host.WithDbAsync(db => db.Set<EntityAuditLog>().AsNoTracking()
+            .Where(a => a.Action == Payroll.Application.Features.PayProfileRepair.BackfillProfileOrgUnitHandler.AuditAction).ToListAsync());
+        Assert.Equal(real.GetProperty("auditEntryId").GetGuid(), Assert.Single(audits).Id);
+
+        // A second run finds nothing and writes no second audit entry.
+        var again = await JsonAsync(await admin.PostAsync($"{Repair}?dryRun=false", null));
+        Assert.Equal((0, 0), (again.GetProperty("found").GetInt32(), again.GetProperty("changed").GetInt32()));
+        Assert.Single(await host.WithDbAsync(db => db.Set<EntityAuditLog>().AsNoTracking()
+            .Where(a => a.Action == Payroll.Application.Features.PayProfileRepair.BackfillProfileOrgUnitHandler.AuditAction).ToListAsync()));
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task The_repair_is_a_central_act_whoever_the_settings_give_its_policy_to()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        // An administrator is never restricted to a branch, so the stance is shown with the policy's roles read from configuration:
+        // an agency that gives Payroll.Repair to its payroll approvers. A restricted approver passes the policy and is still refused.
+        await using var host = await StartAsync(settings: new Dictionary<string, string?>
+        {
+            ["Authorization:Policies:Payroll.Repair:Roles:0"] = HrManagementRoles.PayrollApprover,
+        });
+        using var restricted = host.Restricted();
+        Assert.Equal(HttpStatusCode.Forbidden, (await restricted.GetAsync("/api/payroll/admin/antiforgery")).StatusCode);
+        Assert.False((await restricted.PostAsync($"{Repair}?dryRun=false", null)).IsSuccessStatusCode);
+
+        // A central approver passes both: the roles of the policy are the configured ones (and an administrator is no longer one of them).
+        using var central = await WithApiTokenAsync(host.Central(), "/api/payroll/admin/antiforgery");
+        var dry = await central.PostAsync(Repair, null);
+        Assert.Equal(HttpStatusCode.OK, dry.StatusCode);
+        Assert.True((await JsonAsync(dry)).GetProperty("dryRun").GetBoolean());
+        using var admin = host.CentralWith(HrManagementRoles.Admin, Guid.NewGuid());
+        Assert.Equal(HttpStatusCode.Forbidden, (await admin.GetAsync("/api/payroll/admin/antiforgery")).StatusCode);
     }
 }

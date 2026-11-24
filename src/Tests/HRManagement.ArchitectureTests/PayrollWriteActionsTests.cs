@@ -138,10 +138,12 @@ public sealed class PayrollWriteActionsTests
         ["EmployeeBankAccounts.Verify"] = HrManagementPolicies.PayrollApprove,
         ["EmployeeBankAccounts.Reject"] = HrManagementPolicies.PayrollApprove,
         ["EmployeeBankAccounts.Retire"] = HrManagementPolicies.PayrollApprove,
+        // P-8: the repair of old pay profiles is an administrator's act.
+        ["PayrollAdmin.BackfillProfileOrgUnit"] = HrManagementPolicies.PayrollRepair,
     };
 
     /// <summary>The controllers PLAN-55 adds: every write of theirs has a row in <see cref="Pay055"/>.</summary>
-    private static readonly string[] Pay055Controllers = ["EmployeeBankAccounts", "EmployeeBankAccountsApi"];
+    private static readonly string[] Pay055Controllers = ["EmployeeBankAccounts", "EmployeeBankAccountsApi", "PayrollAdmin"];
 
     /// <summary>
     /// Reads of the bank accounts that are not open to the module role alone: the registration form (a person who cannot register does
@@ -151,6 +153,8 @@ public sealed class PayrollWriteActionsTests
     {
         ["EmployeeBankAccounts.Create"] = HrManagementPolicies.PayrollProcess,
         ["EmployeeBankAccounts.Verify"] = HrManagementPolicies.PayrollApprove,
+        // The repair's antiforgery token is issued behind the repair's own policy.
+        ["PayrollAdmin.Antiforgery"] = HrManagementPolicies.PayrollRepair,
     };
 
     private static IEnumerable<ActionInfo> Writes => ActionCatalog.Of(Service).Where(a => a.IsWrite && !a.Anonymous);
@@ -422,6 +426,15 @@ public sealed class PayrollWriteActionsTests
         Assert.Empty(await ReachedAsync(User(HrManagementRoles.Payroll, HrManagementRoles.PayrollReverser), writes));
         Assert.Empty(await ReachedAsync(User(HrManagementRoles.BranchManager, HrManagementRoles.HrCore), writes));
         Assert.Equal(Pay055.Keys.Order(StringComparer.Ordinal), await ReachedAsync(User(HrManagementRoles.Admin), writes));
+
+        // The repair: administrators only. A person who holds every operational payroll role does not reach it.
+        var repair = writes.Where(a => a.ControllerName == "PayrollAdmin").ToList();
+        Assert.NotEmpty(repair);
+        var everyPayrollRole = User(
+            HrManagementRoles.Payroll, HrManagementRoles.PayrollProcessor, HrManagementRoles.PayrollApprover, HrManagementRoles.PayrollPoster,
+            HrManagementRoles.PayrollReverser);
+        Assert.Empty(await ReachedAsync(everyPayrollRole, repair));
+        Assert.Equal(["PayrollAdmin.BackfillProfileOrgUnit"], await ReachedAsync(User(HrManagementRoles.Admin), repair));
     }
 
     [Fact]

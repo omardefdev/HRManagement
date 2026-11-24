@@ -230,6 +230,12 @@ public static class HrManagementPolicies
     /// </summary>
     public const string PayrollLegalAttest = "Payroll.LegalAttest";
 
+    /// <summary>
+    /// PLAN-55 (P-8): the operator's repair of pay profiles (<c>api/payroll/admin</c>): administrators only. No other payroll
+    /// policy fits: the repair is neither a processor's nor an approver's act.
+    /// </summary>
+    public const string PayrollRepair = "Payroll.Repair";
+
     public const string HrManagementApprove = "HrManagement.Approve";
 
     /// <summary>

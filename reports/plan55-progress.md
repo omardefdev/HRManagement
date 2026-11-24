@@ -13,8 +13,8 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 | P1 the account | done | 2026-11-24T06:11:40Z |
 | P2 the pinning | done | 2026-11-24T06:46:59Z |
 | P3 the versions | done | 2026-11-24T07:17:16Z |
-| P4 the repair | next | |
-| P5 PostgreSQL proofs | | |
+| P4 the repair | done | 2026-11-24T07:49:45Z |
+| P5 PostgreSQL proofs | next | |
 | P6 acceptance, review | | |
 | P7 main | | |
 | P8 demo server | | |
@@ -40,6 +40,7 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 | P3 unit suites it touches (Pay055, Iam053, Pay029, writers, consumers) | 07:05 | 07:06 | 360 passed |
 | P3 PostgreSQL and HTTP tests (build + run) | 07:08:28 | 07:12:34 | 50 passed |
 | P3 full build `-warnaserror` + architecture tests | 07:12:45 | 07:15:37 | 0 warnings, 0 errors; 400 passed |
+| P4 chain: full build, architecture, PLAN-55 integration, full unit suite | 07:30:27 | 07:45:51 | 0 errors; 401 passed; 19 of 20 (one test of mine assumed a branch-restricted hr-admin; rewritten, 6 of 6 after); 6920 passed, 10 min 2 s |
 
 Stops: none so far.
 
@@ -131,6 +132,18 @@ Stops: none so far.
 - **D25 — A late `IEmployeeCreated`** fills the unit and the regime of the employee's current profile (in force, else the latest)
   where they are empty. It never overwrites.
 
+- **D26 — The repair adds no writer of pay profiles.** It lists (reads only) and, for a real run, sends the named writer's own
+  command per listed profile: `HandleEmployeeCreatedHandler` fills the unit and the regime of the employee's current profile where
+  they are empty and never overwrites. So `PayProfileWritersTests.AllowedWriters` stays at six, one fill rule exists, and a second
+  run finds nothing. A real run that changed something writes one audit entry (`PayProfileOrgUnitBackfill`: the operator, the
+  profiles) and one security audit event.
+- **D27 — The repair's policy is a new `Payroll.Repair`** (roles from configuration, `hr-admin` by default). No existing
+  administrators' policy fits Payroll (`HrCore.Delete` is HR.Core's, `Messaging.Repair` admits the platform administrator).
+- **D28 — `[OrgScopeCentralOnly]` on the repair** is proved with the policy's roles configured to include a restricted role: an
+  `hr-admin` is never branch-restricted (`HrOrgScopeVisibility`), so «a restricted administrator» does not exist.
+- **D29 — The repair copies from the employee's own history only.** A profile whose empty unit or regime no profile of the same
+  employee carries is reported in `notFillableProfileIds` and left alone: the repair invents no value.
+
 ## Notes for later phases (so documents are not read twice)
 
 - Patterns to follow: `PayProfileChangesApiController` (antiforgery endpoint, `[OrgScoped]`, policies per action, `PayProfileChangeHttp`),
@@ -180,6 +193,11 @@ Stops: none so far.
   hand-built host gets a bus double and an empty configuration, as a service has; it now also asserts the applied request and its
   event). `Pay029PayProfileTests` unchanged.
 
+- P4 (10 files): `Features/PayProfileRepair/BackfillProfileOrgUnit.cs`, `PayrollAdminController`
+  (`POST api/payroll/admin/backfill-profile-orgunit?dryRun=true`, `GET …/antiforgery`), the policy `Payroll.Repair`
+  (`HrManagementRoles.cs`, `HrManagementAuthorizationExtensions.cs`), `scripts/pay055-backfill-profile-orgunit.ps1`; tests
+  `Pay055ProfileRepairTests`, two tests in `Pay055BankAccountHttpTests`, rows in `PayrollWriteActionsTests`.
+
 ## Server changes and their undo
 
 None yet (P0 only read).
@@ -190,7 +208,7 @@ None.
 
 ## The exact next step
 
-P4: the repair. `POST api/payroll/admin/backfill-profile-orgunit?dryRun=true` (a new `PayrollAdminController`, `[OrgScopeCentralOnly]`,
-policy `Payroll.Repair` = hr-admin, antiforgery on the POST, a `GET …/antiforgery`), a service in Application that lists and fills
-(one agency per call, never overwrites, one audit entry, idempotent), `scripts/pay055-backfill-profile-orgunit.ps1`; rows in
-`PayrollWriteActionsTests`; tests. Then the full unit suite (not run since P1).
+P5: in `Pay055BankAccountPostgreSqlTests`, the concurrent verification proof (two sessions verify the same pending account at once:
+one wins, the other 409 by `xmin`; a second Active or Pending row planted by SQL is refused by the index; a verification that
+retires the account in force is ordered right, many times over). The pinning and the two event-order proofs are already there.
+Then the full Testcontainers filter of CI on the host (`Category=Testcontainers&Category!=ObjectStorage`).
