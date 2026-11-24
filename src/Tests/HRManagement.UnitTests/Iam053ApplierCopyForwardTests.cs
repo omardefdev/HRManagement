@@ -73,14 +73,35 @@ public sealed class Iam053ApplierCopyForwardTests
         Assert.All(EmployeePayProfileVersioning.DeliberatelyNotCopied, n => Assert.Contains(n, names));
         Assert.All(EmployeePayProfileVersioning.SetByTheChange, n => Assert.Contains(n, names));
         Assert.Empty(EmployeePayProfileVersioning.DeliberatelyNotCopied.Intersect(EmployeePayProfileVersioning.SetByTheChange));
-        // The not-copied set stays the row's identity and bookkeeping: a business field never hides in it.
+        // The not-copied set stays the row's identity and bookkeeping: a business field never hides in it. Since PLAN-55 it also names
+        // the three obsolete bank columns (the employee's account is EmployeeBankAccount): only a member marked [Obsolete] may join.
+        var obsolete = Properties().Where(p => p.GetCustomAttributes(typeof(ObsoleteAttribute), false).Length > 0)
+            .Select(p => p.Name).ToHashSet(StringComparer.Ordinal);
+        Assert.Equal(new[] { "BankAccountIban", "BankAccountVerifiedAt", "BankName" }, obsolete.Order(StringComparer.Ordinal));
         Assert.Equal(
             new[] { "CreatedAt", "Id", "PayGrade", "UpdatedAt" },
-            EmployeePayProfileVersioning.DeliberatelyNotCopied.Order(StringComparer.Ordinal));
+            EmployeePayProfileVersioning.DeliberatelyNotCopied.Where(n => !obsolete.Contains(n)).Order(StringComparer.Ordinal));
+        Assert.All(obsolete, n => Assert.Contains(n, EmployeePayProfileVersioning.DeliberatelyNotCopied));
     }
 
     [Fact]
-    public void The_unit_the_regime_and_the_bank_account_reach_the_next_version()
+    public void The_obsolete_bank_columns_are_left_empty_on_the_next_version()
+    {
+        // PLAN-55: nothing reads them, and the account belongs to the employee, not to a version. Read by reflection: an obsolete
+        // member is not referenced by name.
+        var previous = FullPrevious();
+        var next = EmployeePayProfileVersioning.NextVersion(previous, NewStart, 2500m, null);
+
+        foreach (var name in new[] { "BankAccountIban", "BankName", "BankAccountVerifiedAt" })
+        {
+            var property = typeof(EmployeePayProfile).GetProperty(name)!;
+            Assert.NotNull(property.GetValue(previous));
+            Assert.Null(property.GetValue(next));
+        }
+    }
+
+    [Fact]
+    public void The_unit_and_the_regime_reach_the_next_version()
     {
         var previous = FullPrevious();
         var next = EmployeePayProfileVersioning.NextVersion(previous, NewStart, 2500m, null);
@@ -89,9 +110,6 @@ public sealed class Iam053ApplierCopyForwardTests
         Assert.Equal(previous.EmployeeId, next.EmployeeId);
         Assert.Equal(previous.OrgUnitId, next.OrgUnitId);
         Assert.Equal(previous.RegimeCode, next.RegimeCode);
-        Assert.Equal(previous.BankAccountIban, next.BankAccountIban);
-        Assert.Equal(previous.BankName, next.BankName);
-        Assert.Equal(previous.BankAccountVerifiedAt, next.BankAccountVerifiedAt);
         Assert.NotEqual(previous.Id, next.Id);
     }
 

@@ -46,7 +46,7 @@ public sealed class Iam053Clock(DateTimeOffset now) : TimeProvider
 
 /// <summary>
 /// PLAN-53: the salary change transaction on an in-memory database, as the handlers run it: one employee with an active profile that
-/// holds a unit, a regime and a bank account, a grade with bounds, a processor and an approver, and a clock (15 November 2026, noon
+/// holds a unit and a regime (the bank account is its own entity since PLAN-55), a grade with bounds, a processor and an approver, and a clock (15 November 2026, noon
 /// UTC, unless a test says otherwise). Every send uses a fresh context, as a request does.
 /// </summary>
 public sealed class Iam053SalaryChangeHarness
@@ -114,9 +114,6 @@ public sealed class Iam053SalaryChangeHarness
             IsActive = true,
             OrgUnitId = withUnit ? orgUnitId ?? Unit : null,
             RegimeCode = "law50",
-            BankAccountIban = "SY0000000000000000000053",
-            BankName = "المصرف التجاري السوري",
-            BankAccountVerifiedAt = new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc),
         };
         db.AddRange(scale, grade, higher, profile);
         await db.SaveChangesAsync();

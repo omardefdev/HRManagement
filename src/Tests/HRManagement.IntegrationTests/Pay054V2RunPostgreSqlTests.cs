@@ -51,11 +51,9 @@ public sealed class Pay054V2RunPostgreSqlTests(PostgreSqlFixture fixture)
 
         await PayrollPostgresTestSupport.SeedEmployeesAsync(db, employees);
         var profiles = await db.EmployeePayProfiles.OrderBy(p => p.EmployeeId).ToListAsync();
+        // PLAN-55: an account in force per employee; each run pins it at its snapshot, and the export reads the pinned account.
         foreach (var profile in profiles)
-        {
-            profile.BankAccountIban = $"SY00TEST{profile.EmployeeId:N}"[..30];
-            profile.BankAccountVerifiedAt = DateTime.UtcNow;
-        }
+            db.Add(Pay055TestAccounts.Active(profile.EmployeeId, profile.TenantId));
 
         // One employee joins on Monday 5 October: his month is prorated by working days, so the holiday of 6 October counts.
         profiles[1].EffectiveFrom = new DateTime(2026, 10, 5, 0, 0, 0, DateTimeKind.Utc);

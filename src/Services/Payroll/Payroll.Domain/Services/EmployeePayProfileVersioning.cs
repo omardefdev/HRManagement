@@ -18,6 +18,11 @@ public static class EmployeePayProfileVersioning
         nameof(EmployeePayProfile.UpdatedAt),
         // The navigation follows PayGradeId; copying the tracked grade of another version is not a field of the profile.
         nameof(EmployeePayProfile.PayGrade),
+        // PLAN-55: the three obsolete bank columns. The employee's account is EmployeeBankAccount, which belongs to the employee and not
+        // to a version; nothing reads these, so a new version leaves them empty. (Named as text: an obsolete member is not referenced.)
+        "BankAccountIban",
+        "BankName",
+        "BankAccountVerifiedAt",
     };
 
     /// <summary>What a new version is given by the change itself: its period, and the salary and grade the change proposes (else the previous ones).</summary>
@@ -76,9 +81,6 @@ public static class EmployeePayProfileVersioning
             EmployeeId = previous.EmployeeId,
             OrgUnitId = previous.OrgUnitId,
             RegimeCode = previous.RegimeCode,
-            BankAccountIban = previous.BankAccountIban,
-            BankName = previous.BankName,
-            BankAccountVerifiedAt = previous.BankAccountVerifiedAt,
             // set by the change
             BaseSalary = proposedBaseSalary ?? previous.BaseSalary,
             PayGradeId = proposedPayGradeId ?? previous.PayGradeId,

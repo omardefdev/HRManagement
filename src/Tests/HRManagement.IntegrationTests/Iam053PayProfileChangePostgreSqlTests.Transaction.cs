@@ -151,8 +151,6 @@ public sealed partial class Iam053PayProfileChangePostgreSqlTests
                 IsActive = true,
                 OrgUnitId = Guid.Parse("53000000-0000-4000-8000-0000000000a1"),
                 RegimeCode = "law50",
-                BankAccountIban = "SY0000000000000000000053",
-                BankName = "المصرف التجاري السوري",
             });
             return await db.SaveChangesAsync();
         });
@@ -317,8 +315,7 @@ public sealed partial class Iam053PayProfileChangePostgreSqlTests
 
         // The new version carries every field the old upsert dropped, through the real database.
         var current = await host.InScopeAsync(sp => sp.GetRequiredService<PayrollDbContext>().EmployeePayProfiles.AsNoTracking().SingleAsync(p => p.IsActive));
-        Assert.Equal((5200m, "law50", "SY0000000000000000000053", "المصرف التجاري السوري"),
-            (current.BaseSalary, current.RegimeCode, current.BankAccountIban, current.BankName));
+        Assert.Equal((5200m, "law50"), (current.BaseSalary, current.RegimeCode));
         Assert.NotNull(current.OrgUnitId);
 
         // The unique index is the last line: a second active profile of the employee is refused by the database itself.

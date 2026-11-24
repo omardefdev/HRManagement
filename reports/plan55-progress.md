@@ -11,8 +11,8 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 |-------|--------|----------------|
 | P0 baseline | done | 2026-11-24T05:21:55Z |
 | P1 the account | done | 2026-11-24T06:11:40Z |
-| P2 the pinning | next | |
-| P3 the versions | | |
+| P2 the pinning | done | 2026-11-24T06:46:59Z |
+| P3 the versions | next | |
 | P4 the repair | | |
 | P5 PostgreSQL proofs | | |
 | P6 acceptance, review | | |
@@ -34,6 +34,9 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 | P1 HTTP tests on PostgreSQL (build + run) | 05:51:09 | 05:53:02 | 10 passed (3 new, 7 of PLAN-53's scope class) |
 | P1 full build `-warnaserror` + `has-pending-model-changes` | 05:53:30 | 05:55:14 | 0 warnings, 0 errors; no pending model change |
 | P1 full unit suite | 05:55:36 | 06:06:01 | 6868 passed, 10 min 12 s |
+| P2 unit suites it touches (Pay055, Iam053, Frd001, Pay029, writers, determinism, Pay054) | 06:29 | 06:31 | 537 passed |
+| P2 PostgreSQL tests (build + run) | 06:32:37 | 06:36:12 | 30 passed (the real-run pinning proof, the DSAR answer, and the changed classes) |
+| P2 full build `-warnaserror` + architecture tests | 06:43:01 | 06:45:10 | 0 warnings, 0 errors; 400 passed |
 
 Stops: none so far.
 
@@ -83,6 +86,18 @@ Stops: none so far.
 - **D12 — For an IBAN the bank code is optional;** one that is given must be defined. With no code the bank's name is the
   registrar's text (mandatory). A local number needs a defined bank, whose name is taken from its definition.
 
+- **D13 — A correction run has no snapshot rows:** its lines are computed when the correction is created, so each pins the account
+  in force at that moment (the same rule, D-PAY-15, at the correction's own calculation).
+- **D14 — The order and the file carry the pinned account's number whatever its status now.** A pinned account that was retired
+  since is behind the retirement hold (the disbursement gate blocks the batch); the readiness report lists those employees
+  (`employeesWithRetiredAccount`). A local number goes into `BeneficiaryIban` as it is.
+- **D15 — The treasury refusal** is `MissingPinnedBankAccountsException` (an `InvalidOperationException`, so the screens' existing
+  catch shows it): `EmployeeIds` for an API, and a message with up to 25 names and a count of the rest; an employee the directory
+  gives no name for is counted, never shown by an id. The export exists on screens only; the ids are served by the readiness API.
+- **D16 — DSAR:** present = an account in force or waiting for verification; verified = an account in force.
+- **D17 — The obsolete columns are named as text** in `DeliberatelyNotCopied` (an obsolete member is not referenced under
+  `-warnaserror`); `Iam053ApplierCopyForwardTests` now requires that only `[Obsolete]` members join the identity set there.
+
 ## Notes for later phases (so documents are not read twice)
 
 - Patterns to follow: `PayProfileChangesApiController` (antiforgery endpoint, `[OrgScoped]`, policies per action, `PayProfileChangeHttp`),
@@ -109,6 +124,19 @@ Stops: none so far.
 - P0: `reports/plan54-progress.md` (the cherry-picked merge note), `docs/acceptance-plans/execution/PLAN-55-AGENT-PROMPT.md`,
   `reports/plan55-baseline.md`, `reports/plan55-progress.md`.
 
+- P2 (26 files): `BankAccountPinning.cs` (the active accounts at a snapshot, the pinned numbers of lines, the readiness query, the
+  treasury refusal), `PayrollRunJobHandlers` (the snapshot pins), `PayrollEmployeeCalculationUnit` and `PayrollRunParallelCalculator`
+  (the line copies), `CorrectionRunHandlers`, `PaymentOrderService`, `PayrollExternalExportService`, `FraudScanInputBuilder` and
+  `RunPayrollFraudScanCommand`, `DsarInternalController`, `PayrollApiController` (`GET runs/{id}/bank-readiness`),
+  `PayrollRunsController` and `Views/PayrollRuns/Details.cshtml` (the card), `EmployeePayProfile` (three `[Obsolete]`),
+  `EmployeePayProfileVersioning` (no longer copies them); tests `Pay055PinningTests`, `Pay055BankAccountPostgreSqlTests` (pinning,
+  DSAR), `Pay055TestAccounts`. **Existing tests changed, each keeping its meaning:** `Iam053SalaryChangeHarness`,
+  `Iam053SalaryChangeStateMachineTests`, `Iam053SystemChangeAndCalendarTests`, `Iam053PayProfileChangePostgreSqlTests.Transaction`
+  (the next version carries every field a version still owns: unit, regime, grade — the bank account is no field of a version);
+  `Iam053ApplierCopyForwardTests` (every property is copied or named; the three obsolete columns are named and left empty);
+  `Frd001PaymentBlockIntegrationTests` and `Pay054V2RunPostgreSqlTests` (the verified account is planted as the account entity and
+  pinned by the run, instead of two profile fields); `AcIam53SalaryChangeTests` (carried fields: unit, regime, grade).
+
 ## Server changes and their undo
 
 None yet (P0 only read).
@@ -119,8 +147,10 @@ None.
 
 ## The exact next step
 
-P2: `git stash pop` (four application files with the snapshot's and the line's pinning, set aside for P1's commit), then
-`Features/BankAccounts/BankAccountPinning.cs` (drafted in the session's scratchpad: the active accounts at a snapshot, the pinned
-numbers of a run's lines, the readiness query); `PaymentOrderService`, `PayrollExternalExportService` (refusal by names),
-`FraudScanInputBuilder`, `DsarInternalController` read the line's account; `GET api/payroll/runs/{id}/bank-readiness` and the card on
-the run's page; the profile's three bank fields `[Obsolete]`, out of the copy-forward, and the tests that named them.
+P3: `EmployeePayProfileVersioning.CreateNextVersion` (active profile, else the latest; with none the first; carries unit and regime;
+salary and grade only from a version in force; closes the previous the day before; history snapshot); the applier uses it and gets
+the contract-activation terms (`ApplySystemChangeAsync` overload: first version, unpriced, one save with the handler's adjustment and
+hold); `HandleContractActivatedHandler` through the applier (two-argument constructor kept for `Pay029PayProfileTests`; a refusal →
+review hold `PAY055-ACTIVATION`, consumed; a contract already applied → nothing); `HandleEmployeeCreatedHandler` (first profile through
+`CreateNextVersion` with the calendar's date; a late event fills empty unit and regime); `PayProfileWritersTests` (the contract
+handler leaves the list); `Pay055ProfileVersioningTests`; the two event-order tests in `Pay055BankAccountPostgreSqlTests`.

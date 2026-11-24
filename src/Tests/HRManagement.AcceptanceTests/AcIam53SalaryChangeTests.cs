@@ -114,7 +114,7 @@ public class AcIam53SalaryChangeTests
             (noLineIn is not { } month ? "" :
                 "AND NOT EXISTS (SELECT 1 FROM \"SalaryLines\" l JOIN \"PayrollRuns\" r ON r.\"Id\" = l.\"PayrollRunId\" WHERE l.\"EmployeeId\" = p.\"EmployeeId\" " +
                 $"AND r.\"PeriodStart\" <= '{Day(month.AddMonths(1).AddDays(-1))}' AND r.\"PeriodEnd\" >= '{Day(month)}') ") +
-            "ORDER BY (p.\"BankAccountIban\" IS NOT NULL) DESC, (p.\"RegimeCode\" IS NOT NULL) DESC, p.\"EmployeeId\" DESC LIMIT 1;");
+            "ORDER BY (p.\"RegimeCode\" IS NOT NULL) DESC, p.\"EmployeeId\" DESC LIMIT 1;");
         var parts = row.Split('|');
         AcceptanceGate.RequireData(recorder, parts.Length == 7,
             $"{step}: لا يوجد موظف في الجهة A بملف أجر فعّال ودرجة تسمح بالتغيير وبلا طلب سابق",
@@ -271,13 +271,11 @@ public class AcIam53SalaryChangeTests
             $"للجهة A تشغيل رواتب اعتيادي يغطي الشهر الجاري ({Day(month)[..7]}): السيناريو يحتاج مكدساً جديداً",
             $"Agency A already has a Regular payroll run covering {Day(month)[..7]} ({regularRunsBefore}): AC-IAM-53a froze the month in an earlier run; start a fresh stack.");
         var pick = await PickEmployeeAsync(s.Recorder, "53a", noLineIn: month);
-        // Test-only precondition (psql, payroll_db): the seed's pay profiles have no bank account and no regime code, so the copy
-        // would be proved on empty values. The employee's profile gets them here; its salary, grade, dates and unit are the seed's.
-        await Db(
-            $"UPDATE \"EmployeePayProfiles\" SET \"BankAccountIban\"='SY53{Convert.ToUInt64(pick.Employee.Replace("-", "")[..15], 16).ToString("D18", CultureInfo.InvariantCulture)}', \"BankName\"='مصرف اختبار القبول', " +
-            $"\"BankAccountVerifiedAt\"=date_trunc('second', now() - interval '1 day'), \"RegimeCode\"='law50' WHERE \"Id\"='{pick.Profile}'; SELECT 1;");
-        var carried = "\"OrgUnitId\"::text || '|' || COALESCE(\"RegimeCode\",'∅') || '|' || COALESCE(\"BankAccountIban\",'∅') || '|' || COALESCE(\"BankName\",'∅') || '|' || " +
-                      "COALESCE(\"BankAccountVerifiedAt\"::text,'∅') || '|' || COALESCE(\"PayGradeId\"::text,'∅')";
+        // Test-only precondition (psql, payroll_db): the seed's pay profiles have no regime code, so the copy would be proved on an
+        // empty value. The employee's profile gets one here; its salary, grade, dates and unit are the seed's. (Since PLAN-55 the
+        // bank account is no field of a profile: it is its own entity, and AC-PAY-55 proves it.)
+        await Db($"UPDATE \"EmployeePayProfiles\" SET \"RegimeCode\"='law50' WHERE \"Id\"='{pick.Profile}'; SELECT 1;");
+        var carried = "\"OrgUnitId\"::text || '|' || COALESCE(\"RegimeCode\",'∅') || '|' || COALESCE(\"PayGradeId\"::text,'∅')";
         var carriedBefore = await Db($"SELECT {carried} FROM \"EmployeePayProfiles\" WHERE \"Id\"='{pick.Profile}';");
         var activeBefore = await ActiveProfileAsync(pick.Employee);
         s.Recorder.WriteBefore(new
@@ -293,9 +291,9 @@ public class AcIam53SalaryChangeTests
             profile = pick.Profile,
             grade = pick.GradeCode,
             salaryIsInsideBounds = true,
-            carriedFields = "OrgUnitId|RegimeCode|BankAccountIban|BankName|BankAccountVerifiedAt|PayGradeId",
+            carriedFields = "OrgUnitId|RegimeCode|PayGradeId",
             carriedFieldsPresent = carriedBefore.Split('|').Select(v => v != "∅").ToArray(),
-            carriedFieldsSetByTheTest = "BankAccountIban, BankName, BankAccountVerifiedAt, RegimeCode",
+            carriedFieldsSetByTheTest = "RegimeCode",
             activeBefore
         });
 

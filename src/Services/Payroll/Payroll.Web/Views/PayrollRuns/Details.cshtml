@@ -382,6 +382,55 @@
 
 
 
+@if (ViewBag.BankReadiness is Payroll.Application.Features.BankAccounts.RunBankReadiness readiness && readiness.Lines > 0)
+{
+    @* PLAN-55 (§2): the accounts this run pinned at its snapshot. A line without an account blocks neither the calculation nor the
+       approval; it shows here, by the employee's name. *@
+    <div class="card mb-3" data-testid="run-bank-readiness">
+        <div class="card-header"><h3 class="card-title"><i class="fas fa-university me-2"></i>جاهزية الحسابات المصرفية</h3></div>
+        <div class="card-body">
+            <p class="text-muted">
+                يُثبَّت لكل موظف حسابه النافذ لحظة حساب التشغيل، وإليه تُوجَّه أوامر الدفع وملف الخزينة. تبديل الحساب بعد الحساب يسري من الدورة التالية.
+            </p>
+            <dl class="row mb-0">
+                <dt class="col-sm-4">بنود بحساب مثبَّت</dt>
+                <dd class="col-sm-8" data-testid="run-bank-readiness-with">@readiness.LinesWithAccount</dd>
+                <dt class="col-sm-4">بنود بلا حساب</dt>
+                <dd class="col-sm-8" data-testid="run-bank-readiness-without">@readiness.LinesWithoutAccount</dd>
+                <dt class="col-sm-4">بنود أُحيل حسابها المثبَّت بعد الحساب</dt>
+                <dd class="col-sm-8" data-testid="run-bank-readiness-retired">@readiness.EmployeesWithRetiredAccount.Count</dd>
+            </dl>
+            @if (readiness.EmployeesWithoutAccount.Count > 0)
+            {
+                <details class="mt-3" open="@(readiness.EmployeesWithoutAccount.Count <= 12 ? "open" : null)">
+                    <summary>الموظفون بلا حساب مصرفي مثبَّت (@readiness.EmployeesWithoutAccount.Count)</summary>
+                    <ul class="mt-2 mb-0" data-testid="run-bank-readiness-names">
+                        @foreach (var employeeId in readiness.EmployeesWithoutAccount)
+                        {
+                            <li>
+                                @await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(employeeId, employeeNames.GetValueOrDefault(employeeId)))
+                                <a asp-controller="EmployeeBankAccounts" asp-action="Index" asp-route-employeeId="@employeeId" class="btn btn-outline-secondary btn-xs ms-2">الحسابات المصرفية</a>
+                            </li>
+                        }
+                    </ul>
+                </details>
+            }
+            @if (readiness.EmployeesWithRetiredAccount.Count > 0)
+            {
+                <div class="alert alert-warning mt-3 mb-0" role="alert">
+                    أُحيل الحساب المثبَّت لهؤلاء بعد حساب التشغيل، وعلى كل منهم حجز صرف في هذا التشغيل إلى أن يُفرج عنه:
+                    <ul class="mb-0" data-testid="run-bank-readiness-retired-names">
+                        @foreach (var employeeId in readiness.EmployeesWithRetiredAccount)
+                        {
+                            <li>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(employeeId, employeeNames.GetValueOrDefault(employeeId)))</li>
+                        }
+                    </ul>
+                </div>
+            }
+        </div>
+    </div>
+}
+
 <div class="card">
 
     <div class="card-header d-flex justify-content-between">
