@@ -413,6 +413,41 @@ they were stamped then.
   documents and tests. The final commit is built and deployed once more after the push, beside the wait for CI, and the
   four checks are run again (recorded in the merge note below).
 
+- **Local gates on `014db7e3` (the final commit of the feature branch):** `scripts/ci/run-steps.sh --all` in a fresh clone,
+  without shared compiler servers (00:09Z to 00:46Z, 2,244 s): **87 steps passed, 0 failed**, 5 not run and named
+  (`Integration tests (Testcontainers)`: run natively on the same code, 264 passed and 1 skipped; `Coverage gate`,
+  `Install ReportGenerator`, `Generate coverage report`: they follow that step and would install a global tool;
+  `Verify Docker builds`: the images were built here one at a time and seventeen on the server). In it: build 428 s, unit
+  474 s, architecture 5 s, integration 403 s. `scripts/plan035-prepush.ps1`: gitleaks, actionlint, cilocal, forbidden,
+  nonprod and signatures PASS (16 commits, unsigned, not required).
+- **The server on the final commit.** Build of `014db7e3a01a`, detached (00:09:34Z to about 00:43Z): build 1,971 s, push
+  35 s, 17 of 17; disk 32 GB before, 15 GB at the lowest seen, 25 GB after. **The first deploy (00:49:36Z) stopped at
+  `keycloak-reconcile` after PostgreSQL was recreated — the known PLAN-40 incident — and left the application containers
+  created and not started (`deployments.log`: `up-failed`).** The same command was run again at once (00:52:09Z to 00:55:35Z):
+  pull 4 s, up 119 s, bootstrap 55 s, reconcile 14 s, healthy 15 s; `2026-11-24T00:54:47Z|tag=014db7e3a01a|action=deploy|
+  result=healthy|previous=83b99786a420`; smoke pass 50, fail 0, warn 1. **The demo was down for about 5 minutes** (00:50Z to
+  00:55Z). This plan's four checks again on `014db7e3a01a`: all **Passed** (the screens check in 2 min 55 s). The migration
+  check's comparison with P0's picture needed the adjustments' count raised from 80 to 85: five zero-amount adjustments were
+  written between 20:55Z and 21:41Z by Payroll's own consumers during the older plans' server checks (two leave approvals with
+  their cancellations, one disciplinary warning), each `System` and `Approved` — the system writers behave as designed.
+  The checks left a second version of `LAW_50_2004_CHK54` (approved, attested, unpublished) and a second rejected allowance.
+- **The pull request:** <https://github.com/omardefdev/HRManagement/pull/54>, `release/plan-54` (`origin/main` + one `--no-ff`
+  merge of the feature branch) pushed 2026-11-24T00:49:12Z.
+- **CI, first run (45300243393, 00:49Z to 01:51Z):** `CI` pass (42 min 24 s), `CodeQL` pass, `Gitleaks` pass, `E2E` pass
+  (13 min 20 s), `Acceptance images` pass, the stages lab-main, lab-rest, leastpriv, prodlike-policy and prodlike-final pass;
+  **`Acceptance stage (prodlike)` failed.** Five tests: AC-IAM-53a (and 53d, which needs 53a) and AC-PAY-54a, 54c, 54e, all
+  with the same answer to «calculate»: «لا يمكن إتمام تشغيل الراتب — 1 موظفاً لديهم استثناء نظام خدمة مفتوح أو بدون نظام مصنّف».
+  **Cause, read from the stage's trx:** the classes of a group run in an order that changes from run to run; in this run
+  `AcIam50ApproverReachDelegationTests` ran before the payroll classes, and its 50b adds an employment record through the
+  form — open, with no service regime — which makes that employee a payroll blocker for every later run of the agency
+  (the gate is the product's, PLAN-53 §12). PLAN-53's own pull request passed because its run drew another order. Not a
+  defect of the product or of this plan's code; a test of PLAN-53 and the new class shared one hidden precondition.
+  **Fix (release branch only):** `AcceptancePayrollRegime.ClassifyRecordsAddedSinceTheSeedAsync`, a stated test precondition
+  that applies the acceptance seed's classification to records added after the seed, called before each calculation in
+  `AcPay54LegalFrameworkTests` and before 53a's run. Exceptions of other types are left to block. **Reproduced and proved
+  locally** on a fresh prod-like stack in the failing order: `AcIam50…` 5/5, then `AcIam53…` 5/5 and `AcPay54…` 6/6; the
+  record 50b added reads `law50`. Unit 6792/6792, architecture 388/388, format clean.
+
 ## Decisions (with reasons)
 
 Recorded as they are taken; see each phase.

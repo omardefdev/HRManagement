@@ -341,6 +341,10 @@ public class AcIam53SalaryChangeTests
             $"FROM \"PayProfileChangeRequests\" WHERE \"Id\"='{request}';");
 
         // 5. The month's run.
+        // PLAN-54 (found by its pull request's Acceptance run): a class that ran earlier on this stack may have added an
+        // employment record after the seed (AC-IAM-50b does), and the service-regime gate then refuses every run of the agency.
+        // The seed's classification is applied to such records first; the order of a group's classes changes from run to run.
+        await AcceptancePayrollRegime.ClassifyRecordsAddedSinceTheSeedAsync(TenantA);
         var (created, createdBody) = await processorApi.PostAsync("create-run", "api/payroll/runs", new
         {
             periodStart = month.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),

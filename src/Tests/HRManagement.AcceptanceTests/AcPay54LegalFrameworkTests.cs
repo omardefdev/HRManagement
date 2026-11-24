@@ -17,6 +17,9 @@ namespace HRManagement.AcceptanceTests;
 /// not attest, an editor does not approve or publish, nothing is published from a draft; an interim value that cites an exception the
 /// catalog does not hold stops the approval; a version is not published into a posted period; and a manual allowance waits for a
 /// second person and enters no calculation before that.
+/// Before each calculation it applies the acceptance seed's service-regime classification to employment records that other classes of
+/// the same stack added after the seed (<see cref="AcceptancePayrollRegime"/>): the classes of a group run in an order that changes
+/// from run to run, and one unclassified record refuses every run of the agency.
 /// The class uses its own codes (<c>LAW_50_2004_AC54*</c>) and its own months (2031-01 to 2031-03, 2031-06, 2031-07): a version of 2031 changes
 /// nothing before 2031 for any other class on the stack. Its steps run in order (54c needs 54a's version and run). A second run of the
 /// class on the same stack finds its code already there and stops at 54a's precondition: it needs a fresh stack. Nothing stops or
@@ -160,6 +163,9 @@ public class AcPay54LegalFrameworkTests
 
     private static async Task<string> CreateAndCalculateAsync(Api processor, string tag, DateOnly month)
     {
+        // A stated precondition, not what this class proves: employment records other classes of the stack added after the seed
+        // are classified as the seed classifies its own, or the service-regime gate refuses every run of the agency.
+        await AcceptancePayrollRegime.ClassifyRecordsAddedSinceTheSeedAsync(TenantA);
         var (created, createdBody, createdText) = await processor.PostAsync($"{tag}-create-run", "api/payroll/runs", new
         {
             periodStart = month.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
