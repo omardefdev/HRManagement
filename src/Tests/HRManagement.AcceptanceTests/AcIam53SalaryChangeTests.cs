@@ -25,7 +25,7 @@ public sealed class ScenarioNameOrderer : ITestCaseOrderer
 
 /// <summary>
 /// AC-IAM-53a–e (PLAN-53) on the prod-like stack, through the gateway. A salary changes by a request a processor makes and another person
-/// approves; the approved change is applied by one applier that carries the unit, the regime and the bank account, and a payroll run of the
+/// approves; the approved change is applied by one applier that carries the unit and the regime, and a payroll run of the
 /// month holds it. The negatives: the requester cannot approve, an approver cannot request, a payroll user with neither role writes no
 /// master data, another agency's approver gets 404, a salary outside the grade's bounds, a mid-month date and a second open request are
 /// refused, a change cannot enter a frozen month, and a grade in use cannot be deleted. A grade's bounds change by a request too.
@@ -96,7 +96,7 @@ public class AcIam53SalaryChangeTests
 
     /// <summary>
     /// An agency-A employee no scenario has used: an active profile that began before this month, a unit, a grade with both bounds
-    /// around the salary and room for 1000 either way, and no salary change request at all. The ones with a bank account and a regime
+    /// around the salary and room for 1000 either way, and no salary change request at all. The ones with a regime
     /// come first. <paramref name="inRun"/> keeps to the employees of that run; <paramref name="noLineIn"/> to those no run of that month holds.
     /// </summary>
     private static async Task<Pick> PickEmployeeAsync(EvidenceRecorder recorder, string step, string? inRun = null, DateOnly? noLineIn = null)
@@ -237,15 +237,15 @@ public class AcIam53SalaryChangeTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync(Ac, "53a",
-            "AC-IAM-53a: the processor requests a raise from the first day of the current month; it waits; he cannot approve it; the approver approves and it is applied to a new profile version that carries the unit, the regime and the bank account; the month's run holds the new salary",
+            "AC-IAM-53a: the processor requests a raise from the first day of the current month; it waits; he cannot approve it; the approver approves and it is applied to a new profile version that carries the unit, the regime and the grade; the month's run holds the new salary",
             Processor, Approver);
         s.Steps("""
             1. Precondition, in before.json: no payroll run of the current month (Damascus date) covers the employee — agency A has no
                Regular run of the month, and no run of another kind holds a line of his (the seed's FinalSettlement and Correction runs
                of some months have no lines). A second run of the class on the same stack stops here: 53a freezes the month, so a
                rerun needs a fresh stack.
-               Test-only precondition (psql, payroll_db): the employee's seeded pay profile gets a bank account, a bank name, a
-               verification time and a regime code; the seed leaves them empty, and the copy must be proved on real values.
+               Test-only precondition (psql, payroll_db): the employee's seeded pay profile gets a regime code; the seed leaves it
+               empty, and the copy must be proved on a real value. (Since PLAN-55 the bank account is no field of a pay profile.)
             2. payroll-processor opens the salary change form of an agency-A employee and requests a salary inside the grade's bounds
                from the first day of the current month, with a reason and a legal reference → the request's page, state PendingApproval;
                the active pay profile is the same row with the same salary.
@@ -253,8 +253,8 @@ public class AcIam53SalaryChangeTests
                it was. (No account holds both payroll-processor and payroll-approver; the rule «not the requester» for a user who
                holds both is proved by Iam053SalaryChangeStateMachineTests and Iam053PayrollScopeHttpTests.)
             4. payroll-approver approves on the screen → Applied. The previous version is closed the day before; the new version is the
-               only active one, starts on the first day of the month, holds the new salary, and carries the unit, the regime, the bank
-               account, the bank name, the verification time and the grade of the previous one. A history row of the previous version
+               only active one, starts on the first day of the month, holds the new salary, and carries the unit, the regime and
+               the grade of the previous one. A history row of the previous version
                exists. payroll_db's outbox sequence advanced by the two events (decided, applied) and no outbox row is left.
             5. payroll-processor creates the Regular run of the current month, calculates and validates it → frozen. The run's input
                snapshot of the employee names the new version and its salary, and his line's base component is the new salary for the
