@@ -14,8 +14,8 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 | P2 the pinning | done | 2026-11-24T06:46:59Z |
 | P3 the versions | done | 2026-11-24T07:17:16Z |
 | P4 the repair | done | 2026-11-24T07:49:45Z |
-| P5 PostgreSQL proofs | next | |
-| P6 acceptance, review | | |
+| P5 PostgreSQL proofs | done | 2026-11-24T08:21:43Z |
+| P6 acceptance, review | next | |
 | P7 main | | |
 | P8 demo server | | |
 | P9 docs, gates, report, merge | | |
@@ -40,6 +40,8 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 | P3 unit suites it touches (Pay055, Iam053, Pay029, writers, consumers) | 07:05 | 07:06 | 360 passed |
 | P3 PostgreSQL and HTTP tests (build + run) | 07:08:28 | 07:12:34 | 50 passed |
 | P3 full build `-warnaserror` + architecture tests | 07:12:45 | 07:15:37 | 0 warnings, 0 errors; 400 passed |
+| P5 `Pay055BankAccountPostgreSqlTests` (8) | 07:57 | 07:58 | 8 passed, 34 s |
+| P5 CI's full Testcontainers filter on the host (`Category=Testcontainers&Category!=ObjectStorage`) | 07:59:30 | 08:20:06 | 282 passed, 1 skipped, 20 min 28 s |
 | P4 chain: full build, architecture, PLAN-55 integration, full unit suite | 07:30:27 | 07:45:51 | 0 errors; 401 passed; 19 of 20 (one test of mine assumed a branch-restricted hr-admin; rewritten, 6 of 6 after); 6920 passed, 10 min 2 s |
 
 Stops: none so far.
@@ -144,6 +146,13 @@ Stops: none so far.
 - **D29 — The repair copies from the employee's own history only.** A profile whose empty unit or regime no profile of the same
   employee carries is reported in `notFillableProfileIds` and left alone: the repair invents no value.
 
+- **D30 — The plan's concurrency test, as it can exist.** The plan words it «two concurrent verifications of two accounts of the
+  same employee». One employee never has two accounts waiting (the index allows one), so two verifications at once are of the same
+  account: `xmin` decides (proved deterministically with a stale read, and with six sessions at once: one wins, five are 409). The
+  index decides what the handlers' own reads cannot see: six registrations at once leave one waiting account, and a second row in
+  force or waiting written directly is refused by `IX_EmployeeBankAccounts_OneActiveOnePending`. D3 is proved: sixteen replacements
+  in a row, each retiring the account in force and activating the new one in one save.
+
 ## Notes for later phases (so documents are not read twice)
 
 - Patterns to follow: `PayProfileChangesApiController` (antiforgery endpoint, `[OrgScoped]`, policies per action, `PayProfileChangeHttp`),
@@ -198,6 +207,9 @@ Stops: none so far.
   (`HrManagementRoles.cs`, `HrManagementAuthorizationExtensions.cs`), `scripts/pay055-backfill-profile-orgunit.ps1`; tests
   `Pay055ProfileRepairTests`, two tests in `Pay055BankAccountHttpTests`, rows in `PayrollWriteActionsTests`.
 
+- P5 (1 file): four tests added to `Pay055BankAccountPostgreSqlTests` (two verifications at once; two registrations at once and the
+  index; sixteen replacements in one save each; a retirement racing a replacement's verification).
+
 ## Server changes and their undo
 
 None yet (P0 only read).
@@ -208,7 +220,12 @@ None.
 
 ## The exact next step
 
-P5: in `Pay055BankAccountPostgreSqlTests`, the concurrent verification proof (two sessions verify the same pending account at once:
-one wins, the other 409 by `xmin`; a second Active or Pending row planted by SQL is refused by the index; a verification that
-retires the account in force is ordered right, many times over). The pinning and the two event-order proofs are already there.
-Then the full Testcontainers filter of CI on the host (`Category=Testcontainers&Category!=ObjectStorage`).
+P6: move the two drafts from the session's scratchpad into the tree (`scripts/pay055-validate.ps1`,
+`src/Tests/HRManagement.AcceptanceTests/AcPay55BankAccountTests.cs`); add the class to `tests/acceptance/ci-scope.json` (`prodLike[]`,
+required, group `main`) and `AC-PAY-55` to `tests/acceptance/ac-ownership.json`; add `AC-PAY-55` to the scenarios of the personas it
+uses (`payroll-processor`, `payroll-approver`, `a-directory-checker`, `b-payroll-processor`, `b-payroll-approver`) — before any
+image build; update AC-IAM-53's reason text and class summary (no bank account in the copy any more); add the accounts' pages and
+the run's readiness card to AC-UX-67's key pages. Then: check the disk, `scripts/acceptance-reset.ps1`, build the images one service
+at a time, start the prod-like stack, verify on it which gateway path reaches `api/payroll/admin/…` (the repair script uses
+`/api/payroll/api/payroll/admin`), run `AcPay55BankAccountTests`, then P-13's lists, `pay055-validate.ps1` (and `-SelfTest`), the
+seeded counts, `down -v`. Then the independent review.

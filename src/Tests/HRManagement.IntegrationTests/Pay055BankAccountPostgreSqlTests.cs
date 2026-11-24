@@ -317,4 +317,202 @@ public sealed partial class Pay055BankAccountPostgreSqlTests(PostgreSqlFixture f
         var active = Assert.Single(await ProfilesOfAsync(db, employee), p => p.IsActive);
         Assert.Equal((UnitOfTheNewHire, "law50", 270_000m), (active.OrgUnitId, active.RegimeCode, active.BaseSalary));
     }
+
+    // --- concurrency (the plan's first proof) ---
+    //
+    // The plan words it «two concurrent verifications of two accounts of the same employee». One employee never has two accounts
+    // waiting (the index allows one), so two verifications at once are of the same account: xmin decides. The index decides the races
+    // the handlers' own checks cannot see: two registrations at once, and any second row in force or waiting, however it is written.
+
+    private static (AsyncServiceScope Scope, PayrollDbContext Db, IMediator Mediator) Session(ServiceProvider root)
+    {
+        var scope = root.CreateAsyncScope();
+        return (scope, scope.ServiceProvider.GetRequiredService<PayrollDbContext>(), scope.ServiceProvider.GetRequiredService<IMediator>());
+    }
+
+    private static Task<BankAccountResult> RegisterAsync(IMediator mediator, Guid employee, int variant, Guid? actor = null) =>
+        mediator.Send(new RequestBankAccountCommand(
+            employee, BankAccountKind.Iban, Pay055TestAccounts.Iban(employee, variant), null, "مصرف الاختبار", null, actor ?? Processor, null));
+
+    private static async Task<List<(Guid Id, BankAccountStatus Status)>> AccountsOfAsync(PayrollDbContext db, Guid employee)
+    {
+        db.ChangeTracker.Clear();
+        return (await db.EmployeeBankAccounts.AsNoTracking().Where(a => a.EmployeeId == employee).OrderBy(a => a.CreatedAt).ToListAsync())
+            .Select(a => (a.Id, a.Status)).ToList();
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task Two_verifications_of_one_account_at_once_one_wins_and_the_other_is_a_conflict()
+    {
+        Skip.IfNot(PostgreSqlFixture.IsEnabled, "Set RUN_TESTCONTAINERS=true and start Docker.");
+        var (root, scope, db, mediator) = await PayrollPostgresTestSupport.CreateScopeAsync(fixture);
+        await using var disposeScope = scope;
+        await using var disposeRoot = root;
+        await PayrollPostgresTestSupport.SeedEmployeesAsync(db, 2);
+        var (e1, e2) = (Employee(1), Employee(2));
+
+        // 1. Deterministic: the second approver read the account while it was waiting; the first one's verification is saved in between.
+        var pending = (await RegisterAsync(mediator, e1, 0)).AccountId!.Value;
+        var second = Session(root);
+        await using (second.Scope)
+        {
+            var read = await second.Db.EmployeeBankAccounts.SingleAsync(a => a.Id == pending);          // tracked, as it was
+            Assert.Equal(BankAccountStatus.PendingVerification, read.Status);
+
+            var first = await mediator.Send(new VerifyBankAccountCommand(e1, pending, "كتاب المصرف 1", Approver, null));
+            Assert.True(first.Success, first.Error);
+
+            var late = await second.Mediator.Send(new VerifyBankAccountCommand(e1, pending, "كتاب المصرف 2", OtherApprover, null));
+            Assert.False(late.Success);
+            Assert.Equal((BankAccountFailure.Conflict, 409, BankAccountMessages.ChangedConcurrently), (late.Failure, late.StatusCode, late.Error));
+        }
+
+        var stored = await db.EmployeeBankAccounts.AsNoTracking().SingleAsync(a => a.Id == pending);
+        Assert.Equal((BankAccountStatus.Active, Approver, "كتاب المصرف 1"), (stored.Status, stored.VerifiedBy!.Value, stored.VerificationReference));
+
+        // 2. In earnest: six sessions verify the same waiting account at the same moment. Exactly one wins; the others are conflicts,
+        //    by xmin or because they already read it in force; the account was verified once.
+        var contested = (await RegisterAsync(mediator, e2, 0)).AccountId!.Value;
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var verifiers = Enumerable.Range(0, 6).Select(n => Task.Run(async () =>
+        {
+            var session = Session(root);
+            await using (session.Scope)
+            {
+                await gate.Task;
+                return (N: n, Result: await session.Mediator.Send(new VerifyBankAccountCommand(
+                    e2, contested, $"كتاب المصرف {n}", Guid.Parse($"55000000-0000-4000-8000-0000000001{n:D2}"), null)));
+            }
+        })).ToList();
+        gate.SetResult();
+        var outcomes = await Task.WhenAll(verifiers);
+
+        var winner = Assert.Single(outcomes, o => o.Result.Success);
+        Assert.All(outcomes.Where(o => !o.Result.Success), o => Assert.Equal(409, o.Result.StatusCode));
+        var settled = await db.EmployeeBankAccounts.AsNoTracking().SingleAsync(a => a.Id == contested);
+        Assert.Equal((BankAccountStatus.Active, $"كتاب المصرف {winner.N}"), (settled.Status, settled.VerificationReference));
+        Assert.Equal(Guid.Parse($"55000000-0000-4000-8000-0000000001{winner.N:D2}"), settled.VerifiedBy);
+        output.WriteLine($"6 verifications at once: 1 won ({winner.N}), 5 conflicts.");
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task Two_registrations_at_once_leave_one_waiting_account_and_the_index_refuses_any_second_row_in_force_or_waiting()
+    {
+        Skip.IfNot(PostgreSqlFixture.IsEnabled, "Set RUN_TESTCONTAINERS=true and start Docker.");
+        var (root, scope, db, mediator) = await PayrollPostgresTestSupport.CreateScopeAsync(fixture);
+        await using var disposeScope = scope;
+        await using var disposeRoot = root;
+        await PayrollPostgresTestSupport.SeedEmployeesAsync(db, 2);
+        var (e1, e2) = (Employee(1), Employee(2));
+
+        // Six processors register an account for the same employee at the same moment: one is accepted, the others are 409 — by the
+        // handler's own read, or by the index when two of them passed that read together.
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var registrations = Enumerable.Range(0, 6).Select(n => Task.Run(async () =>
+        {
+            var session = Session(root);
+            await using (session.Scope)
+            {
+                await gate.Task;
+                return await RegisterAsync(session.Mediator, e1, n, Guid.Parse($"55000000-0000-4000-8000-0000000002{n:D2}"));
+            }
+        })).ToList();
+        gate.SetResult();
+        var results = await Task.WhenAll(registrations);
+
+        Assert.Single(results, r => r.Success);
+        Assert.All(results.Where(r => !r.Success), r => Assert.Equal((409, BankAccountMessages.PendingExists), (r.StatusCode, r.Error)));
+        Assert.Equal(BankAccountStatus.PendingVerification, Assert.Single(await AccountsOfAsync(db, e1)).Status);
+
+        // The index is the last line, whatever writes the row: a second waiting account, then a second account in force.
+        var inForce = await RegisterAndVerifyAsync(mediator, e2, 0);
+        var waiting = (await RegisterAsync(mediator, e2, 1)).AccountId!.Value;
+        foreach (var status in new[] { BankAccountStatus.PendingVerification, BankAccountStatus.Active })
+        {
+            db.ChangeTracker.Clear();
+            var planted = Pay055TestAccounts.Active(e2, variant: 5);
+            planted.Status = status;
+            db.Add(planted);
+            var refused = await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
+            Assert.Equal(PayrollChangeIndexNames.OneActiveOnePendingBankAccount, (refused.InnerException as Npgsql.PostgresException)?.ConstraintName);
+        }
+
+        Assert.Equal(new[] { (inForce, BankAccountStatus.Active), (waiting, BankAccountStatus.PendingVerification) }, await AccountsOfAsync(db, e2));
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task A_verification_retires_the_account_in_force_and_puts_its_replacement_in_force_in_one_save_every_time()
+    {
+        Skip.IfNot(PostgreSqlFixture.IsEnabled, "Set RUN_TESTCONTAINERS=true and start Docker.");
+        var (root, scope, db, mediator) = await PayrollPostgresTestSupport.CreateScopeAsync(fixture);
+        await using var disposeScope = scope;
+        await using var disposeRoot = root;
+        await PayrollPostgresTestSupport.SeedEmployeesAsync(db, 1);
+        var employee = Employee(1);
+
+        // One save updates two rows of the same employee: the account in force leaves the index (Retired) and its replacement enters
+        // it (Active). Sent the other way round, PostgreSQL would refuse the second row in force. The ids are random, so sixteen
+        // replacements meet both orders of the two keys.
+        var current = await RegisterAndVerifyAsync(mediator, employee, 0);
+        for (var round = 1; round <= 16; round++)
+        {
+            db.ChangeTracker.Clear();
+            var replacement = await RegisterAsync(mediator, employee, round);
+            Assert.True(replacement.Success, replacement.Error);
+            var verified = await mediator.Send(new VerifyBankAccountCommand(
+                employee, replacement.AccountId!.Value, $"كتاب المصرف {round}", round % 2 == 0 ? Approver : OtherApprover, null));
+            Assert.True(verified.Success, $"round {round}: {verified.Error}");
+            Assert.Equal(current, verified.RetiredAccountId);
+            current = replacement.AccountId.Value;
+        }
+
+        var accounts = await AccountsOfAsync(db, employee);
+        Assert.Equal(17, accounts.Count);
+        Assert.Equal(current, Assert.Single(accounts, a => a.Status == BankAccountStatus.Active).Id);
+        Assert.Equal(16, accounts.Count(a => a.Status == BankAccountStatus.Retired));
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task A_retirement_and_a_replacements_verification_at_once_retire_the_account_once_and_hold_its_run_once()
+    {
+        Skip.IfNot(PostgreSqlFixture.IsEnabled, "Set RUN_TESTCONTAINERS=true and start Docker.");
+        var (root, scope, db, mediator) = await PayrollPostgresTestSupport.CreateScopeAsync(fixture);
+        await using var disposeScope = scope;
+        await using var disposeRoot = root;
+        await PayrollPostgresTestSupport.SeedPublishedConfigAsync(db);
+        await PayrollPostgresTestSupport.SeedEmployeesAsync(db, 1);
+        var employee = Employee(1);
+        var inForce = await RegisterAndVerifyAsync(mediator, employee, 0);
+        var run = await CalculateAsync(db, mediator, Utc(2026, 10, 1), Utc(2026, 10, 31));          // the run pins the account in force
+        var replacement = (await RegisterAsync(mediator, employee, 1)).AccountId!.Value;
+
+        var second = Session(root);
+        await using (second.Scope)
+        {
+            // An approver opened the account in force to retire it...
+            var read = await second.Db.EmployeeBankAccounts.SingleAsync(a => a.Id == inForce);
+            Assert.Equal(BankAccountStatus.Active, read.Status);
+
+            // ...while another verified its replacement, which retires it and holds the run's line.
+            db.ChangeTracker.Clear();
+            var verified = await mediator.Send(new VerifyBankAccountCommand(employee, replacement, "كتاب المصرف 2", OtherApprover, null));
+            Assert.True(verified.Success, verified.Error);
+            Assert.Equal((inForce, 1), (verified.RetiredAccountId!.Value, verified.HoldsPlaced));
+
+            var late = await second.Mediator.Send(new RetireBankAccountCommand(employee, inForce, "أغلق الموظف حسابه", Approver, null));
+            Assert.False(late.Success);
+            Assert.Equal(409, late.StatusCode);
+        }
+
+        db.ChangeTracker.Clear();
+        var retired = await db.EmployeeBankAccounts.AsNoTracking().SingleAsync(a => a.Id == inForce);
+        Assert.Equal((BankAccountStatus.Retired, OtherApprover, BankAccountMessages.ReplacedByVerifiedAccount), (retired.Status, retired.RetiredBy!.Value, retired.RetirementReason));
+        var hold = Assert.Single(await db.PaymentHolds.AsNoTracking().Where(h => h.PayrollRunId == run).ToListAsync());
+        Assert.Equal((employee, PaymentHoldStatus.Active), (hold.EmployeeId, hold.Status));
+        Assert.StartsWith(EmployeeBankAccount.RetiredHoldRule, hold.Reason);
+    }
 }
