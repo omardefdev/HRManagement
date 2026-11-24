@@ -218,4 +218,103 @@ public sealed partial class Pay055BankAccountPostgreSqlTests(PostgreSqlFixture f
         Assert.True((await mediator.Send(new RetireBankAccountCommand(e1, registered.AccountId.Value, "أغلق الموظف حسابه", Approver, null))).Success);
         Assert.Equal((false, false), await DsarAsync(db, e1));
     }
+
+    // --- the order of the two events (the plan's second proof) ---
+
+    private static readonly Guid UnitOfTheNewHire = Guid.Parse("55000000-0000-4000-8000-0000000000a1");
+
+    private static async Task<List<EmployeePayProfile>> ProfilesOfAsync(PayrollDbContext db, Guid employee)
+    {
+        db.ChangeTracker.Clear();
+        return await db.EmployeePayProfiles.AsNoTracking().Where(p => p.EmployeeId == employee).OrderBy(p => p.CreatedAt).ToListAsync();
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task Employee_created_then_contract_activated_leaves_an_active_profile_with_the_unit_and_the_regime()
+    {
+        Skip.IfNot(PostgreSqlFixture.IsEnabled, "Set RUN_TESTCONTAINERS=true and start Docker.");
+        var (root, scope, db, mediator) = await PayrollPostgresTestSupport.CreateScopeAsync(fixture);
+        await using var disposeScope = scope;
+        await using var disposeRoot = root;
+        var events = root.GetRequiredService<RecordingPayProfileChangeEvents>();
+        var employee = Guid.NewGuid();
+        var contract = Guid.NewGuid();
+
+        await mediator.Send(new Payroll.Application.Features.InboundEvents.HandleEmployeeCreatedCommand(employee, UnitOfTheNewHire, "law50"));
+        var placeholder = Assert.Single(await ProfilesOfAsync(db, employee));
+        Assert.Equal((false, 0m, (Guid?)UnitOfTheNewHire, "law50"), (placeholder.IsActive, placeholder.BaseSalary, placeholder.OrgUnitId, placeholder.RegimeCode));
+        Assert.Equal(TimeSpan.Zero, placeholder.EffectiveFrom.TimeOfDay);       // a calendar date, not the instant of the event
+
+        // The contract started before the employee's record reached Payroll: the placeholder holds no day, so nothing refuses it.
+        var start = Utc(2026, 9, 1);
+        db.ChangeTracker.Clear();
+        await mediator.Send(new Payroll.Application.Features.InboundEvents.HandleContractActivatedCommand(contract, employee, "PERM", start, 250_000m, null));
+
+        var profiles = await ProfilesOfAsync(db, employee);
+        var active = Assert.Single(profiles, p => p.IsActive);
+        Assert.Equal((UnitOfTheNewHire, "law50", 250_000m, start), (active.OrgUnitId, active.RegimeCode, active.BaseSalary, active.EffectiveFrom));
+        var closed = Assert.Single(profiles, p => !p.IsActive);
+        Assert.Equal((placeholder.Id, Utc(2026, 8, 31)), (closed.Id, closed.EffectiveTo));
+
+        // One save wrote the version, the request row, the zero adjustment and the history; the event was staged once.
+        var request = await db.PayProfileChangeRequests.AsNoTracking().SingleAsync(r => r.EmployeeId == employee);
+        Assert.Equal(
+            (PayProfileChangeState.Applied, PayProfileChangeSource.ContractActivated, contract.ToString("D"), active.Id, (Guid?)UnitOfTheNewHire),
+            (request.State, request.Source, request.SourceReference, request.AppliedProfileId!.Value, request.OrgUnitId));
+        Assert.Equal(1, await db.PayrollAdjustments.AsNoTracking().CountAsync(a => a.EmployeeId == employee && a.Amount == 0m));
+        Assert.Equal(1, await db.EmployeePayProfileHistories.AsNoTracking().CountAsync(x => x.EmployeeId == employee));
+        var applied = Assert.Single(events.Published.OfType<PayProfileChangeAppliedEvent>(), e => e.EmployeeId == employee);
+        Assert.Equal((request.Id, active.Id, "ContractActivated"), (applied.RequestId, applied.NewProfileId, applied.Source));
+
+        // The same message again: nothing changes (and the database's own index allows one active profile only).
+        db.ChangeTracker.Clear();
+        await mediator.Send(new Payroll.Application.Features.InboundEvents.HandleContractActivatedCommand(contract, employee, "PERM", start, 250_000m, null));
+        Assert.Equal(2, (await ProfilesOfAsync(db, employee)).Count);
+        Assert.Equal(1, await db.PayProfileChangeRequests.AsNoTracking().CountAsync(r => r.EmployeeId == employee));
+        Assert.Equal(1, await db.PayrollAdjustments.AsNoTracking().CountAsync(a => a.EmployeeId == employee));
+        Assert.Single(events.Published.OfType<PayProfileChangeAppliedEvent>(), e => e.EmployeeId == employee);
+
+        // A second contract, later: the new version keeps the unit and the regime, and no day is in two versions.
+        db.ChangeTracker.Clear();
+        await mediator.Send(new Payroll.Application.Features.InboundEvents.HandleContractActivatedCommand(Guid.NewGuid(), employee, "PERM", Utc(2026, 12, 1), 270_000m, null));
+        profiles = await ProfilesOfAsync(db, employee);
+        var renewed = Assert.Single(profiles, p => p.IsActive);
+        Assert.Equal((UnitOfTheNewHire, "law50", 270_000m, Utc(2026, 12, 1)), (renewed.OrgUnitId, renewed.RegimeCode, renewed.BaseSalary, renewed.EffectiveFrom));
+        Assert.Equal(Utc(2026, 11, 30), profiles.Single(p => p.Id == active.Id).EffectiveTo);
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task Contract_activated_then_employee_created_leaves_an_active_profile_with_the_unit_and_the_regime()
+    {
+        Skip.IfNot(PostgreSqlFixture.IsEnabled, "Set RUN_TESTCONTAINERS=true and start Docker.");
+        var (root, scope, db, mediator) = await PayrollPostgresTestSupport.CreateScopeAsync(fixture);
+        await using var disposeScope = scope;
+        await using var disposeRoot = root;
+        var employee = Guid.NewGuid();
+
+        // The activation arrives first: nothing is known of the employee's unit or regime yet.
+        await mediator.Send(new Payroll.Application.Features.InboundEvents.HandleContractActivatedCommand(Guid.NewGuid(), employee, "PERM", Utc(2026, 9, 1), 250_000m, null));
+        var first = Assert.Single(await ProfilesOfAsync(db, employee));
+        Assert.Equal((true, (Guid?)null, (string?)null), (first.IsActive, first.OrgUnitId, first.RegimeCode));
+
+        // The late event is no longer ignored: it fills what is empty.
+        db.ChangeTracker.Clear();
+        await mediator.Send(new Payroll.Application.Features.InboundEvents.HandleEmployeeCreatedCommand(employee, UnitOfTheNewHire, "law50"));
+        var filled = Assert.Single(await ProfilesOfAsync(db, employee));
+        Assert.Equal((first.Id, true, (Guid?)UnitOfTheNewHire, "law50", 250_000m), (filled.Id, filled.IsActive, filled.OrgUnitId, filled.RegimeCode, filled.BaseSalary));
+
+        // Delivered again with other values (or after a transfer set them), it overwrites nothing.
+        db.ChangeTracker.Clear();
+        await mediator.Send(new Payroll.Application.Features.InboundEvents.HandleEmployeeCreatedCommand(employee, Guid.NewGuid(), "contract"));
+        var kept = Assert.Single(await ProfilesOfAsync(db, employee));
+        Assert.Equal(((Guid?)UnitOfTheNewHire, "law50"), (kept.OrgUnitId, kept.RegimeCode));
+
+        // And the next version carries them.
+        db.ChangeTracker.Clear();
+        await mediator.Send(new Payroll.Application.Features.InboundEvents.HandleContractActivatedCommand(Guid.NewGuid(), employee, "PERM", Utc(2026, 12, 1), 270_000m, null));
+        var active = Assert.Single(await ProfilesOfAsync(db, employee), p => p.IsActive);
+        Assert.Equal((UnitOfTheNewHire, "law50", 270_000m), (active.OrgUnitId, active.RegimeCode, active.BaseSalary));
+    }
 }

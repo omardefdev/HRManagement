@@ -11,15 +11,19 @@ namespace HRManagement.UnitTests.Architecture;
 /// longer writes fails it too (its name leaves when its consumer moves to <c>ApplySystemChangeAsync</c>). The source is read with
 /// Roslyn: a class writes when it creates an <c>EmployeePayProfile</c>, assigns a field of a variable that holds one, removes one, or
 /// calls the versioning rules.
+/// <para>
+/// PLAN-55 (§3, rule 1): a new pay profile is made in one place, <c>EmployeePayProfileVersioning.CreateNextVersion</c>. No
+/// <c>new EmployeePayProfile</c> is left in the three projects outside the seed, the contract activation went through the applier and
+/// left the list, and the list is one shorter.
+/// </para>
 /// </summary>
 public sealed class PayProfileWritersTests
 {
     /// <summary>The writers of pay profiles, each with its owner. The only way a salary or a grade changes by request is the first.</summary>
     public static readonly IReadOnlyDictionary<string, string> AllowedWriters = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        ["PayProfileChangeApplier"] = "PLAN-53: the only creator of a pay profile version for a change (an approved request, an automatic source)",
-        ["HandleContractActivatedHandler"] = "PLAN-55: contract activation (a first profile, and a new version over the previous one) moves to ApplySystemChangeAsync",
-        ["HandleEmployeeCreatedHandler"] = "PLAN-55: the inactive, unpriced profile of a new employee",
+        ["PayProfileChangeApplier"] = "PLAN-53: the only creator of a pay profile version for a change (an approved request, an automatic source; since PLAN-55 the activation of a contract too)",
+        ["HandleEmployeeCreatedHandler"] = "PLAN-55: a new employee's first, inactive, unpriced profile through CreateNextVersion; and a late event fills the empty unit and regime of the employee's current profile, never overwriting one",
         ["HandleTransferExecutedHandler"] = "PAY-G (wave 2): the transfer writes the unit, the regime and the salary difference in place",
         ["HandleSeparationCompletedHandler"] = "PLAN-64: the separation closes the profile at the end of service (it changes no salary)",
         ["HandleDisciplinaryActionHandler"] = "PLAN-64: a dismissal closes the profile (it changes no salary)",
@@ -36,7 +40,10 @@ public sealed class PayProfileWritersTests
 
     /// <summary>What makes a variable a pay profile, read from its declaration (no semantic model: the names are the repository's own).</summary>
     private static readonly string[] ProfileSources =
-        ["GetActiveProfileAsync(", "EmployeePayProfiles", "new EmployeePayProfile", "EmployeePayProfileVersioning.NextVersion("];
+    [
+        "GetActiveProfileAsync(", "EmployeePayProfiles", "new EmployeePayProfile", "EmployeePayProfileVersioning.NextVersion(",
+        "EmployeePayProfileVersioning.PreviousOf(",
+    ];
 
     public sealed record Finding(string Class, string File, int Line, string What);
 
@@ -122,7 +129,8 @@ public sealed class PayProfileWritersTests
     {
         var text = invocation.Expression.ToString();
         return text.EndsWith("EmployeePayProfileVersioning.Close", StringComparison.Ordinal)
-               || text.EndsWith("EmployeePayProfileVersioning.NextVersion", StringComparison.Ordinal);
+               || text.EndsWith("EmployeePayProfileVersioning.NextVersion", StringComparison.Ordinal)
+               || text.EndsWith("EmployeePayProfileVersioning.CreateNextVersion", StringComparison.Ordinal);
     }
 
     private static bool IsRemovalOrBulkWrite(InvocationExpressionSyntax invocation, HashSet<string> profiles)
@@ -181,15 +189,44 @@ public sealed class PayProfileWritersTests
 
         Assert.True(stale.Count == 0,
             "These classes no longer write a pay profile: remove them from PayProfileWritersTests.AllowedWriters: " + string.Join(", ", stale));
-        Assert.True(AllowedWriters.Count <= 7, "The named writers never grow: a new writer goes through the applier");
+        Assert.True(AllowedWriters.Count <= 6, "The named writers never grow: a new writer goes through the applier");
+        // PLAN-55: the contract activation makes its version through the applier and is no writer any more.
+        Assert.DoesNotContain("HandleContractActivatedHandler", AllowedWriters.Keys);
         Assert.All(AllowedWriters.Values, reason => Assert.False(string.IsNullOrWhiteSpace(reason)));
     }
 
     [Fact]
-    public void The_applier_is_the_only_caller_of_the_versioning_rules()
+    public void The_applier_and_the_new_employees_first_profile_are_the_only_callers_of_the_versioning_rules()
     {
-        var callers = ScanRepository().Where(f => f.What == "calls the versioning rules").Select(f => f.Class).Distinct().ToList();
-        Assert.Equal(["PayProfileChangeApplier"], callers);
+        var callers = ScanRepository().Where(f => f.What == "calls the versioning rules").Select(f => f.Class).Distinct()
+            .Order(StringComparer.Ordinal).ToList();
+        // The applier for every change; HandleEmployeeCreatedHandler for the first, inactive, unpriced profile (PLAN-55).
+        Assert.Equal(["HandleEmployeeCreatedHandler", "PayProfileChangeApplier"], callers);
+    }
+
+    /// <summary>The seeds: they fill an empty database, they never change a profile.</summary>
+    private static readonly string[] Seeds = ["DemoPayrollSeeder"];
+
+    [Fact]
+    public void No_pay_profile_is_created_outside_CreateNextVersion_and_the_seeds()
+    {
+        // PLAN-55 (§3, rule 1). In Payroll.Web, Payroll.Application and Payroll.Infrastructure: no `new EmployeePayProfile` but the seed's.
+        var creators = ScanRepository().Where(f => f.What == "creates a pay profile")
+            .Select(f => $"{f.Class} ({f.File}:{f.Line})").Distinct(StringComparer.Ordinal).ToList();
+        var outside = creators.Where(c => !Seeds.Any(seed => c.StartsWith(seed + " ", StringComparison.Ordinal))).ToList();
+        Assert.True(outside.Count == 0,
+            "A pay profile is created outside EmployeePayProfileVersioning.CreateNextVersion and the seeds:\n" + string.Join("\n", outside));
+        Assert.Contains(creators, c => c.StartsWith("DemoPayrollSeeder ", StringComparison.Ordinal));
+
+        // In Payroll.Domain, the only file that creates one is the versioning helper itself.
+        var domain = Path.Combine(RepoPaths.Root, "src", "Services", "Payroll", "Payroll.Domain");
+        var domainCreators = Directory.EnumerateFiles(domain, "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal)
+                        && !f.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Where(f => Scan(f, System.IO.File.ReadAllText(f)).Any(x => x.What == "creates a pay profile"))
+            .Select(Path.GetFileName)
+            .ToList();
+        Assert.Equal(["EmployeePayProfileVersioning.cs"], domainCreators);
     }
 
     [Fact]
@@ -218,6 +255,8 @@ public sealed class PayProfileWritersTests
     [InlineData("await db.EmployeePayProfiles.Where(x => x.IsActive).ExecuteUpdateAsync(s => s.SetProperty(x => x.BaseSalary, 0m));", "removes or bulk-writes pay profiles")]
     [InlineData("foreach (EmployeePayProfile p in list) { p.OrgUnitId = unit; }", "assigns OrgUnitId of a pay profile")]
     [InlineData("EmployeePayProfileVersioning.Close(previous, date);", "calls the versioning rules")]
+    [InlineData("var step = EmployeePayProfileVersioning.CreateNextVersion(id, profiles, change);", "calls the versioning rules")]
+    [InlineData("var current = EmployeePayProfileVersioning.PreviousOf(profiles); current.RegimeCode = code;", "assigns RegimeCode of a pay profile")]
     public void A_planted_write_is_found(string body, string what)
     {
         var findings = Scan("Planted.cs", $"class PlantedWriter {{ async Task Run() {{ {body} }} }}");

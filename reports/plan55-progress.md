@@ -12,8 +12,8 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 | P0 baseline | done | 2026-11-24T05:21:55Z |
 | P1 the account | done | 2026-11-24T06:11:40Z |
 | P2 the pinning | done | 2026-11-24T06:46:59Z |
-| P3 the versions | next | |
-| P4 the repair | | |
+| P3 the versions | done | 2026-11-24T07:17:16Z |
+| P4 the repair | next | |
 | P5 PostgreSQL proofs | | |
 | P6 acceptance, review | | |
 | P7 main | | |
@@ -37,6 +37,9 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 | P2 unit suites it touches (Pay055, Iam053, Frd001, Pay029, writers, determinism, Pay054) | 06:29 | 06:31 | 537 passed |
 | P2 PostgreSQL tests (build + run) | 06:32:37 | 06:36:12 | 30 passed (the real-run pinning proof, the DSAR answer, and the changed classes) |
 | P2 full build `-warnaserror` + architecture tests | 06:43:01 | 06:45:10 | 0 warnings, 0 errors; 400 passed |
+| P3 unit suites it touches (Pay055, Iam053, Pay029, writers, consumers) | 07:05 | 07:06 | 360 passed |
+| P3 PostgreSQL and HTTP tests (build + run) | 07:08:28 | 07:12:34 | 50 passed |
+| P3 full build `-warnaserror` + architecture tests | 07:12:45 | 07:15:37 | 0 warnings, 0 errors; 400 passed |
 
 Stops: none so far.
 
@@ -98,6 +101,36 @@ Stops: none so far.
 - **D17 — The obsolete columns are named as text** in `DeliberatelyNotCopied` (an obsolete member is not referenced under
   `-warnaserror`); `Iam053ApplierCopyForwardTests` now requires that only `[Obsolete]` members join the identity set there.
 
+- **D18 — `CreateNextVersion` carries the salary and the grade only from a version in force.** From a placeholder or a closed
+  version it carries who the employee is (unit, regime); the salary and grade are the source's, else 0 and none. Reason: this is
+  exactly what PAY-029's first activation did (`BaseSalary = salary ?? 0`, `PayGradeId = grade?.Id`), and a closed version's salary
+  ended with it (a re-hire).
+- **D19 — A placeholder** is a profile that is inactive and has no end (`IEmployeeCreated`'s, or the unpriced profile an activation
+  leaves inactive). It never held a day: a version replaces it whatever its date, and closing it may leave its end before its start
+  (PLAN-53's «version with no day»). A version that was already closed (inactive with an end) keeps its end and gets no second
+  snapshot.
+- **D20 — The applier's signature.** `ApplySystemChangeAsync` keeps its seven arguments; an overload adds
+  `PayProfileContractActivation(FirstVersionIsActive, HistoryReason)`, honoured for `ContractActivated` only (any other source with
+  it is refused). With it: no profile in force is needed, the proposal may be empty, and the only date rule is `StartsInside` (no day
+  of a version in force before its start, no day of a closed version).
+- **D21 — The refusal kinds of a contract activation, each recorded:**
+  1. the start date is before the start of the version in force (`BeforeCurrentVersion`) → review hold `PAY055-ACTIVATION`, consumed;
+  2. the start date is on or before the last day of a closed version (`InsidePreviousVersion`) → the same hold, consumed;
+  3. a concurrent save (`Conflict`) → thrown; MassTransit's retry delivers it again and it meets the settled state (not a loop: the
+     retry policy is bounded, and a contract already applied changes nothing);
+  4. `SalaryNotPositive`, `GradeNotFound`, `SourceReferenceTooLong` cannot occur: the handler proposes a salary only when it is
+     positive, a grade it read from the database, and a contract id of 36 characters.
+  The hold is PAY-029's pattern (a `Manual` hold with no run, the rule code at the start of its reason, its alert); one per employee.
+- **D22 — A message delivered twice:** the handler looks first for an `Applied` request of this employee with source
+  `ContractActivated` and this contract's id; when there is one it does nothing (no second adjustment, hold, version or event).
+- **D23 — `Pay029PayProfileTests.cs` is untouched.** It builds the handler from a repository and the options; the handler then uses
+  `PayProfileChangeApplier.Detached` (default rules, system calendar, no bus: no event). The host always injects the registered
+  applier: `ContractActivatedConsumerTests` (the service's real registrations) and the PostgreSQL tests assert the staged event.
+- **D24 — A negative agreed salary** was written as it came on a first activation; it is now 0 (unpriced) with PAY-029's range hold
+  when a grade is known. Not a PAY-029 behaviour a test or the plan names; recorded.
+- **D25 — A late `IEmployeeCreated`** fills the unit and the regime of the employee's current profile (in force, else the latest)
+  where they are empty. It never overwrites.
+
 ## Notes for later phases (so documents are not read twice)
 
 - Patterns to follow: `PayProfileChangesApiController` (antiforgery endpoint, `[OrgScoped]`, policies per action, `PayProfileChangeHttp`),
@@ -137,6 +170,16 @@ Stops: none so far.
   `Frd001PaymentBlockIntegrationTests` and `Pay054V2RunPostgreSqlTests` (the verified account is planted as the account entity and
   pinned by the run, instead of two profile fields); `AcIam53SalaryChangeTests` (carried fields: unit, regime, grade).
 
+- P3 (9 files): `EmployeePayProfileVersioning` (`CreateNextVersion`, `PreviousOf`, `IsPlaceholder`, `StartsInside`,
+  `PayProfileVersionChange`), `PayProfileChangeApplier` (versions through `CreateNextVersion`; the activation overload; `Detached`),
+  `PayProfileChangeMessages` (two messages), `InboundEventHandlers` (`HandleContractActivatedHandler` through the applier,
+  `HandleEmployeeCreatedHandler`); tests `Pay055ProfileVersioningTests` (36), two event-order tests in
+  `Pay055BankAccountPostgreSqlTests`, the branch-list test in `Pay055BankAccountHttpTests`. **Existing tests changed:**
+  `PayProfileWritersTests` (the contract handler leaves the list, six writers at most, creation only in `CreateNextVersion` and the
+  seed, the versioning's callers are the applier and the new employee's first profile), `ContractActivatedConsumerTests` (its
+  hand-built host gets a bus double and an empty configuration, as a service has; it now also asserts the applied request and its
+  event). `Pay029PayProfileTests` unchanged.
+
 ## Server changes and their undo
 
 None yet (P0 only read).
@@ -147,10 +190,7 @@ None.
 
 ## The exact next step
 
-P3: `EmployeePayProfileVersioning.CreateNextVersion` (active profile, else the latest; with none the first; carries unit and regime;
-salary and grade only from a version in force; closes the previous the day before; history snapshot); the applier uses it and gets
-the contract-activation terms (`ApplySystemChangeAsync` overload: first version, unpriced, one save with the handler's adjustment and
-hold); `HandleContractActivatedHandler` through the applier (two-argument constructor kept for `Pay029PayProfileTests`; a refusal →
-review hold `PAY055-ACTIVATION`, consumed; a contract already applied → nothing); `HandleEmployeeCreatedHandler` (first profile through
-`CreateNextVersion` with the calendar's date; a late event fills empty unit and regime); `PayProfileWritersTests` (the contract
-handler leaves the list); `Pay055ProfileVersioningTests`; the two event-order tests in `Pay055BankAccountPostgreSqlTests`.
+P4: the repair. `POST api/payroll/admin/backfill-profile-orgunit?dryRun=true` (a new `PayrollAdminController`, `[OrgScopeCentralOnly]`,
+policy `Payroll.Repair` = hr-admin, antiforgery on the POST, a `GET …/antiforgery`), a service in Application that lists and fills
+(one agency per call, never overwrites, one audit entry, idempotent), `scripts/pay055-backfill-profile-orgunit.ps1`; rows in
+`PayrollWriteActionsTests`; tests. Then the full unit suite (not run since P1).

@@ -5,7 +5,9 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Payroll.Application.Abstractions;
+using Payroll.Application.Features.PayProfileChanges;
 using Payroll.Application.Options;
+using Payroll.Application.Services;
 using Payroll.Domain.Constants;
 using Payroll.Domain.Entities;
 using Payroll.Domain.Enums;
@@ -26,11 +28,21 @@ public record HandleContractActivatedCommand(
 /// (IContractActivated.BaseSalary from the offer) or the grade's base. A salary outside the grade bounds, or no salary
 /// at all, still creates the profile and places a review hold (FraudAlert + PaymentHold, run-independent) so nothing is
 /// paid before HR/payroll looks at it.
+/// <para>
+/// PLAN-55 (§3): this handler no longer writes a pay profile. The version is made by PLAN-53's applier
+/// (<c>ApplySystemChangeAsync</c>, source <c>ContractActivated</c>, the contract's id in <c>SourceReference</c>), so every activation
+/// is an <c>Applied</c> request row, the new version keeps the unit and the regime, and the previous one closes the day before the
+/// contract starts. What the handler stages here (the zero adjustment, a PAY-029 hold) is written by the applier's one save. A
+/// contract already applied changes nothing (a message delivered twice). A refusal no retry would change (the start date lies inside
+/// a version that held those days) is turned into a review hold and the message is consumed; a concurrent save is thrown, and the
+/// redelivery finds the state settled.
+/// </para>
 /// </remarks>
 public class HandleContractActivatedHandler(
     IPayrollRepository repository,
     IOptions<PayrollActivationOptions>? options = null,
-    ILogger<HandleContractActivatedHandler>? logger = null)
+    ILogger<HandleContractActivatedHandler>? logger = null,
+    IPayProfileChangeApplier? applier = null)
     : IRequestHandler<HandleContractActivatedCommand>
 {
     public const string RuleOutOfRange = "PAY029-RANGE";
@@ -39,47 +51,33 @@ public class HandleContractActivatedHandler(
     public const string NoSalaryReasonAr = "لا يوجد راتب أساسي عند تفعيل العقد";
     public const string AlertCategory = "PayProfileActivation";
 
+    /// <summary>PLAN-55: the review hold of an activation the applier refused (PAY-029's pattern: the rule code starts the reason).</summary>
+    public const string RuleActivationRefused = "PAY055-ACTIVATION";
+    public const string ActivationRefusedReasonAr = "تعذّر تطبيق تفعيل العقد على ملف الأجر";
+
     private readonly ILogger _logger = logger ?? NullLogger<HandleContractActivatedHandler>.Instance;
+
+    /// <summary>The host injects the registered applier; a handler built by hand (a unit test) gets one with no bus.</summary>
+    private readonly IPayProfileChangeApplier _applier = applier ?? PayProfileChangeApplier.Detached(repository);
 
     public async Task Handle(HandleContractActivatedCommand request, CancellationToken cancellationToken)
     {
+        // A message delivered twice changes nothing the second time: this contract's activation is already an applied request.
+        var contractReference = request.ContractId.ToString("D");
+        if (await repository.PayProfileChangeRequests.AsNoTracking().AnyAsync(
+                r => r.EmployeeId == request.EmployeeId
+                     && r.Source == PayProfileChangeSource.ContractActivated
+                     && r.SourceReference == contractReference
+                     && r.State == PayProfileChangeState.Applied,
+                cancellationToken))
+            return;
+
         var grade = await ResolveGradeAsync(request, cancellationToken);
         var salary = request.BaseSalary ?? grade?.BaseSalary;
         var requireSalary = options?.Value.RequireBaseSalaryOnActivation ?? false;
         var baseSalary = salary ?? 0;
-        var existing = await repository.GetActiveProfileAsync(request.EmployeeId, cancellationToken);
 
-        if (existing is null)
-        {
-            await repository.AddAsync(new EmployeePayProfile
-            {
-                EmployeeId = request.EmployeeId,
-                PayGradeId = grade?.Id,
-                BaseSalary = baseSalary,
-                EffectiveFrom = request.StartDate,
-                // PAY-029: with Payroll:RequireBaseSalaryOnActivation an unpriced profile is created inactive.
-                IsActive = salary is not null || !requireSalary
-            }, cancellationToken);
-        }
-        else
-        {
-            await repository.AddAsync(
-                EmployeePayProfileRules.CreateHistorySnapshot(existing, $"تفعيل عقد {request.ContractType}"),
-                cancellationToken);
-
-            existing.IsActive = false;
-            existing.EffectiveTo = request.StartDate;
-
-            await repository.AddAsync(new EmployeePayProfile
-            {
-                EmployeeId = request.EmployeeId,
-                PayGradeId = grade?.Id ?? existing.PayGradeId,
-                BaseSalary = baseSalary > 0 ? baseSalary : existing.BaseSalary,
-                EffectiveFrom = request.StartDate,
-                IsActive = true
-            }, cancellationToken);
-        }
-
+        // Staged in the unit of work: the applier's one save writes them with the version, the request row and the event (PLAN-40).
         await repository.AddAsync(new PayrollAdjustment
         {
             EmployeeId = request.EmployeeId,
@@ -107,6 +105,51 @@ public class HandleContractActivatedHandler(
                 cancellationToken);
         }
 
+        // PAY-029, unchanged: the agreed salary when it is positive, else the salary of the profile in force (0 on a first activation);
+        // the resolved grade, else the grade in force; a first profile is inactive only when no salary is known and the option asks so.
+        decimal? proposedSalary = baseSalary > 0 ? baseSalary : null;
+        var kind = (proposedSalary, grade) switch
+        {
+            (not null, not null) => PayProfileChangeKind.BaseSalaryAndGrade,
+            (null, not null) => PayProfileChangeKind.PayGrade,
+            _ => PayProfileChangeKind.BaseSalary,
+        };
+        var result = await _applier.ApplySystemChangeAsync(
+            request.EmployeeId,
+            kind,
+            PayProfileChangeSource.ContractActivated,
+            contractReference,
+            proposedSalary,
+            grade?.Id,
+            // The contract's start is a calendar date (HR.Contracts sends it at 00:00 UTC): stored as that date, never shifted.
+            DateOnly.FromDateTime(request.StartDate),
+            new PayProfileContractActivation(
+                FirstVersionIsActive: salary is not null || !requireSalary,
+                HistoryReason: $"تفعيل عقد {request.ContractType}"),
+            cancellationToken);
+        if (result.Success)
+            return;
+
+        // The applier saved nothing, and nothing staged above is kept.
+        repository.ClearChangeTracker();
+        if (result.Failure == PayProfileChangeFailure.Conflict)
+        {
+            // Another save of the same employee won between the read and the save. The message is delivered again and meets the
+            // settled state: either this contract is applied by then (nothing to do) or its version is made over the new one.
+            throw new InvalidOperationException(
+                $"ContractActivated {request.ContractId}: the pay profile of employee {request.EmployeeId} changed concurrently; the message is retried.");
+        }
+
+        // No retry changes this answer: the activation waits for a person, behind a review hold that says why, and the message is consumed.
+        _logger.LogWarning(
+            "ContractActivated {ContractId}: the activation was not applied to the pay profile of employee {EmployeeId} ({Failure}); review hold raised.",
+            request.ContractId, request.EmployeeId, result.Failure);
+        await RaiseReviewHoldAsync(
+            request,
+            RuleActivationRefused,
+            ActivationRefusedReasonAr,
+            $"{ActivationRefusedReasonAr}: {result.Error} — العقد {request.ContractId}",
+            cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
     }
 
@@ -632,25 +675,52 @@ public record HandleEmployeeCreatedCommand(
     Guid? OrgUnitId = null,
     string? PayrollRegimeCode = null) : IRequest;
 
-public class HandleEmployeeCreatedHandler(IPayrollRepository repository)
+/// <summary>
+/// PLAN-55 (§3): a new employee's first pay profile — inactive, unpriced, carrying the unit and the regime — is made by
+/// <c>EmployeePayProfileVersioning.CreateNextVersion</c>, dated today in the payroll calendar. When the event arrives after a contract
+/// was activated (or after any other profile exists), it is no longer ignored: it fills the unit and the regime of the employee's
+/// current profile <b>where they are empty</b>, and never overwrites a value a later event set (a transfer).
+/// </summary>
+public class HandleEmployeeCreatedHandler(IPayrollRepository repository, IPayrollCalendar? calendar = null)
     : IRequestHandler<HandleEmployeeCreatedCommand>
 {
+    private readonly IPayrollCalendar _calendar = calendar ?? new PayrollCalendar(TimeProvider.System);
+
     public async Task Handle(HandleEmployeeCreatedCommand request, CancellationToken cancellationToken)
     {
-        if (await repository.EmployeePayProfiles.AnyAsync(p => p.EmployeeId == request.EmployeeId, cancellationToken))
-            return;
+        var profiles = await repository.EmployeePayProfiles
+            .Where(p => p.EmployeeId == request.EmployeeId)
+            .ToListAsync(cancellationToken);
 
-        await repository.AddAsync(new EmployeePayProfile
+        if (profiles.Count == 0)
         {
-            EmployeeId = request.EmployeeId,
-            OrgUnitId = request.OrgUnitId,
-            RegimeCode = request.PayrollRegimeCode,
-            BaseSalary = 0,
-            EffectiveFrom = DateTime.UtcNow,
-            IsActive = false
-        }, cancellationToken);
+            var step = EmployeePayProfileVersioning.CreateNextVersion(
+                request.EmployeeId,
+                profiles,
+                new PayProfileVersionChange(
+                    _calendar.Today, OrgUnitId: request.OrgUnitId, RegimeCode: request.PayrollRegimeCode, IsActive: false));
+            await repository.AddAsync(step.Next, cancellationToken);
+            await repository.SaveChangesAsync(cancellationToken);
+            return;
+        }
 
-        await repository.SaveChangesAsync(cancellationToken);
+        // The profile in force, else the latest: the one a later version starts from.
+        var current = EmployeePayProfileVersioning.PreviousOf(profiles)!;
+        var changed = false;
+        if (current.OrgUnitId is null && request.OrgUnitId is Guid unit)
+        {
+            current.OrgUnitId = unit;
+            changed = true;
+        }
+
+        if (string.IsNullOrWhiteSpace(current.RegimeCode) && !string.IsNullOrWhiteSpace(request.PayrollRegimeCode))
+        {
+            current.RegimeCode = request.PayrollRegimeCode.Trim();
+            changed = true;
+        }
+
+        if (changed)
+            await repository.SaveChangesAsync(cancellationToken);
     }
 }
 

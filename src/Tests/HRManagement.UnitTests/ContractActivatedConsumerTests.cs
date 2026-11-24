@@ -31,6 +31,13 @@ public class ContractActivatedConsumerTests
         services.AddLogging();
         services.AddDbContext<PayrollDbContext>(o => o.UseInMemoryDatabase(dbName));
         services.AddPayrollInfrastructure();
+        // PLAN-55: the activation goes through PLAN-53's applier, which stages IPayProfileChangeApplied on the bus. This host has no
+        // bus, so it gets a double (the outbox itself is proved on PostgreSQL and on the stack).
+        var bus = new Mock<IPublishEndpoint>();
+        services.AddSingleton(bus.Object);
+        // The applier's rules read their settings (Payroll:SalaryChange): an empty configuration gives the defaults, as a service has.
+        services.AddSingleton<Microsoft.Extensions.Configuration.IConfiguration>(
+            new Microsoft.Extensions.Configuration.ConfigurationBuilder().Build());
         await using var sp = services.BuildServiceProvider();
         await using var scope = sp.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<PayrollDbContext>();
@@ -51,5 +58,8 @@ public class ContractActivatedConsumerTests
 
         Assert.Single(db.PayrollAdjustments);
         Assert.Single(db.EmployeePayProfiles.Where(p => p.IsActive));
+        // The host's handler was given the registered applier: the activation is an applied request, and its event was staged once.
+        Assert.Single(db.PayProfileChangeRequests.Where(r => r.SourceReference == msg.ContractId.ToString("D")));
+        bus.Verify(b => b.Publish<IPayProfileChangeApplied>(It.IsAny<object>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

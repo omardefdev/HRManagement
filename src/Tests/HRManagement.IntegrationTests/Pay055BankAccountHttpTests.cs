@@ -307,4 +307,94 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
         Assert.Equal(HttpStatusCode.Forbidden, (await reader.GetAsync($"/EmployeeBankAccounts/Verify/{ownAccount}")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await reader.GetAsync($"/EmployeeBankAccounts/Create?employeeId={own}")).StatusCode);
     }
+
+    // --- P-9: the plan's «the branch manager sees it in the pay profile list» (AC-PAY-55b), with a restricted principal ---
+
+    private static async Task InHostAsync(Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext> host, Func<IServiceProvider, Task> work)
+    {
+        await using var scope = host.Host.Services.CreateAsyncScope();
+        TenantIdFlow.Set(Tenant);
+        try
+        {
+            await work(scope.ServiceProvider);
+        }
+        finally
+        {
+            TenantIdFlow.Set(null);
+        }
+    }
+
+    private static Task<EmployeePayProfile> ActiveProfileAsync(Iam052PgServiceHost<PayrollWebProgram, PayrollDbContext> host, Guid employee) =>
+        host.WithDbAsync(db => db.Set<EmployeePayProfile>().AsNoTracking().SingleAsync(p => p.EmployeeId == employee && p.IsActive));
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task After_a_salary_change_and_after_a_contract_activation_the_new_version_keeps_the_unit_and_the_regime_and_the_branch_still_lists_the_employee()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        await using var host = await StartAsync();
+        using var restricted = await WithApiTokenAsync(host.Restricted());
+        using var central = await WithApiTokenAsync(host.Central());
+        var (own, foreign) = host.Records[typeof(EmployeePayProfile)];
+        // The seed's profiles carry a unit; give both a regime too, so the copy is proved on a value.
+        await host.WithDbAsync(db => db.Set<EmployeePayProfile>().ExecuteUpdateAsync(s => s.SetProperty(p => p.RegimeCode, "law50")));
+
+        async Task AssertListedInHisBranchOnlyAsync(string step)
+        {
+            var list = await restricted.GetStringAsync("/EmployeePayProfiles");
+            Assert.True(list.Contains(own.ToString("D"), StringComparison.OrdinalIgnoreCase), $"{step}: the branch's list lost its employee");
+            Assert.False(list.Contains(foreign.ToString("D"), StringComparison.OrdinalIgnoreCase), $"{step}: the branch's list shows another unit's employee");
+            Assert.Equal(HttpStatusCode.OK, (await restricted.GetAsync($"/EmployeePayProfiles/History?employeeId={own}")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await restricted.GetAsync($"/EmployeePayProfiles/History?employeeId={foreign}")).StatusCode);
+            var everyone = await central.GetStringAsync("/EmployeePayProfiles");
+            Assert.Contains(own.ToString("D"), everyone, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains(foreign.ToString("D"), everyone, StringComparison.OrdinalIgnoreCase);
+        }
+
+        await AssertListedInHisBranchOnlyAsync("before");
+
+        // 1. A salary change by PLAN-53's transaction: the restricted user requests it for the first day of the current month
+        //    (Damascus), a central user approves it, and it is applied at once.
+        var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeBySystemTimeZoneId(DateTime.UtcNow, "Asia/Damascus"));
+        var monthStart = new DateOnly(today.Year, today.Month, 1);
+        var submitted = await restricted.PostAsJsonAsync("/api/payroll/pay-profile-changes", new
+        {
+            employeeId = own,
+            proposedBaseSalary = 5100m,
+            effectiveFrom = monthStart.ToString("yyyy-MM-dd"),
+            reason = "ترفيع استثنائي",
+            legalReference = "القرار 112 لعام 2026",
+        });
+        Assert.Equal(HttpStatusCode.Created, submitted.StatusCode);
+        var requestId = (await JsonAsync(submitted)).GetProperty("requestId").GetGuid();
+        var approved = await central.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{requestId}/approve", new { note = "موافق" });
+        Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
+        Assert.Equal("Applied", (await JsonAsync(approved)).GetProperty("state").GetString());
+
+        var afterChange = await ActiveProfileAsync(host, own);
+        Assert.Equal((5100m, (Guid?)host.OwnUnit, "law50"), (afterChange.BaseSalary, afterChange.OrgUnitId, afterChange.RegimeCode));
+        Assert.NotEqual(own, afterChange.Id);                                    // a new version (the seed's profile id is the employee id)
+        await AssertListedInHisBranchOnlyAsync("after the salary change");
+
+        // 2. A contract activation, as its consumer handles it: the version it makes keeps the unit and the regime too.
+        var contract = Guid.NewGuid();
+        var start = monthStart.AddMonths(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        await InHostAsync(host, services => services.GetRequiredService<MediatR.IMediator>().Send(
+            new Payroll.Application.Features.InboundEvents.HandleContractActivatedCommand(contract, own, "PERM", start, 5300m, null)));
+        var afterActivation = await ActiveProfileAsync(host, own);
+        Assert.Equal((5300m, (Guid?)host.OwnUnit, "law50", start), (afterActivation.BaseSalary, afterActivation.OrgUnitId, afterActivation.RegimeCode, afterActivation.EffectiveFrom));
+        Assert.Equal(start.AddDays(-1), (await host.WithDbAsync(db => db.Set<EmployeePayProfile>().AsNoTracking().SingleAsync(p => p.Id == afterChange.Id))).EffectiveTo);
+        await AssertListedInHisBranchOnlyAsync("after the contract activation");
+
+        // The activation is an applied request of his unit: it shows in his branch's list of requests, and its event is in the outbox.
+        var requests = await restricted.GetStringAsync($"/api/payroll/pay-profile-changes?employeeId={own}");
+        Assert.Contains(contract.ToString("D"), requests, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ContractActivated", requests, StringComparison.Ordinal);
+
+        // The same for another unit's employee: his version keeps his unit, and the restricted user still does not see him.
+        await InHostAsync(host, services => services.GetRequiredService<MediatR.IMediator>().Send(
+            new Payroll.Application.Features.InboundEvents.HandleContractActivatedCommand(Guid.NewGuid(), foreign, "PERM", start, 5300m, null)));
+        Assert.Equal((Guid?)host.ForeignUnit, (await ActiveProfileAsync(host, foreign)).OrgUnitId);
+        await AssertListedInHisBranchOnlyAsync("after another unit's activation");
+    }
 }
