@@ -329,6 +329,8 @@ public sealed class Pay054V2RunPostgreSqlTests(PostgreSqlFixture fixture)
         };
         db.PayrollRuns.Add(pinned);
         var paused = new PayrollRunJob { PayrollRunId = pinned.Id, Phase = PayrollRunJobPhase.Calculate, Status = PayrollRunJobStatus.Paused, Attempt = 1 };
+        // A job that started has its partitions (a job without one never took a snapshot and is not resumed at all).
+        paused.Partitions.Add(new PayrollRunPartition { PartitionIndex = 0, Status = PayrollRunPartitionStatus.Pending, EmployeeCount = 1 });
         db.PayrollRunJobs.Add(paused);
         await db.SaveChangesAsync();
         db.ChangeTracker.Clear();

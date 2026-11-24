@@ -328,6 +328,9 @@ they were stamped then.
 - Resumed (UTC): 2026-11-23T14:29:25Z. Reason: the owner stopped the turn in P6, while the review's findings were being verified
   in the code (the images had finished at 13:00:37Z), and then wrote «اكمل». Standstill about 75 min (from about 13:15Z). No
   process was running; the machine did not restart; the tree held only this file's edit.
+- Resumed (UTC): 2026-11-23T23:31:06Z. Reason: the turn ended on its own while it waited for the local CI steps (no command
+  was interrupted; the detached run went on and finished at 23:15Z), and the owner wrote «Try again». Standstill about 16 min
+  (from 23:15Z). The machine did not restart.
 
 ## P8 — the demo server
 
@@ -387,6 +390,28 @@ they were stamped then.
     restored and removed.
 - **The demo at the end of P8:** `83b99786a420`, 22 containers, every health check passing, smoke 50 pass and 0 fail.
 - Finished (UTC): 2026-11-23T22:15:00Z.
+
+## P9 — docs, local gates, report, the pull request
+
+- Started (UTC): 2026-11-23T22:15Z. The documents and the report were written while the stacks and the server build ran
+  (commits `a87a4522`, `27f5a010`).
+- **Local gates, first run** (`scripts/ci/run-steps.sh --all` in a fresh clone of `27f5a010`, 22:17Z): stopped at «Check
+  pending EF model changes» with «Build failed» for thirteen of fifteen contexts — Razor parse errors on files that had not
+  changed, the stale compiler server this machine is known for (`dotnet build-server shutdown` and the same project built
+  clean). Run again with `UseSharedCompilation=false`, `UseRazorBuildServer=false`, `MSBUILDDISABLENODEREUSE=1` and
+  `DOTNET_CLI_USE_MSBUILD_SERVER=0` (22:34Z to 23:15Z, 2,470 s): every step passed up to the integration step.
+- **That run found a defect of the review's fix, and it is fixed:** «Integration tests (MassTransit InMemory)» 453 passed,
+  **1 failed**, `Pay003ResumablePayrollRunTests.Snapshot_VersionConflict_Detected`. The fix of the review's first finding
+  told «a job that never started» by its run being pinned to no version; that test resumes a paused job that has its
+  snapshot and partition on a run not yet pinned, and got «هذه المهمة لم تبدأ» instead of the snapshot conflict. The rule now
+  reads the job itself: **a job without a partition never took a snapshot and is not resumed** (the refusal row has none).
+  The run page offers «استئناف» by the same rule. `Pay054V2RunPostgreSqlTests`' paused job got the partition a started job has.
+  After it: integration (not Testcontainers) **455 passed, 3 skipped, 0 failed** (18 min 55 s); the Testcontainers step, CI's
+  filter, **264 passed, 1 skipped** again (11 min 24 s; 23:36Z to 00:07Z).
+- **The server and this change:** the demo runs `83b99786a420`, built before it. The difference is that one rule (for every
+  state the product itself creates the two rules agree: a job that started has partitions and its run is pinned) and
+  documents and tests. The final commit is built and deployed once more after the push, beside the wait for CI, and the
+  four checks are run again (recorded in the merge note below).
 
 ## Decisions (with reasons)
 

@@ -35,12 +35,15 @@ Branch `feature/plan-54-pay-legal-framework-reference-data`, from `origin/main` 
 | `18a25040` | P5: manual inputs with a second person |
 | `1e74d54e` | P6, first part: the persona, AC-PAY-54a..f, the empty-database test, `pay054-validate` |
 | `3bc94d27` | The review's fixes (see §3 and §11) |
+| `27f5a010` | P8: the server checks, this report, the server's section, the plan's status |
+| the commit after it | The resume rule reads the job's partitions (see §11); this report's last numbers |
 | `14070764`, `83b99786` | Progress notes; `83b99786` carries P6's message |
 | `0a926937` | The directory count with the new persona; the import script's default user |
 | `a87a4522` | The documents, the server checks, the register is not rewritten by a pack that repeats it |
 
-The commit after `83b99786` (P8's: this report, the server's section, the plan's status and execution notes, the server check
-class and the two changes to the older server checks of §12) changes documents and test code only; the server runs `83b99786a420`.
+`27f5a010` changes documents and test code only. The commit after it changes one rule of the resume command and the run page
+(§11): the server ran `83b99786a420` for every check of §12 and is built and deployed once more on the final commit after the
+push (recorded in the merge note of `reports/plan54-progress.md`).
 
 ## 3. Decisions applied and deviations
 
@@ -214,8 +217,9 @@ The two architecture lists that this plan touched only shrank: `org-scope-allowl
 **Unit** 6791/6791 after the review's fixes (6787 before them). **Architecture** 388/388. Build `-warnaserror` 0 errors. Format
 clean on every changed file.
 
+**Integration** (MassTransit in memory and SQLite, CI's filter `Category!=Testcontainers`): **455 passed, 3 skipped, 0 failed**.
 **Integration on PostgreSQL** (Testcontainers, CI's filter `Category=Testcontainers&Category!=ObjectStorage`, on the final code):
-**264 passed, 1 skipped, 0 failed** (13 min 4 s). This plan's: `Pay054MigrationPostgreSqlTests` (existing rows keep their values
+**264 passed, 1 skipped, 0 failed** (11 min 24 s). This plan's: `Pay054MigrationPostgreSqlTests` (existing rows keep their values
 under a non-superuser owner and forced row security; another agency sees nothing), `Pay054FrameworkHttpTests` and its three
 sibling classes (Payroll.Web itself, three users), `Pay054V2RunPostgreSqlTests` (identity on real runs; the gate; the race; manual
 inputs; the disbursement), `Pay054EmptyDatabaseFirstRunPostgreSqlTests` (an empty database with `Seed:Profile=None`: employees
@@ -237,6 +241,11 @@ before the server build — «resume» did not pass the interim gate and could r
 marked calculated and frozen); and two scenarios of the new acceptance class recalculated a frozen run. Two medium ones fixed: a
 version had no row version (the race of §5), and a version's priority rules were stored active (a rollback would mix them into a
 legacy disbursement). The low ones: fixed, or recorded with their reason in the progress file.
+
+**A defect of the review's own fix, found by the local CI steps and fixed before the push.** The first fix told «a job that
+never started» by its run being pinned to no version. `Pay003ResumablePayrollRunTests.Snapshot_VersionConflict_Detected`, which
+resumes a paused job that has its snapshot on a run not yet pinned, then got «this job never started» instead of the snapshot
+conflict. The rule now reads the job itself: a job without a partition never took a snapshot and is not resumed.
 
 **The evidence of record** is the artifact of the pull request's Acceptance run (D-QA-20: never a local run); its link is in the
 merge note of `reports/plan54-progress.md`.
@@ -375,8 +384,9 @@ All times UTC, 2026-11-23. The stamps are in `reports/plan54-progress.md`.
 | Stop 1 | about 07:43Z to 08:39:12Z — **about 56 min.** Cause: the owner stopped the turn during a P1 test run, then wrote «اكمل» |
 | Stop 2 | about 09:52Z to 10:46:11Z — **about 54 min.** Cause: the machine restarted (boot 10:43:07Z) during P3's PostgreSQL tests; the owner wrote «اكمل» |
 | Stop 3 | about 13:15Z to 14:29:25Z — **about 75 min.** Cause: the owner stopped the turn in P6, then wrote «اكمل» |
-| This report written | 22:15Z |
-| Wall-clock to this report | 14 h 48 min, of which **about 3 h 5 min stopped** and about **11 h 43 min working** |
+| Stop 4 | 23:15Z to 23:31:06Z — **about 16 min.** Cause: the turn ended on its own while it waited for the local CI steps; the owner wrote «Try again» |
+| This report written | 22:15Z; its last numbers 2026-11-24T00:15Z |
+| Wall-clock to this report | 16 h 48 min, of which **about 3 h 21 min stopped** and about **13 h 27 min working** |
 
 Phases (finished): P0 07:36:53Z · P1 08:50:07Z · P2 09:39:43Z · P3 10:56:44Z · P4 11:32:43Z · P5 12:04:28Z · P6 17:18:00Z ·
 P7 nothing to merge · P8 22:12Z.
@@ -393,6 +403,7 @@ Inside the working time, what was waiting rather than work (the phases overlappe
 | The server: upload 1 min 40 s; one build 36 min 5 s and its push 50 s; one deploy 5 min 23 s with the smoke | 44 min |
 | This plan's server checks: the migration, the cycle and the manual input 8 min 24 s; the screens check 27 min 28 s in its passing run, and 62 min in four runs this machine's network cut | 98 min |
 | The older plans' server checks: 117 min in one run, and 24 min of reruns | 141 min |
+| The local CI steps: a first run stopped by a stale compiler server (14 min), a second run of 41 min that found the defect of §11, then the integration step and the Testcontainers step again (30 min), and the run on the final commit | about 2 h |
 
 **The largest avoidable cost was this machine's network under Chromium** (about 90 minutes): the owner's dev container
 `hrm-keycloak` restarts every minute. The checks are now built for it (§12).

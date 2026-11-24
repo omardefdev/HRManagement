@@ -293,12 +293,12 @@ public class ResumePayrollRunJobHandler(
         if (job.Status is not (PayrollRunJobStatus.Paused or PayrollRunJobStatus.Failed))
             return (false, 0, job.Id, "لا يمكن الاستئناف إلا لمهمة متوقفة أو فاشلة.");
 
-        // PLAN-54 (§3): a resumed calculation is a calculation. A job that never started (the row that carries a refusal: the run
-        // is pinned to no version and has no snapshot) is not resumed, or an empty run would be marked calculated and frozen. And a
-        // job that did start passes the interim gate again: an exception may have expired while it was paused.
+        // PLAN-54 (§3): a resumed calculation is a calculation. A job that never started (the row that carries a refusal: it took
+        // no snapshot, so it has no partition) is not resumed, or an empty run would be marked calculated and frozen. And a job
+        // that did start passes the interim gate again: an exception may have expired while it was paused.
         var run = await repository.GetPayrollRunAsync(job.PayrollRunId, includeLines: false, cancellationToken);
         if (run is null) return (false, 0, job.Id, "التشغيل غير موجود.");
-        if (!run.PayrollConfigurationId.HasValue)
+        if (job.Partitions.Count == 0)
             return (false, 0, job.Id, NeverStarted);
         if (run.ValidateCanCalculate() is { } cannotCalculate)
             return (false, 0, job.Id, cannotCalculate);
