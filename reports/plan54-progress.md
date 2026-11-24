@@ -17,7 +17,7 @@ Session: one, in the main folder `/home/omar/HRManagement` (Linux notebook), bra
 | P6 acceptance and review | done | 2026-11-23T17:18:00Z |
 | P7 main | done: `origin/main` did not move (`53690e0e`) | 2026-11-23T17:18:00Z |
 | P8 demo server | done | 2026-11-23T22:15:00Z |
-| P9 docs, gates, report, merge | in progress | |
+| P9 docs, gates, report, merge | done | 2026-11-24T03:20:17Z |
 
 ## P0 — timing, keep-awake, preconditions, baseline
 
@@ -448,6 +448,27 @@ they were stamped then.
   locally** on a fresh prod-like stack in the failing order: `AcIam50…` 5/5, then `AcIam53…` 5/5 and `AcPay54…` 6/6; the
   record 50b added reads `law50`. Unit 6792/6792, architecture 388/388, format clean.
 
+- **CI, second run (45311799517, on `7d293bb4`, 02:21:40Z to 03:18:38Z): every check green.** `CI` pass (27 min 9 s),
+  `CodeQL` pass (13 min 27 s), `Gitleaks` pass (1 min 2 s), `E2E` pass (44 min 42 s), `Acceptance images` pass (23 min 49 s),
+  `Acceptance stage` lab-main (26 min 14 s), lab-rest (13 min 53 s), leastpriv (6 min 38 s), meta (8 min 38 s), prodlike
+  (30 min 2 s, with AC-PAY-54a..f and AC-IAM-53a..e), prodlike-final (31 min 21 s), prodlike-policy (11 min 8 s) pass,
+  `Acceptance` pass, `Reuse check` and `Dedupe post-merge run` pass. **The evidence of record** is that run's acceptance
+  artifact: <https://github.com/omardefdev/HRManagement/actions/runs/45311799517>.
+- **Merged by agent on owner instruction (UTC): 2026-11-24T03:19:08Z.** `gh pr merge 54 --merge`; merge commit
+  `12b83970b4c8`. `git switch main; git pull --ff-only`: `main` = `origin/main` = `12b83970b4c8`. The server's tag
+  `014db7e3a01a` is contained in `origin/main`.
+- **The post-merge run on `main`** (45318660987): success — `Dedupe post-merge run` and `Gitleaks` ran, the other jobs were
+  skipped because the pull request's run tested the same tree.
+- **Waiting for CI:** run 1 62 min (00:49Z to 01:51Z), run 2 57 min (02:21Z to 03:18Z); between them 30 min for the cause,
+  the fix and its reproduction on a local stack. **Actions minutes:** 260 job-minutes in run 1 and 239 in run 2, under one
+  minute in the post-merge run.
+- **Total:** started 2026-11-23T07:26:43Z, merged 2026-11-24T03:19:08Z: **19 h 52 min wall-clock**, of which about 3 h 21 min
+  stopped (four stops, see «Stops and resumes») and about 16 h 31 min working, about 2 h of that waiting for CI.
+- **End of the session:** the keep-awake process stopped by its PID; the fresh clone used for the local CI steps and this
+  plan's local acceptance images removed (other projects' images, containers and volumes never touched); the demo is up on
+  `014db7e3a01a`.
+- Finished (UTC): 2026-11-24T03:25:00Z.
+
 ## Decisions (with reasons)
 
 Recorded as they are taken; see each phase.
@@ -543,7 +564,5 @@ Recorded as they are taken; see each phase.
 
 ## Exact next step
 
-P9: the local gates on HEAD (the Testcontainers step ran on the final product code in P6; `scripts/ci/run-steps.sh --all` in a
-fresh clone with the not-run steps named; `scripts/plan035-prepush.ps1`), then `release/plan-54` (`--no-ff` from `origin/main`),
-push, the pull request with `reports/plan54-pr.md`, the wait for the checks, the merge, the merge note on
-`docs/plan-54-merge-note`, and the keep-awake stopped by its PID (`artifacts/plan54/keepawake.pid`).
+None: the plan is merged. The next plan brings this note in from the local branch `docs/plan-54-merge-note` (no pull request
+is opened for it), as this plan brought PLAN-53's.
