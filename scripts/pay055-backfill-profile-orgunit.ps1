@@ -61,7 +61,7 @@ $Password = $null
 $tokenForm = $null
 
 $gateway = $GatewayBaseUrl.TrimEnd('/')
-$base = "$gateway/api/payroll/api/payroll/admin"
+$base = "$gateway/api/payroll/admin"
 $headers = @{ Authorization = "Bearer $token"; "X-Correlation-ID" = "pay055-backfill-$([guid]::NewGuid().ToString('N'))" }
 
 # The antiforgery token of the POST. The service scopes its cookie to its UI path (/ui/payroll) and this call goes through

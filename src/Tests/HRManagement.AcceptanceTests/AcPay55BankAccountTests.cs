@@ -650,7 +650,7 @@ public class AcPay55BankAccountTests
             $"55d: the employee's account in force ({account}) is not the one pinned on his line of May's run ({pinned}).");
         var disbursed = await Count(
             "SELECT count(*) FROM \"PaymentOrders\" o JOIN \"SalaryLines\" l ON l.\"Id\" = o.\"SalaryLineId\" " +
-            $"WHERE l.\"PayrollRunId\"='{may}' AND l.\"EmployeeId\"='{employee}' AND o.\"Status\" IN (1, 2, 4, 5);");
+            $"WHERE l.\"PayrollRunId\"='{may}' AND l.\"EmployeeId\"='{employee}' AND o.\"Status\" IN ('Submitted', 'Acknowledged', 'Settled', 'PartiallySettled');");
         s.Recorder.WriteBefore(new
         {
             scenario = "55d",
