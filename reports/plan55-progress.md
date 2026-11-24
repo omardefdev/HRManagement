@@ -10,8 +10,8 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 | Phase | Status | Finished (UTC) |
 |-------|--------|----------------|
 | P0 baseline | done | 2026-11-24T05:21:55Z |
-| P1 the account | next | |
-| P2 the pinning | | |
+| P1 the account | done | 2026-11-24T06:11:40Z |
+| P2 the pinning | next | |
 | P3 the versions | | |
 | P4 the repair | | |
 | P5 PostgreSQL proofs | | |
@@ -29,6 +29,11 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 | Demo picture (read-only, ssh) | 05:16:31 | 05:16:40 | |
 | Inventory by search | 05:16:54 | 05:16:56 | `artifacts/plan55/inventory.txt` |
 | Baseline unit filters | 05:20:06 | 05:20:50 | 436 passed |
+| P1 migration proofs on PostgreSQL (Testcontainers) | 05:47:28 | 05:47:52 | 4 passed |
+| P1 architecture tests (build + run) | 05:48:29 | 05:50:03 | 400 passed |
+| P1 HTTP tests on PostgreSQL (build + run) | 05:51:09 | 05:53:02 | 10 passed (3 new, 7 of PLAN-53's scope class) |
+| P1 full build `-warnaserror` + `has-pending-model-changes` | 05:53:30 | 05:55:14 | 0 warnings, 0 errors; no pending model change |
+| P1 full unit suite | 05:55:36 | 06:06:01 | 6868 passed, 10 min 12 s |
 
 Stops: none so far.
 
@@ -53,6 +58,31 @@ Stops: none so far.
 - **D2 — The demo's repair is expected to change nothing:** 425 active profiles lack a regime, and no employee has an earlier profile
   that carries one. The repair copies from the employee's own history only (P-8), so it reports them as not fillable.
 
+- **D3 — One filtered unique index, not two.** `IX_EmployeeBankAccounts_OneActiveOnePending` is unique on
+  `(TenantId, EmployeeId, Status)` where `Status IN (0, 1)`: exactly the plan's rule (one `Active` and one `PendingVerification` per
+  employee and agency). Reason: a verification updates two rows in one save (the account in force → `Retired`, its replacement →
+  `Active`); with the status inside the index, EF orders the two updates by the index's values, so the old row leaves before the
+  new one arrives. Two indexes on the same two columns would leave that order to chance. P5 proves it on PostgreSQL.
+- **D4 — An account the migration moved has no registrar, so it is never verified.** It can only be rejected and registered again
+  by a person (`NoRegistrar`, 409). Reason: «no Active account without a second person»; nobody can be shown to be the second.
+- **D5 — The migration moves one account per employee and agency,** not one per profile: PLAN-53's copy-forward put the same number
+  on every later version, and the one-pending rule allows one. It takes the active profile's number, else the latest profile's.
+- **D6 — The answers.** A broken input rule 400; the registrar verifying his own registration 400 (the plan's AC-PAY-55a; PLAN-53
+  answers 403 for its own self-decision); a second pending account, a wrong state, a concurrent decision 409; outside the scope or
+  the agency 404 (PLAN-52's rule; the plan wrote 403).
+- **D7 — Retire and reject take `Payroll.Approve`;** the registrar may reject his own pending registration (a withdrawal activates
+  nothing). Registering the number that is already in force is 409.
+- **D8 — The retirement hold has no fraud alert.** PAY-029's hold comes with an alert for the fraud review queue; a retired account
+  is not a suspicion. The hold is `Manual`, run-specific, `ACCOUNT-RETIRED:` at the start of its reason, and is released by the
+  existing release. One per employee and run; a reversed or cancelled run gets none.
+- **D9 — The API takes the kind by name** (`"Iban"`, `"Local"`): the service has no string-enum JSON converter, and a number in a
+  body says nothing.
+- **D10 — A refused registration form is shown again without the number it posted:** the number is typed again, never echoed.
+- **D11 — No per-country IBAN length.** Form (2 letters, 2 digits, letters and digits), 15 to 34 characters (the standard's
+  maximum, the registry's shortest), check digits 02..98, mod 97 = 1. Syria is outside the registry.
+- **D12 — For an IBAN the bank code is optional;** one that is given must be defined. With no code the bank's name is the
+  registrar's text (mandatory). A local number needs a defined bank, whose name is taken from its definition.
+
 ## Notes for later phases (so documents are not read twice)
 
 - Patterns to follow: `PayProfileChangesApiController` (antiforgery endpoint, `[OrgScoped]`, policies per action, `PayProfileChangeHttp`),
@@ -65,6 +95,16 @@ Stops: none so far.
 - CI's Testcontainers filter: `Category=Testcontainers&Category!=ObjectStorage` (new PostgreSQL classes need that category).
 
 ## Files changed
+
+- P1 (38 files): `Payroll.Domain` (`EmployeeBankAccount`, `BankAccountEnums`, `BankAccountNumberValidator`, `BankAccountId` on
+  `SalaryLine` and `PayrollRunInputSnapshot`, the index name), `Payroll.Application/Features/BankAccounts/` (commands, rules,
+  result, messages, options), the repository and DI, `PayrollDbContext`, `PayrollOrgScopeKeys`, migration
+  `20261124052855_PAY055_EmployeeBankAccounts`, `EmployeeBankAccountsApiController`, `EmployeeBankAccountsController` with four views,
+  the navigation and the pay profile list's link, `Payroll:Bank:Banks` empty in the three settings files and mirrored in
+  `docker-compose.acceptance-prodlike.yml`; tests `Pay055BankAccountNumberValidatorTests`, `Pay055BankAccountTests` (+ harness),
+  `Pay055MigrationPostgreSqlTests`, `Pay055BankAccountHttpTests`, rows in `PayrollWriteActionsTests`; changed
+  `Iam053PayrollScopeHttpTests` (seeds an account per unit: the registry names the type now) and `OutboxAtomicityIntegrationTests`
+  (its repository wrapper gets the new member).
 
 - P0: `reports/plan54-progress.md` (the cherry-picked merge note), `docs/acceptance-plans/execution/PLAN-55-AGENT-PROMPT.md`,
   `reports/plan55-baseline.md`, `reports/plan55-progress.md`.
@@ -79,5 +119,8 @@ None.
 
 ## The exact next step
 
-P1: the entity `EmployeeBankAccount`, `BankAccountNumberValidator`, the commands under `Features/BankAccounts/`, migration
-`PAY055_EmployeeBankAccounts` with its data move, the API and the screens, and their tests.
+P2: `git stash pop` (four application files with the snapshot's and the line's pinning, set aside for P1's commit), then
+`Features/BankAccounts/BankAccountPinning.cs` (drafted in the session's scratchpad: the active accounts at a snapshot, the pinned
+numbers of a run's lines, the readiness query); `PaymentOrderService`, `PayrollExternalExportService` (refusal by names),
+`FraudScanInputBuilder`, `DsarInternalController` read the line's account; `GET api/payroll/runs/{id}/bank-readiness` and the card on
+the run's page; the profile's three bank fields `[Obsolete]`, out of the copy-forward, and the tests that named them.

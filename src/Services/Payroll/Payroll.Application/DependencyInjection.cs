@@ -40,6 +40,10 @@ public static class DependencyInjection
         services.AddScoped<Features.PayProfileChanges.PayProfileChangeActivator>();
         services.AddScoped<Features.ReferenceChanges.PayrollReferenceChangeApplier>();
 
+        // PLAN-55: the employee's bank account (registered by one person, verified by another), and the banks whose local numbers count.
+        services.AddOptions<Features.BankAccounts.PayrollBankOptions>().BindConfiguration(Features.BankAccounts.PayrollBankOptions.SectionName);
+        services.AddScoped<Features.BankAccounts.BankAccountRules>();
+
         return services;
     }
 }

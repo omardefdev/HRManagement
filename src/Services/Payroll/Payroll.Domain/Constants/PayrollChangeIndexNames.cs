@@ -8,4 +8,10 @@ public static class PayrollChangeIndexNames
 
     /// <summary>One open reference change request per scale or grade.</summary>
     public const string OneOpenReferenceChange = "IX_PayrollReferenceChangeRequests_OneOpen";
+
+    /// <summary>
+    /// PLAN-55: one account in force and one account waiting for verification per employee and agency. One index over the status, so
+    /// that a verification's two updates (the account in force retired, its replacement in force) are ordered by their values.
+    /// </summary>
+    public const string OneActiveOnePendingBankAccount = "IX_EmployeeBankAccounts_OneActiveOnePending";
 }

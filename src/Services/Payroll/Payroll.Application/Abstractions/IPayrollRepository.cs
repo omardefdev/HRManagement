@@ -10,6 +10,7 @@ public interface IPayrollRepository
     IQueryable<EmployeePayProfile> EmployeePayProfiles { get; }
     IQueryable<EmployeePayProfileHistory> EmployeePayProfileHistories { get; }
     IQueryable<PayProfileChangeRequest> PayProfileChangeRequests { get; }
+    IQueryable<EmployeeBankAccount> EmployeeBankAccounts { get; }
     IQueryable<PayrollReferenceChangeRequest> PayrollReferenceChangeRequests { get; }
     IQueryable<SalaryScale> SalaryScales { get; }
     IQueryable<AllowanceRecord> AllowanceRecords { get; }

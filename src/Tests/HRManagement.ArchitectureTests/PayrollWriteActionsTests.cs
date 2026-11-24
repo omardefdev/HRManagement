@@ -124,6 +124,35 @@ public sealed class PayrollWriteActionsTests
         ["PayrollFrameworksApi.Export"] = HrManagementPolicies.PayrollMasterData,
     };
 
+    /// <summary>
+    /// PLAN-55 (§1, D-PAY-14, P-4): an employee's bank account is registered with Payroll.Process; verified, rejected and retired with
+    /// Payroll.Approve (retiring the account in force can leave an employee with no destination). On the screens and the API alike.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> Pay055 = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["EmployeeBankAccountsApi.Register"] = HrManagementPolicies.PayrollProcess,
+        ["EmployeeBankAccountsApi.Verify"] = HrManagementPolicies.PayrollApprove,
+        ["EmployeeBankAccountsApi.Reject"] = HrManagementPolicies.PayrollApprove,
+        ["EmployeeBankAccountsApi.Retire"] = HrManagementPolicies.PayrollApprove,
+        ["EmployeeBankAccounts.Create"] = HrManagementPolicies.PayrollProcess,
+        ["EmployeeBankAccounts.Verify"] = HrManagementPolicies.PayrollApprove,
+        ["EmployeeBankAccounts.Reject"] = HrManagementPolicies.PayrollApprove,
+        ["EmployeeBankAccounts.Retire"] = HrManagementPolicies.PayrollApprove,
+    };
+
+    /// <summary>The controllers PLAN-55 adds: every write of theirs has a row in <see cref="Pay055"/>.</summary>
+    private static readonly string[] Pay055Controllers = ["EmployeeBankAccounts", "EmployeeBankAccountsApi"];
+
+    /// <summary>
+    /// Reads of the bank accounts that are not open to the module role alone: the registration form (a person who cannot register does
+    /// not open it), and the verification page, the one place an account number is shown whole.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> Pay055GuardedReads = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["EmployeeBankAccounts.Create"] = HrManagementPolicies.PayrollProcess,
+        ["EmployeeBankAccounts.Verify"] = HrManagementPolicies.PayrollApprove,
+    };
+
     private static IEnumerable<ActionInfo> Writes => ActionCatalog.Of(Service).Where(a => a.IsWrite && !a.Anonymous);
 
     private static ClaimsPrincipal User(params string[] roles) => new(new ClaimsIdentity(
@@ -346,6 +375,85 @@ public sealed class PayrollWriteActionsTests
         Assert.Empty(await ReachedAsync(User(HrManagementRoles.Payroll), framework));
         Assert.Empty(await ReachedAsync(User(HrManagementRoles.Payroll, HrManagementRoles.PayrollPoster), framework));
         Assert.Empty(await ReachedAsync(User(HrManagementRoles.Payroll, HrManagementRoles.PayrollReverser), framework));
+    }
+
+    public static TheoryData<string, string> Pay055Rows()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var (key, policy) in Pay055)
+            data.Add(key, policy);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(Pay055Rows))]
+    public void Each_action_plan_55_adds_names_its_policy_on_the_action(string key, string policy)
+    {
+        var actions = Writes.Where(a => a.Key == key).ToList();
+        Assert.True(actions.Count > 0, $"{key} is not a write action of Payroll.Web");
+        Assert.All(actions, a => Assert.Equal([policy], a.ActionPolicies));
+    }
+
+    [Fact]
+    public void Every_write_of_the_controllers_plan_55_adds_is_in_its_table()
+    {
+        var unlisted = Writes.Where(a => Pay055Controllers.Contains(a.ControllerName)).Select(a => a.Key)
+            .Where(k => !Pay055.ContainsKey(k)).Distinct(StringComparer.Ordinal).ToList();
+        Assert.True(unlisted.Count == 0, "Write actions with no row in PayrollWriteActionsTests.Pay055: " + string.Join(", ", unlisted));
+    }
+
+    [Fact]
+    public async Task A_processor_registers_a_bank_account_and_only_an_approver_verifies_rejects_or_retires_it()
+    {
+        var writes = Writes.Where(a => Pay055Controllers.Contains(a.ControllerName)).ToList();
+        var processor = User(HrManagementRoles.Payroll, HrManagementRoles.PayrollProcessor);
+        var approver = User(HrManagementRoles.Payroll, HrManagementRoles.PayrollApprover);
+
+        Assert.Equal(
+            Pay055.Where(p => p.Value == HrManagementPolicies.PayrollProcess).Select(p => p.Key).Order(StringComparer.Ordinal),
+            await ReachedAsync(processor, writes));
+        Assert.Equal(
+            Pay055.Where(p => p.Value == HrManagementPolicies.PayrollApprove).Select(p => p.Key).Order(StringComparer.Ordinal),
+            await ReachedAsync(approver, writes));
+        // The module role alone, the poster, the reverser and a branch manager reach none of them; hr-admin holds both policies (the
+        // handler then refuses his verification of his own registration).
+        Assert.Empty(await ReachedAsync(User(HrManagementRoles.Payroll), writes));
+        Assert.Empty(await ReachedAsync(User(HrManagementRoles.Payroll, HrManagementRoles.PayrollPoster), writes));
+        Assert.Empty(await ReachedAsync(User(HrManagementRoles.Payroll, HrManagementRoles.PayrollReverser), writes));
+        Assert.Empty(await ReachedAsync(User(HrManagementRoles.BranchManager, HrManagementRoles.HrCore), writes));
+        Assert.Equal(Pay055.Keys.Order(StringComparer.Ordinal), await ReachedAsync(User(HrManagementRoles.Admin), writes));
+    }
+
+    [Fact]
+    public void The_registration_form_and_the_verification_page_need_their_writes_policy_and_the_lists_are_open_to_the_module()
+    {
+        var reads = ActionCatalog.Of(Service).Where(a => Pay055Controllers.Contains(a.ControllerName) && !a.IsWrite).ToList();
+        Assert.NotEmpty(reads);
+        foreach (var read in reads)
+        {
+            var expected = Pay055GuardedReads.TryGetValue(read.Key, out var policy)
+                ? new[] { HrManagementPolicies.ModulePayroll, policy }
+                : [HrManagementPolicies.ModulePayroll];
+            Assert.True(
+                expected.Order(StringComparer.Ordinal).SequenceEqual(read.AllPolicies.Distinct().Order(StringComparer.Ordinal)),
+                $"{read.Key} ({string.Join("/", read.Verbs)}): policies {string.Join(", ", read.AllPolicies.Distinct())}");
+        }
+
+        Assert.All(Pay055GuardedReads.Keys, key => Assert.Contains(reads, r => r.Key == key));
+    }
+
+    [Fact]
+    public void The_bank_list_is_empty_in_production_and_staging_and_in_the_prodlike_mirror()
+    {
+        foreach (var environment in new[] { "Production", "Staging" })
+        {
+            var settings = Settings(environment);
+            Assert.DoesNotContain(settings.AsEnumerable(), pair => pair.Key.StartsWith("Payroll:Bank:Banks:", StringComparison.OrdinalIgnoreCase));
+        }
+
+        var compose = global::System.IO.File.ReadAllText(Path.Combine(RepoPaths.Root, "docker-compose.acceptance-prodlike.yml"));
+        Assert.Contains("Payroll__Bank__Banks: \"\"", compose, StringComparison.Ordinal);
+        Assert.DoesNotContain("Payroll__Bank__Banks__", compose, StringComparison.Ordinal);
     }
 
     [Fact]

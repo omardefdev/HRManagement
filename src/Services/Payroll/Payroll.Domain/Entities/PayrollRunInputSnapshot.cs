@@ -26,7 +26,15 @@ public class PayrollRunInputSnapshot : BaseEntity
     [MaxLength(64)]
     public string? ConfigContentHash { get; set; }
 
+    /// <summary>
+    /// PLAN-55 (D-PAY-15): the employee's <c>Active</c> bank account at the snapshot; the run's line copies it. It is not an input of the
+    /// amount: it is in neither <see cref="InputFingerprint"/> nor <see cref="ProfileVersion"/>.
+    /// </summary>
+    public Guid? BankAccountId { get; set; }
+
     public int SortOrder { get; set; }
 
     public PayrollRunJob Job { get; set; } = null!;
+
+    public EmployeeBankAccount? BankAccount { get; set; }
 }
