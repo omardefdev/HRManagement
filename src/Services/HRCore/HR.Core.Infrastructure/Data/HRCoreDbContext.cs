@@ -63,6 +63,10 @@ public class HRCoreDbContext : TenantAwareDbContext
     public DbSet<JobCatalogImportLine> JobCatalogImportLines => Set<JobCatalogImportLine>();
     public DbSet<HrStatisticReport> HrStatisticReports => Set<HrStatisticReport>();
     public DbSet<DailyAttendanceRecord> DailyAttendanceRecords => Set<DailyAttendanceRecord>();
+    public DbSet<AttendancePeriod> AttendancePeriods => Set<AttendancePeriod>();
+    public DbSet<AttendancePeriodClosure> AttendancePeriodClosures => Set<AttendancePeriodClosure>();
+    public DbSet<AttendanceEmployeeSummary> AttendanceEmployeeSummaries => Set<AttendanceEmployeeSummary>();
+    public DbSet<AttendanceCorrection> AttendanceCorrections => Set<AttendanceCorrection>();
     public DbSet<FieldInspectionVisit> FieldInspectionVisits => Set<FieldInspectionVisit>();
     public DbSet<DiwanCorrespondence> DiwanCorrespondences => Set<DiwanCorrespondence>();
     public DbSet<RecruitmentApplication> RecruitmentApplications => Set<RecruitmentApplication>();
@@ -422,6 +426,63 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .HasForeignKey(e => e.EmployeeId)
                   .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(e => new { e.EmployeeId, e.AttendanceDate }).IsUnique();
+            // PLAN-57 (§2): what wrote the day; every record that existed before is a manual one (the migration marks the leave-made).
+            entity.Property(e => e.Source).HasDefaultValue(AttendanceRecordSource.Manual);
+            entity.Property(e => e.SourceReference).HasMaxLength(100);
+        });
+
+        // PLAN-57 (§1): the attendance period, its closing acts, and one versioned summary per employee and period.
+        modelBuilder.Entity<AttendancePeriod>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.PeriodStart }).IsUnique();
+        });
+
+        modelBuilder.Entity<AttendancePeriodClosure>(entity =>
+        {
+            entity.HasOne(e => e.Period)
+                  .WithMany()
+                  .HasForeignKey(e => e.AttendancePeriodId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AttendanceEmployeeSummary>(entity =>
+        {
+            entity.HasOne(e => e.Period)
+                  .WithMany()
+                  .HasForeignKey(e => e.AttendancePeriodId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Employee)
+                  .WithMany()
+                  .HasForeignKey(e => e.EmployeeId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            // One summary per employee and period: two concurrent closes meet here, and the loser writes nothing (rule 6).
+            entity.HasIndex(e => new { e.AttendancePeriodId, e.EmployeeId }).IsUnique();
+            entity.HasIndex(e => e.EmployeeId);
+            // A correction raises the version under xmin: two approvals for one summary cannot both write the same version.
+            entity.ConfigureOptimisticConcurrency(this);
+        });
+
+        // PLAN-57 (§3): a change of a locked day; one request waits per employee and day.
+        modelBuilder.Entity<AttendanceCorrection>(entity =>
+        {
+            entity.HasOne(e => e.Period)
+                  .WithMany()
+                  .HasForeignKey(e => e.AttendancePeriodId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(e => e.Employee)
+                  .WithMany()
+                  .HasForeignKey(e => e.EmployeeId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.EmployeeId, e.AttendanceDate })
+                  .IsUnique()
+                  .HasFilter("\"Status\" = 0")
+                  .HasDatabaseName("IX_AttendanceCorrections_OnePendingPerDay");
+            // A leave event makes one system correction per day, however often it is delivered.
+            entity.HasIndex(e => new { e.EmployeeId, e.AttendanceDate, e.SourceReference })
+                  .IsUnique()
+                  .HasFilter("\"SourceReference\" IS NOT NULL")
+                  .HasDatabaseName("IX_AttendanceCorrections_OnePerLeaveEventDay");
+            entity.HasIndex(e => new { e.TenantId, e.Status });
         });
 
         modelBuilder.Entity<DiwanCorrespondence>(entity =>
