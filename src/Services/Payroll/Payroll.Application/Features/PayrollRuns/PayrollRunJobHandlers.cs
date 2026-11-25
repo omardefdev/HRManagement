@@ -35,7 +35,8 @@ public class StartPayrollRunJobHandler(
     IOptions<PayrollBatchOptions> batchOptions,
     IPayrollNationalScopeGuard? nationalScopeGuard = null,
     IPayrollLegalControlGuard? legalControlGuard = null,
-    IPayrollCalendar? calendar = null)
+    IPayrollCalendar? calendar = null,
+    PayrollAttendanceGate? attendanceGate = null)
     : IRequestHandler<StartPayrollRunJobCommand, (bool Success, int LinesGenerated, Guid? JobId, string? Error)>
 {
     /// <summary>«Today» for the interim gate: the payroll calendar's date (Damascus), never the UTC date.</summary>
@@ -136,6 +137,19 @@ public class StartPayrollRunJobHandler(
             refused.AppendLog(interimRefusal);
             await repository.SaveChangesAsync(cancellationToken);
             return (false, 0, refused.Id, interimRefusal);
+        }
+
+        // PLAN-57 (§4 rule 7): the attendance gate, after the guards above and before the run moves. Block refuses with the count and
+        // leaves the run as it was (no job row, no pinned framework); Warn adds an open audit record that the calculation's first
+        // save writes; Off, a correction run and a final settlement pass untouched. A resumed job does not come here again (it
+        // returned above); a restart does.
+        if (attendanceGate is not null)
+        {
+            var attendance = await attendanceGate.EvaluateAsync(run, cancellationToken);
+            if (attendance.Refusal is not null)
+                return (false, 0, null, attendance.Refusal);
+            if (attendance.Warning is not null && attendance.WarningIsNew)
+                await repository.AddAsync(attendance.Warning, cancellationToken);
         }
 
         run.PayrollConfigurationId = config.Id;

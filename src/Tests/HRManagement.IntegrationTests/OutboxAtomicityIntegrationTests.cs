@@ -52,6 +52,7 @@ public class OutboxAtomicityIntegrationTests
         public IQueryable<PayrollConfiguration> PayrollConfigurations => _inner.PayrollConfigurations;
         public IQueryable<OfficialHoliday> OfficialHolidays => _inner.OfficialHolidays;
         public IQueryable<AbsenceDeduction> AbsenceDeductions => _inner.AbsenceDeductions;
+        public IQueryable<AttendanceSummaryReceipt> AttendanceSummaryReceipts => _inner.AttendanceSummaryReceipts;
         public IQueryable<SalaryLine> SalaryLines => _inner.SalaryLines;
         public IQueryable<SalaryLineComponent> SalaryLineComponents => _inner.SalaryLineComponents;
         public IQueryable<EndOfServiceSettlement> EndOfServiceSettlements => _inner.EndOfServiceSettlements;

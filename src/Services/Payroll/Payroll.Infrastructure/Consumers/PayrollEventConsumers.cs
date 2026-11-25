@@ -325,3 +325,38 @@ public class MedicalRecommendationIssuedConsumer(IMediator mediator) : IConsumer
             context.CancellationToken);
     }
 }
+
+/// <summary>
+/// PLAN-57 (§4, §5): payroll's consumer of the attendance handover (it replaces <c>AttendancePeriodClosedConsumer</c>, which took
+/// the first close only, ignored a zero absence and any later version, and had no inbox). Idempotent in two layers: the inbox
+/// receipt, staged in the transaction that writes the rows, and the unique <c>SourceReference</c> of each version's difference row.
+/// </summary>
+public class AttendanceSummaryPublishedConsumer(PayrollDbContext db) : IConsumer<IAttendanceSummaryPublished>
+{
+    public async Task Consume(ConsumeContext<IAttendanceSummaryPublished> context)
+    {
+        if (await db.ShouldSkipAsync(context, nameof(AttendanceSummaryPublishedConsumer), context.CancellationToken))
+            return;
+
+        var messageId = context.MessageId?.ToString();
+        await new AttendanceSummaryHandoff(db).ApplyAsync(
+            context.Message,
+            () =>
+            {
+                if (string.IsNullOrEmpty(messageId))
+                    return;
+                Guid tenantId;
+                try
+                {
+                    tenantId = IntegrationMessageInboxExtensions.ResolveInboxTenantId();
+                }
+                catch (InvalidOperationException)
+                {
+                    tenantId = context.Message.TenantId ?? Guid.Empty;
+                }
+
+                db.StageReceipt(messageId, nameof(AttendanceSummaryPublishedConsumer), tenantId);
+            },
+            context.CancellationToken);
+    }
+}

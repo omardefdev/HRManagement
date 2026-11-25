@@ -51,6 +51,7 @@ public class PayrollDbContext : TenantAwareDbContext
     public DbSet<PayrollReversalRequest> PayrollReversalRequests => Set<PayrollReversalRequest>();
     public DbSet<PayslipDelivery> PayslipDeliveries => Set<PayslipDelivery>();
     public DbSet<AbsenceDeduction> AbsenceDeductions => Set<AbsenceDeduction>();
+    public DbSet<AttendanceSummaryReceipt> AttendanceSummaryReceipts => Set<AttendanceSummaryReceipt>();
     public DbSet<FraudAlert> FraudAlerts => Set<FraudAlert>();
     public DbSet<PaymentHold> PaymentHolds => Set<PaymentHold>();
     public DbSet<ProofOfLifeRecord> ProofOfLifeRecords => Set<ProofOfLifeRecord>();
@@ -307,6 +308,17 @@ public class PayrollDbContext : TenantAwareDbContext
             entity.HasIndex(e => e.SourceReference)
                   .IsUnique()
                   .HasFilter("\"SourceReference\" IS NOT NULL");
+            // PLAN-57 (§5): the carried differences of an employee that no run has applied yet.
+            entity.HasIndex(e => new { e.EmployeeId, e.CarryForward, e.AppliedInRunId });
+        });
+
+        // PLAN-57 (§4 rule 6): one receipt per attendance summary. The consumer locks its row, and xmin guards any other writer.
+        modelBuilder.Entity<AttendanceSummaryReceipt>(entity =>
+        {
+            entity.HasIndex(e => e.SummaryId).IsUnique();
+            entity.HasIndex(e => new { e.EmployeeId, e.PeriodStart, e.PeriodEnd });
+            entity.HasIndex(e => new { e.TenantId, e.PeriodStart });
+            entity.ConfigureOptimisticConcurrency(this);
         });
 
         modelBuilder.Entity<PayrollAdjustment>(entity =>

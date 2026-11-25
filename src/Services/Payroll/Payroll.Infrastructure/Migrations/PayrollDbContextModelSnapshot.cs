@@ -468,11 +468,20 @@ namespace Payroll.Infrastructure.Migrations
                     b.Property<Guid?>("AppliedInRunId")
                         .HasColumnType("uuid");
 
+                    b.Property<bool>("CarryForward")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateOnly?>("OriginalPeriodEnd")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly?>("OriginalPeriodStart")
+                        .HasColumnType("date");
 
                     b.Property<DateOnly>("PeriodEnd")
                         .HasColumnType("date");
@@ -488,6 +497,9 @@ namespace Payroll.Infrastructure.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<int?>("SourceVersion")
+                        .HasColumnType("integer");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 
@@ -499,6 +511,8 @@ namespace Payroll.Infrastructure.Migrations
                     b.HasIndex("SourceReference")
                         .IsUnique()
                         .HasFilter("\"SourceReference\" IS NOT NULL");
+
+                    b.HasIndex("EmployeeId", "CarryForward", "AppliedInRunId");
 
                     b.ToTable("AbsenceDeductions");
                 });
@@ -645,6 +659,66 @@ namespace Payroll.Infrastructure.Migrations
                         .HasDatabaseName("IX_ArrearsLedgerEntries_Employee_Status");
 
                     b.ToTable("ArrearsLedgerEntries");
+                });
+
+            modelBuilder.Entity("Payroll.Domain.Entities.AttendanceSummaryReceipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("AttendancePeriodId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("EmployeeId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("LatestAbsentDays")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("LatestVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<DateOnly>("PeriodEnd")
+                        .HasColumnType("date");
+
+                    b.Property<DateOnly>("PeriodStart")
+                        .HasColumnType("date");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("RecordedAbsentDays")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("SummaryId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SummaryId")
+                        .IsUnique();
+
+                    b.HasIndex("TenantId", "PeriodStart");
+
+                    b.HasIndex("EmployeeId", "PeriodStart", "PeriodEnd");
+
+                    b.ToTable("AttendanceSummaryReceipts");
                 });
 
             modelBuilder.Entity("Payroll.Domain.Entities.BankStatementLine", b =>

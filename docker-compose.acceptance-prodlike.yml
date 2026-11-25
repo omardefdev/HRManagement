@@ -34,6 +34,12 @@
 services:
   hr-core-web:
     environment:
+      # PLAN-57 (P-10): this stack loads no appsettings.Production.json, so the attendance settings of Production are mirrored here
+      # (D-LVA-9, 11, 12, 13). The holidays are the acceptance layer's (docker-compose.acceptance.yml), never a Production value.
+      Attendance__Periods__Mode: "CalendarMonth"
+      Attendance__Close__UnrecordedWorkingDays: "RequireComplete"
+      Attendance__Corrections__LeaveEventsAfterClose: "AutoApply"
+      Attendance__Calendar__WeeklyRestDays: "Friday,Saturday"
       # PLAN-67 (G-UX-02, P-4): the CSP is enforced, as in every appsettings.Production.json.
       Security__CspMode: "Enforce"
       # PLAN-39 (section 4): the Data Protection guard and the HR.Core key-ring canary are enforced on this stack too.
@@ -102,6 +108,8 @@ services:
       # PLAN-54 (D-PAY-6, D-PAY-12): mirror of the Payroll:ManualInputs and Payroll:Legal values of appsettings.Production.json.
       Payroll__ManualInputs__RequireApproval: "true"
       Payroll__Legal__AttestorPolicy: "Payroll.Approve"
+      # PLAN-57 (D-LVA-10): the attendance gate before a regular run's calculation warns in every environment (Production's value).
+      Payroll__Attendance__Gate: "Warn"
       # PLAN-55 (D-PAY-11): no bank is defined for local account numbers, as in Production: only an IBAN is accepted.
       Payroll__Bank__Banks: ""
 
