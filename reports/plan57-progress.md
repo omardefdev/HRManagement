@@ -17,8 +17,8 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
 | P2 one writer | done | 2026-11-25T21:25:58Z |
 | P3 close and contract | done | 2026-11-25T21:44:57Z |
 | P4 correction | done | 2026-11-25T22:01:57Z |
-| P5 payroll's side | in progress | |
-| P6 PostgreSQL proofs | | |
+| P5 payroll's side | done | 2026-11-25T22:22:14Z |
+| P6 PostgreSQL proofs | in progress | |
 | P7 acceptance and review | | |
 | P8 main | | |
 | P9 demo server | | |
@@ -158,6 +158,41 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
   the leave created, `Pending`, cancelled before the decision). `Iam052HrCoreScopeHttpTests` seeds a correction in both branches
   and exercises the new actions (3 passed). Unit (Lva057 + Architecture) 372 passed; architecture project 414 passed.
 
+## P5 — payroll's side (finished 2026-11-25T22:22:14Z)
+
+- **Commit `b8435a88`.** `AttendanceSummaryReceipt` (unique `SummaryId`, `xmin`); `AbsenceDeduction.OriginalPeriodStart/End`,
+  `CarryForward`, `SourceVersion`; migration `20261125221004_LVA057_AttendanceHandoff` (the table under forced row security, the
+  four columns, the index; no data move; no byte order mark; `has-pending-model-changes`: none).
+- **`AttendanceSummaryPublishedConsumer`** and `AttendanceSummaryHandoff` (one transaction: the receipt created if absent and
+  locked `FOR UPDATE` on PostgreSQL, a version not newer than the latest ignored, the difference row `ATT:{SummaryId}:v{Version}`
+  with `CarryForward = HasCalculatedRunAsync`, the receipt updated, the inbox receipt staged with them). The tenant is the message's.
+- **`PayrollAttendanceFreeze`**: the one reader of the run's states (a live regular run of the period: calculated = past `Draft`;
+  frozen = `ResultsFrozen` or under review, approved, posted).
+- **The loader:** a regular run also takes a carried row of an earlier period (the plan's expression). **Added for a race the
+  plan's rule leaves open:** a free, unmarked attendance row of an earlier period is taken too when that period has a calculated
+  regular run (the consumer can decide «not carried» an instant before the period's run calculates and freezes without the row;
+  nothing else would ever take it). A period with no run keeps its rows for its own run.
+- **`AbsenceRule`:** negative days are a refund (a deduction component with a positive amount, «استرداد خصم غياب — فترة yyyy-MM»);
+  a row applied by a later period's run is «فرق غياب عن فترة yyyy-MM»; every row read is consumed. Old rows give the same amount
+  and name as before.
+- **`PayrollAttendanceGate`** (`Payroll:Attendance:Gate`, `Warn` in the three appsettings files and mirrored in the prod-like
+  overlay): in `StartPayrollRunJobHandler`, after the interim gate and before `run.BeginCalculating()`. `Warn` writes **one open**
+  audit record per run (refreshed by a later evaluation), whose findings start with «تحذير بوابة الحضور», carry the count and the
+  employees' ids; `Block` refuses with the count and writes nothing (no job row either); `Off`, a correction run and a final
+  settlement pass. A resumed job does not meet it again.
+- **Reads and panel:** `GET api/payroll/runs/{id}/attendance-status`, `GET api/payroll/attendance/receipts?periodStart=`; the run's
+  page shows «الحضور» (mode, in scope, missing by name — the first 50 —, carried applied and pending).
+- **Compose:** `Attendance__*` and `Payroll__Attendance__Gate` in `docker-compose.acceptance-prodlike.yml`; the acceptance holidays
+  2025-02-17 and 2025-02-18 in `docker-compose.acceptance.yml`. `scripts/vps/lint-compose.ps1`: both chains pass.
+- **Tests:** `Lva057AbsenceRuleRefundTests` (7, unit); `Lva057PayrollAttendanceGateTests` (9) and
+  `Lva057PayrollAttendanceHandoffTests` (27 with the state table) in the integration project on SQLite, through the real handler,
+  loader, engine and run acts (the plan lists the gate test as a unit test: it needs a real calculation, so it sits beside
+  `Pay056RunScope`). Unit filter (Lva057, Payroll, Pay0, Gov002, Architecture, Leave, Consumer) 1,255 passed; architecture project
+  414; payroll integration filter (SQLite) 175 passed, 86 skipped (Testcontainers: P6).
+- **Existing test changed, meaning kept:** `Pay056ReversalTests` counted every audit record of the run to say «a reversal writes
+  no closed record by nobody»; it now counts the closed ones (one: the posting's precondition) and checks that any other is the
+  open attendance warning.
+
 ## Decisions (with reasons)
 
 - **D-P57-1, the reserved months:** 2025-01 … 2025-07 (see the baseline). 57a January, 57b February (and the current month for «no
@@ -175,8 +210,7 @@ None yet (P0 was read-only).
 
 ## The exact next step
 
-P5 (Payroll): `AttendanceSummaryReceipt` + `AbsenceDeduction.OriginalPeriodStart/End, CarryForward, SourceVersion`; migration
-`LVA057_AttendanceHandoff`; `AttendanceSummaryPublishedConsumer` (inbox, receipt `FOR UPDATE`, freeze, difference row
-`ATT:{SummaryId}:v{Version}`); `PayrollAttendanceFreeze`; the loader's carry; `AbsenceRule` refund and «every row consumed»;
-`PayrollAttendanceGate` before `run.BeginCalculating()`; the two reads and the run's panel; `Payroll:Attendance:Gate` (already in
-the three appsettings files, uncommitted); `Lva057AbsenceRuleRefundTests`, `Lva057PayrollAttendanceGateTests`, the consumer's tests.
+P6: PostgreSQL classes — `Lva057AttendanceCloseIntegrationTests` (two concurrent closes; outbox atomicity with an injected
+failure; a correction under an `xmin` conflict; 2,000 employees × 31 days under 10 s), `Lva057PayrollAttendanceHandoffIntegrationTests`
+(duplicate, reverse order, carry, refund, Block, two versions at once on one receipt, the tenant, the freeze in every state),
+payroll's migration as the migrator, HTTP tests of the new APIs (statuses, antiforgery, roles); then the full Testcontainers filter.
