@@ -242,7 +242,7 @@ public sealed class Iam053SalaryChangeHarness
     public async Task SetRunStatusAsync(Guid runId, PayrollRunStatus status)
     {
         await using var db = Db();
-        (await db.PayrollRuns.SingleAsync(r => r.Id == runId)).Status = status;
+        HRManagement.TestSupport.PayrollRuns.ForTesting.SetStatus(await db.PayrollRuns.SingleAsync(r => r.Id == runId), status);
         await db.SaveChangesAsync();
     }
 

@@ -159,58 +159,6 @@ public class PayrollRunsController : Controller
         return result;
     }
 
-    [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
-    public async Task<IActionResult> AddSalaryLine(Guid payrollRunId)
-    {
-        var run = await _db.PayrollRuns.AsNoTracking().FirstOrDefaultAsync(r => r.Id == payrollRunId);
-        if (run == null) return NotFound();
-
-        var error = run.ValidateCanModifyLines();
-        if (error != null)
-        {
-            TempData["Error"] = error;
-            return RedirectToAction(nameof(Details), new { id = payrollRunId });
-        }
-
-        return View(new SalaryLine { PayrollRunId = payrollRunId });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
-    public async Task<IActionResult> AddSalaryLine([Bind("PayrollRunId,EmployeeId,GrossPay,TotalDeductions,PayComponents")] SalaryLine line)
-    {
-        if (!ModelState.IsValid) return View(line);
-
-        var run = await _db.PayrollRuns.FirstOrDefaultAsync(r => r.Id == line.PayrollRunId);
-        if (run == null) return NotFound();
-
-        var stateError = run.ValidateCanModifyLines();
-        if (stateError != null)
-        {
-            ModelState.AddModelError(string.Empty, stateError);
-            return View(line);
-        }
-
-        if (await _db.SalaryLines.AnyAsync(s =>
-                s.PayrollRunId == line.PayrollRunId && s.EmployeeId == line.EmployeeId))
-        {
-            ModelState.AddModelError(string.Empty, "يوجد بالفعل بند راتب لهذا الموظف في نفس التشغيل.");
-            return View(line);
-        }
-
-        line.NetPay = PayrollNet.Net(line, PayrollNet.LegacyRound);
-        _db.SalaryLines.Add(line);
-        await _db.SaveChangesAsync();
-        SecurityAudit.Log(
-            HttpContext,
-            SecurityAudit.EventTypes.PayrollOverride,
-            resource: $"PayrollRun:{line.PayrollRunId}/Employee:{line.EmployeeId}",
-            detailJson: "{\"action\":\"AddSalaryLine\"}");
-        TempData["Success"] = "تم إضافة بند الراتب";
-        return RedirectToAction(nameof(Details), new { id = line.PayrollRunId });
-    }
-
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollProcess)]

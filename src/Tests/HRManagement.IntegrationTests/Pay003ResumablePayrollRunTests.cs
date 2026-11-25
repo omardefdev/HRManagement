@@ -1,3 +1,4 @@
+using HRManagement.TestSupport.PayrollRuns;
 using MediatR;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -110,7 +111,7 @@ public class Pay003ResumablePayrollRunTests
         var run = await db.PayrollRuns.FirstAsync(r => r.Id == runId);
         run.ResultsFrozen = false;
         run.ValidatedAtCalculate = false;
-        run.Status = PayrollRunStatus.Calculating;
+        ForTesting.SetStatus(run, PayrollRunStatus.Calculating);
         var job = await db.PayrollRunJobs.FirstAsync(j => j.PayrollRunId == runId);
         job.Status = PayrollRunJobStatus.Paused;
         await db.SaveChangesAsync();
@@ -149,7 +150,7 @@ public class Pay003ResumablePayrollRunTests
         };
         db.PayrollRunJobs.Add(job);
         var run = await db.PayrollRuns.FirstAsync(r => r.Id == runId);
-        run.Status = PayrollRunStatus.Calculating;
+        ForTesting.SetStatus(run, PayrollRunStatus.Calculating);
         await db.SaveChangesAsync();
 
         var (ok, _, err) = await mediator.Send(new CalculatePayrollRunCommand(runId.Value));
@@ -194,7 +195,7 @@ public class Pay003ResumablePayrollRunTests
         var run = await db.PayrollRuns.FirstAsync(r => r.Id == runId);
         run.ResultsFrozen = false;
         run.ValidatedAtCalculate = false;
-        run.Status = PayrollRunStatus.Calculating;
+        ForTesting.SetStatus(run, PayrollRunStatus.Calculating);
         // Remove last employee's line to force recompute on resume
         var lastSnapEmp = await db.PayrollRunInputSnapshots
             .Where(s => s.PayrollRunJobId == job.Id)

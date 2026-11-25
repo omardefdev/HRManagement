@@ -332,7 +332,9 @@ public static class PayrollRunParallelCalculator
         }
         if (stop == 2)
         {
-            finalRun.MarkCancelled();
+            // The cancellation already moved the run; a worker that only notices it does not move it again.
+            if (finalRun.Status != PayrollRunStatus.Cancelled)
+                finalRun.MarkCancelled();
             finalJob.Status = PayrollRunJobStatus.Cancelled;
             await repository.SaveChangesAsync(cancellationToken);
             repository.ClearChangeTracker();
@@ -342,7 +344,7 @@ public static class PayrollRunParallelCalculator
         {
             finalJob.Status = PayrollRunJobStatus.Failed;
             finalJob.Error ??= fatalError;
-            finalRun.Status = PayrollRunStatus.Calculating;
+            finalRun.MarkCalculationFailed();
             await repository.SaveChangesAsync(cancellationToken);
             repository.ClearChangeTracker();
             return (false, linesGenerated, jobId, fatalError ?? finalJob.Error);
@@ -357,7 +359,7 @@ public static class PayrollRunParallelCalculator
         }
 
         finalJob.Phase = PayrollRunJobPhase.Validate;
-        finalRun.Status = PayrollRunStatus.Validating;
+        finalRun.BeginValidating();
         await repository.SaveChangesAsync(cancellationToken);
 
         // PLAN-56 (G-PAY-03): the validation's net is the engine's: PayrollNet, under the pinned framework's rounding.
@@ -369,7 +371,7 @@ public static class PayrollRunParallelCalculator
         {
             finalJob.Status = PayrollRunJobStatus.Failed;
             finalJob.Error = err;
-            finalRun.Status = PayrollRunStatus.Calculating;
+            finalRun.MarkCalculationFailed();
             await repository.SaveChangesAsync(cancellationToken);
             repository.ClearChangeTracker();
             return (false, linesGenerated, jobId, err);

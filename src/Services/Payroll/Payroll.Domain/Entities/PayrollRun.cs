@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using HRManagement.SharedKernel.Entities;
 using Payroll.Domain.Enums;
+using Payroll.Domain.Services;
 
 namespace Payroll.Domain.Entities;
 
@@ -20,8 +21,18 @@ public class PayrollRun : AuditableEntity
     [Display(Name = "تاريخ التشغيل")]
     public DateTime RunDate { get; set; }
 
+    private PayrollRunStatus _status;
+
+    /// <summary>
+    /// PLAN-56 (G-PAY-06): the run's state. It is given once, when the run is constructed (a new draft, or a seeded run created in its
+    /// state), and after that only the methods below change it, each through <see cref="PayrollRunTransitions"/>. No code assigns it.
+    /// </summary>
     [Display(Name = "الحالة")]
-    public PayrollRunStatus Status { get; set; }
+    public PayrollRunStatus Status
+    {
+        get => _status;
+        init => _status = value;
+    }
 
     [Display(Name = "نوع التشغيل")]
     public PayrollRunType RunType { get; set; } = PayrollRunType.Regular;
@@ -95,48 +106,57 @@ public class PayrollRun : AuditableEntity
             ? null
             : "لا يمكن عكس إلا تشغيلاً مرحّلاً.";
 
+    /// <summary>Every change of state passes here: the act must be legal from the present state (PLAN-56, G-PAY-06).</summary>
+    private void Move(PayrollRunAct act) => _status = PayrollRunTransitions.EnsureTransition(act, _status);
+
     public void BeginCalculating()
     {
         var err = ValidateCanCalculate();
         if (err != null) throw new InvalidOperationException(err);
-        Status = PayrollRunStatus.Calculating;
+        Move(PayrollRunAct.BeginCalculating);
     }
+
+    /// <summary>The calculator's own step: every partition is complete, and the totals are being checked.</summary>
+    public void BeginValidating() => Move(PayrollRunAct.BeginValidating);
+
+    /// <summary>
+    /// The calculator's own step: a partition or the validation failed. The run stays «قيد الحساب», not frozen, until the calculation
+    /// is resumed or restarted.
+    /// </summary>
+    public void MarkCalculationFailed() => Move(PayrollRunAct.MarkCalculationFailed);
 
     public void MarkCalculated(decimal totalNetPay)
     {
-        if (Status is not (PayrollRunStatus.Draft or PayrollRunStatus.Calculated or PayrollRunStatus.Calculating or PayrollRunStatus.Validating))
-            throw new InvalidOperationException("لا يمكن إنهاء الحساب في الحالة الحالية.");
-        Status = PayrollRunStatus.Calculated;
+        Move(PayrollRunAct.MarkCalculated);
         TotalNetPay = totalNetPay;
     }
 
+    /// <summary>
+    /// The validation passed: the total is frozen with the lines. Only a run that is being calculated or was calculated can be
+    /// validated; a run sent for review, approved, posted, reversed or cancelled is never brought back by a validation.
+    /// </summary>
     public void MarkValidated(decimal totalNetPay)
     {
-        Status = PayrollRunStatus.Calculated;
+        Move(PayrollRunAct.MarkValidated);
         TotalNetPay = totalNetPay;
         ValidatedAtCalculate = true;
         ResultsFrozen = true;
     }
 
-    public void MarkCancelled()
-    {
-        if (Status is PayrollRunStatus.Posted or PayrollRunStatus.Reversed)
-            throw new InvalidOperationException("لا يمكن إلغاء تشغيل مرحّل أو معكوس.");
-        Status = PayrollRunStatus.Cancelled;
-    }
+    public void MarkCancelled() => Move(PayrollRunAct.Cancel);
 
     public void SubmitForReview()
     {
         var err = ValidateCanSubmitForReview();
         if (err != null) throw new InvalidOperationException(err);
-        Status = PayrollRunStatus.UnderReview;
+        Move(PayrollRunAct.SubmitForReview);
     }
 
     public void Approve(Guid approverId, string? role = null, string? notes = null)
     {
         var err = ValidateCanApprove();
         if (err != null) throw new InvalidOperationException(err);
-        Status = PayrollRunStatus.Approved;
+        Move(PayrollRunAct.Approve);
         Approvals.Add(new PayrollRunApproval
         {
             PayrollRunId = Id,
@@ -150,9 +170,7 @@ public class PayrollRun : AuditableEntity
 
     public void Reject(Guid approverId, string? notes = null)
     {
-        var err = ValidateCanApprove();
-        if (err != null) throw new InvalidOperationException(err);
-        Status = PayrollRunStatus.Calculated;
+        Move(PayrollRunAct.Reject);
         Approvals.Add(new PayrollRunApproval
         {
             PayrollRunId = Id,
@@ -170,13 +188,13 @@ public class PayrollRun : AuditableEntity
     {
         var err = ValidateCanPost();
         if (err != null) throw new InvalidOperationException(err);
-        Status = PayrollRunStatus.Posted;
+        Move(PayrollRunAct.Post);
     }
 
     public void Reverse()
     {
         var err = ValidateCanReverse();
         if (err != null) throw new InvalidOperationException(err);
-        Status = PayrollRunStatus.Reversed;
+        Move(PayrollRunAct.Reverse);
     }
 }

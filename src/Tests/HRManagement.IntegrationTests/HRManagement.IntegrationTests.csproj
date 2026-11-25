@@ -8,6 +8,7 @@
     <Compile Include="..\HRManagement.UnitTests\Messaging\OutboxOrderProbe.cs" Link="Messaging\OutboxOrderProbe.cs" />
     <!-- PLAN-49: the policy data of a database from before the plan, used by the unit and the PostgreSQL tests of its change sets. -->
     <Compile Include="..\HRManagement.UnitTests\Pol049LegacyPolicyData.cs" Link="Policy\Pol049LegacyPolicyData.cs" />
+    <Compile Include="..\HRManagement.UnitTests\PayrollRunForTesting.cs" Link="Payroll\PayrollRunForTesting.cs" />
   </ItemGroup>
 
   <ItemGroup>

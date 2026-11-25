@@ -1,3 +1,4 @@
+using HRManagement.TestSupport.PayrollRuns;
 using Microsoft.EntityFrameworkCore;
 using Payroll.Application.Features.PayrollRuns;
 using Payroll.Domain.Enums;
@@ -52,7 +53,7 @@ public class Pay022ResumePostgreSqlTests
         var run = await db.PayrollRuns.FirstAsync(r => r.Id == runId);
         run.ResultsFrozen = false;
         run.ValidatedAtCalculate = false;
-        run.Status = PayrollRunStatus.Calculating;
+        ForTesting.SetStatus(run, PayrollRunStatus.Calculating);
 
         var lastEmp = await db.PayrollRunInputSnapshots
             .Where(s => s.PayrollRunJobId == job.Id)
@@ -111,7 +112,7 @@ public class Pay022ResumePostgreSqlTests
         };
         db.PayrollRunJobs.Add(job);
         var run = await db.PayrollRuns.FirstAsync(r => r.Id == runId);
-        run.Status = PayrollRunStatus.Calculating;
+        ForTesting.SetStatus(run, PayrollRunStatus.Calculating);
         await db.SaveChangesAsync();
 
         var (ok, _, calcErr) = await mediator.Send(new CalculatePayrollRunCommand(runId.Value));

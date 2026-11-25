@@ -62,6 +62,8 @@ public class StartPayrollRunJobHandler(
                 return (false, 0, existing.Id, expired);
             }
 
+            // PLAN-56 (G-PAY-06): a calculation that goes on is a calculation: the run is «قيد الحساب» by its own method.
+            run.BeginCalculating();
             existing.Status = PayrollRunJobStatus.Running;
             existing.Attempt++;
             existing.LeaseOwner = Environment.MachineName;
@@ -319,6 +321,8 @@ public class ResumePayrollRunJobHandler(
             return (false, 0, job.Id, expired);
         }
 
+        // PLAN-56 (G-PAY-06): a resumed calculation is a calculation: the run is «قيد الحساب» by its own method.
+        run.BeginCalculating();
         job.Status = PayrollRunJobStatus.Running;
         job.Attempt++;
         job.Error = null;
@@ -387,6 +391,11 @@ public class ValidatePayrollRunHandler(IPayrollRepository repository)
     {
         var run = await repository.GetPayrollRunAsync(request.PayrollRunId, includeLines: true, cancellationToken);
         if (run is null) return (false, "التشغيل غير موجود.");
+
+        // PLAN-56 (G-PAY-06): the state first. A validation never brings back a run that was sent for review, approved, posted,
+        // reversed or cancelled; nothing is read or written on refusal.
+        if (PayrollRunTransitions.Refusal(PayrollRunAct.MarkValidated, run.Status) is { } notNow)
+            return (false, notNow);
 
         var job = await repository.PayrollRunJobs
             .Include(j => j.Partitions)

@@ -30,7 +30,6 @@ public sealed partial class Pay056NetComputationArchitectureTests
         ["Services/Payroll/Payroll.Domain/Services/Engine/Rules/PayrollRules.cs"] = "RoundingRule: the engine's net, PayrollNet under the framework's rounding",
         ["Services/Payroll/Payroll.Domain/Services/PayrollCalculation.cs"] = "GenerateSalaryLine: the legacy builder of the oldest tests, PayrollNet under the legacy rounding",
         ["Services/Payroll/Payroll.Infrastructure/Data/DemoPayrollSeeder.cs"] = "a seeded line, built like an engine line: PayrollNet",
-        ["Services/Payroll/Payroll.Web/Controllers/PayrollRunsController.cs"] = "AddSalaryLine, the manual line: PayrollNet of its two figures",
     };
 
     /// <summary>A subtraction whose left side is a gross: <c>GrossPay - </c>, <c>gross - </c>, <c>totalGross - </c>, <c>l.GrossPay -</c>.</summary>

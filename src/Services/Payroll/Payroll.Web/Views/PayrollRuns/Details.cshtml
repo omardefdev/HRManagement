@@ -24,11 +24,6 @@
 
         <div>
 
-            @if (canProcess && (Model.Status is PayrollRunStatus.Draft or PayrollRunStatus.Calculated))
-            {
-                <a asp-action="AddSalaryLine" asp-route-payrollRunId="@Model.Id" class="btn btn-primary btn-sm">إضافة بند</a>
-            }
-
             <a asp-action="Index" class="btn btn-secondary btn-sm">القائمة</a>
 
         </div>

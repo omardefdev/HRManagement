@@ -11,8 +11,8 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
 |-------|--------|----------------|
 | P0 baseline | done | 2026-11-25T05:17Z |
 | P1 one net | done | 2026-11-25T05:28:33Z |
-| P2 guards | in progress | |
-| P3 reject / cancel / release / restart | | |
+| P2 guards | done | 2026-11-25T05:41:08Z |
+| P3 reject / cancel / release / restart | in progress | |
 | P4 correction | | |
 | P5 reversal | | |
 | P6 PostgreSQL proofs | | |
@@ -79,6 +79,31 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
   in 21 s; `has-pending-model-changes`: none; format check of the changed files clean.
 - `AddSalaryLine` still exists until P2; its net comes from `PayrollNet` meanwhile.
 
+## P2 — a guard on every transition (finished 2026-11-25T05:41:08Z)
+
+- **Code:** `PayrollRunTransitions` (one table: act → states it may leave → state it reaches → Arabic refusal) and `PayrollRunAct`;
+  every method of `PayrollRun` goes through `Move` → `EnsureTransition`; `Status` has an init accessor over the field the methods set
+  (nothing assigns it after construction); the calculator's three writes are `MarkCalculationFailed()` and `BeginValidating()`; a
+  resumed or continued calculation calls `BeginCalculating()`; the calculator no longer cancels a run that is already cancelled;
+  `ValidatePayrollRunHandler` checks the state first (`validate` on an approved run → refusal, 400 at the API, nothing read or written);
+  `MarkValidated` only from `Calculating`, `Calculated`, `Validating`.
+- **Removed:** `PayrollRunsController.AddSalaryLine` (GET and POST), its view, its link on the run's page, its allowlist row
+  (`payroll.txt` 7 → 6 rows; the ceiling lowered 11 → 6).
+- **A duplicate bank reference:** `IX_PaymentBatches_Run_BankRef` has its own Arabic message in `UniqueConstraintMessageRegistry`;
+  the conflict middleware (already registered for every host) answers 409 with it. The prompt expected a 500 today; the middleware
+  already answered 409 with the general message. Proved on PostgreSQL in P6.
+- **Tests:** `Pay056TransitionTests` (99 cells of the matrix, written out independently of the table; the table equals the matrix;
+  posted leaves only by a reversal; the init-only state; constructions only in the two creators and the two seeders; no write around
+  the entity, with planted writes); `Pay056GuardTests` (validate in every state through the handler; a failed validation leaves the
+  run «قيد الحساب»). `ForTesting.SetStatus` (`src/Tests/HRManagement.UnitTests/PayrollRunForTesting.cs`, linked into the integration
+  project) replaces the 7 assignments. `MassAssignmentHttpTests` → «no action of Payroll binds a salary line»;
+  `PayrollRunLifecycleIntegrationTests.AddSalaryLine_…` → «a line cannot be added to an approved run because no action adds a line».
+- **Results:** build `-warnaserror` 0 errors; unit filter 365 passed (and 696 on the wider payroll filter before the new class);
+  integration (SQLite) 52 passed, 68 skipped (Testcontainers); architecture project 401 passed; PostgreSQL run tests (Pay021,
+  Pay022, Pay023, Pay054V2, Pay055, Data001) 26 passed in 1 min 1 s; format check clean.
+- **For P3:** `Reject` still returns the run to `Calculated` (frozen) in the table; P3 replaces it with `ReopenAfterRejection`
+  (`UnderReview → Draft`) and updates the matrix. `MarkCancelled()` gets its actor and reason in P3.
+
 ## Decisions (with reasons)
 
 - **D1 (P1): the net's rounding in the validation.** `PayrollNet.Net(gross, deductions, adjustments, round)`; the validation and the
@@ -97,7 +122,8 @@ None.
 
 ## Next step
 
-P2: `PayrollRunTransitions` and `EnsureTransition` in every method of `PayrollRun`; `Status` not settable after construction (an init
-accessor for the seeders and the two creators of a draft; `ForTesting.SetStatus` for tests); the calculator's named methods; the
-validation handler's state check; remove `AddSalaryLine` (actions, view, link, allowlist row, tests); the duplicate bank reference
-as 409; `Pay056TransitionTests`.
+P3: `PayrollInputRelease`; `PayrollRun.ReopenAfterRejection` + `Revision`; `PayrollRunRevision`; the rejection in one transaction;
+`CancelPayrollRunCommand` (D-PAY-18, a run with a funding decision or a partial batch refused); the worker's save checks the job in
+its own transaction; `RestartCalculationCommand`; `ApprovalDecision.Cancelled`; the cancel policy; the API (`reject`, `cancel`,
+`restart`, antiforgery) and the screens; migration `PAY056_RunLifecycle` (revision, cancel columns, `PayrollRunRevisions`, the live
+index limited to regular runs, one open correction per source); tests.
