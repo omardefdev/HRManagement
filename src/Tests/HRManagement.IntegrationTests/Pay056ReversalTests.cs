@@ -78,8 +78,8 @@ public class Pay056ReversalTests
         Assert.DoesNotContain(batches, b => b.BatchKind == PaymentBatchKind.Reversal);
         // Its draft order is cancelled; the order the channel rejected stays the channel's record.
         var orders = await scope.Db.PaymentOrders.AsNoTracking().Where(o => o.PayrollRunId == runId).ToDictionaryAsync(o => o.IdempotencyKey!, o => o.Status);
-        Assert.Equal(PaymentOrderStatus.Cancelled, orders["pay056-draft"]);
-        Assert.Equal(PaymentOrderStatus.Rejected, orders["pay056-rejected"]);
+        Assert.Equal(PaymentOrderStatus.Cancelled, orders["draft"]);
+        Assert.Equal(PaymentOrderStatus.Rejected, orders["rejected"]);
         // The inputs are free: the adjustment too (the old reversal left adjustments behind).
         Assert.Null((await scope.Db.PayrollAdjustments.AsNoTracking().SingleAsync(a => a.Id == adjustment.Id)).PayrollRunId);
         Assert.Null((await scope.Db.DeductionRecords.AsNoTracking().SingleAsync(d => d.Id == installment.Id)).AppliedInRunId);

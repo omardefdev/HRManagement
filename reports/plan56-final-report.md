@@ -41,7 +41,8 @@ On `feature/plan-56-pay-run-state-machine`, from `origin/main` `a8f6ee32` (after
 | `87f956c7` | test(pay056): demo server with the new run acts, a refused reversal request and the net migration; PLAN-36..55 server checks still green |
 | `6847ab14` | docs(pay056): the documents and this report |
 | `f540b95a` | docs(pay056): the pull request's description |
-| (this commit) | docs(pay056): the history rewritten before the push for one test literal gitleaks read as a key |
+| `7d5e6f95` | docs(pay056): the history rewritten before the push for one test literal gitleaks read as a key; the first pass of the local gates |
+| (this commit) | fix(pay056): the reversal test reads its planted orders by their new keys (the second pass of the local gates failed on it) |
 
 **The ids changed once, before anything was pushed.** The pre-push check's gitleaks found one `generic-api-key` in this plan's
 range: the test literal `IdempotencyKey = "pay056-…"` of a planted payment order in `Pay056ReversalTests.cs` (commit
@@ -54,7 +55,9 @@ old one until the merge. Old → new: `4635260c` → `98275551`, `ceb579ef` → 
 `ff7143ff` → `5caa8da7`, `e2f12e1c` → `9072032f`, `69570ea4` → `93b09c18`, `22fdebb0` → `87f956c7`, `6bf88b25` → `6847ab14`,
 `d9d11ab6` → `f540b95a`. The acceptance images and the server's images of P9 were built from the old ids; their product code
 is the same. **The server is built and deployed again from the final head, so that its tag is a commit of `main`** (the merge
-note in `reports/plan56-progress.md`); and the local gates were run again on the new head.
+note in `reports/plan56-progress.md`); and the local gates were run again on the new head. That second pass failed on a slip
+of the rewrite itself (the test read its orders back by the old keys, and the class had not been rerun): fixed in the last
+commit of the table, and the gates were run a third time on it.
 
 ## 3. Decisions applied and deviations
 

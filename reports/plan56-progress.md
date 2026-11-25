@@ -373,6 +373,13 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
   the integration project was rebuilt); and the demo server, which runs `69570ea4e1f6` (an id that is no longer in the history),
   is built and deployed again from the final head during the wait for CI, so that its tag is a commit of `main` for the next
   plan's precondition. Its product code does not change.
+- **The second pass of the gates found my own slip.** The Testcontainers step on `7d5e6f95` passed (15:30:36Z build, then
+  15:35Z to 15:49:08Z: 303 passed, 1 skipped, 14 min 13 s). The local CI steps in a fresh clone of `7d5e6f95` (15:49:30Z to
+  16:29:00Z) **failed at «Integration tests (MassTransit InMemory)»**: `Pay056ReversalTests.An_approved_reversal_voids…` read its
+  two planted orders back by the old keys (`orders["pay056-draft"]`), which I had not changed when I shortened the keys, and I
+  had not rerun that class after the rewrite. 80 steps passed, 1 failed, 6 after it skipped, 5 not run.
+- **Fixed in a commit of its own** (the two lookups read the new keys; they are not a gitleaks pattern, so the history is not
+  rewritten again): the PLAN-56 integration classes on SQLite 99 passed before the gates are started a third time.
 
 ## Stops and resumes
 
