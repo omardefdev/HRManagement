@@ -153,6 +153,32 @@ public class AcUx67ReadableInterfaceTests
     }
 
     /// <summary>
+    /// PLAN-57's record pages, opened directly when agency A holds such a record (the lists' first page does not always reach it):
+    /// a correction's form for a day of a closed period, a correction's page, an attendance record's page, and the edit form of a
+    /// record that is not locked and not leave-made. Without a record (AC-LVA-57 has not run on this stack yet) a page stays optional.
+    /// </summary>
+    private static async Task<IReadOnlyList<Ux067KeyPage>> WithAttendanceRecordsAsync(IReadOnlyList<Ux067KeyPage> pages)
+    {
+        const string covered =
+            "EXISTS (SELECT 1 FROM \"AttendanceEmployeeSummaries\" s JOIN \"AttendancePeriods\" p ON p.\"Id\" = s.\"AttendancePeriodId\" " +
+            "WHERE s.\"EmployeeId\" = r.\"EmployeeId\" AND r.\"AttendanceDate\" BETWEEN p.\"PeriodStart\" AND p.\"PeriodEnd\")";
+        var records = $"FROM \"DailyAttendanceRecords\" r WHERE r.\"TenantId\" = '{AgencyA}'";
+        var locked = (await Db(Core, $"SELECT COALESCE((SELECT r.\"EmployeeId\"::text || '|' || to_char(r.\"AttendanceDate\", 'YYYY-MM-DD') {records} AND r.\"Source\" <> 2 AND {covered} LIMIT 1), '');")).Split('|');
+        var correction = await Db(Core, $"SELECT COALESCE((SELECT \"Id\"::text FROM \"AttendanceCorrections\" WHERE \"TenantId\" = '{AgencyA}' ORDER BY \"Status\", \"CreatedAt\" DESC LIMIT 1), '');");
+        var record = await Db(Core, $"SELECT COALESCE((SELECT r.\"Id\"::text {records} LIMIT 1), '');");
+        var editable = await Db(Core, $"SELECT COALESCE((SELECT r.\"Id\"::text {records} AND r.\"Source\" <> 2 AND NOT {covered} LIMIT 1), '');");
+        return pages.Select(p => p.Name switch
+        {
+            "attendance-correction-form" when locked.Length == 2 =>
+                new Ux067KeyPage(p.Name, $"/ui/hr-core/AttendanceCorrections/Create?employeeId={locked[0]}&date={locked[1]}"),
+            "attendance-correction-details" when Guid.TryParse(correction, out _) => new Ux067KeyPage(p.Name, $"/ui/hr-core/AttendanceCorrections/Details/{correction}"),
+            "attendance-record-details" when Guid.TryParse(record, out _) => new Ux067KeyPage(p.Name, $"/ui/hr-core/DailyAttendanceRecords/Details/{record}"),
+            "attendance-record-edit" when Guid.TryParse(editable, out _) => new Ux067KeyPage(p.Name, $"/ui/hr-core/DailyAttendanceRecords/Edit/{editable}"),
+            _ => p
+        }).ToList();
+    }
+
+    /// <summary>
     /// The rules editor opens a draft only, and an earlier class may have published or discarded the seed's. The page is opened
     /// directly on a draft of agency A; without one, the administrator makes one through the template's own page (a copy of the version
     /// in force), and <see cref="DiscardPolicyDraftAsync"/> discards it through the editor's own form after the pages are read.
@@ -222,7 +248,8 @@ public class AcUx67ReadableInterfaceTests
         // The establishment change page needs a change: a freeze request through the position's own form (it asks first).
         var change = await CreateFreezeRequestAsync(chromium, central, r);
         var (hirePages, restoreHire, hireNote) = await KeyPagesWithHireAsync();
-        var (pages, createdDraft, draftNote) = await WithPolicyDraftAsync(chromium, admin, hirePages);
+        var (draftPages, createdDraft, draftNote) = await WithPolicyDraftAsync(chromium, admin, hirePages);
+        var pages = await WithAttendanceRecordsAsync(draftPages);
         try
         {
             var results = await Ux067PageProbe.ProbeAsync(chromium.Browser, BaseUrl, admin, pages, [(1366, 768)],
@@ -697,7 +724,8 @@ public class AcUx67ReadableInterfaceTests
         var central = await chromium.SignInAsync("central-a");
         var change = await CreateFreezeRequestAsync(chromium, central, r);
         var (hirePages, restoreHire, hireNote) = await KeyPagesWithHireAsync();
-        var (pages, createdDraft, draftNote) = await WithPolicyDraftAsync(chromium, admin, hirePages);
+        var (draftPages, createdDraft, draftNote) = await WithPolicyDraftAsync(chromium, admin, hirePages);
+        var pages = await WithAttendanceRecordsAsync(draftPages);
         try
         {
             var folder = Path.Combine(r.Folder, "screenshots");

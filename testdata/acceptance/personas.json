@@ -90,7 +90,8 @@
         "AC-IAM-50",
         "AC-IAM-52",
         "AC-01",
-        "AC-03"
+        "AC-03",
+        "AC-LVA-57"
       ],
       "enabled": true
     },
@@ -109,7 +110,8 @@
       "scenarios": [
         "AC-IAM-50",
         "AC-HCM-26",
-        "AC-HCM-31"
+        "AC-HCM-31",
+        "AC-LVA-57"
       ],
       "enabled": true
     },
@@ -344,7 +346,8 @@
         "AC-IAM-53",
         "AC-PAY-54",
         "AC-PAY-55",
-        "AC-PAY-56"
+        "AC-PAY-56",
+        "AC-LVA-57"
       ],
       "enabled": true
     },
@@ -369,7 +372,8 @@
         "AC-IAM-53",
         "AC-PAY-54",
         "AC-PAY-55",
-        "AC-PAY-56"
+        "AC-PAY-56",
+        "AC-LVA-57"
       ],
       "enabled": true
     },
@@ -678,7 +682,8 @@
         "AC-IAM-50",
         "AC-IAM-52",
         "AC-02",
-        "AC-04"
+        "AC-04",
+        "AC-LVA-57"
       ],
       "enabled": true
     },
@@ -699,7 +704,8 @@
       "purpose": "Aleppo branch manager",
       "scopeOrgUnitId": "a0000001-0000-4000-8000-000000000104",
       "scenarios": [
-        "AC-IAM-52"
+        "AC-IAM-52",
+        "AC-LVA-57"
       ],
       "enabled": true
     },
@@ -880,7 +886,8 @@
       "employeeOrdinal": 0,
       "purpose": "Agency B HR user and cross-tenant negative",
       "scenarios": [
-        "AC-03"
+        "AC-03",
+        "AC-LVA-57"
       ],
       "enabled": true
     },

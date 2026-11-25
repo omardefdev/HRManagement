@@ -91,13 +91,20 @@ public class AcIam52BranchScopeTests
         string Marker, string Diwan, string Statistic, string Inspection, string Attendance, string AttendanceDate,
         string Roster, string Assignment, string KeyPosition, string Plan, string Candidate);
 
-    /// <summary>An attendance day with no record of the employee yet (the table has years of seeded days).</summary>
+    /// <summary>
+    /// An attendance day with no record of the employee yet (the table has years of seeded days), and that no attendance summary of
+    /// the employee covers: a day of a closed period is locked (PLAN-57), and a create on it is refused whatever the scope.
+    /// </summary>
     private static async Task<string> FreeAttendanceDayAsync(string employee)
     {
         for (var i = 0; i < 60; i++)
         {
             var day = Day(Today.AddDays(-Random.Shared.Next(30, 700)));
-            if (await Db(Core, $"SELECT count(*)::text FROM \"DailyAttendanceRecords\" WHERE \"EmployeeId\"='{employee}' AND \"AttendanceDate\"='{day}';") == "0")
+            var taken = await Db(Core,
+                $"SELECT ((SELECT count(*) FROM \"DailyAttendanceRecords\" WHERE \"EmployeeId\"='{employee}' AND \"AttendanceDate\"='{day}') + " +
+                "(SELECT count(*) FROM \"AttendanceEmployeeSummaries\" s JOIN \"AttendancePeriods\" p ON p.\"Id\" = s.\"AttendancePeriodId\" " +
+                $"WHERE s.\"EmployeeId\"='{employee}' AND '{day}' BETWEEN p.\"PeriodStart\" AND p.\"PeriodEnd\"))::text;");
+            if (taken == "0")
                 return day;
         }
 

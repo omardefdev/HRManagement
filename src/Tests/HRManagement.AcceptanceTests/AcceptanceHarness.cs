@@ -184,6 +184,14 @@ public static class AcceptanceHarness
     public static Task<HttpClient> CreatePayrollClientAsync(E2ePersona persona, string correlationId) =>
         CreateAntiforgeryClientAsync(persona, correlationId, "api/payroll/pay-profile-changes/antiforgery");
 
+    /// <summary>
+    /// PLAN-57: a bearer client for HR.Core's attendance API (the close, and the corrections' request and decisions). It holds the
+    /// antiforgery cookie of <c>api/attendance/periods/antiforgery</c> and sends the request token on every call; a token of that
+    /// endpoint is accepted by the service's other API writes.
+    /// </summary>
+    public static Task<HttpClient> CreateAttendanceClientAsync(E2ePersona persona, string correlationId) =>
+        CreateAntiforgeryClientAsync(persona, correlationId, "api/hr-core/api/attendance/periods/antiforgery");
+
     /// <summary>A bearer client that holds the antiforgery cookie of <paramref name="tokenPath"/> and sends its request token.</summary>
     private static async Task<HttpClient> CreateAntiforgeryClientAsync(E2ePersona persona, string correlationId, string tokenPath)
     {
