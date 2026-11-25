@@ -32,7 +32,8 @@ public static class PayrollEmployeeCalculationUnit
         IList<PayrollAdjustment> adjustments,
         IList<AbsenceDeduction> absences,
         decimal? correctionDeltaGross = null,
-        decimal? correctionDeltaNet = null)
+        decimal? correctionDeltaNet = null,
+        Guid? bankAccountId = null)
     {
         var context = PayrollRunCalculationSupport.BuildContext(
             run, profile, grade, config, extraHolidays,
@@ -40,6 +41,10 @@ public static class PayrollEmployeeCalculationUnit
             correctionDeltaGross, correctionDeltaNet);
 
         var result = engine.Calculate(context);
+
+        // PLAN-55 (D-PAY-15): the line carries the account its run pinned at the snapshot. It is not an input of the amount: the engine
+        // never sees it, and neither the input fingerprint nor the profile version covers it.
+        result.Line.BankAccountId = bankAccountId;
 
         // Only what the engine actually charged is marked applied. Marking everything that was
         // loaded retired future advance instalments without ever deducting them.

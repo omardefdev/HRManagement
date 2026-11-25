@@ -132,6 +132,9 @@ public class PayrollRunsController : Controller
             run.PayrollConfigurationId,
             HttpContext.RequestAborted);
         ViewBag.EmployeeNames = await ResolveEmployeeNamesAsync(run.SalaryLines.Select(line => line.EmployeeId));
+        // PLAN-55 (§2): the accounts the run pinned, and the employees with none (shown by name).
+        ViewBag.BankReadiness = await _mediator.Send(
+            new Payroll.Application.Features.BankAccounts.GetRunBankReadinessQuery(id), HttpContext.RequestAborted);
 
         return View(run);
     }

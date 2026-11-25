@@ -102,6 +102,8 @@ services:
       # PLAN-54 (D-PAY-6, D-PAY-12): mirror of the Payroll:ManualInputs and Payroll:Legal values of appsettings.Production.json.
       Payroll__ManualInputs__RequireApproval: "true"
       Payroll__Legal__AttestorPolicy: "Payroll.Approve"
+      # PLAN-55 (D-PAY-11): no bank is defined for local account numbers, as in Production: only an IBAN is accepted.
+      Payroll__Bank__Banks: ""
 
   idcard-web:
     environment:

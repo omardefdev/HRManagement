@@ -1,0 +1,73 @@
+@model Payroll.Web.ViewModels.RegisterBankAccountViewModel
+@{
+    ViewData["Title"] = "تسجيل حساب مصرفي";
+    var hasBanks = Model.Banks.Count > 0;
+}
+
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">تسجيل حساب مصرفي: @Html.HrEmployeeName(Model.EmployeeId ?? Guid.Empty)</h3>
+    </div>
+
+    <div class="card-body">
+        <div class="alert alert-info" role="alert">
+            لا يُستعمل الحساب عند الحفظ: يُسجَّل بانتظار تحقق معتمد رواتب آخر مقابل تأكيد المصرف، ويبقى الحساب النافذ نافذاً حتى ذلك الحين.
+        </div>
+
+        <form asp-action="Create" method="post" autocomplete="off">
+            @Html.AntiForgeryToken()
+            <partial name="_FormErrors" />
+            <input type="hidden" asp-for="EmployeeId" />
+
+            <div class="mb-3">
+                <label asp-for="AccountKind" class="form-label"></label>
+                <select asp-for="AccountKind" class="form-select">
+                    <option value="@BankAccountKind.Iban">رقم IBAN</option>
+                    @if (hasBanks)
+                    {
+                        <option value="@BankAccountKind.Local">رقم حساب محلي لمصرف معرّف</option>
+                    }
+                </select>
+                @if (!hasBanks)
+                {
+                    <div class="form-text">يُقبل رقم IBAN فقط: لم يُعرَّف بعد أي مصرف لأرقام الحسابات المحلية في إعدادات الرواتب.</div>
+                }
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="AccountNumber" class="form-label"></label>
+                <input asp-for="AccountNumber" class="form-control" dir="ltr" maxlength="60" autocomplete="off" required />
+                <div class="form-text">تُحذف المسافات وتُحوَّل الأحرف إلى كبيرة، ويُفحص رقم IBAN بخانتي التحقق.</div>
+            </div>
+
+            @if (hasBanks)
+            {
+                <div class="mb-3">
+                    <label asp-for="BankCode" class="form-label"></label>
+                    <select asp-for="BankCode" class="form-select">
+                        <option value="">— بلا مصرف معرّف (رقم IBAN) —</option>
+                        @foreach (var bank in Model.Banks)
+                        {
+                            <option value="@bank.Code">@bank.NameAr</option>
+                        }
+                    </select>
+                    <div class="form-text">إلزامي لرقم الحساب المحلي؛ واسم المصرف يؤخذ من تعريفه.</div>
+                </div>
+            }
+
+            <div class="mb-3">
+                <label asp-for="BankNameAr" class="form-label"></label>
+                <input asp-for="BankNameAr" class="form-control" maxlength="120" />
+                <div class="form-text">إلزامي لرقم IBAN بلا مصرف معرّف.</div>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="HolderNameAr" class="form-label"></label>
+                <input asp-for="HolderNameAr" class="form-control" maxlength="200" />
+            </div>
+
+            <button type="submit" class="btn btn-primary">تسجيل الحساب</button>
+            <a asp-action="Index" asp-route-employeeId="@Model.EmployeeId" class="btn btn-secondary">عودة</a>
+        </form>
+    </div>
+</div>

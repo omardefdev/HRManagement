@@ -121,6 +121,18 @@ public class PayrollApiController : ControllerBase
         return Ok(run);
     }
 
+    /// <summary>
+    /// PLAN-55 (§2): the run's bank readiness: how many of its lines pinned an account at the snapshot, the employees with none (by
+    /// id; the run's page shows their names), and the employees whose pinned account was retired since (each behind a payment hold).
+    /// A line without an account blocks neither the calculation nor the approval.
+    /// </summary>
+    [HttpGet("runs/{id:guid}/bank-readiness")]
+    public async Task<IActionResult> GetBankReadiness(Guid id, CancellationToken ct)
+    {
+        var readiness = await _mediator.Send(new Payroll.Application.Features.BankAccounts.GetRunBankReadinessQuery(id), ct);
+        return readiness is null ? NotFound() : Ok(readiness);
+    }
+
     [HttpGet("runs/{id:guid}/freeze-status")]
     public async Task<IActionResult> GetFreezeStatus(Guid id, CancellationToken ct)
     {

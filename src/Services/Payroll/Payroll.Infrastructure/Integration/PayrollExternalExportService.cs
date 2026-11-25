@@ -4,6 +4,7 @@ using HRManagement.Integration.Abstractions.Payroll;
 using HRManagement.ServiceDefaults;
 using Microsoft.EntityFrameworkCore;
 using Payroll.Application.Abstractions;
+using Payroll.Application.Features.BankAccounts;
 using Payroll.Domain.Enums;
 using Payroll.Infrastructure.Data;
 
@@ -45,16 +46,10 @@ public sealed class PayrollExternalExportService(
             .ToListAsync(cancellationToken);
         var componentsByLine = components.GroupBy(c => c.SalaryLineId).ToDictionary(g => g.Key, g => g.ToList());
 
-        // Beneficiary accounts for this run. Without them the file is an instruction with no
-        // destination, which is why every exported row previously had an empty BankAccount.
-        var payProfiles = await db.EmployeePayProfiles
-            .AsNoTracking()
-            .Where(p => employeeIds.Contains(p.EmployeeId) && p.IsActive)
-            .Select(p => new { p.EmployeeId, p.BankAccountIban, p.BankAccountVerifiedAt })
-            .ToListAsync(cancellationToken);
-        var accountsByEmployee = payProfiles
-            .GroupBy(p => p.EmployeeId)
-            .ToDictionary(g => g.Key, g => g.First());
+        // PLAN-55 (D-PAY-15): the beneficiary account of a row is the account its line pinned at the run's snapshot: an account that
+        // changed after the calculation applies from the next cycle. An account is pinned only when it was in force (verified by a
+        // second person). One that was retired since is checked below.
+        var pinnedAccounts = await BankAccountPinning.PinnedAccountsAsync(db.EmployeeBankAccounts, run.SalaryLines, cancellationToken);
 
         // PLAN-54 (§2): the insurance rules of the pinned v2 version (the statutory deductions that name an insurance body).
         var pinned = run.PayrollConfigurationId is Guid pinnedId
@@ -74,12 +69,8 @@ public sealed class PayrollExternalExportService(
         foreach (var line in run.SalaryLines.OrderBy(l => l.EmployeeId))
         {
             var displayName = names.GetValueOrDefault(line.EmployeeId);
-            var account = accountsByEmployee.GetValueOrDefault(line.EmployeeId);
-
-            // An unverified account is treated as missing: paying into an account nobody confirmed
-            // is how money reaches the wrong person.
-            var payableIban = account?.BankAccountVerifiedAt is not null
-                ? account.BankAccountIban
+            var payableIban = line.BankAccountId is Guid accountId && pinnedAccounts.TryGetValue(accountId, out var account)
+                ? account.AccountNumber
                 : null;
 
             if (string.IsNullOrWhiteSpace(payableIban))
@@ -138,11 +129,18 @@ public sealed class PayrollExternalExportService(
                 employerInsurance));
         }
 
+        // PLAN-55 (§1 rule 5): the file is an instruction to pay. A pinned account that was retired since, and whose hold no person
+        // released, is not written into it (the disbursement gate refuses the batch for the same reason).
+        var retiredAndHeld = await BankAccountPinning.RetiredAndNotReleasedAsync(
+            db.EmployeeBankAccounts, db.PaymentHolds, db.PaymentOrders, db.PaymentBatches, run.Id, run.SalaryLines.ToList(), cancellationToken);
+        if (retiredAndHeld.Count > 0)
+            throw new RetiredPinnedBankAccountsException(retiredAndHeld, names);
+
         if (missingAccounts.Count > 0)
         {
-            throw new InvalidOperationException(
-                $"لا يمكن تصدير ملف الصرف: {missingAccounts.Count} موظف بلا حساب مصرفي محقَّق. "
-                + "أضف الحساب وتحقّق منه قبل التصدير.");
+            // PLAN-55: the refusal names the employees, not their number (a small, temporary change: PLAN-58 replaces this export with a
+            // file built from the payment orders). The exception carries their ids; the message, for a screen, their names.
+            throw new MissingPinnedBankAccountsException(missingAccounts, names);
         }
 
         var periodStart = DateOnly.FromDateTime(run.PeriodStart);

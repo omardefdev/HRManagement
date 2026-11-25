@@ -31,11 +31,18 @@ public static class PayrollOrgScopeKeys
                 db => p => db.EmployeePayProfiles
                     .Where(active => active.EmployeeId == p.EmployeeId && active.IsActive)
                     .Select(active => active.OrgUnitId)
+                    .FirstOrDefault())
+            // PLAN-55: a bank account is reached by its employee too: the unit of the employee's active pay profile.
+            .Key<PayrollDbContext, EmployeeBankAccount>(
+                db => a => db.EmployeePayProfiles
+                    .Where(active => active.EmployeeId == a.EmployeeId && active.IsActive)
+                    .Select(active => active.OrgUnitId)
                     .FirstOrDefault());
 
         registry
             .Id("employeeId", typeof(EmployeePayProfile))
             .Id("requestId", typeof(PayProfileChangeRequest))
+            .Id("accountId", typeof(EmployeeBankAccount))
             .NotKey("payGradeId", "a grade belongs to the agency, not to a branch")
             .NotKey("proposedPayGradeId", "a grade belongs to the agency, not to a branch");
     }

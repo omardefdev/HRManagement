@@ -66,8 +66,26 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
             RequestedAt = DateTime.UtcNow,
         };
         db.PayProfileChangeRequests.Add(request);
+        // PLAN-55: the employee's bank account is scoped by its employee too (a pending one, registered by another user).
+        var account = new EmployeeBankAccount
+        {
+            TenantId = Tenant,
+            EmployeeId = employee,
+            AccountKind = BankAccountKind.Iban,
+            AccountNumber = "SY" + Payroll.Domain.Services.BankAccountNumberValidator.ComputeIbanCheckDigits("SY", employee.ToString("N")[..20].ToUpperInvariant())
+                            + employee.ToString("N")[..20].ToUpperInvariant(),
+            BankNameAr = "مصرف الاختبار",
+            Status = BankAccountStatus.PendingVerification,
+            CreatedBy = SomeoneElse,
+        };
+        db.Add(account);
         await db.SaveChangesAsync();
-        return new Dictionary<Type, Guid> { [typeof(EmployeePayProfile)] = employee, [typeof(PayProfileChangeRequest)] = request.Id };
+        return new Dictionary<Type, Guid>
+        {
+            [typeof(EmployeePayProfile)] = employee,
+            [typeof(PayProfileChangeRequest)] = request.Id,
+            [typeof(EmployeeBankAccount)] = account.Id,
+        };
     }
 
     /// <summary>The first day of the month after next (in UTC): a manual request for it is always accepted and, approved, always scheduled.</summary>
@@ -145,8 +163,12 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
         var unseeded = host.Registry.Keys.Keys.Where(t => !host.Records.ContainsKey(t)).Select(t => t.Name).ToList();
         Assert.True(unseeded.Count == 0, "No seed for: " + string.Join(", ", unseeded));
         Assert.True(outcome.Offenders.Count == 0, string.Join("\n", outcome.Offenders));
-        // The three scoped controllers were all exercised: the two request controllers and the pay profiles.
-        foreach (var controller in new[] { "PayProfileChangesController", "PayProfileChangesApiController", "EmployeePayProfilesController" })
+        // The scoped controllers were all exercised: the two request controllers, the pay profiles, and PLAN-55's two bank account ones.
+        foreach (var controller in new[]
+                 {
+                     "PayProfileChangesController", "PayProfileChangesApiController", "EmployeePayProfilesController",
+                     "EmployeeBankAccountsController", "EmployeeBankAccountsApiController",
+                 })
             Assert.Contains(outcome.Exercised, line => line.StartsWith(controller + ".", StringComparison.Ordinal));
     }
 

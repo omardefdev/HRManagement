@@ -320,9 +320,6 @@ public sealed class Iam053SalaryChangeStateMachineTests
         Assert.Equal(h.GradeId, next.PayGradeId);
         Assert.Equal(H.Unit, next.OrgUnitId);
         Assert.Equal("law50", next.RegimeCode);
-        Assert.Equal("SY0000000000000000000053", next.BankAccountIban);
-        Assert.Equal("المصرف التجاري السوري", next.BankName);
-        Assert.Equal(new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc), next.BankAccountVerifiedAt);
 
         await using (var db = h.Db())
         {

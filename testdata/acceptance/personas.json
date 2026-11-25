@@ -342,7 +342,8 @@
         "AC-21",
         "AC-22",
         "AC-IAM-53",
-        "AC-PAY-54"
+        "AC-PAY-54",
+        "AC-PAY-55"
       ],
       "enabled": true
     },
@@ -365,7 +366,8 @@
         "AC-25",
         "AC-23",
         "AC-IAM-53",
-        "AC-PAY-54"
+        "AC-PAY-54",
+        "AC-PAY-55"
       ],
       "enabled": true
     },
@@ -619,7 +621,7 @@
       "employeeSiteCode": "HQ",
       "employeeOrdinal": 22,
       "purpose": "Independent directory assignment checker",
-      "scenarios": [ "AC-IAM-50" ],
+      "scenarios": [ "AC-IAM-50", "AC-PAY-55" ],
       "enabled": true
     },
     {
@@ -903,6 +905,7 @@
       "employeeSiteCode": "HQ",
       "employeeOrdinal": 2,
       "purpose": "Agency B payroll processor",
+      "scenarios": [ "AC-PAY-55" ],
       "enabled": true
     },
     {
@@ -919,7 +922,8 @@
       "employeeOrdinal": 3,
       "purpose": "Agency B payroll approver",
       "scenarios": [
-        "AC-IAM-53"
+        "AC-IAM-53",
+        "AC-PAY-55"
       ],
       "enabled": true
     },

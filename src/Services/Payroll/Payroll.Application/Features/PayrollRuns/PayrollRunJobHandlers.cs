@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using HRManagement.SharedKernel.SeparationOfDuties;
 using Payroll.Application.Abstractions;
+using Payroll.Application.Features.BankAccounts;
 using Payroll.Application.Options;
 using Payroll.Application.Services;
 using Payroll.Domain.Entities;
@@ -163,6 +164,10 @@ public class StartPayrollRunJobHandler(
             }
         }
 
+        // PLAN-55 (D-PAY-15): the account in force now is the one this run pays into, whatever is done to it afterwards. An employee
+        // with no verified account is snapshot without one: that blocks neither the calculation nor the approval.
+        var pinnedAccounts = await BankAccountPinning.ActiveAccountsAsync(repository, cancellationToken);
+
         var sort = 0;
         foreach (var profile in profiles)
         {
@@ -170,6 +175,7 @@ public class StartPayrollRunJobHandler(
             {
                 EmployeeId = profile.EmployeeId,
                 EmployeePayProfileId = profile.Id,
+                BankAccountId = pinnedAccounts.TryGetValue(profile.EmployeeId, out var pinned) ? pinned : null,
                 ProfileVersion = PayrollEmployeeCalculationUnit.ComputeProfileVersion(profile),
                 InputFingerprint = fingerprintByEmployee.GetValueOrDefault(profile.EmployeeId),
                 PayrollConfigurationId = config.Id,
