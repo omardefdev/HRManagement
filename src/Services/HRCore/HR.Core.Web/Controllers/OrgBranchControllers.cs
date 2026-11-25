@@ -82,7 +82,6 @@ public class DailyAttendanceRecordsController(
     AttendanceDayWriter writer,
     AttendanceLockService locks,
     AttendanceCalendar calendar,
-    HR.Core.Infrastructure.Integration.AttendanceIntegrationService attendance,
     HR.Core.Infrastructure.OrgScopeService orgScope) : Controller
 {
     public async Task<IActionResult> Index(Guid? employeeId, DateOnly? dateFrom, DateOnly? dateTo, DailyAttendanceStatus? status)
@@ -308,30 +307,8 @@ public class DailyAttendanceRecordsController(
         return RedirectToAction(nameof(Index));
     }
 
-    public async Task<IActionResult> ClosePeriod()
-    {
-        var scope = await orgScope.GetAllowedOrgUnitIdsAsync(User);
-        if (scope.IsDenied) return Forbid();
-        var units = db.OrgUnits.AsQueryable();
-        if (scope.MustFilter)
-            units = units.Where(o => scope.AllowedOrgUnitIds.Contains(o.Id));
-        ViewBag.OrgUnits = new SelectList(await units.OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr");
-        return View();
-    }
-
-    [Authorize(Policy = HrManagementPolicies.HrCoreAttendanceClose)]
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ClosePeriod(DateOnly periodStart, DateOnly periodEnd, Guid? orgUnitId)
-    {
-        var scope = await orgScope.GetAllowedOrgUnitIdsAsync(User);
-        if (scope.IsDenied) return Forbid();
-        if (orgUnitId.HasValue && !scope.CanAccess(orgUnitId)) return Forbid();
-        if (!orgUnitId.HasValue && scope.MustFilter) return Forbid();
-        var count = await attendance.ClosePeriodAndPublishAsync(periodStart, periodEnd, orgUnitId);
-        TempData["Success"] = $"تم إغلاق فترة الحضور ونشر {count} ملخصاً للرواتب";
-        return RedirectToAction(nameof(Index));
-    }
+    /// <summary>PLAN-57 (§1): the old close is gone; its address leads to the attendance periods' close page.</summary>
+    public IActionResult ClosePeriod() => RedirectToAction("Close", "AttendancePeriods");
 
     private async Task<AttendanceActor> ActorAsync()
     {

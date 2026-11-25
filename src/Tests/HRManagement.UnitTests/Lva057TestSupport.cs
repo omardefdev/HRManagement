@@ -2,10 +2,13 @@ using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Infrastructure.Data;
 using HR.Core.Infrastructure.Services.Attendance;
+using HRManagement.MessageContracts.Events;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Enums;
+using MassTransit;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 
 namespace HRManagement.UnitTests;
 
@@ -71,6 +74,46 @@ internal sealed class Lva057Db : IAsyncDisposable
         await test.Db.SaveChangesAsync();
         return test;
     }
+
+    /// <summary>Every attendance summary version staged for payroll through the test's publish endpoint, in order.</summary>
+    public List<object> Published { get; } = [];
+
+    private IPublishEndpoint? _publish;
+
+    /// <summary>A publish endpoint that records what is staged (the bus outbox is the integration tests' matter).</summary>
+    public IPublishEndpoint Publish
+    {
+        get
+        {
+            if (_publish is not null)
+                return _publish;
+            var mock = new Mock<IPublishEndpoint>(MockBehavior.Loose);
+            mock.Setup(p => p.Publish<IAttendanceSummaryPublished>(It.IsAny<object>(), It.IsAny<CancellationToken>()))
+                .Callback<object, CancellationToken>((values, _) => Published.Add(values))
+                .Returns(Task.CompletedTask);
+            return _publish = mock.Object;
+        }
+    }
+
+    /// <summary>A value of a staged message (the publisher passes an anonymous object).</summary>
+    public static T Field<T>(object message, string name) => (T)message.GetType().GetProperty(name)!.GetValue(message)!;
+
+    public static T? NullableField<T>(object message, string name) where T : struct => (T?)message.GetType().GetProperty(name)!.GetValue(message);
+
+    public AttendanceOptions Options(
+        AttendanceUnrecordedDaysMode unrecorded = AttendanceUnrecordedDaysMode.RequireComplete,
+        AttendancePeriodMode periods = AttendancePeriodMode.CalendarMonth,
+        AttendanceLeaveEventMode leaveEvents = AttendanceLeaveEventMode.AutoApply) => new()
+        {
+            Close = new AttendanceCloseOptions { UnrecordedWorkingDays = unrecorded },
+            Periods = new AttendancePeriodsOptions { Mode = periods },
+            Corrections = new AttendanceCorrectionsOptions { LeaveEventsAfterClose = leaveEvents }
+        };
+
+    public AttendancePeriodService PeriodService(
+        AttendanceUnrecordedDaysMode unrecorded = AttendanceUnrecordedDaysMode.RequireComplete,
+        AttendancePeriodMode periods = AttendancePeriodMode.CalendarMonth) =>
+        new(Db, Publish, Eligibility, Calendar, Microsoft.Extensions.Options.Options.Create(Options(unrecorded, periods)));
 
     /// <summary>A second context on the same database: what is really stored, whatever the first context tracks.</summary>
     public HRCoreDbContext Fresh() => new(_options);

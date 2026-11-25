@@ -42,7 +42,7 @@ public class Lva057LeaveAttendanceTests
         && m.OccurredAt == new DateTime(2025, 3, 2, 8, 0, 0, DateTimeKind.Utc) && m.SourceSystem == "HR.Contracts" && m.LeaveType == "سنوية"
         && m.StartDate == Start && m.EndDate == End && m.DurationDays == 3);
 
-    private static AttendanceIntegrationService Integration(Lva057Db test) => new(test.Db, Mock.Of<IPublishEndpoint>(), test.Writer);
+    private static AttendanceIntegrationService Integration(Lva057Db test) => new(test.Writer);
 
     [Fact]
     public async Task An_approved_leave_writes_the_status_history_and_the_days_in_one_save()
@@ -87,7 +87,7 @@ public class Lva057LeaveAttendanceTests
 
         // The redelivery, as the bus makes it: a new scope.
         await using var redelivery = test.Fresh();
-        var again = new LeaveApprovedConsumer(redelivery, new AttendanceIntegrationService(redelivery, Mock.Of<IPublishEndpoint>(),
+        var again = new LeaveApprovedConsumer(redelivery, new AttendanceIntegrationService(
             new AttendanceDayWriter(redelivery, new AttendanceLockService(redelivery), test.Calendar, new AttendanceEligibility(redelivery))));
         await again.Consume(Context(Approved(leave, employee)));
 

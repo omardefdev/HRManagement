@@ -30,6 +30,7 @@ public static class AttendanceDependencyInjection
         services.AddScoped<AttendanceLockService>();
         services.AddScoped<AttendanceEligibility>();
         services.AddScoped<AttendanceDayWriter>();
+        services.AddScoped<AttendancePeriodService>();
         return services;
     }
 }

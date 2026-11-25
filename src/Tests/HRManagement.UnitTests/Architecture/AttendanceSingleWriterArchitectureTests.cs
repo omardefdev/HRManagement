@@ -25,7 +25,11 @@ public sealed partial class AttendanceSingleWriterArchitectureTests
     /// with what it assigns. The scanner cannot tell an attendance record's status from another entity's by text, so such a file is
     /// named here and read by a person.
     /// </summary>
-    public static readonly IReadOnlyDictionary<string, string> OtherStatusAssignments = new Dictionary<string, string>(StringComparer.Ordinal);
+    public static readonly IReadOnlyDictionary<string, string> OtherStatusAssignments = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["HR.Core.Infrastructure/Services/Attendance/AttendancePeriodService.cs"] =
+            "the period's own status (Closed or PartiallyClosed): the close reads the attendance records and writes none",
+    };
 
     [GeneratedRegex(@"\bDailyAttendanceRecords\s*\.\s*(Add|AddAsync|AddRange|AddRangeAsync|Remove|RemoveRange|Update|UpdateRange|Attach|AttachRange)\s*\(")]
     private static partial Regex SetWrite();

@@ -7,6 +7,7 @@ using HR.Contracts.Infrastructure.Repositories;
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Attendance;
 using HR.Core.Infrastructure.Integration;
 using HRManagement.MessageContracts.Events;
 using HRManagement.SharedKernel.Enums;
@@ -460,58 +461,113 @@ public class OutboxAtomicityIntegrationTests
             "one SaveChanges after publish writes the state and the outbox message together");
     }
 
+    /// <summary>
+    /// PLAN-57 (§1, rule 7): the attendance close on <c>AttendancePeriodService</c> (the old <c>ClosePeriodAndPublishAsync</c>
+    /// published and then saved nothing of its own). Every summary's event is staged before the close's one save, that save writes
+    /// the period, the summaries and the closure, and nothing is left unsaved. The same on PostgreSQL with the real outbox, and with
+    /// a failure injected after the event, is <c>Lva057AttendanceCloseIntegrationTests</c>.
+    /// </summary>
     [Fact]
     public async Task CloseAttendancePeriod_SavesAfterPublishLoop()
     {
         var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
+        var saves = new SaveCountingInterceptor();
         var options = new DbContextOptionsBuilder<HRCoreDbContext>()
             .UseSqlite(connection)
+            .AddInterceptors(saves)
             .Options;
         await using var db = new HRCoreDbContext(options);
         await db.Database.EnsureCreatedAsync();
 
-        var employeeId = Guid.NewGuid();
-        db.Employees.Add(new Employee
+        // May 2026: Fridays 1, 8, 15, 22, 29; Saturdays 2, 9, 16, 23, 30; 21 working days.
+        var employees = new[] { Guid.NewGuid(), Guid.NewGuid() };
+        foreach (var employeeId in employees)
         {
-            Id = employeeId,
-            FirstName = "اختبار",
-            LastName = "حضور",
-            FullName = "اختبار حضور",
-            NationalId = "N" + Guid.NewGuid().ToString("N")[..10],
-            BirthDate = new DateTime(1990, 1, 1),
-            Gender = Gender.Male,
-            CurrentStatus = EmploymentStatus.Active
-        });
-        db.DailyAttendanceRecords.Add(new DailyAttendanceRecord
-        {
-            EmployeeId = employeeId,
-            AttendanceDate = new DateOnly(2026, 5, 1),
-            Status = DailyAttendanceStatus.Present
-        });
+            db.Employees.Add(new Employee
+            {
+                Id = employeeId,
+                FirstName = "اختبار",
+                LastName = "حضور",
+                FullName = "اختبار حضور",
+                NationalId = "N" + Guid.NewGuid().ToString("N")[..10],
+                BirthDate = new DateTime(1990, 1, 1),
+                Gender = Gender.Male,
+                CurrentStatus = EmploymentStatus.Active
+            });
+        }
+
         await db.SaveChangesAsync();
 
-        var publish = new RecordingPublishEndpoint();
-        var writer = new HR.Core.Infrastructure.Services.Attendance.AttendanceDayWriter(
-            db,
-            new HR.Core.Infrastructure.Services.Attendance.AttendanceLockService(db),
-            new HR.Core.Infrastructure.Services.Attendance.AttendanceCalendar(new HR.Core.Infrastructure.Services.Attendance.AttendanceCalendarOptions()),
-            new HR.Core.Infrastructure.Services.Attendance.AttendanceEligibility(db));
-        var service = new AttendanceIntegrationService(db, publish, writer);
-        var published = await service.ClosePeriodAndPublishAsync(
-            new DateOnly(2026, 5, 1),
-            new DateOnly(2026, 5, 31),
-            orgUnitId: null);
+        var calendar = new AttendanceCalendar(new AttendanceCalendarOptions(), new FixedClock(new DateTimeOffset(2026, 6, 10, 9, 0, 0, TimeSpan.Zero)));
+        var eligibility = new AttendanceEligibility(db);
+        var writer = new AttendanceDayWriter(db, new AttendanceLockService(db), calendar, eligibility);
+        foreach (var employeeId in employees)
+        {
+            for (var day = new DateOnly(2026, 5, 1); day <= new DateOnly(2026, 5, 31); day = day.AddDays(1))
+            {
+                if (calendar.IsWorkingDay(day))
+                    Assert.True((await writer.CreateManualAsync(AttendanceActor.System, employeeId, day, DailyAttendanceStatus.Present, null)).Ok);
+            }
+        }
 
-        Assert.Equal(1, published);
-        Assert.True(publish.PublishCount >= 1, "attendance close must publish period-closed events");
-        // SaveChanges after the publish loop already ran; no pending domain changes remain.
+        await db.SaveChangesAsync();
+
+        var savesAtPublish = new List<int>();
+        var publish = new RecordingPublishEndpoint { OnPublish = () => savesAtPublish.Add(saves.Count) };
+        var service = new AttendancePeriodService(db, publish, eligibility, calendar, Microsoft.Extensions.Options.Options.Create(new AttendanceOptions()));
+        var savesBefore = saves.Count;
+
+        var closed = await service.CloseAsync(new DateOnly(2026, 5, 1), orgUnitId: null, AttendanceActor.System);
+
+        Assert.True(closed.Ok, closed.Error);
+        Assert.Equal(2, closed.ClosedEmployees);
+        Assert.Equal(2, publish.PublishCount);
+        // PLAN-40: no save may commit a summary before its event is staged; one save after the last publish writes them together.
+        Assert.All(savesAtPublish, count => Assert.Equal(savesBefore, count));
+        Assert.Equal(savesBefore + 1, saves.Count);
+        Assert.Equal(2, await db.AttendanceEmployeeSummaries.CountAsync());
+        Assert.Equal(1, await db.AttendancePeriodClosures.CountAsync());
+        // The close's save already ran; no pending domain change remains.
         Assert.Equal(0, await db.SaveChangesAsync());
+    }
+
+    private sealed class SaveCountingInterceptor : Microsoft.EntityFrameworkCore.Diagnostics.SaveChangesInterceptor
+    {
+        public int Count { get; private set; }
+
+        public override ValueTask<Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int>> SavingChangesAsync(
+            Microsoft.EntityFrameworkCore.Diagnostics.DbContextEventData eventData,
+            Microsoft.EntityFrameworkCore.Diagnostics.InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (eventData.Context?.ChangeTracker.HasChanges() == true)
+                Count++;
+            return base.SavingChangesAsync(eventData, result, cancellationToken);
+        }
+    }
+
+    private sealed class FixedClock(DateTimeOffset now) : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => now;
     }
 
     private sealed class RecordingPublishEndpoint : IPublishEndpoint
     {
-        public int PublishCount { get; private set; }
+        private int _publishCount;
+
+        /// <summary>Called at each publish, before it is counted: a test reads what was saved by then.</summary>
+        public Action? OnPublish { get; init; }
+
+        public int PublishCount
+        {
+            get => _publishCount;
+            private set
+            {
+                OnPublish?.Invoke();
+                _publishCount = value;
+            }
+        }
 
         public ConnectHandle ConnectPublishObserver(IPublishObserver observer) =>
             throw new NotSupportedException();

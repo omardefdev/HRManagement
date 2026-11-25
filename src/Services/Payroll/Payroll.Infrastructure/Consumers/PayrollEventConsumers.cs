@@ -325,35 +325,3 @@ public class MedicalRecommendationIssuedConsumer(IMediator mediator) : IConsumer
             context.CancellationToken);
     }
 }
-
-public class AttendancePeriodClosedConsumer(PayrollDbContext db) : IConsumer<IAttendancePeriodClosed>
-{
-    public async Task Consume(ConsumeContext<IAttendancePeriodClosed> context)
-    {
-        var m = context.Message;
-        if (m.AbsentDays <= 0)
-            return;
-
-        var exists = await db.AbsenceDeductions.AnyAsync(x =>
-            x.EmployeeId == m.EmployeeId
-            && x.PeriodStart == m.PeriodStart
-            && x.PeriodEnd == m.PeriodEnd
-            && x.Reason != null
-            && x.Reason.Contains("AttendancePeriodClosed"),
-            context.CancellationToken);
-
-        if (!exists)
-        {
-            db.AbsenceDeductions.Add(new Payroll.Domain.Entities.AbsenceDeduction
-            {
-                EmployeeId = m.EmployeeId,
-                PeriodStart = m.PeriodStart,
-                PeriodEnd = m.PeriodEnd,
-                AbsentDays = m.AbsentDays,
-                Amount = 0,
-                Reason = $"AttendancePeriodClosed:{m.TransactionId}"
-            });
-            await db.SaveChangesAsync(context.CancellationToken);
-        }
-    }
-}
