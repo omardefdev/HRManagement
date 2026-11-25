@@ -14,8 +14,8 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
 |---|---|---|
 | P0 baseline | done | 2026-11-25T20:49:10Z |
 | P1 model, calendar, summary, migration | done | 2026-11-25T21:06:33Z |
-| P2 one writer | in progress (code written and building; tests next) | |
-| P3 close and contract | | |
+| P2 one writer | done | 2026-11-25T21:25:58Z |
+| P3 close and contract | in progress | |
 | P4 correction | | |
 | P5 payroll's side | | |
 | P6 PostgreSQL proofs | | |
@@ -70,6 +70,33 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
   note). `RevertLeaveAsync` therefore also takes a `Source = Leave` record with no reference in the cancelled leave's range, as the
   old removal did; a manual record is never touched.
 
+## P2 — one writer for an attendance day (finished 2026-11-25T21:25:58Z)
+
+- **`AttendanceDayWriter`** (`HR.Core.Infrastructure/Services/Attendance/`): `CreateManualAsync`, `UpdateManualAsync`,
+  `DeleteManualAsync`, `BulkFillAsync`, `ApplyLeaveAsync`, `RevertLeaveAsync`, `ApplyApprovedCorrectionAsync`; it never saves. With
+  it: `AttendanceLockService` (one day, and a batch in one query), `AttendanceEligibility` (the employees of a unit's tree for a
+  period: the close and the bulk entry share it), `AddHrAttendance` (the registration, with the calendar validated at start).
+- **PLAN-52's scope check of the employee** lives in the org-scope filter (it resolves `EmployeeId` of the bound model, and the
+  record's id). It stays. The writer adds the one explicit check (`RefuseOutOfScopeAsync`) for a create, a change, a removal, the
+  bulk entry and, from P4, a correction.
+- **The controller** (`DailyAttendanceRecordsController`) calls the writer; `PopulateEmployeesAsync` is gone; `Create` uses the
+  employee picker; the edit view model binds `Id`, `Status`, `Notes` only and the view shows the employee and the date read-only;
+  `Details` has its view; the list shows the source, «عرض», «تعديل», and «طلب تصحيح» on a locked day; the bulk entry reports what
+  it wrote and skipped; no form offers «في إجازة». The five writes name `HrCore.AttendanceWrite` / `HrCore.AttendanceClose`.
+- **The three policies** are in `HrManagementPolicies` and `HrManagementAuthorizationExtensions` (two through `RolesPolicy`; the
+  approval excludes a branch-scoped caller).
+- **The leave consumers:** the status history and the days in one save (the marker used to be saved first). The reconciler reads
+  `Source = Leave` records and returns only an employee whose last move to `OnLeave` was a leave's.
+- **The old close stays until P3** (service method, the two actions and the view), so that each phase's commit is coherent.
+- **Tests:** `Lva057AttendanceDayWriterTests` (20), `Lva057LeaveAttendanceTests` (6), `AttendanceSingleWriterArchitectureTests`
+  (3 + 17 planted cases); the unit filter 541 passed; integration (SQLite) `Iam052HrCoreScope`, `Iam051`, `HRCoreConsumer`,
+  `OutboxAtomicity`, `Hcm025`: 60 passed, 2 skipped; the architecture project 414 passed (the interface guard reads the new views).
+- **Existing tests changed, meaning kept:** `Iam051DirectServiceWriteTests` reads the attendance actions' own policies (same
+  roles: a supervisory employee 403, hr-core passes); `IntegrationTestHelpers` registers the attendance services;
+  `OutboxAtomicityIntegrationTests` builds the service with the writer (rewritten in P3).
+- **Format:** the whitespace formatter rewrote multi-line object initializers of three test files; clean after it.
+- **Commit:** see `git log` (the P2 commit follows `6f887768`).
+
 ## Decisions (with reasons)
 
 - **D-P57-1, the reserved months:** 2025-01 … 2025-07 (see the baseline). 57a January, 57b February (and the current month for «no
@@ -87,6 +114,8 @@ None yet (P0 was read-only).
 
 ## The exact next step
 
-P2: write `Lva057AttendanceDayWriterTests`, `AttendanceSingleWriterArchitectureTests`, the consumers' single-save and reconciler
-tests; update `LeaveAdvanceConsumersTests`/`HRCoreConsumerTests` if they fail; build; unit + architecture + the HR.Core integration
-classes (`Iam052HrCoreScopeHttpTests`, `Iam051DirectServiceWriteTests`); format; commit P2 (the old close stays until P3).
+P3: `IAttendanceSummaryPublished` (contract); `AttendancePeriodService` (close, status, ensure period) with the summaries, the
+closure and the events in one save; `AttendancePeriodsController` (MVC Index/Close + API close/get + antiforgery) and its two
+views; remove `ClosePeriodAndPublishAsync`, the old actions and view; mark `IAttendancePeriodClosed` obsolete and delete payroll's
+old consumer (its replacement is P5: until then payroll has no attendance consumer); rewrite the outbox test; docs inventories and
+the runbook; tests of the close's employees, `RequireComplete` and its alternatives, idempotence, the period's status, 403.
