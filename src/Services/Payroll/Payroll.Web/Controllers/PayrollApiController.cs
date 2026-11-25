@@ -413,21 +413,46 @@ public class PayrollApiController : ControllerBase
     [HttpGet("payslips/{salaryLineId:guid}")]
     public async Task<IActionResult> GetPayslip(Guid salaryLineId, CancellationToken ct)
     {
+        // PLAN-56: the line's stored figures and its components, as the payslip shows them: gross, deductions, adjustments and the
+        // net (never recomputed here). A projection, not the entities: the line with its run and the run's lines is a cycle the
+        // serializer refuses, which is what this endpoint answered (500) before.
         var line = await _db.SalaryLines
-            .Include(l => l.PayrollRun)
             .AsNoTracking()
-            .FirstOrDefaultAsync(l => l.Id == salaryLineId, ct);
+            .Where(l => l.Id == salaryLineId)
+            .Select(l => new PayslipLineDto(
+                l.Id, l.PayrollRunId, l.EmployeeId, l.GrossPay, l.TotalDeductions, l.TotalAdjustments, l.NetPay,
+                l.PayrollRun.PeriodStart, l.PayrollRun.PeriodEnd, l.PayrollRun.RunType, l.PayrollRun.Status))
+            .FirstOrDefaultAsync(ct);
         if (line is null) return NotFound();
 
         var components = await _db.SalaryLineComponents
-            .Where(c => c.SalaryLineId == salaryLineId)
             .AsNoTracking()
+            .Where(c => c.SalaryLineId == salaryLineId)
+            .OrderBy(c => c.ComponentType).ThenBy(c => c.ComponentName).ThenBy(c => c.Id)
             .Take(SearchFilterBase.MaxPageSize)
+            .Select(c => new PayslipComponentDto(c.Id, c.ComponentType, c.ComponentName, c.Amount, c.ReferenceId))
             .ToListAsync(ct);
 
         return Ok(new { line, components });
     }
 }
+
+/// <summary>A salary line as its payslip shows it: the stored figures, with the period and the state of its run.</summary>
+public sealed record PayslipLineDto(
+    Guid Id,
+    Guid PayrollRunId,
+    Guid EmployeeId,
+    decimal GrossPay,
+    decimal TotalDeductions,
+    decimal TotalAdjustments,
+    decimal NetPay,
+    DateTime PeriodStart,
+    DateTime PeriodEnd,
+    PayrollRunType RunType,
+    PayrollRunStatus RunStatus);
+
+/// <summary>A component of a payslip: an earning is positive, a deduction negative, an adjustment has the sign it was entered with.</summary>
+public sealed record PayslipComponentDto(Guid Id, SalaryComponentType ComponentType, string ComponentName, decimal Amount, Guid? ReferenceId);
 
 public record CreatePayrollRunApiRequest(
     DateTime PeriodStart,

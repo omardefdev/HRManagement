@@ -524,6 +524,36 @@ public sealed class Pay056RunLifecycleHttpTests(PostgreSqlFixture postgres)
 
     [Trait("Category", "Testcontainers")]
     [SkippableFact]
+    public async Task The_payslip_of_a_line_answers_its_stored_figures_with_the_adjustments_and_another_agency_does_not_find_it()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        await using var host = await StartAsync();
+        var runId = await PlantAsync(host, PayrollRunStatus.Posted, 1, PaymentBatchStatus.Pending);
+        var lineId = await host.WithDbAsync(db => db.Set<SalaryLine>().IgnoreQueryFilters().Where(l => l.PayrollRunId == runId).Select(l => l.Id).SingleAsync());
+        using var processor = As(host, Processor, ProcessorRoles);
+        using var foreigner = As(host, Guid.NewGuid(), ProcessorRoles, agency: OtherAgency);
+
+        // The endpoint answered 500 before PLAN-56 (the line with its run and the run's lines is a cycle): AC-PAY-56a reads it.
+        using (var payslip = await processor.GetAsync($"/api/payroll/payslips/{lineId}"))
+        {
+            Assert.Equal(HttpStatusCode.OK, payslip.StatusCode);
+            var body = JsonDocument.Parse(await payslip.Content.ReadAsStringAsync()).RootElement;
+            var line = body.GetProperty("line");
+            Assert.Equal(
+                (1000m, 100m, 0m, 900m),
+                (line.GetProperty("grossPay").GetDecimal(), line.GetProperty("totalDeductions").GetDecimal(),
+                    line.GetProperty("totalAdjustments").GetDecimal(), line.GetProperty("netPay").GetDecimal()));
+            Assert.Equal(runId, line.GetProperty("payrollRunId").GetGuid());
+            // The components add up to the line's parts: gross − deductions + adjustments.
+            Assert.Equal(900m, body.GetProperty("components").EnumerateArray().Sum(c => c.GetProperty("amount").GetDecimal()));
+        }
+
+        using (var foreign = await foreigner.GetAsync($"/api/payroll/payslips/{lineId}"))
+            Assert.Equal(HttpStatusCode.NotFound, foreign.StatusCode);
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
     public async Task Validate_on_an_approved_run_and_a_restart_of_what_did_not_fail_are_refused_and_change_nothing()
     {
         Skip.IfNot(RealInfra.IsEnabled);
