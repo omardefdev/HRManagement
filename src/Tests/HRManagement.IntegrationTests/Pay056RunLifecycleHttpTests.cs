@@ -165,6 +165,8 @@ public sealed class Pay056RunLifecycleHttpTests(PostgreSqlFixture postgres)
             (approver, $"/api/payroll/runs/{underReview}/reject", new { notes = "ملاحظة" }),
             (approver, $"/api/payroll/runs/{underReview}/cancel", new { reason = "سبب" }),
             (processor, $"/api/payroll/jobs/{Guid.NewGuid()}/restart", new { }),
+            // The older cancel-by-job action: since PLAN-56 it cancels the run, and validates the token like the new one.
+            (processor, $"/api/payroll/jobs/{Guid.NewGuid()}/cancel", new { reason = "سبب" }),
             (processor, $"/api/payroll/runs/{posted}/corrections", new { }),
             (reverser, $"/api/payroll/runs/{posted}/reversal-requests", new { reason = "سبب" }),
             (approver, $"/api/payroll/reversal-requests/{Guid.NewGuid()}/decide", new { approve = true }),

@@ -42,7 +42,8 @@ On `feature/plan-56-pay-run-state-machine`, from `origin/main` `a8f6ee32` (after
 | `6847ab14` | docs(pay056): the documents and this report |
 | `f540b95a` | docs(pay056): the pull request's description |
 | `7d5e6f95` | docs(pay056): the history rewritten before the push for one test literal gitleaks read as a key; the first pass of the local gates |
-| (this commit) | fix(pay056): the reversal test reads its planted orders by their new keys (the second pass of the local gates failed on it) |
+| `e64a0f7e` | fix(pay056): the reversal test reads its planted orders by their new keys (the second pass of the local gates failed on it) — **the commit the demo server runs** (`e64a0f7e65be`) |
+| (on `release/plan-56`) | fix(pay056): the older cancel-by-job API validates the antiforgery token (CodeQL's one new finding on the pull request) |
 
 **The ids changed once, before anything was pushed.** The pre-push check's gitleaks found one `generic-api-key` in this plan's
 range: the test literal `IdempotencyKey = "pay056-…"` of a planted payment order in `Pay056ReversalTests.cs` (commit
@@ -274,7 +275,7 @@ ceiling list grew: the entity-binding ceiling for Payroll went down from 11 to 6
 | `Pay056TransitionTests` | a transition outside the matrix (99 cells, written out independently of the table); a state assigned after construction; a run constructed outside the two creators and the two seeders | planted writes; the helper exists in the test projects only |
 | `PayrollWriteActionsTests` | a write action of Payroll without its named policy; a role reaching an act it should not | the rows of the six new actions |
 | `OutboxPublishOrderingArchitectureTests` (PLAN-40) | an event not staged before the single save | unchanged; the reversal handler passes |
-| `scripts/pay056-validate.ps1` | the seven constants of the plan (the net, the state, what was removed, the migrations, the antiforgery token, the event's row, the acceptance class) | `-SelfTest`: 39 planted defects refused |
+| `scripts/pay056-validate.ps1` | the seven constants of the plan (the net, the state, what was removed, the migrations, the antiforgery token, the event's row, the acceptance class) | `-SelfTest`: 41 planted defects refused |
 | `Pay056RollbackReadingTests` | — (it pins two facts the rollback note rests on) | — |
 
 ## 10. Results
@@ -287,7 +288,7 @@ ceiling list grew: the entity-binding ceiling for Payroll went down from 11 to 6
 | Integration (SQLite), the PLAN-56 classes | 99 passed |
 | Integration, CI's Testcontainers filter on the host (final code, 11:06Z) | **303 passed, 1 skipped** (`Ops038BootstrapIdempotencyTests`, which needs the migrator image as CI builds it), 14 min 25 s |
 | `has-pending-model-changes` (Payroll) | none |
-| `pay056-validate.ps1` and `-SelfTest` | pass; 39 planted defects refused |
+| `pay056-validate.ps1` and `-SelfTest` | pass; 41 planted defects refused (39 before the CodeQL fix added the cancel-by-job check) |
 | Acceptance, AC-PAY-56 alone on a fresh prod-like stack | **6 of 6** |
 | Acceptance, prod-like, fresh stack (the journey, `main`, `isolated`: 15 classes) | **PASS** — main 42 of 42 with **AC-PAY-56a..f**, AC-PAY-55, AC-PAY-54, AC-IAM-51/52/53, AC-HCM-25; the journey 1; the isolated group 47; guard PASS |
 | Acceptance, AC-UX-67 (by hand with the job's environment) | 7 of 7; the reversal requests' list among the key pages: 200, one policy, no violation |
@@ -407,7 +408,7 @@ after the reruns.**
 | `POST runs/{id}/corrections` | `Payroll.Process` | 200 `{ id, linesGenerated }`; 400 no targeted adjustment or source not posted; 404; 409 an open correction |
 
 **Changed:**
-- `POST jobs/{jobId}/cancel` needs a body `{ reason }` (400 without one) and cancels the run.
+- `POST jobs/{jobId}/cancel` needs a body `{ reason }` (400 without one) **and the antiforgery token**, and cancels the run.
 - `POST runs` refuses `runType` «correction» (400).
 - `POST runs/{id}/validate` answers 400 for a run that was sent for review, approved, posted, reversed or cancelled.
 - `GET payslips/{line}` answers a flat `{ line, components }` (it answered 500 before).

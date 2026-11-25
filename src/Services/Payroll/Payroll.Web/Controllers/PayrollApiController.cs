@@ -377,6 +377,7 @@ public class PayrollApiController : ControllerBase
     }
 
     [HttpPost("jobs/{jobId:guid}/cancel")]
+    [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
     public async Task<IActionResult> CancelJob(
         Guid jobId,
@@ -386,6 +387,8 @@ public class PayrollApiController : ControllerBase
     {
         // PLAN-56 (G-PAY-04): cancelling by the job is cancelling the run: it needs a reason (400 without one), follows D-PAY-18,
         // and releases the run's inputs. The answers are those of POST runs/{id}/cancel.
+        // It validates the antiforgery token as that action does (GET api/payroll/run-lifecycle/antiforgery): since this plan it is
+        // a write that ends a run and frees its inputs, reached with a gateway session as well as with a bearer token.
         var (mayProcess, mayApprove) = await PayrollRunActHttp.CancelRightsAsync(authorization, User);
         var result = await _mediator.Send(
             new CancelPayrollRunJobCommand(jobId, RequireUserId(), request?.Reason, mayProcess, mayApprove), ct);

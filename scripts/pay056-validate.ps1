@@ -15,7 +15,8 @@
 #   4. The two migrations (PAY056_NetFormula, PAY056_RunLifecycle) and their designers have no byte order mark; the first lifts FORCE
 #      on the components and the lines before its fill and puts it back after, and the fill sets TotalAdjustments only; the second
 #      puts row security on the two new tables.
-#   5. Every write action of the run's controllers validates an antiforgery token.
+#   5. Every write action of the run's controllers validates an antiforgery token, and so does the older cancel-by-job action of
+#      PayrollApiController, which cancels the run since this plan.
 #   6. docs/EVENT_PUBLISHER_INVENTORY.md has the IPayrollReversed row with its publisher.
 #   7. AcPay56RunStateMachineTests is a required prod-like class of the main group, and AC-PAY-56 is owned by PLAN-56.
 # -SelfTest runs each check on a planted defect and fails unless every one of them is refused.
@@ -48,6 +49,7 @@ $paths = @{
     Payroll = "src/Services/Payroll"
     Net = "src/Services/Payroll/Payroll.Domain/Services/PayrollNet.cs"
     Run = "src/Services/Payroll/Payroll.Domain/Entities/PayrollRun.cs"
+    Api = "src/Services/Payroll/Payroll.Web/Controllers/PayrollApiController.cs"
     Migrations = "src/Services/Payroll/Payroll.Infrastructure/Migrations"
     Inventory = "docs/EVENT_PUBLISHER_INVENTORY.md"
     Scope = "tests/acceptance/ci-scope.json"
@@ -264,6 +266,15 @@ function Test-Antiforgery([string]$name, [string]$controller) {
     return $problems
 }
 
+# 5b. PayrollApiController's text: the cancel-by-job action (its older POSTs are another plan's; this one changed here).
+function Test-JobCancel([string]$controller) {
+    if ($null -eq $controller) { return @("PayrollApiController.cs is missing") }
+    $action = [regex]::Match($controller, '(?s)\[HttpPost\("jobs/\{jobId:guid\}/cancel"\)\](.*?)public\s')
+    if (-not $action.Success) { return @("PayrollApiController has no POST jobs/{jobId}/cancel: the check reads the wrong file") }
+    if ($action.Groups[1].Value -notmatch '\bValidateAntiForgeryToken\b') { return @("PayrollApiController: POST jobs/{jobId}/cancel cancels a run and has no [ValidateAntiForgeryToken]") }
+    return @()
+}
+
 # 6.
 function Test-Inventory([string]$inventory) {
     if ($null -eq $inventory) { return @("docs/EVENT_PUBLISHER_INVENTORY.md is missing") }
@@ -319,6 +330,7 @@ function Invoke-All {
     $all += Test-NetMigration (Get-MigrationFile "PAY056_NetFormula.cs").Text
     $all += Test-LifecycleMigration (Get-MigrationFile "PAY056_RunLifecycle.cs").Text
     foreach ($controller in $controllers) { $all += Test-Antiforgery (Split-Path -Leaf $controller) (Read-Text $controller) }
+    $all += Test-JobCancel (Read-Text $paths.Api)
     $all += Test-Inventory (Read-Text $paths.Inventory)
     $all += Test-Acceptance (Get-Json (Read-Text $paths.Scope)) (Get-Json (Read-Text $paths.Ownership))
     return @($all | Where-Object { $_ })
@@ -420,6 +432,10 @@ if ($SelfTest) {
     $mvcWithout = [regex]::Replace($mvc, '(\[HttpPost\]\s*)\[ValidateAntiForgeryToken\]', '${1}', 1)
     $planted++; if ($mvcWithout -eq $mvc -or (Test-Antiforgery "planted" $mvcWithout).Count -eq 0) { $failures += "a run action without the antiforgery check was not refused" }
     $planted++; if ((Test-Antiforgery "planted" "class Empty { }").Count -eq 0) { $failures += "a controller with no write action was not noticed" }
+    $oldApi = Read-Text $paths.Api
+    $jobCancelWithout = [regex]::Replace($oldApi, '(\[HttpPost\("jobs/\{jobId:guid\}/cancel"\)\]\s*)\[ValidateAntiForgeryToken\]', '${1}', 1)
+    $planted++; if ($jobCancelWithout -eq $oldApi -or (Test-JobCancel $jobCancelWithout).Count -eq 0) { $failures += "a cancel-by-job action without the antiforgery check was not refused" }
+    $planted++; if ((Test-JobCancel "class Empty { }").Count -eq 0) { $failures += "a PayrollApiController without the cancel-by-job action was not noticed" }
 
     # 6. the event's row
     $inventory = Read-Text $paths.Inventory

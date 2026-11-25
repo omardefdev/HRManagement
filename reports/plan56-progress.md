@@ -380,6 +380,22 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
   had not rerun that class after the rewrite. 80 steps passed, 1 failed, 6 after it skipped, 5 not run.
 - **Fixed in a commit of its own** (the two lookups read the new keys; they are not a gitleaks pattern, so the history is not
   rewritten again): the PLAN-56 integration classes on SQLite 99 passed before the gates are started a third time.
+- **The third pass, on `e64a0f7e`: green.** The Testcontainers step 16:32:51Z to 16:46:02Z: 303 passed, 1 skipped, 13 min 5 s.
+  The local CI steps in a fresh clone (16:47:01Z to 17:32:49Z, 2,748 s): **87 passed, 0 failed, 5 not run and named** (the same
+  five); build 466 s, unit 587 s, architecture 4 s, integration (in-memory) 447 s. `plan035-prepush.ps1` (17:33:39Z):
+  gitleaks (history 568 commits, range 18), actionlint, cilocal, forbidden, nonprod and signatures PASS.
+- **The pull request:** <https://github.com/omardefdev/HRManagement/pull/56>, `release/plan-56` (`origin/main` `a8f6ee32` + one
+  `--no-ff` merge of the feature branch, `448acf9b`), pushed 2026-11-25T17:35:42Z, opened 17:36:06Z.
+- **CI, first run (`45666496667`): `CodeQL` failed** (12 min 6 s); `Gitleaks`, `Reuse check` and `Dedupe post-merge run` passed;
+  the others were still running. One new finding, read from the run's `codeql-sarif` artifact with the gate script:
+  `cs/web/missing-token-validation` at `PayrollApiController.cs:381`, the older `POST api/payroll/jobs/{jobId}/cancel`. This plan
+  changed that action (it takes a reason and cancels the run), so CodeQL reads it as a new write without a token. **Fixed in
+  the code, on the release branch** (no baseline entry): `[ValidateAntiForgeryToken]` on the action;
+  `Pay056RunLifecycleHttpTests` (the action without a token → 400; 10 of 10); `pay056-validate.ps1` gains the check and two
+  planted defects (41). Before the push: unit suite 7,142 passed (8 min 12 s, with `--blame`; a first run was cut by a test host
+  crash after 7,029 passes, the machine's known one); architecture 414; format clean.
+- **The server, built and deployed again from the final head of the feature branch (`e64a0f7e65be`), so that its tag is a
+  commit of `main`:** «Server changes and their undo», items 8 to 10.
 
 ## Stops and resumes
 
@@ -429,6 +445,28 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
    (one more retired and more rejected ones, none in force or waiting), PLAN-54's check version and one rejected manual
    allowance, the usual records of the PLAN-43..53 checks. No payroll run, line or batch changed (the migration check at
    14:25Z). **Undo:** none needed (records).
+8. **2026-11-25T16:33Z to 16:40:40Z, port 22 refused this machine** (HTTPS, ping and port 443 were fine; the demo was not
+   affected). It opened again by itself: most likely a rate limit after the many ssh connections of the server suites and of my
+   build watch. Since then the build is watched from one process on the server. **Undo:** none.
+9. **2026-11-25T16:41:16Z, the disk before the second build.** The 17 local images of `c95179904e05` (older than the running
+   `69570ea4e1f6`) were removed after each was found in the loopback registry: 23 → 29 GB free (29,265 MiB). **The line is
+   30 GB and I started the build 0.8 GB under it**, with a watchdog on the server that stops the build by its PID below
+   3,000 MiB. **Undo:** `docker pull 127.0.0.1:5050/hrmanagement/<image>:c95179904e05`.
+10. **2026-11-25T16:42Z to 17:23:54Z, the build of `e64a0f7e65be`**, detached, with the watchdog (`/opt/hrm/build-wrap-…sh`):
+    upload 229 s, build 2,192 s, push 39 s, exit 0, 17 of 17. **The disk fell to 3,106 MiB, 106 MiB above the watchdog's line**
+    (the build takes about 26 GB at its peak; the first one today looked like 23 because it was read once a minute). 19 GB
+    after it, 22 GB after the deploy. **The 30 GB line has no margin left:** the volume `hrm_seq_data` holds 46.6 GB of logs
+    and grows; that is the owner's to decide (final report §13). **Undo:** none needed.
+11. **2026-11-25T17:36:33Z to 17:43:54Z, the deploy of `e64a0f7e65be`** (previous `69570ea4e1f6`). The first run **stopped at
+    `keycloak-reconcile`** after PostgreSQL was recreated (17:39:05Z, `up-failed`; the application containers created and not
+    started: the demo was down). The same deploy was run again at once (17:39:41Z): healthy at **17:42:52Z**, 22 containers;
+    pull 5 s, up 106 s, bootstrap 56 s, reconcile 13 s (0 changes), healthy 14 s. **The demo was away about six minutes.**
+    Smoke: pass 50, fail 0, warn 1. No migration (the same schema). **Undo:** `scripts/vps/deploy.ps1 -Tag 69570ea4e1f6` (its
+    local images are still there).
+12. **2026-11-25T17:45Z to 18:23Z, this plan's five checks on the redeployed server:** four passed (the migration with the
+    picture's checksum, the guard, the refused reversal request, the cancellation); the screens check failed after twelve
+    repeats of one page on `net::ERR_NETWORK_CHANGED` (this machine's network; a build ran beside it). It left nothing open: the
+    demo holds 6 runs of the checks, all cancelled, and 5 reversal requests, all rejected. Rerun alone: see the merge note.
 
 ## Open issues
 
