@@ -27,12 +27,15 @@ internal static class EmployeeBankAccountHttp
         holdsPlaced = result.HoldsPlaced,
     };
 
-    /// <summary>The act in the security audit: its name and the account's id. Never the number.</summary>
-    public static void Audit(HttpContext context, string action, Guid? accountId) =>
+    /// <summary>
+    /// The act in the security audit: its name and the identifier of the <c>EmployeeBankAccount</c> row it touched (an opaque key,
+    /// the same one the API's routes carry). Never the number, the holder or the bank.
+    /// </summary>
+    public static void Audit(HttpContext context, string action, Guid? rowId) =>
         SecurityAudit.Log(
             context,
             SecurityAudit.EventTypes.PayrollOverride,
-            resource: $"BankAccount:{accountId:D}",
+            resource: $"BankAccount:{rowId:D}",
             detailJson: $"{{\"action\":\"{action}\"}}");
 
     public const string ActionRegister = "BankAccountRegister";
