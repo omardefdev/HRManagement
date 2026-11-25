@@ -17,8 +17,8 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
 | P5 reversal | done | 2026-11-25T06:46:31Z |
 | P6 PostgreSQL proofs | done | 2026-11-25T07:24Z |
 | P7 acceptance + review | done | 2026-11-25T11:26:59Z |
-| P8 main | | |
-| P9 demo server | | |
+| P8 main | done: `origin/main` had not moved (`a8f6ee32`), nothing to merge | 2026-11-25T11:27Z |
+| P9 demo server | done | 2026-11-25T14:26:19Z |
 | P10 docs, gates, PR, merge | | |
 
 ## P0 — timing, keep-awake, preconditions, baseline
@@ -299,6 +299,47 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
   ask for a reversal and have it rejected; no approval of a reversal is ever sent; a request a person of the demo made is
   never touched (the checks tell theirs by the reason).
 
+## P9 — the demo server (finished 2026-11-25T14:26:19Z)
+
+- **Before:** `ssh hrm-vps` → `hrm`; the host key is the recorded one; the running tag `c95179904e05` is on `origin/main`;
+  22 containers; 24 GB free. The demo's payroll data was read again at 11:31Z and is P0's picture (2,550 lines,
+  `994e497f…`; runs 2026-01..04 posted, 2026-05 approved, 2026-06 calculated; batches `Processed` 5, `Pending` 1).
+- **Backup, disk, build, deploy:** «Server changes and their undo», items 1 to 5. Upload 63 s; build 1,781 s; push 36 s;
+  deploy 4 min 10 s with its smoke (pull 4 s, up 136 s, bootstrap 61 s, reconcile 13 s, healthy 15 s), healthy at 12:04:55Z on
+  the first run; the services were away about two and a half minutes at most.
+- **This plan's five checks (`AcPay56VpsChecks`, `artifacts/plan56/run-vps.ps1`; evidence under `artifacts/plan56/vps/`):**
+  all pass.
+  - 12:06:22Z to 12:14:12Z, four without the screens: three passed; the lifecycle check failed **on my own expectation** (I
+    expected a draft after the demo's refusal to calculate; the run is «قيد الحساب» with its refused job). Everything the check
+    is for had happened: the refusal 400 with its message («لا يمكن إتمام تشغيل الراتب — 425 موظفاً لديهم استثناء نظام خدمة مفتوح
+    أو بدون نظام مصنّف»), the cancellation 400 without a reason and 200 with one, the run cancelled with who, when and why, its
+    job cancelled, the decision row, three audit rows, the free inputs 500|70|0 before and after, the month free again, the demo
+    unchanged. The expectation now admits either state and also asserts that no job of the run is left to run.
+  - 12:15:36Z to 12:23:16Z: the lifecycle check passed; the screens check failed on a page I should not have listed (the
+    employee's own payslips page: the processor does not hold the self-service module, 403). The seven pages of this plan had
+    passed. The page is dropped; the run's page is asserted to show the adjustments instead.
+  - 12:24:39Z to 12:29:23Z: the screens check passed (seven pages at two sizes, one policy, no violation).
+  - 14:25Z, after every other suite: the migration check passed again (the lines' checksum and the runs' states are the picture's).
+- **The older plans' checks (PLAN-36..55; `AcOps36VpsBootTests` with its partial classes and `AcInt37VpsServerTests`, 36j
+  excepted), nothing heavy beside them:** 12:30:05Z to 14:19Z, 109 min: **63 of 68 in the run, 67 of 68 after the reruns.**
+  - `AC_WF_46_vps_the_sweeps_run…`: failed in the run; passed alone at 14:22:11Z, 16 s after a sweep cycle (the sweeps run at
+    xx:x1:55 and xx:x2:01 since this deploy). The cause PLAN-55 recorded.
+  - `AC_OPS_39_vps_e_Keycloak…`: failed in the run with an empty answer from `kcadm` over ssh (no error text); passed alone.
+  - `AC_UX_67_vps_the_portal…` (`net::ERR_NETWORK_CHANGED`) and `AC_IAM_53_vps_the_salary_and_reference_change_screens…` (a
+    navigation timeout): this machine's network changing under Chromium (the owner's crash-looping dev container); both passed
+    alone.
+  - `AC_POL_47_vps_the_migration_the_trigger…`: **not passed, the local cause PLAN-53 recorded** (it reads
+    `artifacts/plan47/vps/fingerprint-before.json`, a file of the formatted Windows machine).
+  - `AC_UX_67_vps_every_key_page…` passed in the run (18 min with this machine's repeats), with the reversal requests' list
+    among its pages.
+  - The suites rewrote files under the committed `acceptance-evidence/*/vps/` (restored with `git checkout`) and wrote
+    `reports/msg040-replay-server-20261125T124411Z.json` (moved to `artifacts/plan56/vps/`).
+- **The demo at the end of P9:** `69570ea4e1f6`, 22 containers, `scripts/vps/smoke.ps1 -RequireIntegrationWiring` at
+  14:24:57Z: pass 50, fail 0, warn 1; 24 GB free.
+- **A note for a later plan:** the 403 answer of `/ui/payroll/Ess/Payslips` to a user without the self-service module raised
+  one `style-src-attr` violation in Chromium (most likely the browser's own page for a bodiless 403 under the enforced policy;
+  not chased).
+
 ## Decisions (with reasons)
 
 - **D1 (P1): the net's rounding in the validation.** `PayrollNet.Net(gross, deductions, adjustments, round)`; the validation and the
@@ -307,9 +348,54 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
 - **D2 (P1): the demo seeder writes its deduction component negative and its net through `PayrollNet`**, so a newly seeded run
   passes the validation and the posting's check. Existing demo rows are not touched.
 
+## Stops and resumes
+
+- **Resumed (UTC): 2026-11-25T07:21:25Z.** The session's context was summarised during P6 (the full Testcontainers step was
+  running in the background and had ended at 07:17:19Z); no work was lost and nothing was redone.
+- **Resumed (UTC): 2026-11-25T10:02:15Z.** The turn stood still from 09:55:12Z, on a wait for the prod-like acceptance job
+  (which ended by itself at 09:57:41Z); the owner wrote «Try again». 7 min 3 s, of which 4 min 34 s after the job's end.
+- **Resumed (UTC): 2026-11-25T10:24:56Z.** The turn stood still from 10:13:01Z, on a wait for the lab acceptance job (which
+  ended by itself at 10:23:16Z); the owner wrote «Try again». 11 min 55 s, of which 1 min 40 s after the job's end.
+
 ## Server changes and their undo
 
-None yet.
+1. **2026-11-25T11:27:42Z, the backup.** `/opt/hrm/backups/pre-plan56-20261125T112742Z` (700): `pg_dumpall.sql` (40,748,552
+   bytes), `env.backup`, `SHA256SUMS` (each 600). Verified: both sums OK; 17 `CREATE DATABASE` lines (18 databases with
+   `postgres`); the dump ends with «PostgreSQL database cluster dump complete». Before it: the running tag `c95179904e05` is on
+   `origin/main`; 22 containers; 24 GB free; the host key is the expected one.
+   **Undo:** delete the folder when it is no longer needed (`rm -rf /opt/hrm/backups/pre-plan56-20261125T112742Z`).
+2. **2026-11-25T11:28:28Z, the disk before the build.** 24 GB free (the line is 30 GB), no build cache, the local images of
+   two releases. The 17 local images of `ea0d97a6ca26` (older than the running `c95179904e05`) were removed with `docker rmi`
+   after each was found in the loopback registry (30 GB free after); the running release was not touched.
+   **Undo:** `docker pull 127.0.0.1:5050/hrmanagement/<image>:ea0d97a6ca26` for the image wanted back.
+3. **2026-11-25T11:28:52Z, three untagged images** left by earlier builds (`b7357e2c1c59`, `f377d590e547`, `cbc30de94b6e`;
+   1.145 GB) were removed with `docker image prune -f` (dangling images only): 31 GB free. **Undo:** none (they had no tag and
+   no container; the next build makes what it needs).
+4. **2026-11-25T11:29:20Z to 12:01:02Z, the build of `69570ea4e1f6`** (the P7 commit), once, detached (`setsid nohup`, a
+   `.done` file with the exit code): the archive (33.0 MB) and the committed `deploy/vps/build-on-host.sh` uploaded in 63 s; the
+   build 1,781 s, the push 36 s, exit 0, 17 of 17 images in the loopback registry. Disk: 31 GB at its start, 8 GB at the lowest
+   reading (12:00:25Z, one a minute), 24 GB after. Files: `/opt/hrm/build-69570ea4e1f6.{start,out,log,done}` (kept, as for
+   every earlier build), `/opt/hrm/build/images-69570ea4e1f6.json`; the script removed its source, the build cache and the SDK
+   image, and the uploaded script was removed after the build. **Undo:** none needed.
+5. **2026-11-25T12:01:45Z to 12:05:55Z, the deploy of `69570ea4e1f6`** (previous `c95179904e05`), healthy at 12:04:55Z on
+   the first run (it did not stop at `keycloak-reconcile`); 22 containers. Migrations `PAY056_NetFormula` and
+   `PAY056_RunLifecycle` applied to `payroll_db` at start-up. Smoke (`-RequireIntegrationWiring`, run by the deploy): pass 50,
+   fail 0, warn 1 (the listening ports are read from the client's side).
+   **Undo:** `pwsh -NoProfile -File scripts/vps/deploy.ps1 -Tag c95179904e05` (or `-Rollback`). The database keeps PAY056; what
+   the older release does with this plan's data is the rollback note (below, and in `docs/OPS_VPS_SINGLE_HOST.md`): once this
+   release cancelled a run or approved a reversal, the older release cannot read those rows, so the way back is a fix forward.
+6. **2026-11-25T12:06Z to 12:29Z, what this plan's server checks left** (three runs of them; all five pass): **four runs of
+   the checks** in September 2028 (two by the lifecycle check, two by the screens check), each **`Cancelled`** with its reason
+   and its `Cancelled` decision row, two of them after a calculation the demo refused (a `Cancelled` job each); **three
+   reversal requests** on the demo's posted run of January 2026 (one by the request check, two by the screens check), each
+   **`Rejected`** with its note; their audit rows. Read back from the server at 12:30Z: 4 runs, all in state 8; 3 requests,
+   all `Rejected`. No demo run, line, batch or decision changed (checksums before and after, and P0's picture).
+   **Undo:** none needed; they are records. Under PLAN-55's tag the page of each of those four cancelled runs would fail
+   (their `Cancelled` decision row is a name that release does not know): the rollback note.
+7. **2026-11-25T12:30Z to 14:24Z, what the older plans' checks left**, as on every run of theirs: PLAN-55's test accounts
+   (one more retired and more rejected ones, none in force or waiting), PLAN-54's check version and one rejected manual
+   allowance, the usual records of the PLAN-43..53 checks. No payroll run, line or batch changed (the migration check at
+   14:25Z). **Undo:** none needed (records).
 
 ## Open issues
 
@@ -317,8 +403,8 @@ None.
 
 ## Next step
 
-P8: `git fetch`; merge `origin/main` only if it moved (it had not at 07:36Z: `a8f6ee32`). Then P9: check `ssh hrm-vps` and that the
-running tag (`c95179904e05`) is on `origin/main`; backup under `/opt/hrm/backups/pre-plan56-<utc>/` and verify it; the server's
-disk (30 GB free before the build: remove the build cache and the local images of releases older than the running one);
-build once, detached, on HEAD; `scripts/vps/deploy.ps1 -Tag <sha12>`; the five `AC_PAY_56_vps_*` checks
-(`PAY056_VPS_LINES_MD5=994e497ffbd877d18b4d5eb7c737840e`); the PLAN-36..55 server checks; the smoke.
+P10: commit the documents and `reports/plan56-final-report.md`; the local gates on that commit (the Testcontainers step of P7
+stands if no code it builds or tests changed since: only `AcPay56VpsChecks.cs` did; `scripts/ci/run-steps.sh --all` in a fresh
+clone with the compiler servers off; `scripts/plan035-prepush.ps1`); `release/plan-56` from `main` (`--no-ff`),
+`reports/plan56-pr.md`, push, `gh pr create`, wait for the checks, `gh pr merge <n> --merge` when all are green; then the merge
+note on `docs/plan-56-merge-note` and the keep-awake stopped by its PID (2559133).

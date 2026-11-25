@@ -242,7 +242,7 @@ public partial class AcOps36VpsBootTests
     public async Task AC_PAY_56_vps_a_run_of_the_checks_is_rejected_and_reopened_then_cancelled_and_its_inputs_are_free_again()
     {
         var recorder = StartPay56("lifecycle",
-            "Demo server: the processor creates a run for a month no demo run covers and calculates it. If the demo calculates: the run validates, is sent for review, a rejection without a note answers 400, the approver's rejection with a note reopens it as a draft at revision 2 with its revision recorded, the processor calculates it again and cancels it with a reason. If the demo refuses to calculate (its pay profiles carry no legal regime: PLAN-55), the refusal and its message are recorded and the cancellation is proved on the draft. Either way the run ends cancelled with who, when and why, the free inputs counted before are free again, and no demo run, line or batch changed.");
+            "Demo server: the processor creates a run for a month no demo run covers and calculates it. If the demo calculates: the run validates, is sent for review, a rejection without a note answers 400, the approver's rejection with a note reopens it as a draft at revision 2 with its revision recorded, the processor calculates it again and cancels it with a reason. If the demo refuses to calculate (its pay profiles carry no legal regime: PLAN-55), the refusal and its message are recorded and the cancellation is proved on the run the refusal left (a draft, or a run under calculation with its refused job, which the cancellation stops). Either way the run ends cancelled with who, when and why, the free inputs counted before are free again, and no demo run, line or batch changed.");
         var password = DemoPassword();
         using var processor = await Pay56ApiAsync(Pay56Processor, password);
         using var approver = await Pay56ApiAsync(Pay56Approver, password);
@@ -282,6 +282,7 @@ public partial class AcOps36VpsBootTests
             var ended = Pay56Run(run);
             var decision = Pay56One($"select \"Decision\" || '~' || coalesce(\"Notes\", '') from \"PayrollRunApprovals\" where \"PayrollRunId\" = '{run}' order by \"DecidedAt\" desc limit 1");
             var auditRows = Pay56One($"select count(*) from \"AuditLogs\" where \"EntityId\" = '{run}'");
+            var jobs = Pay56One($"select coalesce(string_agg(\"Status\", ',' order by \"CreatedAt\"), '') from \"PayrollRunJobs\" where \"PayrollRunId\" = '{run}'");
             var inputsAfter = Pay56FreeInputs();
             var demoAfter = Pay56DemoData();
             // The period is free again: a cancelled run does not hold its month.
@@ -316,6 +317,7 @@ public partial class AcOps36VpsBootTests
                 ended,
                 decision,
                 auditRows,
+                jobsAfterTheCancellation = jobs,
                 inputsAfter,
                 monthFreeAgain,
                 demoUnchanged = demoBefore == demoAfter
@@ -336,10 +338,13 @@ public partial class AcOps36VpsBootTests
             }
             else
             {
-                // The refusal is the demo's (PLAN-55 §13: its pay profiles carry no legal regime): 400 with a message, the run a draft.
+                // The refusal is the demo's (PLAN-55 §13: its pay profiles carry no legal regime): 400 with a message. The service-regime
+                // gate refuses once the calculation has begun, so the run is left «قيد الحساب» (6) with its refused job, or a draft (0)
+                // where a gate refuses before it: no line either way, and no input taken. The cancellation below is then of that run:
+                // it stops the job too.
                 Assert.Equal(400, calculated);
                 Assert.False(string.IsNullOrWhiteSpace(calculationError), "The demo refused to calculate without saying why.");
-                Assert.StartsWith("0~1~", afterCalculation, StringComparison.Ordinal);
+                Assert.Matches("^(0|6)~1~false~false~0~false~$", afterCalculation);
                 Assert.Equal(inputsBefore, inputsInTheRun);
             }
 
@@ -350,6 +355,8 @@ public partial class AcOps36VpsBootTests
             Assert.EndsWith($"~true~{Pay56CancellationReason}", ended, StringComparison.Ordinal);
             Assert.Equal($"Cancelled~{Pay56CancellationReason}", decision);
             Assert.True(int.Parse(auditRows, CultureInfo.InvariantCulture) >= 2, $"The run's acts are not in the audit log: {auditRows}");   // created, cancelled
+            // No job of the run is left to run, be resumed or be restarted.
+            Assert.DoesNotContain(jobs.Split(',', StringSplitOptions.RemoveEmptyEntries), j => j is "Pending" or "Running" or "Paused" or "Failed");
             Assert.Equal(inputsBefore, inputsAfter);
             Assert.True(monthFreeAgain, "The cancelled run still holds its month.");
             Assert.Equal(demoBefore, demoAfter);
@@ -490,7 +497,7 @@ public partial class AcOps36VpsBootTests
     public async Task AC_PAY_56_vps_the_runs_screens_open_in_arabic_under_the_enforced_policy_with_names_and_the_payslip_shows_the_adjustments()
     {
         var recorder = StartPay56("screens",
-            "Demo server: the run's page with its new acts (a draft run of the checks: the cancellation's form; a demo posted run: its reversal request), the reversal requests' list where the approver decides, the adjustment's form with the posted run it can be aimed at, the adjustments' list and the payslips' page open in Chromium at 1366×768 and 390×844 with one enforced Content-Security-Policy and no violation; the pages are Arabic and right-to-left, a person is named through the registry and no identifier is printed; the payslip of a demo line answers gross, deductions, adjustments and net, the net being the formula's.");
+            "Demo server: the run's page with its new acts (a draft run of the checks: the cancellation's form; a demo posted run: its reversal request), the reversal requests' list where the approver decides, the adjustment's form with the posted run it can be aimed at, and the adjustments' list open in Chromium at 1366×768 and 390×844 with one enforced Content-Security-Policy and no violation; the pages are Arabic and right-to-left, a person is named through the registry and no identifier is printed; the payslip of a demo line answers gross, deductions, adjustments and net, the net being the formula's.");
         var password = DemoPassword();
         using var admin = await Pay56ApiAsync(Pay56Admin, password);
         using var processor = await Pay56ApiAsync(Pay56Processor, password);
@@ -519,8 +526,10 @@ public partial class AcOps36VpsBootTests
                 new("run-posted-with-its-request", $"{Pay56Runs}/Details/{postedRun}"),
                 new("adjustment-form", "/ui/payroll/PayrollAdjustments/Create"),
                 new("adjustments", "/ui/payroll/PayrollAdjustments"),
-                new("payslips", "/ui/payroll/Ess/Payslips"),
             ];
+            // The employee's own payslips page (Ess) is not among them: no payroll person of the demo holds the self-service module,
+            // and a refused page proves nothing. The payslip's figures are read below from the API the page and the PDF share, and the
+            // run's page shows each line's adjustments beside its gross and its deductions.
             Ux067KeyPage[] approverPages =
             [
                 new("reversal-requests", "/ui/payroll/PayrollReversalRequests"),
@@ -623,6 +632,7 @@ public partial class AcOps36VpsBootTests
                 arabic = draftPage.Contains("lang=\"ar\"", StringComparison.Ordinal),
                 theDraftOffersItsCancellation = draftPage.Contains("data-hr-confirm-title=\"إلغاء تشغيل الرواتب\"", StringComparison.Ordinal),
                 thePostedRunShowsItsRequest = postedPage.Contains(Pay56ReversalReason, StringComparison.Ordinal),
+                thePostedRunShowsItsAdjustments = Visible(postedPage).Contains("تسويات", StringComparison.Ordinal),
                 requesterNamedByTheRegistry = postedPage.Contains($"data-hr-user-id=\"{requester}\"", StringComparison.OrdinalIgnoreCase),
                 requesterIdPrinted = Visible(postedPage).Contains(requester, StringComparison.OrdinalIgnoreCase),
                 theListOffersTheRejection = requestsPage.Contains("data-hr-confirm-title=\"رفض طلب العكس\"", StringComparison.Ordinal),
@@ -642,6 +652,7 @@ public partial class AcOps36VpsBootTests
             Assert.Contains("lang=\"ar\"", draftPage, StringComparison.Ordinal);
             Assert.Contains("data-hr-confirm-title=\"إلغاء تشغيل الرواتب\"", draftPage, StringComparison.Ordinal);
             Assert.Contains(Pay56ReversalReason, postedPage, StringComparison.Ordinal);
+            Assert.Contains("تسويات", Visible(postedPage), StringComparison.Ordinal);       // the adjustments, beside the gross and the deductions
             Assert.Contains($"data-hr-user-id=\"{requester}\"", postedPage, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain(requester, Visible(postedPage), StringComparison.OrdinalIgnoreCase);
             Assert.Contains("طلبات العكس", Visible(requestsPage), StringComparison.Ordinal);
