@@ -18,8 +18,8 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 | P5 PostgreSQL proofs | done | 2026-11-24T08:21:43Z |
 | P6 acceptance, review | done | 2026-11-24T21:52:09Z |
 | P7 main | done: `origin/main` is still `12b83970` (fetched 21:44:43Z), nothing to merge | 2026-11-24T21:52:09Z |
-| P8 demo server | next | |
-| P9 docs, gates, report, merge | | |
+| P8 demo server | done | 2026-11-25T00:10:06Z |
+| P9 docs, gates, report, merge | next | |
 
 ## Timing log
 
@@ -61,6 +61,14 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 | P6 migrator image (`hr-migrate:local`) through `docker compose build` from a one-service file (no buildx here) | 21:13:27 | 21:34:02 | 1,235 s, fifteen bundles, 5.13 GB; disk 40 GB before, 31 GB at the end, 36 GB after pruning the build stages (4.73 GB) |
 | P6 acceptance job, leastpriv (`-Stage prodLike:leastpriv -NoBuild`) | 21:34:21 | 21:44:30 | **PASS**, 609 s: stack 191 s; `AcOps38FirstBootTests` + `AcTen48LeastPrivilegeTests` 9 of 9 (367 s): PAY055 is applied by the migrator's role from empty volumes and Payroll starts on it as its own role; `acceptance-guard: PASS (2 classes in 1 trx files)`; the job removed its stack |
 | P6 full build `-warnaserror` (with `AcPay55VpsChecks.cs`, written during the waits), format check of the new file | 21:44:47 | 21:52:09 | 0 warnings, 0 errors (6 min 53 s); format clean |
+| P8 backup on the server, verified | 21:52:54 | 21:53:04 | 38 MB, 17 databases |
+| P8 Testcontainers step on the host, final code (beside the server's build, nothing else local) | 22:04:41 | 22:17:37 | 282 passed, 1 skipped (`Ops038BootstrapIdempotencyTests`: needs the migrator image as CI builds it), 12 min 51 s |
+| P8 upload and the server's build of `ea0d97a6ca26`, detached | 21:54:05 | 22:31:00 | upload 120 s, build 2,037 s, push 40 s |
+| P8 deploy with its smoke | 22:32:02 | 22:35:47 | healthy at 22:34:56; smoke 50 pass |
+| P8 the repair on the demo: refused sign-in, the script's fix, dry run, real run | 22:36:19 | 22:38:27 | 0 fillable, 425 not fillable, 0 changed |
+| P8 this plan's server checks: four in one run; the screens twice | 22:39:00 | 22:51:41 | 5 min 2 s; 3 min 45 s (failed on my count), 2 min 1 s (passed) |
+| P8 the PLAN-36..54 server checks, one run | 22:51:50 | 00:05:00 | 4,389 s, 61 of 63 |
+| P8 the sweeps check again, twice; evidence restored; the final smoke | 00:05:22 | 00:10:06 | passed after a sweep cycle; smoke 50 pass |
 | P4 chain: full build, architecture, PLAN-55 integration, full unit suite | 07:30:27 | 07:45:51 | 0 errors; 401 passed; 19 of 20 (one test of mine assumed a branch-restricted hr-admin; rewritten, 6 of 6 after); 6920 passed, 10 min 2 s |
 
 Stops:
@@ -272,9 +280,96 @@ Stops:
 - P5 (1 file): four tests added to `Pay055BankAccountPostgreSqlTests` (two verifications at once; two registrations at once and the
   index; sixteen replacements in one save each; a retirement racing a replacement's verification).
 
+## P8 — the demo server
+
+- Started (UTC): 2026-11-24T21:52:35Z. ssh `whoami` = `hrm`; the running tag `014db7e3a01a` is on `origin/main`; 22 containers; 23 GB
+  free.
+- **The build, once, on `ea0d97a6ca26`** (P6's commit; everything after it is documents, the server check class and the repair
+  script's sign-in). The archive (32.9 MB) and the committed `deploy/vps/build-on-host.sh` were uploaded as `build-on-host.ps1`
+  does (120 s) and the script started **detached** on the server (`setsid nohup`, 21:56:10Z; log `/opt/hrm/build-ea0d97a6ca26.log`,
+  exit code in `.done`). Build 2,037 s, push 40 s, exit 0 at 22:31Z; 17 of 17 images. Disk: 35 GB before, **8.8 GB at the lowest
+  seen** (22:29:55Z; PLAN-54 saw 17 GB), 27 GB after the script's own cleanup. My own ssh call that started it did not return (the
+  wrapper shell kept the channel while it waited for the detached child); the wrapper (one PID of my session) was ended from a
+  second connection and the build went on untouched.
+- **The deploy** (`scripts/vps/deploy.ps1 -Tag ea0d97a6ca26`, 22:32:02Z to 22:35:47Z with the smoke): pull 3 s, up 131 s,
+  bootstrap 60 s (PAY055 applied by the migrator), keycloak reconcile 13 s, healthy 14 s. `deployments.log`:
+  `2026-11-24T22:34:56Z|tag=ea0d97a6ca26|action=deploy|result=healthy|previous=014db7e3a01a`. The services were away for about
+  2.5 minutes at most (the «up» step). **Smoke: pass 50, fail 0, warn 1** (the port check from the client's side, as before).
+- **The repair on the demo.** The first try (22:36:19Z) was refused before it reached Payroll: the script asked Keycloak for a
+  token by password, and Production and the demo keep the password grant closed (`unauthorized_client`). **The script now also
+  takes `-AccessToken` / `HRM_REPAIR_ACCESS_TOKEN` or `-CookieHeader` / `HRM_REPAIR_COOKIE`** (a signed-in gateway session), as
+  `msg040-replay-lost-events.ps1` does; the password grant stays for stacks that allow one. With `hradmin`'s session (signed in
+  through the gateway's form; the password read from the server into memory, never shown):
+  - dry run (22:38:03Z): active profiles with an empty unit 0, with an empty regime 425; **fillable 0, not fillable 425**;
+  - real run (22:38:24Z): its own dry run listed nothing, so no real call was made; **changed 0**, no audit entry.
+  This is D2: no employee of the demo has an earlier profile that carries a regime, and the repair invents none. The two CSV undo
+  lists (empty) and the two JSON reports (the 425 ids) are beside the backup.
+- **This plan's server checks** (`AcPay55VpsChecks`, the helper `artifacts/plan55/run-vps.ps1`; evidence `artifacts/plan55/vps/`):
+  1. *The migration* — **Passed.** PAY055 recorded; `EmployeeBankAccounts` and `EmployeePayProfiles` under forced row security;
+     the unique filtered index; the profile's three old columns still there and the two new `BankAccountId` columns; no account
+     without a registrar (nothing was moved: the demo had no number); none in force or waiting; no line or snapshot pins an
+     account; 425 active profiles with both checksums of P0's picture (`f409f25a…`, `7c1359ef…`).
+  2. *An account* — **Passed.** A wrong check digit 400 with the Arabic reason and no row; `e2e-payroll-processor` registered a
+     test IBAN typed in lower case in groups of four: pending, stored normalised, masked in every answer; **his own verification
+     403** (he does not hold `Payroll.Approve` on the demo, so the policy answers before the handler's rule; the prompt wrote
+     400 — that is check 3); a verification with a blank reference 400; `e2e-payroll-approver` verified it with a reference: in
+     force; no line or snapshot pinned it; he retired it with a reason: `Retired`, 0 holds placed; three audit rows of the
+     account, none carrying the number; runs, lines, orders, holds and profiles unchanged.
+  3. *A second account* — **Passed.** `hradmin`, who holds both policies, registered one for another employee; **his own
+     verification 400** «لا يتحقق من الحساب مَن سجّله: يتحقق منه شخص ثانٍ»; a second waiting account 409; a rejection with no reason
+     400; the approver rejected it with a reason: `Rejected`; verifying it afterwards 409.
+  4. *The readiness report* — **Passed.** The latest run of the demo with lines: 425 lines, 0 with an account, 425 without, 425
+     employees named once, none with a retired account; read-only.
+  5. *The screens* — **Passed at the second run** (the first failed on my own count: the probe returns one result per page, not
+     per size; every page had passed). Seven pages at two sizes in a real Chromium without QUIC — the employee's accounts, the
+     waiting list, the registration form, the run's page with its readiness card and the pay profiles as the processor; the
+     verification page and the waiting list as the approver: each HTTP 200, one CSP policy, no violation; Arabic, right-to-left;
+     the employee and the registrar named by the registry's spans, no id printed; the number masked on the processor's pages;
+     whole on the approver's verification page only, which answers `no-store, no-cache`; the processor gets 403 there. One
+     repeat for this machine's network in the first run, none in the second. The check's waiting account was rejected at the end.
+
+- **The server checks of PLAN-36..54** (nothing heavy beside them; 22:51:50Z to 00:05:00Z, 4,389 s — 117 min in PLAN-54):
+  **61 of 63 in the run, 62 of 63 after the rerun.** The PLAN-67 and PLAN-53/54 browser checks passed in the run this time.
+  - `AC_WF_46_vps_the_sweeps_run…`: failed in the run and in a first rerun, passed in a rerun started 23 s after a sweep cycle.
+    **The cause is not the deploy:** the sweeps run every ten minutes (23:38:23, 23:48:23, 23:58:23, 00:08:23), but the check reads
+    the last 5,000 lines of each service's log, and `idcard-web` and `compliance-web` write about 6,800 lines in ten minutes
+    (every outbox poll's SQL at `Information`), so the sweep line is outside the tail for about three minutes of every ten. Older
+    than this plan; recorded for a later plan (the check should search by time, or the poll should not be logged at `Information`).
+  - `AC_POL_47_vps_the_migration_the_trigger…`: **not passed, the local cause PLAN-53 recorded** (it reads
+    `artifacts/plan47/vps/fingerprint-before.json`, a file of the formatted Windows machine).
+  - The suites rewrote files under the committed `acceptance-evidence/*/vps/` and wrote
+    `reports/msg040-replay-server-20261124T230305Z.json`: restored and removed (two committed reports of the same pattern were
+    removed with it by mistake and restored from git at once).
+- **The demo at the end of P8:** `ea0d97a6ca26`, 22 containers, `scripts/vps/smoke.ps1 -RequireIntegrationWiring` at
+  00:10:00Z: pass 50, fail 0, warn 1; 27 GB free; accounts on the demo: three `Rejected`, one `Retired`, none usable.
+- Finished (UTC): 2026-11-25T00:10:06Z.
+
 ## Server changes and their undo
 
-None yet (P0 only read).
+1. **2026-11-24T21:52:54Z, the backup.** `/opt/hrm/backups/pre-plan55-20261124T215254Z` (700): `pg_dumpall.sql` (38,262,947
+   bytes), `env.backup`, `SHA256SUMS` (each 600). Verified: both sums OK; 17 `CREATE DATABASE` lines; the dump ends with
+   «PostgreSQL database cluster dump complete». Added at 22:38Z: the repair's two CSV undo lists (empty) and two JSON reports.
+   **Undo:** delete the folder when it is no longer needed (`rm -rf /opt/hrm/backups/pre-plan55-20261124T215254Z`).
+2. **2026-11-24T21:53:33Z and 21:53:46Z, the disk before the build.** 23 GB free (the line is 30 GB), no build cache, the local
+   images of three releases. The local images of `5aa61b78e3a6` (17; 29 GB free after) and of `83b99786a420` (17; 35 GB free
+   after) were removed with `docker rmi`; the running release was not touched. Both tags stay in the loopback registry (checked
+   before the removal). **Undo:** `docker pull 127.0.0.1:5050/hrmanagement/<image>:<tag>` for the image wanted back.
+3. **2026-11-24T21:54Z to 22:31Z, the build's files.** `/opt/hrm/build-ea0d97a6ca26.log` and `.done` (kept, as for every earlier
+   build), `/opt/hrm/build/images-ea0d97a6ca26.json`; the script removed its source, the build cache and the SDK image; the
+   uploaded `/opt/hrm/build-on-host-ea0d97a6ca26.sh` was removed after the build. Seventeen images tagged `ea0d97a6ca26` in the
+   loopback registry. **Undo:** none needed.
+4. **2026-11-24T22:32:02Z, the deploy of `ea0d97a6ca26`** (previous `014db7e3a01a`). Migration `PAY055_EmployeeBankAccounts`
+   applied to `payroll_db`: one new table, two new nullable columns, nothing moved. **Undo:**
+   `pwsh -NoProfile -File scripts/vps/deploy.ps1 -Tag 014db7e3a01a` (or `-Rollback`); the database keeps PAY055, which that release
+   does not read (the rollback note in `docs/OPS_VPS_SINGLE_HOST.md`).
+5. **2026-11-24T22:38Z, the repair.** Nothing changed (0 fillable). **Undo:** none needed.
+6. **2026-11-24T22:39Z to 22:52Z, what the checks left.** Four test accounts of three demo employees, none usable: one `Retired`
+   (verified, then retired; no run pinned it, no hold) and three `Rejected` (one by check 3, two by the two runs of the screens
+   check); their audit rows and security audit events. Their numbers are test IBANs (`SY`, computed check digits, `CHK55`). No
+   run, line, order, hold or pay profile changed. **Undo:** none needed; they are records (an account is never deleted).
+7. **2026-11-24T22:52Z to 2026-11-25T00:09Z, what the older plans' checks left**, as on every run of theirs: PLAN-54's check
+   version `LAW_50_2004_CHK54` (one more, approved, attested, unpublished, inside a posted month) and one rejected manual
+   allowance; the usual records of the PLAN-43..53 checks. **Undo:** none needed (records).
 
 ## Open issues
 
@@ -282,11 +377,10 @@ None.
 
 ## The exact next step
 
-P8, the demo server. `origin/main` = `12b83970` (unchanged); the server ran `014db7e3a01a` with 24 GB free at P0. In order: check ssh
-(`whoami` = `hrm`) and that the running tag is on `origin/main`; `pg_dumpall` to `/opt/hrm/backups/pre-plan55-<utc>/` and verify it;
-free the disk to 30 GB (build cache, local images of older releases; each removal recorded with its undo); commit
-`AcPay55VpsChecks.cs`, then build once, detached, on that commit; `scripts/vps/deploy.ps1 -Tag <sha12>`; the repair's dry run, then
-its real run of that list (expected: 425 not fillable, 0 changed); the five PLAN-55 server checks
-(`artifacts/plan55/run-vps.ps1`, with `PAY055_VPS_PROFILES_MD5=f409f25a00f0f1ecafb418e9bf6c93e4` and
-`PAY055_VPS_PROFILES_AMOUNTS_MD5=7c1359efefdbdd1a637f62393f9411c5`); the PLAN-36..54 server checks and the smoke. Local stacks: all
-down; `hr-migrate:local` (5.13 GB) is still here for a rerun and is removed at the end.
+P9. Commit the documents, the final report and the PR body (the report's `@@` markers filled first). Then the gates on that
+commit: the full unit suite and the architecture tests on the host; `scripts/ci/run-steps.sh --all` in a fresh `git clone --local`
+of HEAD with the four compiler-server variables exported (skipping what cannot run here, each named); then
+`pwsh -NoProfile -Command "& ./scripts/plan035-prepush.ps1 -AllowNotRun @(...)"`. In the same turn: `release/plan-55` from `main`
+with `--no-ff`, push, `gh pr create`, `gh pr checks <n> --watch --interval 60`, and `gh pr merge <n> --merge` only when every check
+is green. Then the merge note on `docs/plan-55-merge-note`, the keep-awake process stopped by its PID
+(`artifacts/plan55/keepawake.pid`), `hr-migrate:local` removed.
