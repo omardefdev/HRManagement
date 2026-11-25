@@ -18,6 +18,7 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
     public IQueryable<EmployeePayProfile> EmployeePayProfiles => db.EmployeePayProfiles;
     public IQueryable<EmployeePayProfileHistory> EmployeePayProfileHistories => db.EmployeePayProfileHistories;
     public IQueryable<PayProfileChangeRequest> PayProfileChangeRequests => db.PayProfileChangeRequests;
+    public IQueryable<EmployeeBankAccount> EmployeeBankAccounts => db.EmployeeBankAccounts;
     public IQueryable<PayrollReferenceChangeRequest> PayrollReferenceChangeRequests => db.PayrollReferenceChangeRequests;
     public IQueryable<SalaryScale> SalaryScales => db.SalaryScales;
     public IQueryable<AllowanceRecord> AllowanceRecords => db.AllowanceRecords;

@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Payroll.Application.Abstractions;
+using Payroll.Application.Features.BankAccounts;
 using Payroll.Application.Services;
 using Payroll.Domain.Entities;
 using Payroll.Domain.Enums;
@@ -71,6 +72,10 @@ public class CreateCorrectionRunHandler(
         var extraHolidays = PayrollRunCalculationSupport.BuildHolidaySet(periodStart, periodEnd, reference.Holidays);
         var deductionTypes = reference.LegacyDeductionTypes;
 
+        // PLAN-55 (D-PAY-15): a correction run writes no snapshot rows; its lines are computed here, so the account in force now is the
+        // one each line pins.
+        var pinnedAccounts = await BankAccountPinning.ActiveAccountsAsync(repository, cancellationToken);
+
         foreach (var sourceLine in source.SalaryLines)
         {
             var profile = await repository.GetActiveProfileAsync(sourceLine.EmployeeId, cancellationToken);
@@ -97,7 +102,8 @@ public class CreateCorrectionRunHandler(
                 newAdjustments,
                 Array.Empty<AbsenceDeduction>(),
                 correctionDeltaGross: deltaGross,
-                correctionDeltaNet: deltaNet);
+                correctionDeltaNet: deltaNet,
+                bankAccountId: pinnedAccounts.TryGetValue(sourceLine.EmployeeId, out var pinned) ? pinned : null);
 
             var (saved, _) = await repository.SaveEmployeePackageAtomicAsync(correction.Id, package, cancellationToken);
             if (saved)

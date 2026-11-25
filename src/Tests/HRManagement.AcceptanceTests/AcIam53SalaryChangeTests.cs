@@ -25,7 +25,7 @@ public sealed class ScenarioNameOrderer : ITestCaseOrderer
 
 /// <summary>
 /// AC-IAM-53a–e (PLAN-53) on the prod-like stack, through the gateway. A salary changes by a request a processor makes and another person
-/// approves; the approved change is applied by one applier that carries the unit, the regime and the bank account, and a payroll run of the
+/// approves; the approved change is applied by one applier that carries the unit and the regime, and a payroll run of the
 /// month holds it. The negatives: the requester cannot approve, an approver cannot request, a payroll user with neither role writes no
 /// master data, another agency's approver gets 404, a salary outside the grade's bounds, a mid-month date and a second open request are
 /// refused, a change cannot enter a frozen month, and a grade in use cannot be deleted. A grade's bounds change by a request too.
@@ -96,7 +96,7 @@ public class AcIam53SalaryChangeTests
 
     /// <summary>
     /// An agency-A employee no scenario has used: an active profile that began before this month, a unit, a grade with both bounds
-    /// around the salary and room for 1000 either way, and no salary change request at all. The ones with a bank account and a regime
+    /// around the salary and room for 1000 either way, and no salary change request at all. The ones with a regime
     /// come first. <paramref name="inRun"/> keeps to the employees of that run; <paramref name="noLineIn"/> to those no run of that month holds.
     /// </summary>
     private static async Task<Pick> PickEmployeeAsync(EvidenceRecorder recorder, string step, string? inRun = null, DateOnly? noLineIn = null)
@@ -114,7 +114,7 @@ public class AcIam53SalaryChangeTests
             (noLineIn is not { } month ? "" :
                 "AND NOT EXISTS (SELECT 1 FROM \"SalaryLines\" l JOIN \"PayrollRuns\" r ON r.\"Id\" = l.\"PayrollRunId\" WHERE l.\"EmployeeId\" = p.\"EmployeeId\" " +
                 $"AND r.\"PeriodStart\" <= '{Day(month.AddMonths(1).AddDays(-1))}' AND r.\"PeriodEnd\" >= '{Day(month)}') ") +
-            "ORDER BY (p.\"BankAccountIban\" IS NOT NULL) DESC, (p.\"RegimeCode\" IS NOT NULL) DESC, p.\"EmployeeId\" DESC LIMIT 1;");
+            "ORDER BY (p.\"RegimeCode\" IS NOT NULL) DESC, p.\"EmployeeId\" DESC LIMIT 1;");
         var parts = row.Split('|');
         AcceptanceGate.RequireData(recorder, parts.Length == 7,
             $"{step}: لا يوجد موظف في الجهة A بملف أجر فعّال ودرجة تسمح بالتغيير وبلا طلب سابق",
@@ -237,15 +237,15 @@ public class AcIam53SalaryChangeTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync(Ac, "53a",
-            "AC-IAM-53a: the processor requests a raise from the first day of the current month; it waits; he cannot approve it; the approver approves and it is applied to a new profile version that carries the unit, the regime and the bank account; the month's run holds the new salary",
+            "AC-IAM-53a: the processor requests a raise from the first day of the current month; it waits; he cannot approve it; the approver approves and it is applied to a new profile version that carries the unit, the regime and the grade; the month's run holds the new salary",
             Processor, Approver);
         s.Steps("""
             1. Precondition, in before.json: no payroll run of the current month (Damascus date) covers the employee — agency A has no
                Regular run of the month, and no run of another kind holds a line of his (the seed's FinalSettlement and Correction runs
                of some months have no lines). A second run of the class on the same stack stops here: 53a freezes the month, so a
                rerun needs a fresh stack.
-               Test-only precondition (psql, payroll_db): the employee's seeded pay profile gets a bank account, a bank name, a
-               verification time and a regime code; the seed leaves them empty, and the copy must be proved on real values.
+               Test-only precondition (psql, payroll_db): the employee's seeded pay profile gets a regime code; the seed leaves it
+               empty, and the copy must be proved on a real value. (Since PLAN-55 the bank account is no field of a pay profile.)
             2. payroll-processor opens the salary change form of an agency-A employee and requests a salary inside the grade's bounds
                from the first day of the current month, with a reason and a legal reference → the request's page, state PendingApproval;
                the active pay profile is the same row with the same salary.
@@ -253,8 +253,8 @@ public class AcIam53SalaryChangeTests
                it was. (No account holds both payroll-processor and payroll-approver; the rule «not the requester» for a user who
                holds both is proved by Iam053SalaryChangeStateMachineTests and Iam053PayrollScopeHttpTests.)
             4. payroll-approver approves on the screen → Applied. The previous version is closed the day before; the new version is the
-               only active one, starts on the first day of the month, holds the new salary, and carries the unit, the regime, the bank
-               account, the bank name, the verification time and the grade of the previous one. A history row of the previous version
+               only active one, starts on the first day of the month, holds the new salary, and carries the unit, the regime and
+               the grade of the previous one. A history row of the previous version
                exists. payroll_db's outbox sequence advanced by the two events (decided, applied) and no outbox row is left.
             5. payroll-processor creates the Regular run of the current month, calculates and validates it → frozen. The run's input
                snapshot of the employee names the new version and its salary, and his line's base component is the new salary for the
@@ -271,13 +271,11 @@ public class AcIam53SalaryChangeTests
             $"للجهة A تشغيل رواتب اعتيادي يغطي الشهر الجاري ({Day(month)[..7]}): السيناريو يحتاج مكدساً جديداً",
             $"Agency A already has a Regular payroll run covering {Day(month)[..7]} ({regularRunsBefore}): AC-IAM-53a froze the month in an earlier run; start a fresh stack.");
         var pick = await PickEmployeeAsync(s.Recorder, "53a", noLineIn: month);
-        // Test-only precondition (psql, payroll_db): the seed's pay profiles have no bank account and no regime code, so the copy
-        // would be proved on empty values. The employee's profile gets them here; its salary, grade, dates and unit are the seed's.
-        await Db(
-            $"UPDATE \"EmployeePayProfiles\" SET \"BankAccountIban\"='SY53{Convert.ToUInt64(pick.Employee.Replace("-", "")[..15], 16).ToString("D18", CultureInfo.InvariantCulture)}', \"BankName\"='مصرف اختبار القبول', " +
-            $"\"BankAccountVerifiedAt\"=date_trunc('second', now() - interval '1 day'), \"RegimeCode\"='law50' WHERE \"Id\"='{pick.Profile}'; SELECT 1;");
-        var carried = "\"OrgUnitId\"::text || '|' || COALESCE(\"RegimeCode\",'∅') || '|' || COALESCE(\"BankAccountIban\",'∅') || '|' || COALESCE(\"BankName\",'∅') || '|' || " +
-                      "COALESCE(\"BankAccountVerifiedAt\"::text,'∅') || '|' || COALESCE(\"PayGradeId\"::text,'∅')";
+        // Test-only precondition (psql, payroll_db): the seed's pay profiles have no regime code, so the copy would be proved on an
+        // empty value. The employee's profile gets one here; its salary, grade, dates and unit are the seed's. (Since PLAN-55 the
+        // bank account is no field of a profile: it is its own entity, and AC-PAY-55 proves it.)
+        await Db($"UPDATE \"EmployeePayProfiles\" SET \"RegimeCode\"='law50' WHERE \"Id\"='{pick.Profile}'; SELECT 1;");
+        var carried = "\"OrgUnitId\"::text || '|' || COALESCE(\"RegimeCode\",'∅') || '|' || COALESCE(\"PayGradeId\"::text,'∅')";
         var carriedBefore = await Db($"SELECT {carried} FROM \"EmployeePayProfiles\" WHERE \"Id\"='{pick.Profile}';");
         var activeBefore = await ActiveProfileAsync(pick.Employee);
         s.Recorder.WriteBefore(new
@@ -293,9 +291,9 @@ public class AcIam53SalaryChangeTests
             profile = pick.Profile,
             grade = pick.GradeCode,
             salaryIsInsideBounds = true,
-            carriedFields = "OrgUnitId|RegimeCode|BankAccountIban|BankName|BankAccountVerifiedAt|PayGradeId",
+            carriedFields = "OrgUnitId|RegimeCode|PayGradeId",
             carriedFieldsPresent = carriedBefore.Split('|').Select(v => v != "∅").ToArray(),
-            carriedFieldsSetByTheTest = "BankAccountIban, BankName, BankAccountVerifiedAt, RegimeCode",
+            carriedFieldsSetByTheTest = "RegimeCode",
             activeBefore
         });
 

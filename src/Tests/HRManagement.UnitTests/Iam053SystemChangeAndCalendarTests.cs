@@ -48,8 +48,7 @@ public sealed class Iam053SystemChangeAndCalendarTests
         Assert.False(profiles[0].IsActive);
         Assert.Equal(new DateTime(2026, 10, 31, 0, 0, 0, DateTimeKind.Utc), profiles[0].EffectiveTo);
         Assert.Equal(request.AppliedProfileId, profiles[1].Id);
-        Assert.Equal((5200m, (Guid?)H.Unit, "law50", "SY0000000000000000000053"),
-            (profiles[1].BaseSalary, profiles[1].OrgUnitId, profiles[1].RegimeCode, profiles[1].BankAccountIban));
+        Assert.Equal((5200m, (Guid?)H.Unit, "law50"), (profiles[1].BaseSalary, profiles[1].OrgUnitId, profiles[1].RegimeCode));
         Assert.Equal(1, await h.HistoryCountAsync());
 
         // One event: the application. No submission and no decision were made.

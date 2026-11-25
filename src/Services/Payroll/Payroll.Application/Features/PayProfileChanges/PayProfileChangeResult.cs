@@ -73,6 +73,8 @@ public static class PayProfileChangeMessages
     public const string MonthStartRequired = "تاريخ السريان يجب أن يكون أول يوم من شهر";
     public const string BeforeCurrentMonth = "تاريخ السريان لا يسبق الشهر الجاري";
     public const string BeforeCurrentVersion = "تاريخ السريان يسبق بداية ملف الأجر الحالي للموظف";
+    public const string InsidePreviousVersion = "تاريخ السريان يقع داخل فترة ملف أجر سابق مغلق للموظف";
+    public const string ActivationTermsForContractOnly = "شروط تفعيل العقد لا تُستعمل إلا لتغيير مصدره تفعيل عقد";
     public const string OpenRequestExists = "للموظف طلب تغيير راتب مفتوح؛ ألغِه قبل تقديم طلب جديد";
     public const string ProfileChangedSinceRequest =
         "تغيّر ملف الأجر الفعّال للموظف بعد تقديم الطلب (تغيير آلي أو نقل)؛ ألغِ الطلب وقدّم طلباً جديداً على الملف الحالي";

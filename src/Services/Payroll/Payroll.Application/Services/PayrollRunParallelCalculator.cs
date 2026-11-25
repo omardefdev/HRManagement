@@ -272,7 +272,8 @@ public static class PayrollRunParallelCalculator
 
                             var package = PayrollEmployeeCalculationUnit.Build(
                                 engine, run, profile, profile.PayGrade, config, extraHolidays,
-                                allowances, deductions, deductionTypes, adjustments, absences);
+                                allowances, deductions, deductionTypes, adjustments, absences,
+                                bankAccountId: snap.BankAccountId);
                             packages.Add(package);
                             partitionProcessed++;
                             Interlocked.Increment(ref processedEmployees);

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Payroll.Application.Features.BankAccounts;
 using Payroll.Domain.Entities;
 using Payroll.Domain.Enums;
 using Payroll.Infrastructure.Data;
@@ -19,14 +20,10 @@ public sealed class PaymentOrderService(PayrollDbContext db)
             .FirstOrDefaultAsync(b => b.Id == paymentBatchId, cancellationToken)
             ?? throw new InvalidOperationException("دفعة الصرف غير موجودة");
 
-        var profiles = await db.EmployeePayProfiles
-            .AsNoTracking()
-            .Where(p => p.IsActive)
-            .Select(p => new { p.EmployeeId, p.BankAccountIban, p.BankAccountVerifiedAt })
-            .ToListAsync(cancellationToken);
-        var ibans = profiles
-            .Where(p => p.BankAccountVerifiedAt is not null && !string.IsNullOrWhiteSpace(p.BankAccountIban))
-            .ToDictionary(p => p.EmployeeId, p => p.BankAccountIban!);
+        // PLAN-55 (D-PAY-15): the destination is the account each line pinned at its run's snapshot, never the pay profile and never
+        // the employee's current account. A line without a pinned account gets an order without a destination (PLAN-58 decides what
+        // the disbursement path does with it). A local account number goes into the same field as an IBAN.
+        var pinned = await BankAccountPinning.PinnedAccountsAsync(db.EmployeeBankAccounts, batch.PayrollRun.SalaryLines, cancellationToken);
 
         var created = new List<PaymentOrder>();
         foreach (var line in batch.PayrollRun.SalaryLines)
@@ -49,7 +46,9 @@ public sealed class PaymentOrderService(PayrollDbContext db)
                 SalaryLineId = line.Id,
                 EmployeeId = line.EmployeeId,
                 Amount = amount,
-                BeneficiaryIban = ibans.GetValueOrDefault(line.EmployeeId),
+                BeneficiaryIban = line.BankAccountId is Guid accountId && pinned.TryGetValue(accountId, out var account)
+                    ? account.AccountNumber
+                    : null,
                 Status = PaymentOrderStatus.Draft
             };
             db.PaymentOrders.Add(order);

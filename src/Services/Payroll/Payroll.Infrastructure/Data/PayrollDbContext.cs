@@ -44,6 +44,7 @@ public class PayrollDbContext : TenantAwareDbContext
     public DbSet<PayrollConfigChangeNotice> PayrollConfigChangeNotices => Set<PayrollConfigChangeNotice>();
     public DbSet<EmployeePayProfileHistory> EmployeePayProfileHistories => Set<EmployeePayProfileHistory>();
     public DbSet<PayProfileChangeRequest> PayProfileChangeRequests => Set<PayProfileChangeRequest>();
+    public DbSet<EmployeeBankAccount> EmployeeBankAccounts => Set<EmployeeBankAccount>();
     public DbSet<PayrollReferenceChangeRequest> PayrollReferenceChangeRequests => Set<PayrollReferenceChangeRequest>();
     public DbSet<PayrollRunApproval> PayrollRunApprovals => Set<PayrollRunApproval>();
     public DbSet<PayslipDelivery> PayslipDeliveries => Set<PayslipDelivery>();
@@ -114,6 +115,24 @@ public class PayrollDbContext : TenantAwareDbContext
             entity.HasIndex(e => new { e.PayrollRunId, e.EmployeeId })
                 .IsUnique()
                 .HasDatabaseName("IX_SalaryLines_Run_Employee");
+            // PLAN-55 (D-PAY-15): the account the run pinned. An account a line names is never deleted.
+            entity.HasOne(e => e.BankAccount)
+                  .WithMany()
+                  .HasForeignKey(e => e.BankAccountId)
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<EmployeeBankAccount>(entity =>
+        {
+            // PLAN-55 (§1): one Active (1) and one PendingVerification (0) account per employee and agency. The status is part of the
+            // index so that EF orders the two updates of a verification: the account in force leaves the index before its replacement
+            // takes its place.
+            entity.HasIndex(e => new { e.TenantId, e.EmployeeId, e.Status })
+                .IsUnique()
+                .HasDatabaseName(PayrollChangeIndexNames.OneActiveOnePendingBankAccount)
+                .HasFilter("\"Status\" IN (0, 1)");
+            entity.HasIndex(e => e.EmployeeId);
+            entity.ConfigureOptimisticConcurrency(this);
         });
 
         modelBuilder.Entity<PaymentBatch>(entity =>
@@ -232,6 +251,11 @@ public class PayrollDbContext : TenantAwareDbContext
             entity.Property(e => e.ConfigContentHash).HasMaxLength(64);
             entity.HasIndex(e => new { e.PayrollRunJobId, e.EmployeeId }).IsUnique();
             entity.HasIndex(e => new { e.PayrollRunJobId, e.SortOrder });
+            // PLAN-55 (D-PAY-15): the account in force at the snapshot.
+            entity.HasOne(e => e.BankAccount)
+                  .WithMany()
+                  .HasForeignKey(e => e.BankAccountId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<CompensationType>(entity =>

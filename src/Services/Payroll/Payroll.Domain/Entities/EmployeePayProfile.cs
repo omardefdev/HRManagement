@@ -8,6 +8,10 @@ namespace Payroll.Domain.Entities;
 [Display(Name = "ملف راتب الموظف")]
 public class EmployeePayProfile : BaseEntity
 {
+    /// <summary>The message of the three obsolete bank properties (PLAN-55).</summary>
+    public const string BankFieldsObsolete =
+        "PLAN-55: the employee's bank account is EmployeeBankAccount (registered by one person, verified by another). This column stays for a rollback only.";
+
     [Required]
     [Display(Name = "الموظف")]
     public Guid EmployeeId { get; set; }
@@ -34,20 +38,20 @@ public class EmployeePayProfile : BaseEntity
     public Guid? OrgUnitId { get; set; }
 
     /// <summary>
-    /// Beneficiary account the salary is paid into, in IBAN form.
-    /// <para>
-    /// The disbursement file has always carried a BankAccount column and always left it empty,
-    /// because no entity in the system stored one. A payment instruction without a destination
-    /// account cannot reach the employee, so this is a precondition for any real transfer.
-    /// </para>
+    /// The account number an older build kept on the profile. PLAN-55: the employee's bank account is <see cref="EmployeeBankAccount"/>,
+    /// registered by one person and verified by another; migration PAY055 moved any number found here to a pending account. Nothing
+    /// reads or writes this property, and a new version does not carry it. The column stays: the previous tag reads it after a rollback.
     /// </summary>
     [MaxLength(34)]
     [AuditRedact]
     [Display(Name = "الحساب المصرفي (IBAN)")]
+    [Obsolete(BankFieldsObsolete)]
     public string? BankAccountIban { get; set; }
 
+    /// <summary>See <see cref="BankAccountIban"/>: replaced by <see cref="EmployeeBankAccount.BankNameAr"/>.</summary>
     [MaxLength(120)]
     [Display(Name = "المصرف")]
+    [Obsolete(BankFieldsObsolete)]
     public string? BankName { get; set; }
 
     /// <summary>SYR-007: payroll legal regime code mapped from HRCore service regime.</summary>
@@ -55,8 +59,9 @@ public class EmployeePayProfile : BaseEntity
     [Display(Name = "رمز النظام القانوني")]
     public string? RegimeCode { get; set; }
 
-    /// <summary>Set once the account has been confirmed with the bank; settlement requires it.</summary>
+    /// <summary>See <see cref="BankAccountIban"/>: replaced by <see cref="EmployeeBankAccount.VerifiedAt"/>.</summary>
     [Display(Name = "تاريخ التحقق من الحساب")]
+    [Obsolete(BankFieldsObsolete)]
     public DateTime? BankAccountVerifiedAt { get; set; }
 
     public PayGrade? PayGrade { get; set; }

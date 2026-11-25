@@ -1,0 +1,103 @@
+@model Payroll.Web.ViewModels.VerifyBankAccountViewModel
+@{
+    ViewData["Title"] = "التحقق من حساب مصرفي";
+    var account = Model.Account;
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="fas fa-check-double"></i> التحقق من حساب مصرفي: @Html.HrEmployeeName(account.EmployeeId)</h3>
+        <a asp-action="Index" asp-route-employeeId="@account.EmployeeId" class="btn btn-secondary btn-sm">عودة إلى حسابات الموظف</a>
+    </div>
+
+    <div class="card-body">
+        <partial name="_FormErrors" />
+
+        <dl class="row mb-4">
+            <dt class="col-sm-3">الحالة</dt>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(account.Status)</dd>
+            <dt class="col-sm-3">نوع المعرّف</dt>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(account.AccountKind)</dd>
+            <dt class="col-sm-3">رقم الحساب</dt>
+            <dd class="col-sm-9">
+                <span dir="ltr" class="fw-bold">@(Model.ShowWholeNumber ? account.AccountNumber : account.MaskedNumber)</span>
+                @if (Model.ShowWholeNumber)
+                {
+                    <div class="form-text">يُعرض الرقم كاملاً هنا فقط، ليُقارن خانةً خانةً بتأكيد المصرف.</div>
+                }
+            </dd>
+            <dt class="col-sm-3">المصرف</dt>
+            <dd class="col-sm-9">@(string.IsNullOrEmpty(account.BankNameAr) ? "—" : account.BankNameAr)</dd>
+            <dt class="col-sm-3">اسم صاحب الحساب</dt>
+            <dd class="col-sm-9">@(string.IsNullOrEmpty(account.HolderNameAr) ? "—" : account.HolderNameAr)</dd>
+            <dt class="col-sm-3">سجّله</dt>
+            <dd class="col-sm-9">
+                @if (Model.HasNoRegistrar)
+                {
+                    <span class="text-muted">مرحَّل من بيانات قديمة (لا مسجِّل معروف)</span>
+                }
+                else
+                {
+                    @await Html.PartialAsync("_UserDisplayName", (object?)account.CreatedBy)
+                }
+                <span class="text-muted">في @Html.HrDateTime(account.CreatedAt)</span>
+            </dd>
+            <dt class="col-sm-3">الحساب النافذ حالياً</dt>
+            <dd class="col-sm-9">
+                @if (Model.InForce is null)
+                {
+                    <span>لا يوجد حساب نافذ</span>
+                }
+                else
+                {
+                    <span dir="ltr">@Model.InForce.MaskedNumber</span>
+                    <span class="text-muted">— يُحال عند التحقق من هذا الحساب</span>
+                }
+            </dd>
+        </dl>
+
+        @if (account.Status != BankAccountStatus.PendingVerification)
+        {
+            <div class="alert alert-secondary" role="alert">هذا الحساب ليس بانتظار التحقق.</div>
+        }
+        else
+        {
+            @if (Model.IsOwnRegistration)
+            {
+                <div class="alert alert-info" role="alert">سجّلتَ هذا الحساب بنفسك: يتحقق منه معتمد رواتب آخر. يمكنك رفضه إن سُجّل خطأً.</div>
+            }
+            @if (Model.HasNoRegistrar)
+            {
+                <div class="alert alert-warning" role="alert">لا يُعرف مسجِّل هذا الحساب، فلا يُتحقق منه: ارفضه ثم يسجّله معالج رواتب من جديد.</div>
+            }
+
+            <div class="row g-3">
+                @if (Model.CanVerify)
+                {
+                    <div class="col-md-6">
+                        <form asp-action="Verify" asp-route-id="@account.Id" method="post" class="border rounded p-3" autocomplete="off">
+                            @Html.AntiForgeryToken()
+                            <label class="form-label" for="verificationReference">مرجع تأكيد المصرف (إلزامي)</label>
+                            <input id="verificationReference" name="verificationReference" class="form-control mb-2" maxlength="100" required
+                                   value="@Model.VerificationReference" />
+                            <div class="form-text mb-2">رقم كتاب المصرف أو إشعاره الذي يثبت أن الحساب لهذا الموظف.</div>
+                            <button type="submit" class="btn btn-success"><i class="fas fa-check"></i> تحقّقتُ من الحساب</button>
+                        </form>
+                    </div>
+                }
+                <div class="col-md-6">
+                    <form asp-action="Reject" asp-route-id="@account.Id" method="post" class="border rounded p-3"
+                          data-hr-confirm="رفض الحساب المصرفي؟"
+                          data-hr-confirm-title="تأكيد الرفض"
+                          data-hr-confirm-variant="danger"
+                          data-hr-confirm-label="رفض">
+                        @Html.AntiForgeryToken()
+                        <label class="form-label" for="rejectReason">سبب الرفض (إلزامي)</label>
+                        <input id="rejectReason" name="reason" class="form-control mb-2" maxlength="500" required />
+                        <button type="submit" class="btn btn-danger"><i class="fas fa-times"></i> رفض</button>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>

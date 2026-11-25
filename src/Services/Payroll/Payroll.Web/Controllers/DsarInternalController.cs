@@ -24,8 +24,12 @@ public sealed class DsarInternalController(PayrollDbContext db) : ControllerBase
                 baseSalary = p.BaseSalary,
                 gradeCode = p.PayGrade != null ? p.PayGrade.GradeCode : null,
                 gradeName = p.PayGrade != null ? p.PayGrade.GradeNameAr : null,
-                bankAccountPresent = p.BankAccountIban != null,
-                bankAccountVerified = p.BankAccountVerifiedAt != null,
+                // PLAN-55: from the account entity. Present: an account in force or waiting for verification. Verified: one in force.
+                bankAccountPresent = db.EmployeeBankAccounts.Any(a => a.EmployeeId == p.EmployeeId
+                    && (a.Status == Payroll.Domain.Enums.BankAccountStatus.Active
+                        || a.Status == Payroll.Domain.Enums.BankAccountStatus.PendingVerification)),
+                bankAccountVerified = db.EmployeeBankAccounts.Any(a => a.EmployeeId == p.EmployeeId
+                    && a.Status == Payroll.Domain.Enums.BankAccountStatus.Active),
                 effectiveFrom = p.EffectiveFrom
             })
             .FirstOrDefaultAsync(ct);

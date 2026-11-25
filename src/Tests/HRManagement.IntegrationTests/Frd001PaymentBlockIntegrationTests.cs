@@ -24,9 +24,10 @@ public class Frd001PaymentBlockIntegrationTests
         var hireDate = new DateTime(2026, 9, 15, 0, 0, 0, DateTimeKind.Utc);
         var profile = TestDataFactory.CreateActivePayProfile(empId, 12_000m);
         profile.EffectiveFrom = hireDate;
-        profile.BankAccountIban = "SY0000000000000000000001";
-        profile.BankAccountVerifiedAt = DateTime.UtcNow;
         db.EmployeePayProfiles.Add(profile);
+        // PLAN-55: the employee's verified account is its own entity, and the run pins it on its snapshot and its line.
+        var account = Pay055TestAccounts.Active(empId);
+        db.Add(account);
 
         var run = new PayrollRun
         {
@@ -43,7 +44,8 @@ public class Frd001PaymentBlockIntegrationTests
             EmployeeId = empId,
             GrossPay = 12_000m,
             TotalDeductions = 1_200m,
-            NetPay = 10_800m
+            NetPay = 10_800m,
+            BankAccountId = account.Id
         });
         db.PayrollRuns.Add(run);
 
@@ -69,6 +71,7 @@ public class Frd001PaymentBlockIntegrationTests
             EmployeeId = empId,
             ProfileVersion = "v1",
             InputFingerprint = "test-fingerprint",
+            BankAccountId = account.Id,
             SortOrder = 0
         });
         db.PayrollRunJobs.Add(job);

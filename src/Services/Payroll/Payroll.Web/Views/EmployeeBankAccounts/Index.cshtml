@@ -1,0 +1,99 @@
+@model Payroll.Web.ViewModels.EmployeeBankAccountsViewModel
+@{
+    ViewData["Title"] = "الحسابات المصرفية للموظف";
+}
+
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0"><i class="fas fa-university"></i> الحسابات المصرفية: @Html.HrEmployeeName(Model.EmployeeId)</h3>
+        <span>
+            <a asp-action="Pending" class="btn btn-outline-secondary btn-sm"><i class="fas fa-hourglass-half"></i> بانتظار التحقق</a>
+            @if (Model.CanRegister && !Model.HasPending)
+            {
+                <a asp-action="Create" asp-route-employeeId="@Model.EmployeeId" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> تسجيل حساب</a>
+            }
+        </span>
+    </div>
+
+    <div class="card-body">
+        <partial name="_FormErrors" />
+        <p class="text-muted mb-0">
+            يسجّل معالج الرواتب الحساب، ويتحقق منه معتمد رواتب آخر بمرجع تأكيد من المصرف. يبقى الحساب النافذ نافذاً حتى يُتحقق من بديله،
+            ويُعرض رقم الحساب بآخر أربع خانات فقط.
+        </p>
+    </div>
+
+    <div class="card-body p-0 border-top-0 pt-0">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>رقم الحساب</th>
+                    <th>النوع</th>
+                    <th>المصرف</th>
+                    <th>الحالة</th>
+                    <th>سجّله</th>
+                    <th>تاريخ التسجيل</th>
+                    <th>القرار</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var account in Model.Accounts)
+                {
+                    <tr>
+                        <td dir="ltr" class="text-end">@account.MaskedNumber</td>
+                        <td>@Html.HrEnumDisplay(account.AccountKind)</td>
+                        <td>@(string.IsNullOrEmpty(account.BankNameAr) ? "—" : account.BankNameAr)</td>
+                        <td>@Html.HrEnumDisplay(account.Status)</td>
+                        <td>@await Html.PartialAsync("_UserDisplayName", (object?)account.CreatedBy)</td>
+                        <td>@Html.HrDateTime(account.CreatedAt)</td>
+                        <td>
+                            @switch (account.Status)
+                            {
+                                case BankAccountStatus.Active:
+                                    <span>تحقق منه @await Html.PartialAsync("_UserDisplayName", (object?)account.VerifiedBy) في @Html.HrDateTime(account.VerifiedAt) بالمرجع @account.VerificationReference</span>
+                                    break;
+                                case BankAccountStatus.Rejected:
+                                    <span>رفضه @await Html.PartialAsync("_UserDisplayName", (object?)account.RejectedBy) في @Html.HrDateTime(account.RejectedAt): @account.RejectionReason</span>
+                                    break;
+                                case BankAccountStatus.Retired:
+                                    <span>أحاله @await Html.PartialAsync("_UserDisplayName", (object?)account.RetiredBy) في @Html.HrDateTime(account.RetiredAt): @account.RetirementReason</span>
+                                    break;
+                                default:
+                                    <span class="text-muted">بانتظار تحقق شخص ثانٍ</span>
+                                    break;
+                            }
+                        </td>
+                        <td>
+                            @if (Model.CanApprove && account.Status == BankAccountStatus.PendingVerification)
+                            {
+                                <a asp-action="Verify" asp-route-id="@account.Id" class="btn btn-success btn-xs"><i class="fas fa-check-double"></i> التحقق أو الرفض</a>
+                            }
+                            @if (Model.CanApprove && account.Status == BankAccountStatus.Active)
+                            {
+                                <form asp-action="Retire" asp-route-id="@account.Id" method="post" class="d-flex gap-1"
+                                      data-hr-confirm="إحالة الحساب النافذ؟ يبقى الموظف بلا حساب نافذ إلى أن يُسجَّل حساب آخر ويُتحقق منه."
+                                      data-hr-confirm-title="تأكيد الإحالة"
+                                      data-hr-confirm-variant="danger"
+                                      data-hr-confirm-label="إحالة">
+                                    @Html.AntiForgeryToken()
+                                    <input name="reason" class="form-control form-control-sm" maxlength="500" required
+                                           placeholder="سبب الإحالة (إلزامي)" aria-label="سبب الإحالة" />
+                                    <button type="submit" class="btn btn-outline-danger btn-xs"><i class="fas fa-ban"></i> إحالة</button>
+                                </form>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (Model.Accounts.Count == 0)
+        {
+            @await Html.PartialAsync("_HrEmptyState", "لا يوجد حساب مصرفي مسجَّل لهذا الموظف")
+        }
+    </div>
+
+    <div class="card-footer">
+        <a asp-controller="EmployeePayProfiles" asp-action="Index" asp-route-employeeId="@Model.EmployeeId" class="btn btn-secondary btn-sm">عودة إلى ملف الراتب</a>
+    </div>
+</div>

@@ -85,6 +85,11 @@ public static class Ux067PageProbe
         new("payroll-framework-details", "/ui/payroll/PayrollConfigurations", @"/PayrollConfigurations/Details/[0-9a-fA-F-]{36}"),
         new("payroll-framework-import", "/ui/payroll/PayrollConfigurations/Import"),
         new("payroll-manual-allowances", "/ui/payroll/AllowanceRecords"),
+        // PLAN-55: the accounts that wait for verification (the list may be empty), an employee's bank accounts (reached from the
+        // pay profile list), and a run's page, which carries the bank readiness card.
+        new("payroll-bank-accounts-pending", "/ui/payroll/EmployeeBankAccounts/Pending"),
+        new("payroll-bank-accounts", "/ui/payroll/EmployeePayProfiles", @"/EmployeeBankAccounts\?employeeId=[0-9a-fA-F-]{36}"),
+        new("payroll-run-details", "/ui/payroll/PayrollRuns", @"/PayrollRuns/Details/[0-9a-fA-F-]{36}"),
         new("asset-details", "/ui/admin-logistics/Assets", @"/Assets/Details/[0-9a-fA-F-]{36}"),
         new("transfers", "/ui/hr-movements/TransferRequests"),
     ];

@@ -62,9 +62,13 @@ public class RunPayrollFraudScanHandler(
         var snapshotEmployees = job?.InputSnapshots.Select(s => s.EmployeeId).ToHashSet()
                               ?? new HashSet<Guid>();
 
+        // PLAN-55 (D-PAY-15): FR-04 (one account shared by several employees) reads the accounts the lines pinned.
+        var pinned = await Features.BankAccounts.BankAccountPinning.PinnedAccountsAsync(repository.EmployeeBankAccounts, lines, cancellationToken);
+        var pinnedNumbers = pinned.ToDictionary(p => p.Key, p => p.Value.AccountNumber);
+
         var asOf = run.RunDate;
         var scanInputs = FraudScanInputBuilder.FromRun(
-            run, lines, profilesByEmployee, snapshotEmployees, asOf);
+            run, lines, profilesByEmployee, snapshotEmployees, asOf, pinnedNumbers);
 
         var scan = fraudEngine.Scan(run.Id, scanInputs, asOfUtc: asOf);
         if (!request.Persist)
