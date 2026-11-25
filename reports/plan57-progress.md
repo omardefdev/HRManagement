@@ -18,8 +18,8 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
 | P3 close and contract | done | 2026-11-25T21:44:57Z |
 | P4 correction | done | 2026-11-25T22:01:57Z |
 | P5 payroll's side | done | 2026-11-25T22:22:14Z |
-| P6 PostgreSQL proofs | in progress | |
-| P7 acceptance and review | | |
+| P6 PostgreSQL proofs | done | 2026-11-25T23:05:16Z |
+| P7 acceptance and review | in progress | |
 | P8 main | | |
 | P9 demo server | | |
 | P10 docs, gates, report, merge | | |
@@ -193,6 +193,31 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
   no closed record by nobody»; it now counts the closed ones (one: the posting's precondition) and checks that any other is the
   open attendance warning.
 
+## P6 — PostgreSQL proofs (finished 2026-11-25T23:05:16Z)
+
+- **`Lva057AttendanceCloseIntegrationTests`** (5, PostgreSQL): a close is one save with its outbox rows; an injected trigger failure
+  leaves no summary, no closure and no outbox row; two closes at once of one unit give one summary per employee and one event each;
+  two approvals at once on one summary give versions 2 and 3 (the `xmin` retry); **2,000 employees × 31 days closed in 2.69 s**
+  (limit 10 s), the lock lookup of a page in 0.10 s.
+- **A defect the PostgreSQL test found, fixed:** after a concurrency failure the approval's retry saved on the same context after
+  `ChangeTracker.Clear()`, and the bus outbox's state row was lost with it (`FK_OutboxMessage_OutboxState_OutboxId`). A retry now
+  runs in a new DI scope (`AttendanceCorrectionService.ApproveAsync`, up to 4 attempts).
+- **`Lva057PayrollAttendanceHandoffIntegrationTests`** (9, PostgreSQL): the same version twice; versions in reverse order; two
+  versions at once on one receipt (`INSERT … ON CONFLICT DO NOTHING` then `SELECT … FOR UPDATE`); the carry past a frozen month; the
+  refund; `Block`; another tenant's summary invisible under row security; payroll's migration applied by a non-superuser owner from
+  `20261125055305_PAY056_RunLifecycle`.
+- **`Lva057MigrationPostgreSqlTests`** (2): HR.Core's migration on a filled database — the leave-made fill, row security on the four
+  new tables. **HTTP:** `Lva057AttendanceApiHttpTests` (8: statuses 200/400/403/404/409, antiforgery, roles, scope) and
+  `Lva057PayrollAttendanceReadsHttpTests` (1).
+- **The gate's scope, refined:** an employee whose first pay profile (or history row) begins after the run's period is not in the
+  gate's scope — a new hire must not hold back an earlier month. Test
+  `An_employee_whose_first_pay_profile_begins_after_the_period_is_not_in_the_gates_scope`; gate + handover classes 37 passed.
+- **Full Testcontainers step** (CI's filter `Category=Testcontainers&Category!=ObjectStorage`): started 2026-11-25T22:42:33Z,
+  finished 22:57:29Z — **320 passed, 1 skipped** (`Ops038BootstrapIdempotencyTests`, needs the migrator image), 14 min 51 s. The
+  wait was used to write the acceptance class (no build ran beside it).
+- Build `-warnaserror`: 0 warnings, 0 errors (4 min 33 s). Format check on the changed files: clean.
+- Commits: `4adfe897` (tests), `73f397e5` (gate scope).
+
 ## Decisions (with reasons)
 
 - **D-P57-1, the reserved months:** 2025-01 … 2025-07 (see the baseline). 57a January, 57b February (and the current month for «no
@@ -210,7 +235,8 @@ None yet (P0 was read-only).
 
 ## The exact next step
 
-P6: PostgreSQL classes — `Lva057AttendanceCloseIntegrationTests` (two concurrent closes; outbox atomicity with an injected
-failure; a correction under an `xmin` conflict; 2,000 employees × 31 days under 10 s), `Lva057PayrollAttendanceHandoffIntegrationTests`
-(duplicate, reverse order, carry, refund, Block, two versions at once on one receipt, the tenant, the freeze in every state),
-payroll's migration as the migrator, HTTP tests of the new APIs (statuses, antiforgery, roles); then the full Testcontainers filter.
+P7: build and review `AcLva57AttendancePeriodTests` (written, uncommitted, with `AcceptanceMessagingHelper`'s three publishers,
+`AcceptanceHarness.CreateAttendanceClientAsync` and `testdata/acceptance/lva057-periods.json`); add it to
+`tests/acceptance/ci-scope.json` (`prodLike[]`, required) and `ac-ownership.json`; the personas' scenario lists; `AcIam52`'s free
+day; `AcUx67`'s key pages; `scripts/lva057-validate.ps1` static checks and `-SelfTest`; then images one service at a time, the
+prod-like stack, the class, P-13's lists, the independent review.
