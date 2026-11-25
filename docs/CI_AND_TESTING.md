@@ -48,6 +48,17 @@ dotnet test src/Tests/HRManagement.ArchitectureTests/HRManagement.ArchitectureTe
   كتابة في واجهة الأطر، و`AcPay54LegalFrameworkTests` مطلوبة في prod-like ومعها شخصية المصادق `a-payroll-approver-2`.
   `Pay054EmptyDatabaseFirstRunPostgreSqlTests` (Testcontainers) يثبت أن قاعدة فارغة بـ`Seed:Profile=None` تصل أول حساب
   بالاستيراد والاعتماد والمصادقة والنشر وحدها.
+- منذ PLAN-55: `PayrollWriteActionsTests` يثبت سياسات الحساب المصرفي (التسجيل `Payroll.Process`؛ التحقق والرفض والإحالة
+  `Payroll.Approve`؛ نموذج التسجيل وصفحة التحقق محروسان بسياستيهما) والإصلاح (`Payroll.Repair`، للمدير وحده).
+  `PayProfileWritersTests` صار ستة كتّاب (خرج مستهلك تفعيل العقد) ويرفض أي `new EmployeePayProfile` خارج
+  `EmployeePayProfileVersioning.CreateNextVersion` والبذرة. `scripts/pay055-validate.ps1` (ومعه `-SelfTest` بسبعة وعشرين عيباً
+  مزروعاً) يجمع ثوابت الخطة: لا قارئ لحقول الملف المصرفية الثلاثة المهجورة، ولا إنشاء لملف أجر خارج مكانه، والهجرة PAY055
+  بلا BOM وترفع `FORCE` حول نقل بياناتها وتعيده وتجعل الحساب المنقول معلّقاً، وقائمة المصارف فارغة في الإنتاج والتجهيز ومرآة
+  prod-like، ورمز منع التزوير على كل `POST` في المتحكمات الثلاثة الجديدة، و`AcPay55BankAccountTests` مطلوبة في prod-like
+  (مجموعة `main`). اختبارات التكامل `Pay055*` (Testcontainers) تثبت على PostgreSQL: الهجرة بدور غير مالك للامتياز تحت أمان
+  صفوف مفروض في جهتين، تحققين متزامنين وتسجيلات متزامنة والفهرس المرشَّح، ترتيب حدثَي إنشاء الموظف وتفعيل العقد بالاتجاهين،
+  تشغيلاً حقيقياً يثبّت الحساب ثم أوامر دفعه وملف خزينته، ونطاق الفرع والإصلاح عبر HTTP. صنف القبول يحسب تشغيلَي أيار وحزيران
+  2029 للجهة A (شهران تحكمهما نسخة البذرة v1 ولا يأخذهما صنف آخر): إعادة تشغيله على المكدس نفسه تتوقف عند شرط 55c.
 - منذ PLAN-52 (BOLA v2، بديل `BolaArchitectureTests`): `OrgScopeCoverageTests` يمسح بالانعكاس كل متحكم في التجميعات الخمس عشرة
   والمتحكمات المشتركة: لكل متحكم موقف نطاق معلن (`[OrgScoped]`، `[OrgScopeCentralOnly]`، `[OrgScopeNotApplicable]`،
   `[RecruitmentOrgScope]`) أو صف في `org-scope-allowlist/<service>.txt` موقّع `IAM-H:` مع سبب، ولا يكون الصف لمتحكم يصله مستخدم مقيّد

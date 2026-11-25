@@ -69,6 +69,7 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 | P8 this plan's server checks: four in one run; the screens twice | 22:39:00 | 22:51:41 | 5 min 2 s; 3 min 45 s (failed on my count), 2 min 1 s (passed) |
 | P8 the PLAN-36..54 server checks, one run | 22:51:50 | 00:05:00 | 4,389 s, 61 of 63 |
 | P8 the sweeps check again, twice; evidence restored; the final smoke | 00:05:22 | 00:10:06 | passed after a sweep cycle; smoke 50 pass |
+| P9 full build, architecture and unit suites on the final code (after the script's change and with the documents) | 00:11:26 | 00:26:50 | build 0 warnings 0 errors (7 min 32 s); architecture 401; unit 6,950 passed (7 min 36 s) |
 | P4 chain: full build, architecture, PLAN-55 integration, full unit suite | 07:30:27 | 07:45:51 | 0 errors; 401 passed; 19 of 20 (one test of mine assumed a branch-restricted hr-admin; rewritten, 6 of 6 after); 6920 passed, 10 min 2 s |
 
 Stops:
