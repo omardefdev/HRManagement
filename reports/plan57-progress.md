@@ -13,8 +13,8 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
 | Phase | Status | Finished (UTC) |
 |---|---|---|
 | P0 baseline | done | 2026-11-25T20:49:10Z |
-| P1 model, calendar, summary, migration | in progress | |
-| P2 one writer | code written, not built | |
+| P1 model, calendar, summary, migration | done | 2026-11-25T21:06:33Z |
+| P2 one writer | in progress (code written and building; tests next) | |
 | P3 close and contract | | |
 | P4 correction | | |
 | P5 payroll's side | | |
@@ -50,6 +50,26 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
 - **Timing:** inventories about 6 min; baseline tests about 1 min 20 s; stack start 14 min 38 s; probe 2 min (a build and one test).
   No time stood still.
 
+## P1 — the model, the calendar and the summary (finished 2026-11-25T21:06:33Z)
+
+- **Commit `6f887768`.** HR.Core domain: `AttendancePeriod`, `AttendancePeriodClosure`, `AttendanceEmployeeSummary` (`xmin`),
+  `AttendanceCorrection`; enums `AttendancePeriodStatus`, `AttendanceRecordSource`, `AttendanceCorrectionStatus` (with the
+  correction's source, the summary's reason and the unrecorded-days mode); `DailyAttendanceRecord.Source/SourceReference/ReplacedStatus`;
+  the pure `AttendanceSummaryCalculator` (and `IAttendanceWorkingDays`); `AttendanceOptions` and `AttendanceCalendar`
+  (`Attendance:*` in HR.Core's three appsettings files; the holidays empty everywhere).
+- **Migration `20261125205352_LVA057_AttendancePeriods`:** the four tables under forced row security (`TenantRlsMigrationHelper`),
+  the three columns, the unique and filtered indexes, and the fill (`Source = 2` for leave-made `OnLeave`) with `FORCE` lifted
+  around it. No byte order mark (ef wrote one on both files; stripped). `has-pending-model-changes`: none.
+- **Tests:** `Lva057AttendanceSummaryCalculatorTests` 11 passed; the unit filter (Lva057, Attendance, Leave, Hcm002, Architecture)
+  496 passed; `Lva057MigrationPostgreSqlTests` 2 passed on PostgreSQL as a NOSUPERUSER NOBYPASSRLS owner under forced row security
+  (two agencies; the control shows the owner sees no record under FORCE); `Iam052OrgScopeMigrationPostgreSqlTests` 2 passed.
+- **Format:** `dotnet format whitespace … --verify-no-changes` on the phase's files: clean. **Gitleaks** over the branch's 4 commits: no leak.
+- **Build:** 0 errors (1 min 57 s). One build failed on stale Razor compiler servers (parse errors on unchanged
+  `CandidatePortal` views); `dotnet build-server shutdown` cleared it, as the earlier plans recorded.
+- **Deviation recorded:** a leave-made record of before this plan carries no leave reference (the migration marks it by its
+  note). `RevertLeaveAsync` therefore also takes a `Source = Leave` record with no reference in the cancelled leave's range, as the
+  old removal did; a manual record is never touched.
+
 ## Decisions (with reasons)
 
 - **D-P57-1, the reserved months:** 2025-01 … 2025-07 (see the baseline). 57a January, 57b February (and the current month for «no
@@ -67,6 +87,6 @@ None yet (P0 was read-only).
 
 ## The exact next step
 
-P1: `dotnet build HRManagement.slnx -warnaserror`; add migration `LVA057_AttendancePeriods` (HR.Core) with the fill under lifted
-`FORCE`; `Lva057AttendanceSummaryCalculatorTests` and `Lva057MigrationPostgreSqlTests`; commit P1 with only its files (the P2 code
-already in the tree — the writer, the controller, the views, the consumers, the reconciler — is committed in P2).
+P2: write `Lva057AttendanceDayWriterTests`, `AttendanceSingleWriterArchitectureTests`, the consumers' single-save and reconciler
+tests; update `LeaveAdvanceConsumersTests`/`HRCoreConsumerTests` if they fail; build; unit + architecture + the HR.Core integration
+classes (`Iam052HrCoreScopeHttpTests`, `Iam051DirectServiceWriteTests`); format; commit P2 (the old close stays until P3).
