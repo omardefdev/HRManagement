@@ -1,76 +1,41 @@
-using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Attendance;
 using HRManagement.MessageContracts.Events;
 using HRManagement.SharedKernel.Enums;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
+using HRManagement.ServiceDefaults.Messaging;
 
 namespace HR.Core.Infrastructure.Integration;
 
-public class AttendanceIntegrationService(HRCoreDbContext db, IPublishEndpoint publish)
+/// <summary>
+/// PLAN-57 (§2): what a leave decision does to the attendance days. Both methods go through <see cref="AttendanceDayWriter"/> and
+/// <b>neither saves</b>: the leave consumer writes the employee's status history, the days and any system correction in its one save.
+/// The old close (<c>ClosePeriodAndPublishAsync</c>) stays until <c>AttendancePeriodService</c> replaces it (PLAN-57 P3).
+/// </summary>
+public class AttendanceIntegrationService(HRCoreDbContext db, IPublishEndpoint publish, AttendanceDayWriter writer)
 {
-    public async Task UpsertLeaveAttendanceAsync(
+    /// <summary>An approved leave takes its days (a day keeps the status it had, so that a cancellation restores it).</summary>
+    public async Task<AttendanceLeaveResult> UpsertLeaveAttendanceAsync(
         Guid employeeId,
         DateTime startDate,
         DateTime endDate,
+        Guid leaveRequestId,
         string? notes,
-        CancellationToken ct = default)
-    {
-        var start = DateOnly.FromDateTime(startDate);
-        var end = DateOnly.FromDateTime(endDate);
-        if (end < start)
-            (start, end) = (end, start);
+        CancellationToken ct = default) =>
+        await writer.ApplyLeaveAsync(
+            employeeId, DateOnly.FromDateTime(startDate), DateOnly.FromDateTime(endDate), leaveRequestId, notes, ct);
 
-        for (var d = start; d <= end; d = d.AddDays(1))
-        {
-            var existing = await db.DailyAttendanceRecords
-                .FirstOrDefaultAsync(x => x.EmployeeId == employeeId && x.AttendanceDate == d, ct);
-
-            if (existing is null)
-            {
-                db.DailyAttendanceRecords.Add(new DailyAttendanceRecord
-                {
-                    EmployeeId = employeeId,
-                    AttendanceDate = d,
-                    Status = DailyAttendanceStatus.OnLeave,
-                    Notes = notes
-                });
-            }
-            else
-            {
-                existing.Status = DailyAttendanceStatus.OnLeave;
-                existing.Notes = notes ?? existing.Notes;
-            }
-        }
-
-        await db.SaveChangesAsync(ct);
-    }
-
-    public async Task RemoveLeaveAttendanceAsync(
+    /// <summary>A cancelled leave gives back the days that carry its reference, and no other record.</summary>
+    public async Task<AttendanceLeaveResult> RemoveLeaveAttendanceAsync(
         Guid employeeId,
         DateTime startDate,
         DateTime endDate,
-        CancellationToken ct = default)
-    {
-        var start = DateOnly.FromDateTime(startDate);
-        var end = DateOnly.FromDateTime(endDate);
-        if (end < start)
-            (start, end) = (end, start);
-
-        var records = await db.DailyAttendanceRecords
-            .Where(x => x.EmployeeId == employeeId
-                        && x.AttendanceDate >= start
-                        && x.AttendanceDate <= end
-                        && x.Status == DailyAttendanceStatus.OnLeave)
-            .ToListAsync(ct);
-
-        if (records.Count == 0)
-            return;
-
-        db.DailyAttendanceRecords.RemoveRange(records);
-        await db.SaveChangesAsync(ct);
-    }
+        Guid leaveRequestId,
+        CancellationToken ct = default) =>
+        await writer.RevertLeaveAsync(
+            employeeId, DateOnly.FromDateTime(startDate), DateOnly.FromDateTime(endDate), leaveRequestId, ct);
 
     public async Task<int> ClosePeriodAndPublishAsync(
         DateOnly periodStart,

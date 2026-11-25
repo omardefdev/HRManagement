@@ -492,7 +492,12 @@ public class OutboxAtomicityIntegrationTests
         await db.SaveChangesAsync();
 
         var publish = new RecordingPublishEndpoint();
-        var service = new AttendanceIntegrationService(db, publish);
+        var writer = new HR.Core.Infrastructure.Services.Attendance.AttendanceDayWriter(
+            db,
+            new HR.Core.Infrastructure.Services.Attendance.AttendanceLockService(db),
+            new HR.Core.Infrastructure.Services.Attendance.AttendanceCalendar(new HR.Core.Infrastructure.Services.Attendance.AttendanceCalendarOptions()),
+            new HR.Core.Infrastructure.Services.Attendance.AttendanceEligibility(db));
+        var service = new AttendanceIntegrationService(db, publish, writer);
         var published = await service.ClosePeriodAndPublishAsync(
             new DateOnly(2026, 5, 1),
             new DateOnly(2026, 5, 31),

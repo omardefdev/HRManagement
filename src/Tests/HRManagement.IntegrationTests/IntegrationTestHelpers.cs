@@ -85,6 +85,7 @@ public static class IntegrationTestHelpers
             var mock = new Mock<IPublishEndpoint>(MockBehavior.Loose);
             return mock.Object;
         });
+        HR.Core.Infrastructure.AttendanceDependencyInjection.AddHrAttendance(services);
         services.AddScoped<HR.Core.Infrastructure.Integration.AttendanceIntegrationService>();
         services.AddScoped<HR.Core.Infrastructure.Integration.EmployeeIntegrationService>();
     }

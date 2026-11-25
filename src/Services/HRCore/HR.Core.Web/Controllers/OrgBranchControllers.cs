@@ -1,7 +1,9 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using HR.Core.Domain.Entities;
 using HR.Core.Domain.Enums;
 using HR.Core.Infrastructure.Data;
+using HR.Core.Infrastructure.Services.Attendance;
 using HR.Core.Web.ViewModels;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Enums;
@@ -77,6 +79,9 @@ public class HrStatisticReportsController(HRCoreDbContext db) : Controller
 [OrgScoped(typeof(DailyAttendanceRecord))]
 public class DailyAttendanceRecordsController(
     HRCoreDbContext db,
+    AttendanceDayWriter writer,
+    AttendanceLockService locks,
+    AttendanceCalendar calendar,
     HR.Core.Infrastructure.Integration.AttendanceIntegrationService attendance,
     HR.Core.Infrastructure.OrgScopeService orgScope) : Controller
 {
@@ -102,9 +107,21 @@ public class DailyAttendanceRecordsController(
             filterEmployeeName = await db.Employees.AsNoTracking().Where(e => e.Id == empId).Select(e => e.FullName).FirstOrDefaultAsync();
 
         var items = await query.OrderByDescending(x => x.AttendanceDate).Take(SearchFilterBase.MaxPageSize).ToListAsync();
+
+        // PLAN-57 (§2): a day in a closed period offers a correction request instead of an edit; one query for the page.
+        var lockedIds = new HashSet<Guid>();
+        if (items.Count > 0)
+        {
+            var locked = await locks.GetLockedDaysAsync(
+                items.Select(i => i.EmployeeId).Distinct().ToList(), items.Min(i => i.AttendanceDate), items.Max(i => i.AttendanceDate));
+            foreach (var item in items.Where(i => locked.IsLocked(i.EmployeeId, i.AttendanceDate)))
+                lockedIds.Add(item.Id);
+        }
+
         return View(new DailyAttendanceRecordsIndexViewModel
         {
             Items = items,
+            LockedIds = lockedIds,
             EmployeeId = employeeId,
             FilterEmployeeName = filterEmployeeName,
             DateFrom = dateFrom,
@@ -115,95 +132,131 @@ public class DailyAttendanceRecordsController(
 
     public async Task<IActionResult> Details(Guid id)
     {
-        var record = await db.DailyAttendanceRecords.Include(a => a.Employee).FirstOrDefaultAsync(x => x.Id == id);
+        var record = await db.DailyAttendanceRecords.AsNoTracking().Include(a => a.Employee).FirstOrDefaultAsync(x => x.Id == id);
         if (record is null) return NotFound();
         // PLAN-52 (AC-IAM-52a): the org-scope filter answered 404 before this line for a record, or an employee (Create, Edit before and
         // after the change), outside the scope.
+        ViewBag.Locked = await locks.IsLockedAsync(record.EmployeeId, record.AttendanceDate);
         return View(record);
     }
 
-    public async Task<IActionResult> Create()
-    {
-        await PopulateEmployeesAsync();
-        return View(new DailyAttendanceRecordCreateViewModel
+    public IActionResult Create() =>
+        View(new DailyAttendanceRecordCreateViewModel
         {
-            AttendanceDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            AttendanceDate = calendar.Today,
             Status = DailyAttendanceStatus.Present
         });
-    }
 
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    [Authorize(Policy = HrManagementPolicies.HrCoreAttendanceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(DailyAttendanceRecordCreateViewModel vm)
     {
         if (!ModelState.IsValid)
+            return await CreateFormAsync(vm);
+
+        var result = await writer.CreateManualAsync(await ActorAsync(), vm.EmployeeId, vm.AttendanceDate, vm.Status, vm.Notes);
+        if (Refusal(result) is { } refused)
+            return refused;
+        if (!result.Ok)
         {
-            await PopulateEmployeesAsync();
-            return View(vm);
+            ModelState.AddModelError(string.Empty, result.Error!);
+            return await CreateFormAsync(vm);
         }
-        db.DailyAttendanceRecords.Add(new DailyAttendanceRecord
+
+        try
         {
-            EmployeeId = vm.EmployeeId,
-            AttendanceDate = vm.AttendanceDate,
-            Status = vm.Status,
-            Notes = vm.Notes
-        });
-        await db.SaveChangesAsync();
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ConcurrencyExtensions.IsUniqueViolation(ex))
+        {
+            // Another request wrote the same day between the check and the save: the unique index (employee, date) refused this one.
+            ModelState.AddModelError(string.Empty, AttendanceMessages.DuplicateDay);
+            return await CreateFormAsync(vm);
+        }
+
         TempData["Success"] = "تم تسجيل الحضور";
         return RedirectToAction(nameof(Index));
     }
 
     public async Task<IActionResult> Edit(Guid id)
     {
-        var record = await db.DailyAttendanceRecords.Include(a => a.Employee).FirstOrDefaultAsync(x => x.Id == id);
+        var record = await db.DailyAttendanceRecords.AsNoTracking().Include(a => a.Employee).FirstOrDefaultAsync(x => x.Id == id);
         if (record is null) return NotFound();
         // PLAN-52 (AC-IAM-52a): the org-scope filter answered 404 before this line for a record, or an employee (Create, Edit before and
         // after the change), outside the scope.
-        await PopulateEmployeesAsync(record.EmployeeId);
+        if (record.Source == AttendanceRecordSource.Leave)
+        {
+            TempData["Error"] = AttendanceMessages.LeaveMadeRecord;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (await locks.IsLockedAsync(record.EmployeeId, record.AttendanceDate))
+        {
+            TempData["Error"] = AttendanceMessages.LockedDay;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        ViewBag.Record = record;
         return View(new DailyAttendanceRecordEditViewModel
         {
             Id = record.Id,
-            EmployeeId = record.EmployeeId,
-            AttendanceDate = record.AttendanceDate,
-            Status = record.Status,
+            // «في إجازة» is not offered by hand: an older record that holds it must take another status to be saved.
+            Status = record.Status == DailyAttendanceStatus.OnLeave ? DailyAttendanceStatus.Present : record.Status,
             Notes = record.Notes
         });
     }
 
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    /// <summary>
+    /// PLAN-57 (§2, rule 2): the edit changes the status and the note. The view model binds no employee and no date, so a posted
+    /// <c>EmployeeId</c> or <c>AttendanceDate</c> is ignored and the record stays its owner's.
+    /// </summary>
+    [Authorize(Policy = HrManagementPolicies.HrCoreAttendanceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(Guid id, DailyAttendanceRecordEditViewModel vm)
     {
-        var record = await db.DailyAttendanceRecords.Include(a => a.Employee).FirstOrDefaultAsync(x => x.Id == id);
+        var record = await db.DailyAttendanceRecords.AsNoTracking().Include(a => a.Employee).FirstOrDefaultAsync(x => x.Id == id);
         if (record is null) return NotFound();
         // PLAN-52 (AC-IAM-52a): the org-scope filter answered 404 before this line for a record, or an employee (Create, Edit before and
         // after the change), outside the scope.
         if (!ModelState.IsValid)
         {
-            await PopulateEmployeesAsync(vm.EmployeeId);
+            ViewBag.Record = record;
             return View(vm);
         }
-        record.EmployeeId = vm.EmployeeId;
-        record.AttendanceDate = vm.AttendanceDate;
-        record.Status = vm.Status;
-        record.Notes = vm.Notes;
+
+        var result = await writer.UpdateManualAsync(await ActorAsync(), id, vm.Status, vm.Notes);
+        if (Refusal(result) is { } refused)
+            return refused;
+        if (!result.Ok)
+        {
+            ModelState.AddModelError(string.Empty, result.Error!);
+            ViewBag.Record = record;
+            vm.Id = id;
+            return View(vm);
+        }
+
         await db.SaveChangesAsync();
         TempData["Success"] = "تم تحديث سجل الحضور";
         return RedirectToAction(nameof(Index));
     }
 
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    [Authorize(Policy = HrManagementPolicies.HrCoreAttendanceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var record = await db.DailyAttendanceRecords.Include(a => a.Employee).FirstOrDefaultAsync(x => x.Id == id);
-        if (record is null) return NotFound();
-        // PLAN-52 (AC-IAM-52a): the org-scope filter answered 404 before this line for a record, or an employee (Create, Edit before and
-        // after the change), outside the scope.
-        db.DailyAttendanceRecords.Remove(record);
+        // PLAN-52 (AC-IAM-52a): the org-scope filter answered 404 before this line for a record outside the scope.
+        var result = await writer.DeleteManualAsync(await ActorAsync(), id);
+        if (Refusal(result) is { } refused)
+            return refused;
+        if (!result.Ok)
+        {
+            TempData["Error"] = result.Error;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         await db.SaveChangesAsync();
         TempData["Success"] = "تم حذف سجل الحضور";
         return RedirectToAction(nameof(Index));
@@ -220,44 +273,38 @@ public class DailyAttendanceRecordsController(
         return View();
     }
 
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    /// <summary>
+    /// PLAN-57 (§2, rule 4): fills a month for the unit's tree: working days only, nothing after today (Damascus), never
+    /// «في إجازة»; locked days and days that have a record are skipped, and the page says how many of each.
+    /// </summary>
+    [Authorize(Policy = HrManagementPolicies.HrCoreAttendanceWrite)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> BulkEntry(Guid orgUnitId, string month, DailyAttendanceStatus defaultStatus)
     {
-        var scope = await orgScope.GetAllowedOrgUnitIdsAsync(User);
-        if (scope.IsDenied || !scope.CanAccess(orgUnitId)) return Forbid();
+        var actor = await ActorAsync();
+        if (actor.Scope.IsDenied || !actor.Scope.CanAccess(orgUnitId)) return Forbid();
 
-        if (!DateOnly.TryParse(month + "-01", out var monthStart))
+        if (!DateOnly.TryParseExact(month + "-01", "yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var monthStart))
         {
             TempData["Error"] = "صيغة الشهر غير صالحة";
             return RedirectToAction(nameof(BulkEntry));
         }
 
-        var start = new DateOnly(monthStart.Year, monthStart.Month, 1);
-        var end = start.AddMonths(1).AddDays(-1);
-        var employees = await db.Employees
-            .Where(e => e.PrimaryOrgUnitId == orgUnitId && e.CurrentStatus == EmploymentStatus.Active)
-            .Select(e => e.Id)
-            .ToListAsync();
-
-        foreach (var empId in employees)
+        var result = await writer.BulkFillAsync(actor, orgUnitId, monthStart, defaultStatus);
+        if (result.Refusal == AttendanceRefusal.NotFound) return NotFound();
+        if (result.Refusal == AttendanceRefusal.OutOfScope) return Forbid();
+        if (!result.Ok)
         {
-            for (var d = start; d <= end; d = d.AddDays(1))
-            {
-                if (await db.DailyAttendanceRecords.AnyAsync(x => x.EmployeeId == empId && x.AttendanceDate == d))
-                    continue;
-                db.DailyAttendanceRecords.Add(new DailyAttendanceRecord
-                {
-                    EmployeeId = empId,
-                    AttendanceDate = d,
-                    Status = defaultStatus
-                });
-            }
+            TempData["Error"] = result.Error;
+            return RedirectToAction(nameof(BulkEntry));
         }
 
         await db.SaveChangesAsync();
-        TempData["Success"] = $"تم إدخال حضور جماعي لـ {employees.Count} موظف";
+        TempData["Success"] =
+            $"الإدخال الجماعي: {result.Employees} موظف، كُتب {result.Written} يوم عمل، "
+            + $"وتُخطّي {result.SkippedLocked} يوم لأنه ضمن فترة مغلقة و{result.SkippedExisting} يوم لأن له سجلاً.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -272,7 +319,7 @@ public class DailyAttendanceRecordsController(
         return View();
     }
 
-    [Authorize(Policy = HrManagementPolicies.HrCoreWrite)]
+    [Authorize(Policy = HrManagementPolicies.HrCoreAttendanceClose)]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ClosePeriod(DateOnly periodStart, DateOnly periodEnd, Guid? orgUnitId)
@@ -286,17 +333,25 @@ public class DailyAttendanceRecordsController(
         return RedirectToAction(nameof(Index));
     }
 
-    private async Task PopulateEmployeesAsync(Guid? selected = null)
+    private async Task<AttendanceActor> ActorAsync()
     {
-        var query = db.Employees.AsNoTracking().OrderBy(e => e.FullName).AsQueryable();
-        var scope = await orgScope.GetAllowedOrgUnitIdsAsync(User);
-        if (scope.MustFilter)
-            query = query.Where(e => e.PrimaryOrgUnitId.HasValue && scope.AllowedOrgUnitIds.Contains(e.PrimaryOrgUnitId.Value));
-        ViewBag.Employees = new SelectList(await query.Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "FullName", selected);
-        var units = db.OrgUnits.AsQueryable();
-        if (scope.MustFilter)
-            units = units.Where(o => scope.AllowedOrgUnitIds.Contains(o.Id));
-        ViewBag.OrgUnits = new SelectList(await units.OrderBy(o => o.NameAr).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "NameAr");
+        var sub = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        return new AttendanceActor(Guid.TryParse(sub, out var id) ? id : null, await orgScope.GetAllowedOrgUnitIdsAsync(User));
+    }
+
+    /// <summary>The refusals that are an HTTP answer and not a message on the form: 404 for what is not there, 403 outside the scope.</summary>
+    private IActionResult? Refusal(AttendanceWriteResult result) => result.Refusal switch
+    {
+        AttendanceRefusal.NotFound => NotFound(),
+        AttendanceRefusal.OutOfScope => Forbid(),
+        _ => null
+    };
+
+    private async Task<IActionResult> CreateFormAsync(DailyAttendanceRecordCreateViewModel vm)
+    {
+        if (vm.EmployeeId != Guid.Empty)
+            ViewBag.EmployeeName = await db.Employees.AsNoTracking().Where(e => e.Id == vm.EmployeeId).Select(e => e.FullName).FirstOrDefaultAsync();
+        return View(nameof(Create), vm);
     }
 }
 

@@ -1,10 +1,32 @@
 @model HR.Core.Web.ViewModels.DailyAttendanceRecordCreateViewModel
+@using HR.Core.Domain.Enums
 @{ ViewData["Title"] = "تسجيل حضور"; }
 <div class="card"><form asp-action="Create" method="post">@Html.AntiForgeryToken()
 <div class="card-body">
-<div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" asp-items="ViewBag.Employees" class="form-control"><option value="">— الموظف —</option></select><span asp-validation-for="EmployeeId" class="text-danger"></span></div>
+<div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+<div class="mb-3">
+    <label asp-for="EmployeeId" class="form-label"></label>
+    <select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف بالاسم...">
+        @if (Model.EmployeeId != Guid.Empty && ViewBag.EmployeeName is string employeeName)
+        {
+            <option value="@Model.EmployeeId" selected="selected">@employeeName</option>
+        }
+    </select>
+    <span asp-validation-for="EmployeeId" class="text-danger"></span>
+</div>
 <div class="mb-3"><label asp-for="AttendanceDate" class="form-label"></label><input asp-for="AttendanceDate" class="form-control" type="date" /><span asp-validation-for="AttendanceDate" class="text-danger"></span></div>
-<div class="mb-3"><label asp-for="Status" class="form-label"></label><select class="form-control" asp-for="Status" asp-items="Html.GetEnumSelectList<HR.Core.Domain.Enums.DailyAttendanceStatus>()" class="form-control"></select><span asp-validation-for="Status" class="text-danger"></span></div>
+<div class="mb-3">
+    <label asp-for="Status" class="form-label"></label>
+    <select asp-for="Status" class="form-control">
+        @foreach (var s in Enum.GetValues<DailyAttendanceStatus>().Where(s => s != DailyAttendanceStatus.OnLeave))
+        {
+            if (Model.Status == s) { <option value="@((int)s)" selected="selected">@Html.HrEnumDisplay(s)</option> }
+            else { <option value="@((int)s)">@Html.HrEnumDisplay(s)</option> }
+        }
+    </select>
+    <div class="form-text">حالة «في إجازة» تأتي من إجازة معتمدة فقط.</div>
+    <span asp-validation-for="Status" class="text-danger"></span>
+</div>
 <div class="mb-3"><label asp-for="Notes" class="form-label"></label><textarea asp-for="Notes" class="form-control" rows="2"></textarea><span asp-validation-for="Notes" class="text-danger"></span></div>
 </div>
 <div class="card-footer"><button type="submit" class="btn btn-primary">حفظ</button> <a asp-action="Index" class="btn btn-secondary">إلغاء</a></div></form></div>

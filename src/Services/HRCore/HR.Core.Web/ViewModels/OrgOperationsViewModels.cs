@@ -54,9 +54,19 @@ public class DailyAttendanceRecordCreateViewModel
     public string? Notes { get; set; }
 }
 
-public class DailyAttendanceRecordEditViewModel : DailyAttendanceRecordCreateViewModel
+/// <summary>
+/// PLAN-57 (§2, rule 2): what an edit of an attendance record binds: the status and the note. It holds no employee and no date, so a
+/// posted <c>EmployeeId</c> or <c>AttendanceDate</c> reaches nothing and an edit cannot move a record to another employee or day.
+/// </summary>
+public class DailyAttendanceRecordEditViewModel
 {
     public Guid Id { get; set; }
+
+    [Display(Name = "الحالة")]
+    public DailyAttendanceStatus Status { get; set; }
+
+    [Display(Name = "ملاحظات")]
+    public string? Notes { get; set; }
 }
 
 public class FieldInspectionVisitCreateViewModel

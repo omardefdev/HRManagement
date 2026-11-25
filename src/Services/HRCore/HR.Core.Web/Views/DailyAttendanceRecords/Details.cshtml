@@ -1,0 +1,47 @@
+@model HR.Core.Domain.Entities.DailyAttendanceRecord
+@using HR.Core.Domain.Enums
+@{
+    ViewData["Title"] = "سجل حضور";
+    var locked = ViewBag.Locked is true;
+    var leaveMade = Model.Source == AttendanceRecordSource.Leave;
+}
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <h3 class="mb-0">سجل حضور</h3>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">عودة إلى الحضور</a>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الموظف</dt>
+            <dd class="col-sm-9">@Model.Employee?.FullName</dd>
+            <dt class="col-sm-3">اليوم</dt>
+            <dd class="col-sm-9">@Html.HrDate(Model.AttendanceDate)</dd>
+            <dt class="col-sm-3">الحالة</dt>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(Model.Status)</dd>
+            <dt class="col-sm-3">المصدر</dt>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(Model.Source)</dd>
+            <dt class="col-sm-3">ملاحظات</dt>
+            <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.Notes) ? "—" : Model.Notes)</dd>
+            <dt class="col-sm-3">فترة الحضور</dt>
+            <dd class="col-sm-9">@(locked ? "مغلقة لهذا الموظف: اليوم مقفل" : "غير مغلقة")</dd>
+        </dl>
+    </div>
+    <div class="card-footer d-flex gap-2">
+        @if (locked)
+        {
+            <a asp-controller="AttendanceCorrections" asp-action="Create" asp-route-employeeId="@Model.EmployeeId" asp-route-date="@Html.HrDateInputValue(Model.AttendanceDate)" class="btn btn-primary">طلب تصحيح</a>
+        }
+        else if (leaveMade)
+        {
+            <span class="text-muted">هذا السجل أنشأته إجازة معتمدة؛ يتغير بإلغاء الإجازة.</span>
+        }
+        else
+        {
+            <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-primary">تعديل</a>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-inline" data-hr-confirm="حذف سجل الحضور؟" data-hr-confirm-variant="danger">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-danger">حذف</button>
+            </form>
+        }
+    </div>
+</div>

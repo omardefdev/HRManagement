@@ -31,6 +31,19 @@ public sealed class Iam051DirectServiceWriteTests(Hcm025ScopeAndPolicyTestHost h
         "SuccessionPlans.Create", "SuccessionPlans.Delete", "SuccessionPlans.RemoveCandidate",
     ];
 
+    /// <summary>
+    /// PLAN-57 (§6): the attendance writes name their own policies instead of <c>HrCore.Write</c>. Both admit the same roles
+    /// (hr-admin and hr-core), so what this test proves of them is unchanged: a supervisory employee gets 403, hr-core passes.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> AttendancePolicies = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["DailyAttendanceRecords.Create"] = HrManagementPolicies.HrCoreAttendanceWrite,
+        ["DailyAttendanceRecords.Edit"] = HrManagementPolicies.HrCoreAttendanceWrite,
+        ["DailyAttendanceRecords.Delete"] = HrManagementPolicies.HrCoreAttendanceWrite,
+        ["DailyAttendanceRecords.BulkEntry"] = HrManagementPolicies.HrCoreAttendanceWrite,
+        ["DailyAttendanceRecords.ClosePeriod"] = HrManagementPolicies.HrCoreAttendanceClose,
+    };
+
     /// <summary>The two that are reads (plan §4): the signature check and cancelling one's own export, under <c>HrCore.ReadOnly</c>.</summary>
     public static readonly string[] ReadActions = ["Signatures.Verify", "ExportJobs.Cancel"];
 
@@ -84,8 +97,9 @@ public sealed class Iam051DirectServiceWriteTests(Hcm025ScopeAndPolicyTestHost h
                 continue;
             }
 
-            if (!target.Policies.Contains(HrManagementPolicies.HrCoreWrite))
-                failures.Add($"{target.Key}: names no HrCore.Write ({string.Join(", ", target.Policies)})");
+            var writePolicy = AttendancePolicies.GetValueOrDefault(target.Key, HrManagementPolicies.HrCoreWrite);
+            if (!target.Policies.Contains(writePolicy))
+                failures.Add($"{target.Key}: names no {writePolicy} ({string.Join(", ", target.Policies)})");
 
             using var refused = await reader.SendAsync(new HttpRequestMessage(new HttpMethod(target.Method), target.Path));
             if (refused.StatusCode != HttpStatusCode.Forbidden)

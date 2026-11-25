@@ -1,3 +1,4 @@
+@using HR.Core.Domain.Enums
 @{
     ViewData["Title"] = "إدخال حضور جماعي";
 }
@@ -5,19 +6,29 @@
     @Html.AntiForgeryToken()
     <div class="card">
         <div class="card-body">
-            <div class="mb-3">
-                <label>الوحدة التنظيمية</label>
-                <select name="orgUnitId" class="form-control" asp-items="ViewBag.OrgUnits" required></select>
+            <div class="alert alert-info">
+                يملأ الإدخال الجماعي أيام العمل فقط لموظفي الوحدة ووحداتها الفرعية: لا يكتب أيام الراحة الأسبوعية ولا العطل المضبوطة ولا الأيام بعد اليوم،
+                ويتخطى الأيام التي لها سجل والأيام ضمن فترة مغلقة.
             </div>
             <div class="mb-3">
-                <label>الشهر</label>
-                <input type="month" name="month" class="form-control" required />
+                <label class="form-label" for="bulkOrgUnit">الوحدة التنظيمية</label>
+                <select id="bulkOrgUnit" name="orgUnitId" class="form-control" asp-items="ViewBag.OrgUnits" required></select>
             </div>
             <div class="mb-3">
-                <label>الحالة الافتراضية</label>
-                <select name="defaultStatus" class="form-control" asp-items="Html.GetEnumSelectList<HR.Core.Domain.Enums.DailyAttendanceStatus>()"></select>
+                <label class="form-label" for="bulkMonth">الشهر</label>
+                <input id="bulkMonth" type="month" name="month" class="form-control" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="bulkStatus">الحالة الافتراضية</label>
+                <select id="bulkStatus" name="defaultStatus" class="form-control">
+                    @foreach (var s in Enum.GetValues<DailyAttendanceStatus>().Where(s => s != DailyAttendanceStatus.OnLeave))
+                    {
+                        <option value="@((int)s)">@Html.HrEnumDisplay(s)</option>
+                    }
+                </select>
             </div>
             <button type="submit" class="btn btn-primary">إدخال</button>
+            <a asp-action="Index" class="btn btn-secondary">إلغاء</a>
         </div>
     </div>
 </form>

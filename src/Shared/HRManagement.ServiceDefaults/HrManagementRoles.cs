@@ -101,6 +101,21 @@ public static class HrManagementPolicies
 
     public const string HrCoreReadOnly = "HrCore.ReadOnly";
     public const string HrCoreWrite = "HrCore.Write";
+
+    /// <summary>
+    /// PLAN-57 (§6, D-LVA-4): entering attendance and asking for a correction: hr-admin and hr-core, a branch manager included for
+    /// his unit's tree. The scope of the employee is checked by <c>AttendanceDayWriter</c>.
+    /// </summary>
+    public const string HrCoreAttendanceWrite = "HrCore.AttendanceWrite";
+
+    /// <summary>PLAN-57 (§6): closing an attendance period: hr-admin and hr-core. A branch closes its own tree only (the service checks the unit).</summary>
+    public const string HrCoreAttendanceClose = "HrCore.AttendanceClose";
+
+    /// <summary>
+    /// PLAN-57 (§6, D-LVA-4): deciding an attendance correction: hr-admin or hr-core, and not branch-scoped (central). The server also
+    /// refuses the requester.
+    /// </summary>
+    public const string HrCoreAttendanceCorrectionApprove = "HrCore.AttendanceCorrectionApprove";
     public const string HrCoreDelete = "HrCore.Delete";
 
     /// <summary>
