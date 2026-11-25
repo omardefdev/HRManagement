@@ -14,6 +14,17 @@ using Payroll.Domain.Services.Engine;
 
 namespace Payroll.Application.Features.PayrollRuns;
 
+/// <summary>Messages of the calculation job's acts that more than one handler gives.</summary>
+public static class PayrollRunJobMessages
+{
+    /// <summary>
+    /// PLAN-56 (review): the job was cancelled, restarted or taken by another request between this request's reading of it and
+    /// its save. Nothing was written.
+    /// </summary>
+    public const string JobChangedMeanwhile =
+        "تغيّرت حالة مهمة الحساب أثناء الطلب (أُلغيت أو أُعيد بدؤها أو استؤنفت من طلب آخر)؛ لم يُنفَّذ شيء. حدّث الصفحة.";
+}
+
 public record StartPayrollRunJobCommand(Guid PayrollRunId, int PartitionSize = 200)
     : IRequest<(bool Success, int LinesGenerated, Guid? JobId, string? Error)>;
 
@@ -68,13 +79,22 @@ public class StartPayrollRunJobHandler(
             }
 
             // PLAN-56 (G-PAY-06): a calculation that goes on is a calculation: the run is «قيد الحساب» by its own method.
-            run.BeginCalculating();
-            existing.Status = PayrollRunJobStatus.Running;
-            existing.Attempt++;
-            existing.LeaseOwner = Environment.MachineName;
-            existing.LeaseUntil = DateTime.UtcNow.AddMinutes(30);
-            existing.Error = null;
-            await repository.SaveChangesAsync(cancellationToken);
+            // PLAN-56 (review): the job is taken by one conditional statement, in the transaction of this save. A cancellation or
+            // a restart that committed since the job was read is not undone here; one in flight waits for this commit.
+            await using (var claim = await repository.BeginTransactionAsync(cancellationToken))
+            {
+                if (!await repository.ClaimJobForCalculationAsync(existing.Id, cancellationToken))
+                    return (false, 0, existing.Id, PayrollRunJobMessages.JobChangedMeanwhile);
+                run.BeginCalculating();
+                existing.Status = PayrollRunJobStatus.Running;
+                existing.Attempt++;
+                existing.LeaseOwner = Environment.MachineName;
+                existing.LeaseUntil = DateTime.UtcNow.AddMinutes(30);
+                existing.Error = null;
+                await repository.SaveChangesAsync(cancellationToken);
+                await claim.CommitAsync(cancellationToken);
+            }
+
             return await PayrollRunJobProcessor.ProcessAsync(
                 repository, scopeFactory, engine, batchOptions.Value, existing.Id, cancellationToken);
         }
@@ -270,9 +290,9 @@ public class PausePayrollRunJobHandler(IPayrollRepository repository)
         if (job is null) return (false, "المهمة غير موجودة.");
         if (job.Status != PayrollRunJobStatus.Running)
             return (false, "لا يمكن الإيقاف إلا لمهمة قيد التشغيل.");
-        job.Status = PayrollRunJobStatus.Paused;
-        job.LastCheckpointAt = DateTime.UtcNow;
-        await repository.SaveChangesAsync(cancellationToken);
+        // PLAN-56 (review): one conditional statement: a job that was cancelled since it was read is not relabelled «paused».
+        if (!await repository.PauseRunningJobAsync(job.Id, cancellationToken))
+            return (false, "لا يمكن الإيقاف إلا لمهمة قيد التشغيل.");
         return (true, null);
     }
 }
@@ -327,24 +347,32 @@ public class ResumePayrollRunJobHandler(
         }
 
         // PLAN-56 (G-PAY-06): a resumed calculation is a calculation: the run is «قيد الحساب» by its own method.
-        run.BeginCalculating();
-        job.Status = PayrollRunJobStatus.Running;
-        job.Attempt++;
-        job.Error = null;
-        job.LeaseOwner = Environment.MachineName;
-        job.LeaseUntil = DateTime.UtcNow.AddMinutes(30);
-        job.ProcessedEmployeeCount = job.Partitions
-            .Where(p => p.Status == PayrollRunPartitionStatus.Completed)
-            .Sum(p => p.EmployeeCount);
-        foreach (var p in job.Partitions.Where(p => p.Status != PayrollRunPartitionStatus.Completed))
+        // PLAN-56 (review): the job is taken by one conditional statement, in the transaction of this save. A cancellation or a
+        // restart that committed since the job was read is not undone by this resume; one in flight waits for this commit.
+        await using (var claim = await repository.BeginTransactionAsync(cancellationToken))
         {
-            p.Status = PayrollRunPartitionStatus.Pending;
-            p.ProcessedCount = 0;
-            p.CursorEmployeeId = null;
-            p.WorkerId = null;
-            p.Error = null;
+            if (!await repository.ClaimJobForCalculationAsync(job.Id, cancellationToken))
+                return (false, 0, job.Id, PayrollRunJobMessages.JobChangedMeanwhile);
+            run.BeginCalculating();
+            job.Status = PayrollRunJobStatus.Running;
+            job.Attempt++;
+            job.Error = null;
+            job.LeaseOwner = Environment.MachineName;
+            job.LeaseUntil = DateTime.UtcNow.AddMinutes(30);
+            job.ProcessedEmployeeCount = job.Partitions
+                .Where(p => p.Status == PayrollRunPartitionStatus.Completed)
+                .Sum(p => p.EmployeeCount);
+            foreach (var p in job.Partitions.Where(p => p.Status != PayrollRunPartitionStatus.Completed))
+            {
+                p.Status = PayrollRunPartitionStatus.Pending;
+                p.ProcessedCount = 0;
+                p.CursorEmployeeId = null;
+                p.WorkerId = null;
+                p.Error = null;
+            }
+            await repository.SaveChangesAsync(cancellationToken);
+            await claim.CommitAsync(cancellationToken);
         }
-        await repository.SaveChangesAsync(cancellationToken);
 
         return await PayrollRunJobProcessor.ProcessAsync(
             repository, scopeFactory, engine, batchOptions.Value, job.Id, cancellationToken);

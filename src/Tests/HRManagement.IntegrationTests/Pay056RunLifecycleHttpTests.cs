@@ -472,6 +472,23 @@ public sealed class Pay056RunLifecycleHttpTests(PostgreSqlFixture postgres)
             Assert.Equal(CorrectionRunMessages.NoTargetedAdjustments, await ErrorAsync(none));
         }
 
+        // The general creation of a run is no second door to a correction (review): 400 with the way to make one, and no run.
+        var january = new DateTime(2028, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+        using (var general = await processor.PostAsJsonAsync("/api/payroll/runs", new
+        {
+            periodStart = january,
+            periodEnd = january.AddMonths(1).AddDays(-1),
+            runDate = january,
+            runType = (int)PayrollRunType.Correction,
+            sourceRunId = source,
+        }))
+        {
+            Assert.Equal(HttpStatusCode.BadRequest, general.StatusCode);
+            Assert.Equal(CorrectionRunMessages.CreatedFromItsSource, await ErrorAsync(general));
+        }
+
+        Assert.Equal(0, await host.WithDbAsync(db => db.Set<PayrollRun>().IgnoreQueryFilters().CountAsync(r => r.RunType == PayrollRunType.Correction)));
+
         await host.WithDbAsync(async db =>
         {
             db.Add(new PayrollAdjustment { TenantId = Tenant, EmployeeId = employee, Amount = -30_000m, AdjustmentReason = "صُرف بدل لا يُستحق", TargetSourceRunId = source });

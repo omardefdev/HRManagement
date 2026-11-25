@@ -136,6 +136,13 @@ public class OutboxAtomicityIntegrationTests
 
         public Task<int> StopRunJobsAsync(Guid payrollRunId, CancellationToken ct) => _inner.StopRunJobsAsync(payrollRunId, ct);
 
+        public Task<bool> ClaimJobForCalculationAsync(Guid jobId, CancellationToken ct) => _inner.ClaimJobForCalculationAsync(jobId, ct);
+
+        public Task<bool> PauseRunningJobAsync(Guid jobId, CancellationToken ct) => _inner.PauseRunningJobAsync(jobId, ct);
+
+        public Task FailRunningJobAsync(Guid jobId, Guid partitionId, string error, CancellationToken ct) =>
+            _inner.FailRunningJobAsync(jobId, partitionId, error, ct);
+
         public Task<PayrollRunInputsReleased> ReleaseRunInputsAsync(Guid payrollRunId, CancellationToken ct) =>
             _inner.ReleaseRunInputsAsync(payrollRunId, ct);
 

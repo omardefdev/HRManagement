@@ -38,6 +38,20 @@ public static class PayrollReversalMessages
     public const string ReleaseReason = "عكس التشغيل بطلب معتمد";
 
     /// <summary>
+    /// A correction of the run still stands (it is neither cancelled nor reversed): reversing the run under it would leave a
+    /// correction of nothing, paid or recovered on top of a run that paid nothing.
+    /// </summary>
+    public const string HasCorrection =
+        "لا يُعكس تشغيل له تشغيل تصحيح قائم. ألغِ تشغيل التصحيح إن لم يُرحَّل، أو اعكسه بطلب معتمد إن رُحّل، ثم اطلب عكس هذا التشغيل.";
+
+    /// <summary>
+    /// A later run already took back this correction's negative difference: reversing the correction would free its adjustment
+    /// for a second correction, and the difference would be recovered twice.
+    /// </summary>
+    public const string RecoveryApplied =
+        "لا يُعكس تشغيل تصحيح استُرد فرقه السالب في تشغيل لاحق. صحّح الفرق بتسوية موجّهة جديدة إلى التشغيل المرجعي.";
+
+    /// <summary>
     /// D-PAY-16: the run's money has left for the bank (a batch was sent, acknowledged, settled or returned, or an order left). The
     /// run is not reversed; what was paid wrongly is corrected by a correction run, whose negative difference becomes a recovery.
     /// </summary>
@@ -146,7 +160,7 @@ public class DecidePayrollReversalHandler(
         // for a rejection as for an approval: the decision is not the requester's nor the poster's to make.
         if (request.DecidedBy == reversal.RequestedBy)
             return RunActResult.Invalid(PayrollReversalMessages.DeciderIsRequester);
-        if (run.PostedBy is Guid poster && poster == request.DecidedBy)
+        if (run.KnownPoster is Guid poster && poster == request.DecidedBy)
             return RunActResult.Invalid(PayrollReversalMessages.DeciderIsPoster);
 
         var now = _calendar.UtcNow;
@@ -163,6 +177,15 @@ public class DecidePayrollReversalHandler(
             return RunActResult.Invalid(notPosted);
         if (await PayrollRunLifecycle.HasFundingOrPartialDisbursementAsync(repository, run, cancellationToken))
             return RunActResult.Invalid(RunLifecycleMessages.HasFundingOrPartialDisbursement);
+
+        // A correction of this run that still stands, and a correction whose recovery a later run already took: neither is
+        // reversed (see the messages). Nothing changes.
+        if (await repository.PayrollRuns.AsNoTracking().AnyAsync(
+                r => r.SourceRunId == run.Id && r.Status != PayrollRunStatus.Cancelled && r.Status != PayrollRunStatus.Reversed,
+                cancellationToken))
+            return RunActResult.Invalid(PayrollReversalMessages.HasCorrection);
+        if (await CorrectionRecoveryGate.HasAppliedRecoveryAsync(repository, run, cancellationToken))
+            return RunActResult.Invalid(PayrollReversalMessages.RecoveryApplied);
 
         // D-PAY-16: the line between money that has left and money that has not. Any batch or order that left refuses the whole
         // decision; nothing changes, and the message points to a correction run.

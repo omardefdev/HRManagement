@@ -136,6 +136,12 @@ public static class PayrollPartitionInputLoader
 
             cancellationToken);
 
+        // PLAN-56 (review): a correction's recovery is taken back only once its correction is posted. Until then the correction
+
+        // can still be rejected, cancelled or calculated again, and each of those deletes its free recoveries.
+
+        await CorrectionRecoveryGate.KeepOnlyThoseOfPostedCorrectionsAsync(repository, deductionsByEmployee, cancellationToken);
+
 
 
         var adjustmentsByEmployee = await LoadKeyedGroupedAsync(

@@ -54,6 +54,9 @@ public class AcPay56RunStateMachineTests
     private const int Reversed = 5;
     private const int Cancelled = 8;
 
+    /// <summary>PayrollRunType.Correction as the API reads it (the enum's number).</summary>
+    private const int CorrectionRunType = 1;
+
     private static readonly string TenantA = AcceptanceSeedIds.AgencyAId.ToString("D");
     private static readonly DateOnly January = new(2028, 1, 1);
     private static readonly DateOnly February = new(2028, 2, 1);
@@ -948,8 +951,8 @@ public class AcPay56RunStateMachineTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync(Ac, "56f",
-            "AC-PAY-56f: a correction of a posted run with an adjustment of −30,000 aimed at it passes the validation and creates a recovery deduction of 30,000 that the next cycle's run applies. Negative: an adjustment not aimed at it does not enter it.",
-            Processor, Approver);
+            "AC-PAY-56f: a correction of a posted run with an adjustment of −30,000 aimed at it passes the validation and creates a recovery deduction of 30,000 that the next cycle's run applies once the correction is posted. Negative: an adjustment not aimed at it does not enter it.",
+            Processor, Approver, Poster);
         s.Steps("""
             1. Precondition, in before.json: January's posted run (56a) and the employee 56a raised are found; agency A has no run of
                June 2028; the run has no correction.
@@ -960,8 +963,12 @@ public class AcPay56RunStateMachineTests
                −30,000, net 0. Negative: the ordinary adjustment did not enter it and is still free.
             4. A recovery deduction of 30,000 exists for the employee, made by the system, approved, due on 2028-02-01 (the first day
                of the period after the corrected one), naming the correction's line, applied in no run yet.
-            5. A second correction of January's run while this one is not posted answers 409.
-            6. payroll-processor creates and calculates the Regular run of June 2028 (the next run of the agency): it applies the
+            5. A second correction of January's run while this one is not posted answers 409. The general creation of a run
+               (POST api/payroll/runs with the type «correction») answers 400: a correction is made from its source only.
+            6. The correction goes the way of every run: payroll-processor submits it, payroll-approver approves it, the closed audit
+               record is made (test-only precondition), a-payroll-poster posts it. Until then no regular run takes its recovery: a
+               correction that is only calculated can still be rejected or cancelled (proved by Pay056ReviewFixTests).
+            7. payroll-processor creates and calculates the Regular run of June 2028 (the next run of the agency): it applies the
                recovery (a deduction component of the employee's line names it) and takes the ordinary adjustment.
             """);
 
@@ -990,6 +997,8 @@ public class AcPay56RunStateMachineTests
         });
 
         using var processor = await Api.OpenAsync(s.Recorder, Processor, "56f");
+        using var approver = await Api.OpenAsync(s.Recorder, Approver, "56f");
+        using var poster = await Api.OpenAsync(s.Recorder, Poster, "56f");
 
         // 2. One adjustment aimed at January's run, one aimed at nothing.
         var targeted = await ApprovedAdjustmentAsync(s, "56f-targeted", employee, -30_000m, TargetedReason, targetRun: january);
@@ -1020,10 +1029,26 @@ public class AcPay56RunStateMachineTests
             $"WHERE \"EmployeeId\"='{employee}' AND \"DeductionType\"='CorrectionRecovery' AND \"TenantId\"='{TenantA}'), 'none');");
         var recoveryId = recovery.Split('|')[0];
 
-        // 5. One open correction per source run.
+        // 5. One open correction per source run, and one door to a correction.
         var (second, secondBody, _) = await processor.PostAsync("correct-again", path);
+        var (general, generalBody, _) = await processor.PostAsync("correction-by-the-general-creation", "api/payroll/runs", new
+        {
+            periodStart = January.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            periodEnd = January.AddMonths(1).AddDays(-1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            runDate = January.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            runType = CorrectionRunType,
+            sourceRunId = january
+        });
+        var correctionsOfJanuary = await Count($"SELECT count(*) FROM \"PayrollRuns\" WHERE \"SourceRunId\"='{january}';");
 
-        // 6. The next run of the agency takes the recovery back, and takes the ordinary adjustment.
+        // 6. The correction is reviewed, approved and posted like every run.
+        await SubmitAndApproveAsync(processor, approver, "56f-correction", correction);
+        var audit = await CloseAuditAsync(correction);
+        await PostRunAsync(poster, "56f-correction", correction);
+        var correctionPosted = await RunRowAsync(correction) + "|" + await BatchesAsync(correction);
+        var recoveryBeforeJune = await Db($"SELECT COALESCE(\"AppliedInRunId\"::text,'free') FROM \"DeductionRecords\" WHERE \"Id\"='{recoveryId}';");
+
+        // 7. The next run of the agency takes the recovery back, and takes the ordinary adjustment.
         var june = await CalculateMonthAsync(processor, "56f-june", June);
         var juneLine = await LineAsync(june, employee);
         var juneLineId = await LineIdAsync(june, employee);
@@ -1056,6 +1081,13 @@ public class AcPay56RunStateMachineTests
             recoveryFormat = "id|amount|due|approval|origin|applied in|source reference",
             secondCorrection = (int)second,
             secondCorrectionError = Text(secondBody, "error"),
+            correctionByTheGeneralCreation = (int)general,
+            correctionByTheGeneralCreationError = Text(generalBody, "error"),
+            correctionsOfJanuary,
+            audit,
+            correctionPosted,
+            runFormat = "status|revision|frozen|validated|total|batches",
+            recoveryBeforeJune,
             june,
             juneLine,
             recoveryComponent,
@@ -1078,6 +1110,10 @@ public class AcPay56RunStateMachineTests
         Assert.Equal("free", untargetedAfter);
         Assert.Equal($"{recoveryId}|30000.00|2028-02-01|Approved|System|free|CorrectionRecovery:{correctionLineId.Replace("-", "", StringComparison.Ordinal)}", recovery);
         Assert.Equal(HttpStatusCode.Conflict, second);
+        Assert.Equal(HttpStatusCode.BadRequest, general);
+        Assert.Equal(1, correctionsOfJanuary);
+        Assert.Equal($"{Posted}|1|true|true|0.00|Pending:Disbursement", correctionPosted);
+        Assert.Equal("free", recoveryBeforeJune);
         Assert.Equal("Deduction:-30000.00", recoveryComponent);
         Assert.Equal(june, recoveryAppliedIn);
         Assert.Equal(june, untargetedInJune);

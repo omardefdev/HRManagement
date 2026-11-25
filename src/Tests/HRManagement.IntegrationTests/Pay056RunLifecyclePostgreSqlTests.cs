@@ -110,6 +110,41 @@ public sealed class Pay056RunLifecyclePostgreSqlTests(PgRabbitFixture fixture, I
         }
     }
 
+    /// <summary>
+    /// Holds the first bulk UPDATE of the jobs' table (a resume's claim of its job), after the request read the job and before the
+    /// statement runs, until the test lets it go: the window in which another request's cancellation commits.
+    /// </summary>
+    private sealed class JobUpdateGate : DbCommandInterceptor
+    {
+        private int _armed;
+        private TaskCompletionSource _go = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Reached { get; private set; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public void Arm()
+        {
+            _go = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            Reached = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            Volatile.Write(ref _armed, 1);
+        }
+
+        public void Release() => _go.TrySetResult();
+
+        public override async ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
+            System.Data.Common.DbCommand command, CommandEventData eventData, InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (command.CommandText.StartsWith("UPDATE \"PayrollRunJobs\"", StringComparison.Ordinal)
+                && Interlocked.CompareExchange(ref _armed, 0, 1) == 1)
+            {
+                Reached.TrySetResult();
+                await _go.Task.WaitAsync(TimeSpan.FromSeconds(60), cancellationToken);
+            }
+
+            return result;
+        }
+    }
+
     private sealed class FailingSave : SaveChangesInterceptor
     {
         public bool Armed { get; set; }
@@ -119,7 +154,8 @@ public sealed class Pay056RunLifecyclePostgreSqlTests(PgRabbitFixture fixture, I
             Armed ? throw new InvalidOperationException("planted failure in the reversal's save") : ValueTask.FromResult(result);
     }
 
-    private sealed record Host(ServiceProvider Provider, IBusControl Bus, string Admin, SaveBarrier Barrier, LineSaveGate Gate, FailingSave Failure)
+    private sealed record Host(
+        ServiceProvider Provider, IBusControl Bus, string Admin, SaveBarrier Barrier, LineSaveGate Gate, FailingSave Failure, JobUpdateGate JobGate)
         : IAsyncDisposable
     {
         public async ValueTask DisposeAsync()
@@ -166,6 +202,7 @@ public sealed class Pay056RunLifecyclePostgreSqlTests(PgRabbitFixture fixture, I
         var barrier = new SaveBarrier();
         var gate = new LineSaveGate();
         var failure = new FailingSave();
+        var jobGate = new JobUpdateGate();
         var services = new ServiceCollection();
         services.AddLogging();
         PayrollIntegrationTestSetup.AddPayrollConsumerServices(services);
@@ -182,7 +219,8 @@ public sealed class Pay056RunLifecyclePostgreSqlTests(PgRabbitFixture fixture, I
                 new NpgsqlTenantSessionInterceptor(tenant),
                 barrier,
                 gate,
-                failure));
+                failure,
+                jobGate));
         services.AddServiceMassTransit(config, configureOutbox: x => x.AddPostgresOutbox<PayrollDbContext>(), enableInboxFilter: false);
         services.AddScoped<IPayrollEventPublisher, PayrollEventPublisher>();
         services.PostConfigure<PayrollBatchOptions>(o =>
@@ -194,7 +232,7 @@ public sealed class Pay056RunLifecyclePostgreSqlTests(PgRabbitFixture fixture, I
         var provider = services.BuildServiceProvider();
         var bus = provider.GetRequiredService<IBusControl>();
         await bus.StartAsync();
-        var host = new Host(provider, bus, admin, barrier, gate, failure);
+        var host = new Host(provider, bus, admin, barrier, gate, failure, jobGate);
         await host.DbAsync(async db =>
         {
             await PayrollPostgresTestSupport.SeedPublishedConfigAsync(db);
@@ -409,6 +447,66 @@ public sealed class Pay056RunLifecyclePostgreSqlTests(PgRabbitFixture fixture, I
         Assert.True(recalculated.Success, recalculated.Error);
         Assert.Equal(6, await host.DbAsync(db => db.PayrollAdjustments.CountAsync(a => a.PayrollRunId == again)));
         output.WriteLine($"lines written before the cancellation: {linesAtCancellation}; after the worker finished: {linesAfter}; the new run took 6 inputs");
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task A_resume_that_read_its_job_before_a_cancellation_committed_is_refused_and_attaches_nothing()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        await using var host = await StartAsync(bulkWriteSize: 1);
+        await EmployeesAsync(host, 6, withAdjustment: true);
+        var runId = await CreateRunAsync(host, 1);
+
+        // A paused job: the worker is stopped inside the save of its third line, the pause waits for that save and lands, and the
+        // worker then writes nothing more.
+        host.Gate.Arm(pauseAt: 3);
+        var calculating = host.SendAsync(new CalculatePayrollRunCommand(runId));
+        await host.Gate.Reached.Task.WaitAsync(TimeSpan.FromSeconds(60));
+        var jobId = await host.DbAsync(db => db.PayrollRunJobs.AsNoTracking().Where(j => j.PayrollRunId == runId).Select(j => j.Id).SingleAsync());
+        var pausing = host.SendAsync(new PausePayrollRunJobCommand(jobId));
+        await Task.Delay(TimeSpan.FromSeconds(1));
+        host.Gate.Release();
+        var paused = await pausing.WaitAsync(TimeSpan.FromSeconds(60));
+        Assert.True(paused.Success, paused.Error);
+        await calculating.WaitAsync(TimeSpan.FromSeconds(60));
+        Assert.Equal(PayrollRunJobStatus.Paused, await host.DbAsync(db => db.PayrollRunJobs.AsNoTracking().Where(j => j.Id == jobId).Select(j => j.Status).SingleAsync()));
+        Assert.Equal(PayrollRunStatus.Calculating, (await RunAsync(host, runId)).Status);
+        var linesWhenPaused = await host.DbAsync(db => db.SalaryLines.CountAsync(l => l.PayrollRunId == runId));
+
+        // The resume reads the paused job and stops just before it takes it. Another request cancels the run and commits.
+        host.JobGate.Arm();
+        var resuming = host.SendAsync(new ResumePayrollRunJobCommand(jobId));
+        await host.JobGate.Reached.Task.WaitAsync(TimeSpan.FromSeconds(60));
+        var cancelled = await host.SendAsync(new CancelPayrollRunCommand(runId, Processor, "أُنشئ التشغيل قبل اعتماد التسويات", true, false));
+        Assert.True(cancelled.Success, cancelled.Error);
+        host.JobGate.Release();
+
+        // The resume finds the job no longer its to take: it is refused, and nothing is written.
+        var resumed = await resuming.WaitAsync(TimeSpan.FromSeconds(60));
+        Assert.False(resumed.Success);
+        Assert.Equal(PayrollRunJobMessages.JobChangedMeanwhile, resumed.Error);
+
+        var run = await RunAsync(host, runId);
+        Assert.Equal(PayrollRunStatus.Cancelled, run.Status);
+        var job = await host.DbAsync(db => db.PayrollRunJobs.AsNoTracking().Include(j => j.Partitions).SingleAsync(j => j.Id == jobId));
+        Assert.Equal(PayrollRunJobStatus.Cancelled, job.Status);
+        Assert.DoesNotContain(job.Partitions, p => p.Status is PayrollRunPartitionStatus.Running or PayrollRunPartitionStatus.Pending);
+        Assert.Equal(0, await host.DbAsync(db => db.PayrollAdjustments.CountAsync(a => a.PayrollRunId != null)));
+        Assert.Equal(linesWhenPaused, await host.DbAsync(db => db.SalaryLines.CountAsync(l => l.PayrollRunId == runId)));
+
+        // A pause of the cancelled job, and a worker's failure on it, relabel nothing.
+        var pausedAgain = await host.SendAsync(new PausePayrollRunJobCommand(jobId));
+        Assert.False(pausedAgain.Success);
+        await host.InScopeAsync(async sp =>
+        {
+            await sp.GetRequiredService<IPayrollRepository>().FailRunningJobAsync(jobId, job.Partitions.First().Id, "planted", CancellationToken.None);
+            return 0;
+        });
+        job = await host.DbAsync(db => db.PayrollRunJobs.AsNoTracking().Include(j => j.Partitions).SingleAsync(j => j.Id == jobId));
+        Assert.Equal(PayrollRunJobStatus.Cancelled, job.Status);
+        Assert.DoesNotContain(job.Partitions, p => p.Status == PayrollRunPartitionStatus.Failed);
+        output.WriteLine($"lines when paused: {linesWhenPaused}; the resume was refused after the cancellation; every input is free");
     }
 
     // --- (3) the indexes ---

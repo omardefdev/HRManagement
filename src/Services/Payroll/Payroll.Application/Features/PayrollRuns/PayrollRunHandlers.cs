@@ -24,6 +24,12 @@ public class CreatePayrollRunHandler(IPayrollRepository repository)
         CreatePayrollRunCommand request,
         CancellationToken cancellationToken)
     {
+        // PLAN-56 (review): a correction is made from its source (CreateCorrectionRunCommand): pinned to the source's framework and
+        // period, one open correction per source, calculated from the adjustments aimed at it. This door would make one with none
+        // of that.
+        if (request.RunType == PayrollRunType.Correction)
+            return (false, null, CorrectionRunMessages.CreatedFromItsSource);
+
         var periodErr = PayrollCalculation.ValidatePayrollPeriod(request.PeriodStart, request.PeriodEnd);
         if (periodErr != null) return (false, null, periodErr);
 
@@ -200,6 +206,17 @@ public class PostPayrollRunHandler(
         {
             var postErr = run.ValidateCanPost();
             if (postErr != null) return (false, postErr);
+
+            // PLAN-56 (review): a correction is posted beside a posted run. If its source was reversed since, there is nothing to
+            // correct: the correction would pay or recover a difference on top of a run that paid nothing.
+            if (run.RunType == PayrollRunType.Correction)
+            {
+                var sourcePosted = run.SourceRunId is Guid sourceId
+                    && await repository.PayrollRuns.AsNoTracking()
+                        .AnyAsync(r => r.Id == sourceId && r.Status == PayrollRunStatus.Posted, cancellationToken);
+                if (!sourcePosted)
+                    return (false, CorrectionRunMessages.SourceNoLongerPosted);
+            }
 
             var job = await repository.PayrollRunJobs
                 .Include(j => j.Partitions)

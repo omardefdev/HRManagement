@@ -100,6 +100,24 @@ public interface IPayrollRepository
     Task<int> StopRunJobsAsync(Guid payrollRunId, CancellationToken ct);
 
     /// <summary>
+    /// PLAN-56 (review): takes a job for a calculation that goes on (a resume, or a start over a job left behind), by one conditional
+    /// statement: only a job that is paused, failed, pending, or running with no live lease becomes running. False when the job is
+    /// anything else by now: a cancellation or a restart that committed first is never undone by a resume that read the job before
+    /// it. Called inside the caller's transaction, it holds the job's row until the commit, so a cancellation waits and then stops
+    /// the job the ordinary way.
+    /// </summary>
+    Task<bool> ClaimJobForCalculationAsync(Guid jobId, CancellationToken ct);
+
+    /// <summary>PLAN-56 (review): pauses a job only while it is running (one conditional statement). False otherwise.</summary>
+    Task<bool> PauseRunningJobAsync(Guid jobId, CancellationToken ct);
+
+    /// <summary>
+    /// PLAN-56 (review): records a partition's failure: the partition fails unless it was completed or cancelled, and the job fails
+    /// only while it is running. A cancelled or paused job keeps its state: the failure of a worker never revives or relabels it.
+    /// </summary>
+    Task FailRunningJobAsync(Guid jobId, Guid partitionId, string error, CancellationToken ct);
+
+    /// <summary>
     /// PLAN-56 (G-PAY-07): frees what a run's calculation consumed, in the caller's transaction: the applied marker of its
     /// deductions, absences and adjustments, and nothing else of them. It also deletes the recovery deductions a correction run
     /// created for its lines that no run has applied. Idempotent: a second call finds nothing.

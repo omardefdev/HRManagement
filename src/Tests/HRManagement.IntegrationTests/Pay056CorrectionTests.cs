@@ -123,7 +123,12 @@ public class Pay056CorrectionTests
         Assert.Equal((ManualInputOrigin.System, ManualInputApprovalStatus.Approved), (recovery.Origin, recovery.ApprovalStatus));
         Assert.Null(recovery.AppliedInRunId);
 
-        // The next cycle's regular run takes it back.
+        // Once the correction is posted, the next cycle's regular run takes it back (before that it could still be rejected or
+        // cancelled: Pay056ReviewFixTests).
+        await scope.SubmitAsync(correction.Id);
+        await scope.ApproveAsync(correction.Id);
+        await scope.CloseAuditAsync(correction.Id);
+        Assert.True((await scope.PostAsync(correction.Id)).Success);
         var february = await scope.CalculatedRunAsync(2028, 2);
         var next = (await scope.LinesAsync(february)).Single();
         Assert.Equal(plainNet - 30_000m, next.NetPay);

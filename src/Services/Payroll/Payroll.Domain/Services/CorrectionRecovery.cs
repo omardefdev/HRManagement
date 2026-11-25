@@ -15,6 +15,15 @@ public static class CorrectionRecovery
     /// <summary>The source reference of the recovery of <paramref name="salaryLineId"/>: one recovery per correction line.</summary>
     public static string SourceReferenceOf(Guid salaryLineId) => ReferencePrefix + salaryLineId.ToString("N");
 
+    /// <summary>The correction line a recovery names, read back from its source reference; false for any other reference.</summary>
+    public static bool TryLineIdOf(string? sourceReference, out Guid salaryLineId)
+    {
+        salaryLineId = Guid.Empty;
+        return sourceReference is not null
+               && sourceReference.StartsWith(ReferencePrefix, StringComparison.Ordinal)
+               && Guid.TryParseExact(sourceReference.AsSpan(ReferencePrefix.Length), "N", out salaryLineId);
+    }
+
     /// <summary>The first day of the period after the corrected one: when the recovery is due.</summary>
     public static DateOnly DueDateAfter(DateTime correctedPeriodEnd) => DateOnly.FromDateTime(correctedPeriodEnd).AddDays(1);
 }

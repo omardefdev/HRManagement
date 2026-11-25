@@ -23,6 +23,12 @@ public class RestartCalculationHandler(IPayrollRepository repository, IMediator 
     : IRequestHandler<RestartCalculationCommand, (RunActResult Result, int LinesGenerated, Guid? NewJobId)>
 {
     public const string OnlyFailedOrPaused = "لا يُعاد بدء الحساب إلا لمهمة فاشلة أو متوقفة مؤقتاً.";
+
+    /// <summary>What a restart answers when its reset is done and the new calculation was refused: both facts, in that order.</summary>
+    public const string ResetDonePrefix = "أُعيد التشغيل إلى مسودة وأُلغيت مهمة الحساب السابقة وحُرّرت مدخلاته، لكن الحساب الجديد لم يبدأ: ";
+
+    public static string ResetDoneButNotStarted(string? refusal) =>
+        ResetDonePrefix + (string.IsNullOrWhiteSpace(refusal) ? "تعذّر بدء الحساب من جديد." : refusal);
     public const string ReleaseReason = "إعادة بدء الحساب بلقطة جديدة";
 
     public async Task<(RunActResult Result, int LinesGenerated, Guid? NewJobId)> Handle(
@@ -64,8 +70,10 @@ public class RestartCalculationHandler(IPayrollRepository repository, IMediator 
         // A calculation like any other: a new job, a new snapshot of the profiles, the accounts and the inputs, and the same gates.
         repository.ClearChangeTracker();
         var started = await mediator.Send(new StartPayrollRunJobCommand(runId), cancellationToken);
+        // The reset is committed by now: when the new calculation is refused (a gate, a missing framework), the answer says both
+        // what was done and why the calculation did not start, so that nobody takes the refusal for «nothing changed».
         return started.Success
             ? (RunActResult.Done(runId), started.LinesGenerated, started.JobId)
-            : (RunActResult.Invalid(started.Error ?? "تعذّر بدء الحساب من جديد."), started.LinesGenerated, started.JobId);
+            : (RunActResult.Invalid(ResetDoneButNotStarted(started.Error)), started.LinesGenerated, started.JobId);
     }
 }

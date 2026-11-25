@@ -68,6 +68,18 @@ public static class CorrectionRunMessages
 
     public const string NotACorrection = "هذا التشغيل ليس تشغيل تصحيح.";
 
+    /// <summary>The source of a correction was reversed (or is no longer posted) after the correction was made.</summary>
+    public const string SourceNoLongerPosted =
+        "التشغيل المرجعي لهذا التصحيح لم يعد مرحّلاً؛ لا يُرحَّل تصحيح لتشغيل عُكس. ألغِ تشغيل التصحيح.";
+
+    /// <summary>The general creation of a run does not make a correction: it is made from its posted source.</summary>
+    public const string CreatedFromItsSource =
+        "تشغيل التصحيح يُنشأ من تشغيله المرجعي المرحّل (زر «تصحيح رجعي» في صفحة التشغيل، أو POST api/payroll/runs/{id}/corrections)، لا من إنشاء تشغيل عام.";
+
+    /// <summary>An approved adjustment aimed at the run belongs to an employee who has no pay profile version at all.</summary>
+    public const string EmployeeWithoutProfile =
+        "توجد تسوية معتمدة موجّهة إلى هذا التشغيل لموظف لا ملف أجر له؛ لا يُنشأ التصحيح حتى لا تُترك تسويته خارجَه.";
+
     public const string NotCalculatedByAJob =
         "تشغيل التصحيح لا يُحسب بمهمة حساب على ملفات الأجر؛ بنوده هي التسويات الموجّهة إلى تشغيله المرجعي.";
 
@@ -238,8 +250,17 @@ public class CreateCorrectionRunHandler(
         var recoveryDue = CorrectionRecovery.DueDateAfter(source.PeriodEnd);
         foreach (var group in targeted.Where(a => inSource.Contains(a.EmployeeId)).GroupBy(a => a.EmployeeId))
         {
-            var profile = await repository.GetActiveProfileAsync(group.Key, cancellationToken);
-            if (profile is null) continue;
+            // The employee had a line in the source run. If he has no pay profile in force now (he left since), his last version
+            // carries his line: a correction line is made of the adjustments alone, and an approved adjustment aimed at this run is
+            // never dropped in silence. With no version at all the whole correction is refused, and nothing of it is left.
+            var profile = await repository.GetActiveProfileAsync(group.Key, cancellationToken)
+                          ?? await repository.EmployeePayProfiles
+                              .Include(p => p.PayGrade)
+                              .Where(p => p.EmployeeId == group.Key)
+                              .OrderByDescending(p => p.EffectiveFrom).ThenByDescending(p => p.CreatedAt).ThenByDescending(p => p.Id)
+                              .FirstOrDefaultAsync(cancellationToken);
+            if (profile is null)
+                return CorrectionRunResult.Refused(RunActResult.Invalid(CorrectionRunMessages.EmployeeWithoutProfile));
 
             var package = PayrollEmployeeCalculationUnit.Build(
                 engine, correction, profile, profile.PayGrade, config, extraHolidays,

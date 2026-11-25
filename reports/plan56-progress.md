@@ -224,6 +224,44 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
 - **Findings while writing the tests:** a branch-restricted user is refused at the lifecycle token endpoint itself
   (`[OrgScopeCentralOnly]`), so the test takes a token from another endpoint to prove the acts answer 403 and not 400.
 
+## P7 — acceptance, then the independent review (in progress)
+
+- **Pieces (commit `93de869e`):** `AcPay56RunStateMachineTests` (AC-PAY-56a..f, months January to June 2028 of agency A),
+  `ci-scope.json` (`prodLike[]`, required, main), `ac-ownership.json` (`AC-PAY-56`, PLAN-56, `provesClaim`), AC-PAY-56 in the
+  scenarios of five personas, AC-PAY-55c's gate text (its condition unchanged: the reason is isolation), the reversal requests'
+  list in `Ux067PageProbe.KeyPages` (the run's page was a key page already), `scripts/pay056-validate.ps1` (seven checks;
+  `-SelfTest`: 39 planted defects refused).
+- **Images:** 16 services, one at a time from the local base images (`artifacts/plan56/build-images-sequential.ps1`, copied from
+  PLAN-55's helper, not committed): 07:35:20Z → 08:01Z, **1,551 s**, revision `93de869e`; disk 38 GB before, 40 GB after.
+  Payroll's image is built again after the review fixes (below).
+- **Independent review** (one fresh subagent, read-only, run beside the image build; 14 min 31 s). 13 findings; the one high
+  finding was checked against the code and against this plan's own test (`Pay056CorrectionTests`, which showed a regular run
+  taking the recovery of a correction that was only calculated), so no refuter was needed. Dispositions:
+
+  | # | Severity | Finding | Disposition |
+  |---|---|---|---|
+  | 1 | high | A correction's recovery deduction is taken by a regular run while the correction is only calculated; a later rejection or cancellation leaves it applied and a recalculation makes a second one | **Fixed.** `CorrectionRecoveryGate`: the regular loader takes a free recovery only once its correction is posted. The recovery is still made in the correction's save (P-6). `Pay056ReviewFixTests` (2 tests); AC-PAY-56f now posts the correction before the next cycle |
+  | 2 | medium | A resume (or a start over a job left behind) that read its job before a cancellation or a restart committed sets the job running again, and its workers write lines and attach inputs to the cancelled run | **Fixed.** `ClaimJobForCalculationAsync` (one conditional statement inside the save's transaction), `PauseRunningJobAsync`, `FailRunningJobAsync`: a cancelled job is never revived or relabelled. PostgreSQL test `A_resume_that_read_its_job_before_a_cancellation_committed_is_refused_and_attaches_nothing` |
+  | 3 | medium | Reversing a posted correction whose recovery a later run already took frees its adjustment while the recovery stays applied | **Fixed.** The decision is refused (`RecoveryApplied`, 400), nothing changes |
+  | 4 | medium | A reversal ignores the run's corrections; the posting of a correction ignores its source's state | **Fixed.** A run with a correction that is neither cancelled nor reversed is not reversed (`HasCorrection`); a correction is not posted beside a source that is no longer posted (`SourceNoLongerPosted`) |
+  | 5 | medium | Runs seeded before this release (deduction component positive) cannot be posted: their components do not add up to their parts | **No code change** (no stored amount may be touched). The refusal carries the cause in its text. Recorded for the owner (P9, the demo's `Approved` run) and for PLAN-58, which is when a closed audit record becomes reachable |
+  | 6 | medium | A correction silently leaves out the approved adjustment of an employee who has no pay profile in force | **Fixed.** His last profile version carries his line; with no version at all the correction is refused whole (`EmployeeWithoutProfile`) |
+  | 7 | medium | `POST api/payroll/runs` with the type «correction» makes a correction that is not pinned to its source | **Fixed.** `CreatePayrollRunHandler` refuses the type (`CreatedFromItsSource`, 400); HTTP test and AC-PAY-56f |
+  | 8 | medium/low | A run posted before this release has no `PostedBy`, so «the decider is not the poster» names no one | **Fixed** as far as the data allows: `PayrollRun.KnownPoster` = `PostedBy`, or the last writer of a run that is still posted (its posting was its last write). A seeded run has neither: recorded for `SOD_MATRIX.md` |
+  | 9 | medium | Rollback: the new values of the batch's, the order's and the decision's states are stored as text, not numbers | **Checked, and the reviewer's guess was wrong:** EF's converter **throws** on a name it does not know (`Pay056RollbackReadingTests`). So under PLAN-55's tag the payment batches' list of an agency with a `Voided` batch and the page of a run with a `Cancelled` decision fail. The prompt's P-16 expected «numbers it does not know»: recorded as a deviation of fact; the rollback note (P9/P10) says that after a cancellation or a reversal under this release the way back is a fix forward |
+  | 10 | low | A restart whose new calculation is refused answers 400 after its reset committed | **Fixed** (the answer): it says the reset is done and why the calculation did not start (`ResetDonePrefix`) |
+  | 11 | low | A recovery larger than the next month's net is consumed whole | By design here (carrying a deduction above the salary is PAY-E, wave 2). For the final report |
+  | 12 | low | A `FinalSettlement` run has no uniqueness after the index change | Known (PLAN-64). For the final report |
+  | 13 | low | `PAY056_RunLifecycle.Down` drops the revisions and the requests and may fail to recreate the old index | The rollback is by tag, never by `Down`. For the rollback note |
+
+  Areas the reviewer found clean: one net, the numbers of a run with no adjustment, the transitions, the outbox, the holds, the
+  tenancy and the antiforgery tokens, the migrations, the changed tests. Not read in depth by it: the acceptance class, the test
+  scope, the HTTP tests, the validate script.
+- **Tests of the fixes:** `Pay056ReviewFixTests` (9, SQLite), `Pay056LifecycleTests` (+1: the restart's answer),
+  `Pay056RunLifecyclePostgreSqlTests` (+1: the resume against a cancellation), `Pay056RunLifecycleHttpTests` (the general creation
+  → 400), `Pay056CorrectionTests` (one test now posts the correction before the next cycle: its meaning kept). Integration
+  (SQLite) PLAN-56 classes 99 passed; PostgreSQL lifecycle, HTTP and migration classes 20 passed; architecture 414 passed.
+
 ## Decisions (with reasons)
 
 - **D1 (P1): the net's rounding in the validation.** `PayrollNet.Net(gross, deductions, adjustments, round)`; the validation and the
@@ -242,7 +280,7 @@ None.
 
 ## Next step
 
-P7: `AcPay56RunStateMachineTests` (AC-PAY-56a..f; written, not yet compiled or run), then `ci-scope.json` (prodLike, required),
-`ac-ownership.json`, the personas' scenarios, AC-PAY-55c's gate text, the two pages in `AcUx67ReadableInterfaceTests`,
-`scripts/pay056-validate.ps1 -SelfTest`; build the images one service at a time from local base images; prod-like stack;
-AC-PAY-56 then P-13's lists; the independent review; the commit.
+P7 (continuing): full unit suite on the review fixes; rebuild Payroll's image (`build-images-sequential.ps1 -Only payroll-web`);
+`scripts/acceptance-reset.ps1` (the personas changed); start the prod-like stack; AC-PAY-56, then P-13's lists (prod-like, lab,
+leastpriv with the migrator image), the validate scripts, the seeded counts; `down -v`; the full Testcontainers step again; the
+P7 commit.

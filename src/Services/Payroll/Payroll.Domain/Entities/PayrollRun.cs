@@ -88,6 +88,13 @@ public class PayrollRun : AuditableEntity
     [Display(Name = "تاريخ الترحيل")]
     public DateTime? PostedAt { get; private set; }
 
+    /// <summary>
+    /// Who posted the run, as far as the run knows. A run posted before PLAN-56 has no <see cref="PostedBy"/>; the posting was the
+    /// last write of such a run (nothing else writes a posted run), so its last writer stands for its poster. Null when neither
+    /// is known (a seeded run): the rule «the decider is not the poster» then has no one to name.
+    /// </summary>
+    public Guid? KnownPoster => PostedBy ?? (_status == PayrollRunStatus.Posted ? UpdatedBy : null);
+
     /// <summary>PLAN-56 (D-PAY-18): who cancelled the run, when and why. The reason is always given.</summary>
     [Display(Name = "ألغاه")]
     public Guid? CancelledBy { get; private set; }

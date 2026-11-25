@@ -644,6 +644,44 @@ public class Pay056LifecycleTests
         return (runId, job.Id, done, conflicted, consumed);
     }
 
+    /// <summary>A national scope guard that can be told to refuse the next calculation's start.</summary>
+    private sealed class SwitchableScopeGuard : Payroll.Application.Abstractions.IPayrollNationalScopeGuard
+    {
+        public const string Refusal = "planted: the scope guard refuses this calculation";
+
+        public bool Refuse { get; set; }
+
+        public string DefaultCurrencyCode => "SYP";
+
+        public string? ValidatePayrollPersonCount(int personCount) => Refuse ? Refusal : null;
+    }
+
+    [Fact]
+    public async Task A_restart_whose_new_calculation_is_refused_says_that_the_reset_is_done_and_why_the_calculation_did_not_start()
+    {
+        var guard = new SwitchableScopeGuard();
+        await using var scope = await Pay056RunScope.CreateAsync(
+            s => s.AddSingleton<Payroll.Application.Abstractions.IPayrollNationalScopeGuard>(guard));
+        var (runId, jobId, _, _, consumed) = await FailedOnAFingerprintConflictAsync(scope);
+        guard.Refuse = true;
+
+        scope.Db.ChangeTracker.Clear();
+        var (result, lines, _) = await scope.Mediator.Send(new RestartCalculationCommand(jobId, Pay056RunScope.Processor));
+
+        // The reset is committed (the old job stopped, the run a draft, its lines gone, its inputs free); the answer says so, and
+        // carries the reason the new calculation did not start. It is not a refusal that changed nothing.
+        Assert.False(result.Success);
+        Assert.Equal(RunActOutcome.Invalid, result.Outcome);
+        Assert.StartsWith(RestartCalculationHandler.ResetDonePrefix, result.Error);
+        Assert.EndsWith(SwitchableScopeGuard.Refusal, result.Error);
+        Assert.Equal(0, lines);
+        scope.Db.ChangeTracker.Clear();
+        Assert.Equal(PayrollRunStatus.Draft, (await scope.RunAsync(runId)).Status);
+        Assert.Equal(PayrollRunJobStatus.Cancelled, (await scope.Db.PayrollRunJobs.AsNoTracking().SingleAsync(j => j.Id == jobId)).Status);
+        Assert.Empty(await scope.LinesAsync(runId));
+        Assert.Null((await scope.Db.PayrollAdjustments.AsNoTracking().SingleAsync(a => a.Id == consumed.Id)).PayrollRunId);
+    }
+
     [Fact]
     public async Task A_calculation_stuck_on_a_fingerprint_conflict_fails_again_when_resumed_and_completes_when_restarted()
     {

@@ -381,8 +381,9 @@ public static class PayrollRunParallelCalculator
 
         if (finalJob.Partitions.Any(p => p.Status != PayrollRunPartitionStatus.Completed))
         {
-            finalJob.Status = PayrollRunJobStatus.Paused;
+            // PLAN-56 (review): paused only while it is still running: a cancellation that landed since the reload above stands.
             await repository.SaveChangesAsync(cancellationToken);
+            await repository.PauseRunningJobAsync(jobId, cancellationToken);
             repository.ClearChangeTracker();
             return (true, linesGenerated, jobId, null);
         }
@@ -436,13 +437,8 @@ public static class PayrollRunParallelCalculator
         string error,
         CancellationToken ct)
     {
-        var partition = await repo.PayrollRunPartitions.FirstAsync(p => p.Id == partitionId, ct);
-        partition.Status = PayrollRunPartitionStatus.Failed;
-        partition.Error = error;
-        var job = await repo.PayrollRunJobs.FirstAsync(j => j.Id == jobId, ct);
-        job.Status = PayrollRunJobStatus.Failed;
-        job.Error = error;
-        await repo.SaveChangesAsync(ct);
+        // PLAN-56 (review): conditional statements, not tracked rows: a job cancelled or paused under this worker keeps its state.
+        await repo.FailRunningJobAsync(jobId, partitionId, error, ct);
     }
 
     private static async Task<(PayrollConfiguration? Config, string? Error)> ResolveConfigAsync(

@@ -32,7 +32,8 @@ public class PayrollReversalRequestsController(PayrollDbContext db, IMediator me
             .Take(SearchFilterBase.MaxPageSize)
             .Select(r => new PayrollReversalRequestRow(
                 r.Id, r.PayrollRunId, r.PayrollRun.PeriodStart, r.PayrollRun.RunType, r.PayrollRun.Status, r.PayrollRun.TotalNetPay,
-                r.PayrollRun.PostedBy, r.RequestedBy, r.RequestedAt, r.Reason, r.Status, r.DecidedBy, r.DecidedAt, r.DecisionNotes))
+                // The poster, or for a run posted before PLAN-56 its last writer (PayrollRun.KnownPoster).
+                r.PayrollRun.PostedBy ?? r.PayrollRun.UpdatedBy, r.RequestedBy, r.RequestedAt, r.Reason, r.Status, r.DecidedBy, r.DecidedAt, r.DecisionNotes))
             .ToListAsync();
 
         var userId = PayProfileChangeHttp.TryUserId(User);

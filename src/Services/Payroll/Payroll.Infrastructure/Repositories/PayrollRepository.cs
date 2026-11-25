@@ -353,6 +353,47 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
         }
     }
 
+    public async Task<bool> ClaimJobForCalculationAsync(Guid jobId, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        var claimed = await db.PayrollRunJobs
+            .Where(j => j.Id == jobId
+                        && (j.Status == PayrollRunJobStatus.Paused || j.Status == PayrollRunJobStatus.Failed
+                            || j.Status == PayrollRunJobStatus.Pending
+                            || (j.Status == PayrollRunJobStatus.Running && (j.LeaseUntil == null || j.LeaseUntil <= now))))
+            .ExecuteUpdateAsync(s => s.SetProperty(j => j.Status, PayrollRunJobStatus.Running), ct);
+        return claimed == 1;
+    }
+
+    public async Task<bool> PauseRunningJobAsync(Guid jobId, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+        var paused = await db.PayrollRunJobs
+            .Where(j => j.Id == jobId && j.Status == PayrollRunJobStatus.Running)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(j => j.Status, PayrollRunJobStatus.Paused)
+                      .SetProperty(j => j.LastCheckpointAt, (DateTime?)now),
+                ct);
+        return paused == 1;
+    }
+
+    public async Task FailRunningJobAsync(Guid jobId, Guid partitionId, string error, CancellationToken ct)
+    {
+        await db.PayrollRunPartitions
+            .Where(p => p.Id == partitionId
+                        && p.Status != PayrollRunPartitionStatus.Completed && p.Status != PayrollRunPartitionStatus.Cancelled)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(p => p.Status, PayrollRunPartitionStatus.Failed)
+                      .SetProperty(p => p.Error, error),
+                ct);
+        await db.PayrollRunJobs
+            .Where(j => j.Id == jobId && j.Status == PayrollRunJobStatus.Running)
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(j => j.Status, PayrollRunJobStatus.Failed)
+                      .SetProperty(j => j.Error, error),
+                ct);
+    }
+
     public async Task<int> StopRunJobsAsync(Guid payrollRunId, CancellationToken ct)
     {
         // A bulk update, not tracked entities: a worker's checkpoint changes the job's row all the time, and a cancellation must not
