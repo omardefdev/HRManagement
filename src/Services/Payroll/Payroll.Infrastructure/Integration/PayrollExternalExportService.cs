@@ -85,7 +85,8 @@ public sealed class PayrollExternalExportService(
                 line.GrossPay,
                 line.TotalDeductions,
                 line.NetPay,
-                payableIban));
+                payableIban,
+                line.TotalAdjustments));
 
             var lineComponents = componentsByLine.GetValueOrDefault(line.Id) ?? [];
             decimal employeeInsurance;

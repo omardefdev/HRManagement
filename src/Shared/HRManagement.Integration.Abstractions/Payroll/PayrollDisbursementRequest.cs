@@ -14,4 +14,6 @@ public sealed record PayrollDisbursementLine(
     decimal GrossPay,
     decimal TotalDeductions,
     decimal NetPay,
-    string? BankAccount = null);
+    string? BankAccount = null,
+    // PLAN-56 (G-PAY-03): the line's adjustments; gross − deductions + adjustments = net. Last, so that older callers keep their shape.
+    decimal TotalAdjustments = 0m);

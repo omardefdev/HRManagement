@@ -194,7 +194,8 @@ public sealed class PayrollExportJobService(
         if (job.ExportType is ExportJobTemplates.PayrollRunCsv or "ExportRunCsv")
         {
             var filter = JsonSerializer.Deserialize<RunFilter>(job.FilterJson) ?? new RunFilter(Guid.Empty);
-            await writer.WriteLineAsync("EmployeeId,GrossPay,TotalDeductions,NetPay");
+            // PLAN-56 (G-PAY-03): the adjustments are the last column of each file, so a reader by position keeps what it knew.
+            await writer.WriteLineAsync("EmployeeId,GrossPay,TotalDeductions,NetPay,TotalAdjustments");
             var total = 0;
             var skip = 0;
             while (true)
@@ -205,11 +206,11 @@ public sealed class PayrollExportJobService(
                     .OrderBy(l => l.EmployeeId)
                     .Skip(skip)
                     .Take(chunk)
-                    .Select(l => new { l.EmployeeId, l.GrossPay, l.TotalDeductions, l.NetPay })
+                    .Select(l => new { l.EmployeeId, l.GrossPay, l.TotalDeductions, l.NetPay, l.TotalAdjustments })
                     .ToListAsync(ct);
                 if (batch.Count == 0) break;
                 foreach (var row in batch)
-                    await writer.WriteLineAsync($"{row.EmployeeId},{row.GrossPay},{row.TotalDeductions},{row.NetPay}");
+                    await writer.WriteLineAsync($"{row.EmployeeId},{row.GrossPay},{row.TotalDeductions},{row.NetPay},{row.TotalAdjustments}");
                 total += batch.Count;
                 skip += batch.Count;
                 job.ProcessedCount = total;
@@ -250,7 +251,7 @@ public sealed class PayrollExportJobService(
         if (job.ExportType is ExportJobTemplates.PayrollRegister or "PayrollRegister")
         {
             var filter = JsonSerializer.Deserialize<RegisterFilter>(job.FilterJson) ?? new RegisterFilter(DateTime.UtcNow.Year, DateTime.UtcNow.Month);
-            await writer.WriteLineAsync("RunId,PeriodStart,PeriodEnd,EmployeeId,GrossPay,TotalDeductions,NetPay");
+            await writer.WriteLineAsync("RunId,PeriodStart,PeriodEnd,EmployeeId,GrossPay,TotalDeductions,NetPay,TotalAdjustments");
             var total = 0;
             var lines = db.SalaryLines.AsNoTracking()
                 .Include(l => l.PayrollRun)
@@ -268,11 +269,12 @@ public sealed class PayrollExportJobService(
                     l.EmployeeId,
                     l.GrossPay,
                     l.TotalDeductions,
-                    l.NetPay
+                    l.NetPay,
+                    l.TotalAdjustments
                 }).ToListAsync(ct);
                 if (batch.Count == 0) break;
                 foreach (var r in batch)
-                    await writer.WriteLineAsync($"{r.PayrollRunId},{r.PeriodStart:yyyy-MM-dd},{r.PeriodEnd:yyyy-MM-dd},{r.EmployeeId},{r.GrossPay},{r.TotalDeductions},{r.NetPay}");
+                    await writer.WriteLineAsync($"{r.PayrollRunId},{r.PeriodStart:yyyy-MM-dd},{r.PeriodEnd:yyyy-MM-dd},{r.EmployeeId},{r.GrossPay},{r.TotalDeductions},{r.NetPay},{r.TotalAdjustments}");
                 total += batch.Count;
                 skip += batch.Count;
                 job.ProcessedCount = total;
@@ -287,7 +289,7 @@ public sealed class PayrollExportJobService(
         if (job.ExportType is ExportJobTemplates.PayrollBulkPayslips or "BulkPayslips")
         {
             var filter = JsonSerializer.Deserialize<RunFilter>(job.FilterJson) ?? new RunFilter(Guid.Empty);
-            await writer.WriteLineAsync("SalaryLineId,EmployeeId,GrossPay,NetPay");
+            await writer.WriteLineAsync("SalaryLineId,EmployeeId,GrossPay,NetPay,TotalDeductions,TotalAdjustments");
             var total = 0;
             var skip = 0;
             while (true)
@@ -297,11 +299,11 @@ public sealed class PayrollExportJobService(
                     .Where(l => l.PayrollRunId == filter.RunId)
                     .OrderBy(l => l.Id)
                     .Skip(skip).Take(chunk)
-                    .Select(l => new { l.Id, l.EmployeeId, l.GrossPay, l.NetPay })
+                    .Select(l => new { l.Id, l.EmployeeId, l.GrossPay, l.NetPay, l.TotalDeductions, l.TotalAdjustments })
                     .ToListAsync(ct);
                 if (batch.Count == 0) break;
                 foreach (var r in batch)
-                    await writer.WriteLineAsync($"{r.Id},{r.EmployeeId},{r.GrossPay},{r.NetPay}");
+                    await writer.WriteLineAsync($"{r.Id},{r.EmployeeId},{r.GrossPay},{r.NetPay},{r.TotalDeductions},{r.TotalAdjustments}");
                 total += batch.Count;
                 skip += batch.Count;
                 job.ProcessedCount = total;

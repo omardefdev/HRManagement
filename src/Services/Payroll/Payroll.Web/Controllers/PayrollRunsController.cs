@@ -199,7 +199,7 @@ public class PayrollRunsController : Controller
             return View(line);
         }
 
-        PayrollCalculation.ApplyNetFromGrossAndDeductions(line);
+        line.NetPay = PayrollNet.Net(line, PayrollNet.LegacyRound);
         _db.SalaryLines.Add(line);
         await _db.SaveChangesAsync();
         SecurityAudit.Log(

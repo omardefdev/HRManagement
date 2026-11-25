@@ -360,18 +360,11 @@ public static class PayrollRunParallelCalculator
         finalRun.Status = PayrollRunStatus.Validating;
         await repository.SaveChangesAsync(cancellationToken);
 
-        var lines = await repository.SalaryLines
-            .Where(l => l.PayrollRunId == finalRun.Id)
-            .ToListAsync(cancellationToken);
-        var lineIds = lines.Select(l => l.Id).ToList();
-        var comps = await repository.SalaryLineComponents
-            .Where(c => lineIds.Contains(c.SalaryLineId))
-            .ToListAsync(cancellationToken);
-        var byLine = comps.GroupBy(c => c.SalaryLineId).ToDictionary(g => g.Key, g => g.ToList());
-
-        var totalNet = PayrollRunReconciliation.SumNet(lines);
+        // PLAN-56 (G-PAY-03): the validation's net is the engine's: PayrollNet, under the pinned framework's rounding.
+        var saved = await PayrollRunLines.LoadAsync(repository, finalRun, cancellationToken);
+        var totalNet = saved.SumNet;
         var (ok, err) = PayrollRunReconciliation.ValidateLineIntegrity(
-            lines, byLine, expectedEmployeeCount: finalJob.InputSnapshots.Count);
+            saved.Lines, saved.ComponentsByLine, expectedEmployeeCount: finalJob.InputSnapshots.Count, round: config.RoundMoney);
         if (!ok)
         {
             finalJob.Status = PayrollRunJobStatus.Failed;

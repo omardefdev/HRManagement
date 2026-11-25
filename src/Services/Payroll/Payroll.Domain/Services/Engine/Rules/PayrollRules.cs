@@ -335,24 +335,19 @@ public sealed class RoundingRule : IPayrollRule
 
     public void Apply(PayrollCalculationContext context, PayrollCalculationResult result)
     {
-        var adjustmentTotal = context.Adjustments.Sum(a => a.Amount);
+        // PLAN-56 (G-PAY-03): the line carries its adjustments beside its gross and its deductions, and the net is PayrollNet's.
+        result.TotalAdjustments = context.Adjustments.Sum(a => a.Amount);
+        result.GrossPay = context.Configuration.RoundMoney(result.GrossPay);
+        result.TotalDeductions = context.Configuration.RoundMoney(result.TotalDeductions);
 
         if (context.RunType == PayrollRunType.Correction && context.CorrectionDeltaNet.HasValue)
-        {
             result.NetPay = context.Configuration.RoundMoney(context.CorrectionDeltaNet.Value);
-            result.GrossPay = context.Configuration.RoundMoney(result.GrossPay);
-            result.TotalDeductions = context.Configuration.RoundMoney(result.TotalDeductions);
-        }
         else
-        {
-            result.GrossPay = context.Configuration.RoundMoney(result.GrossPay);
-            result.TotalDeductions = context.Configuration.RoundMoney(result.TotalDeductions);
-            result.NetPay = context.Configuration.RoundMoney(
-                Math.Max(0, result.GrossPay - result.TotalDeductions + adjustmentTotal));
-        }
+            result.NetPay = PayrollNet.Net(result.GrossPay, result.TotalDeductions, result.TotalAdjustments, context.Configuration);
 
         result.Line.GrossPay = result.GrossPay;
         result.Line.TotalDeductions = result.TotalDeductions;
+        result.Line.TotalAdjustments = result.TotalAdjustments;
         result.Line.NetPay = result.NetPay;
     }
 }

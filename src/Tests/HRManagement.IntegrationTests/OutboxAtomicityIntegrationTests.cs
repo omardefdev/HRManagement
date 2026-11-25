@@ -328,14 +328,17 @@ public class OutboxAtomicityIntegrationTests
             ValidatedAtCalculate = true,
             ResultsFrozen = true
         };
-        run.SalaryLines.Add(new SalaryLine
+        var line = new SalaryLine
         {
             PayrollRunId = run.Id,
             EmployeeId = Guid.NewGuid(),
             GrossPay = 1000m,
             TotalDeductions = 100m,
             NetPay = 900m
-        });
+        };
+        run.SalaryLines.Add(line);
+        // PLAN-56: the posting checks the saved lines again, so the planted line is a sound one.
+        db.SalaryLineComponents.AddRange(TestDataFactory.ComponentsOf(line));
         run.Approvals.Add(new PayrollRunApproval
         {
             PayrollRunId = run.Id,

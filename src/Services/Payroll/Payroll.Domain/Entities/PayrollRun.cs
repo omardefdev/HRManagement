@@ -163,12 +163,14 @@ public class PayrollRun : AuditableEntity
         });
     }
 
-    public void Post(decimal totalNetPay)
+    /// <summary>
+    /// PLAN-56 (G-PAY-03): the posting keeps the total the validation froze. It writes no amount: what is posted is what was approved.
+    /// </summary>
+    public void Post()
     {
         var err = ValidateCanPost();
         if (err != null) throw new InvalidOperationException(err);
         Status = PayrollRunStatus.Posted;
-        TotalNetPay = totalNetPay;
     }
 
     public void Reverse()

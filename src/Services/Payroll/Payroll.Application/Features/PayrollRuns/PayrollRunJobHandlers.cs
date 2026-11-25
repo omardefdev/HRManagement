@@ -398,21 +398,14 @@ public class ValidatePayrollRunHandler(IPayrollRepository repository)
         if (job is not null && job.Partitions.Any(p => p.Status != PayrollRunPartitionStatus.Completed))
             return (false, "هناك أقسام حساب غير مكتملة — لا يمكن التحقق.");
 
-        var lines = run.SalaryLines.ToList();
-        if (lines.Count == 0)
-            lines = await repository.SalaryLines.Where(l => l.PayrollRunId == run.Id).ToListAsync(cancellationToken);
-
-        var lineIds = lines.Select(l => l.Id).ToList();
-        var comps = await repository.SalaryLineComponents
-            .Where(c => lineIds.Contains(c.SalaryLineId))
-            .ToListAsync(cancellationToken);
-        var byLine = comps.GroupBy(c => c.SalaryLineId).ToDictionary(g => g.Key, g => g.ToList());
-
+        // PLAN-56 (G-PAY-03): the validation's net is the engine's: PayrollNet, under the pinned framework's rounding. The total it
+        // freezes is the sum of the saved lines.
+        var saved = await PayrollRunLines.LoadAsync(repository, run, cancellationToken);
         var expected = job?.InputSnapshots.Count;
-        var (ok, err) = PayrollRunReconciliation.ValidateTotals(run, lines, byLine, expected);
+        var (ok, err) = PayrollRunReconciliation.ValidateTotals(run, saved.Lines, saved.ComponentsByLine, expected, round: saved.Round);
         if (!ok) return (false, err);
 
-        var totalNet = PayrollRunReconciliation.SumNet(lines);
+        var totalNet = saved.SumNet;
         run.MarkValidated(totalNet);
         if (job is not null)
         {

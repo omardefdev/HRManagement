@@ -15,7 +15,7 @@ public sealed class FilePayrollDisbursementGateway(IOptions<ExternalIntegrations
         var path = Path.Combine(dir, fileName);
 
         var sb = new StringBuilder();
-        sb.AppendLine("PayrollRunId,PeriodStart,PeriodEnd,Currency,EmployeeId,NationalId,EmployeeName,GrossPay,TotalDeductions,NetPay,BankAccount");
+        sb.AppendLine("PayrollRunId,PeriodStart,PeriodEnd,Currency,EmployeeId,NationalId,EmployeeName,GrossPay,TotalDeductions,NetPay,BankAccount,TotalAdjustments");
         foreach (var line in request.Lines)
         {
             sb.Append(request.PayrollRunId).Append(',');
@@ -28,7 +28,9 @@ public sealed class FilePayrollDisbursementGateway(IOptions<ExternalIntegrations
             sb.Append(IntegrationFileHelper.FormatDecimal(line.GrossPay)).Append(',');
             sb.Append(IntegrationFileHelper.FormatDecimal(line.TotalDeductions)).Append(',');
             sb.Append(IntegrationFileHelper.FormatDecimal(line.NetPay)).Append(',');
-            sb.AppendLine(IntegrationFileHelper.EscapeCsv(line.BankAccount));
+            sb.Append(IntegrationFileHelper.EscapeCsv(line.BankAccount)).Append(',');
+            // PLAN-56 (G-PAY-03): the new column is the last one, so a reader by position keeps every column it knew.
+            sb.AppendLine(IntegrationFileHelper.FormatDecimal(line.TotalAdjustments));
         }
 
         await IntegrationFileHelper.WriteUtf8Async(path, sb.ToString(), cancellationToken);

@@ -364,6 +364,16 @@
 
                 <div class="col-md-3">
 
+                    <div class="info-box bg-secondary"><span class="info-box-icon"><i class="fas fa-balance-scale"></i></span>
+
+                        <div class="info-box-content"><span class="info-box-text">تسويات</span><span class="info-box-number">@Model.SalaryLines.Sum(l => l.TotalAdjustments).ToString("N0")</span></div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-md-3">
+
                     <div class="info-box bg-primary"><span class="info-box-icon"><i class="fas fa-wallet"></i></span>
 
                         <div class="info-box-content"><span class="info-box-text">صافي</span><span class="info-box-number">@Model.SalaryLines.Sum(l => l.NetPay).ToString("N0")</span></div>
@@ -477,7 +487,7 @@
 
         <table class="table table-sm table-hover mb-0">
 
-            <thead><tr><th>موظف</th><th>إجمالي</th><th>خصومات</th><th>صافي</th><th>المكونات</th><th>قسيمة</th></tr></thead>
+            <thead><tr><th>موظف</th><th>إجمالي</th><th>خصومات</th><th>تسويات</th><th>صافي</th><th>المكونات</th><th>قسيمة</th></tr></thead>
 
             <tbody>
 
@@ -493,6 +503,8 @@
 
                         <td>@l.TotalDeductions.ToString("N2")</td>
 
+                        <td>@l.TotalAdjustments.ToString("N2")</td>
+
                         <td><strong>@l.NetPay.ToString("N2")</strong></td>
 
                         <td>
@@ -507,7 +519,7 @@
 
                     <tr class="collapse" id="comp-@l.Id.ToString("N")">
 
-                        <td colspan="6" class="bg-light p-3">
+                        <td colspan="7" class="bg-light p-3">
 
                             @if (ViewBag.Components != null && ((Dictionary<Guid, List<Payroll.Domain.Entities.SalaryLineComponent>>)ViewBag.Components).ContainsKey(l.Id))
 
@@ -561,7 +573,7 @@
 
                 }
 
-                @if (!Model.SalaryLines.Any()) { <tr><td colspan="6" class="text-muted text-center py-3">لا بنود</td></tr> }
+                @if (!Model.SalaryLines.Any()) { <tr><td colspan="7" class="text-muted text-center py-3">لا بنود</td></tr> }
 
             </tbody>
 
@@ -585,6 +597,8 @@
 
         var totalDed = Model.SalaryLines.Sum(l => l.TotalDeductions);
 
+        var totalAdj = Model.SalaryLines.Sum(l => l.TotalAdjustments);
+
         var totalNet = Model.SalaryLines.Sum(l => l.NetPay);
 
         <text>
@@ -595,13 +609,13 @@
 
             data: {
 
-                labels: ['إجمالي', 'خصومات', 'صافي'],
+                labels: ['إجمالي', 'خصومات', 'تسويات', 'صافي'],
 
                 datasets: [{
 
-                    data: [@totalGross, @totalDed, @totalNet],
+                    data: [@totalGross, @totalDed, @totalAdj, @totalNet],
 
-                    backgroundColor: ['#28a745', '#dc3545', '#007bff']
+                    backgroundColor: ['#28a745', '#dc3545', '#6c757d', '#007bff']
 
                 }]
 

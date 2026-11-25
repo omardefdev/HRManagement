@@ -114,7 +114,8 @@ public class PayrollApiController : ControllerBase
                         line.GrossPay,
                         line.TotalDeductions,
                         line.NetPay,
-                        line.PayComponents))
+                        line.PayComponents,
+                        line.TotalAdjustments))
                     .ToList()))
             .FirstOrDefaultAsync(ct);
         if (run is null) return NotFound();

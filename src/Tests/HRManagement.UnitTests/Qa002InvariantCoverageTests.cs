@@ -158,7 +158,8 @@ public class Qa002InvariantCoverageTests
     public void PAY_ENG_NetFromGross_And_FrozenModify_Fail()
     {
         var line = new SalaryLine { GrossPay = 1000m, TotalDeductions = 250m };
-        PayrollCalculation.ApplyNetFromGrossAndDeductions(line);
+        // PLAN-56: the net of a line with no adjustment is what it always was, now from the one definition.
+        line.NetPay = PayrollNet.Net(line, PayrollNet.LegacyRound);
         Assert.Equal(750m, line.NetPay);
 
         var run = NewRun();
@@ -181,8 +182,9 @@ public class Qa002InvariantCoverageTests
         Assert.Equal(PayrollRunStatus.UnderReview, run.Status);
         run.Approve(Guid.NewGuid());
         Assert.Equal(PayrollRunStatus.Approved, run.Status);
-        run.Post(900);
+        run.Post();
         Assert.Equal(PayrollRunStatus.Posted, run.Status);
+        Assert.Equal(900, run.TotalNetPay);
         run.Reverse();
         Assert.Equal(PayrollRunStatus.Reversed, run.Status);
     }

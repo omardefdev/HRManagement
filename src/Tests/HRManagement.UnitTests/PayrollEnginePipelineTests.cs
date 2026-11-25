@@ -148,8 +148,10 @@ public class PayrollEnginePipelineTests
         run.Approve(Guid.NewGuid());
         Assert.Equal(PayrollRunStatus.Approved, run.Status);
 
-        run.Post(900);
+        // PLAN-56: the posting keeps the total the validation froze; it writes no amount.
+        run.Post();
         Assert.Equal(PayrollRunStatus.Posted, run.Status);
+        Assert.Equal(900, run.TotalNetPay);
 
         run.Reverse();
         Assert.Equal(PayrollRunStatus.Reversed, run.Status);

@@ -235,11 +235,18 @@ public class PostPayrollRunHandler(
                 return (false, "يجب نجاح التحقق قبل الترحيل.");
             }
 
-            foreach (var sl in run.SalaryLines)
-                PayrollCalculation.ApplyNetFromGrossAndDeductions(sl);
+            // PLAN-56 (G-PAY-03): the posting checks and writes nothing. The saved lines must still be sound, and still add up to the
+            // total the validation froze: what is posted is what was approved. No line is assigned here.
+            var saved = await PayrollRunLines.LoadAsync(repository, run, cancellationToken);
+            var (totalsOk, totalsError) = PayrollRunReconciliation.ValidateTotals(
+                run, saved.Lines, saved.ComponentsByLine, round: saved.Round);
+            if (!totalsOk)
+                return (false, $"{PayrollRunReconciliation.ResultsChangedSinceValidation} ({totalsError})");
+            if (saved.SumNet != run.TotalNetPay)
+                return (false, PayrollRunReconciliation.ResultsChangedSinceValidation);
 
-            var total = PayrollCalculation.SumNetPay(run.SalaryLines);
-            run.Post(total);
+            var total = run.TotalNetPay;
+            run.Post();
 
             // PAY-003: Post creates Pending disbursement; Pay sets ProcessedAt later.
             await repository.AddAsync(new PaymentBatch

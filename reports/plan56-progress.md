@@ -10,8 +10,8 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
 | Phase | Status | Finished (UTC) |
 |-------|--------|----------------|
 | P0 baseline | done | 2026-11-25T05:17Z |
-| P1 one net | in progress | |
-| P2 guards | | |
+| P1 one net | done | 2026-11-25T05:28:33Z |
+| P2 guards | in progress | |
 | P3 reject / cancel / release / restart | | |
 | P4 correction | | |
 | P5 reversal | | |
@@ -54,6 +54,31 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
 - PLAN-57 needs: `PayrollNet` accepting negative deductions; a release that touches the applied markers only.
 - The demo's seeded lines: components do not add up to gross − deductions (deduction component positive). No `Adjustment` component.
 
+## P1 — one net (finished 2026-11-25T05:28:33Z)
+
+- **Code:** `PayrollNet` (the one definition: `Unclipped`, `Net` under a rounding, `Shortfall`); `SalaryLine.TotalAdjustments`,
+  written by `RoundingRule`; `ValidateLineIntegrity` and `ValidateTotals` on `PayrollNet` (with the pinned framework's rounding);
+  `PayrollRunLines` (one loader of the saved lines for the validation and the posting's check); the posting runs `ValidateTotals`
+  again, compares the saved sum with the frozen total exactly, refuses with «تغيّرت النتائج بعد التحقق…» and assigns no line;
+  `PayrollRun.Post()` keeps the frozen total. Deleted: `ApplyNetFromGrossAndDeductions`, `CalculateNetPay`, `SumNetPay`.
+- **Readers:** `SalaryLineDetailsDto` (new last member), the payslip PDF, the register (Excel, column 5), `ExportRunCsv`, the three
+  export-job CSVs, the treasury file (`PayrollDisbursementLine` and its CSV), the monthly summary, the ESS payslips list, the run's
+  page (box, column, chart), `PayrollDeterminismComparer`. Format changes for clients, each a new last column or member:
+  `TotalAdjustments` on the four CSVs with gross/deductions/net; the bulk payslips index gains `TotalDeductions,TotalAdjustments`.
+- **Migration `20261125051113_PAY056_NetFormula`:** the column (numeric(18,2), default 0) and the fill from referenced `Adjustment`
+  components, with FORCE lifted on `SalaryLineComponents` and `SalaryLines` around it. No byte order mark.
+- **Tests:** `Pay056NetFormulaTests` (32 cases), `Pay056NetComputationArchitectureTests` (with planted computations and writers),
+  `Pay056PostingTests` (6, SQLite), `Pay056MigrationPostgreSqlTests` (3, as a non-superuser owner under forced row security).
+  Changed with their meaning kept: `Phase2Tests.CalculateNetPay_*` and `Qa002…NetFromGross` (the same invariants on `PayrollNet`),
+  `run.Post(total)` → `run.Post()` with the total asserted unchanged (2 tests), and two planted runs whose line had no component
+  (`Pay003…Post_CreatesPendingBatch_Pay_Processes`, `OutboxAtomicity…PostPayrollRun_PublishesBeforeItsSingleSave`) now plant a
+  sound line (`TestDataFactory.ComponentsOf`).
+- **Results:** build `-warnaserror` 0 errors (1 min 37 s); unit filter (Pay056, Pay003, Pay001, Pay023, Pay029, Pay004, Pay054,
+  Pay055, Gov002, pipeline, determinism, invariants, Frd001, Phase2, treasury, PDF) 547 passed; integration (SQLite) Pay056, Pay003,
+  lifecycle, outbox atomicity 28 passed, 3 skipped (Testcontainers); PostgreSQL migration tests (PAY054, PAY055, PAY056) 10 passed
+  in 21 s; `has-pending-model-changes`: none; format check of the changed files clean.
+- `AddSalaryLine` still exists until P2; its net comes from `PayrollNet` meanwhile.
+
 ## Decisions (with reasons)
 
 - **D1 (P1): the net's rounding in the validation.** `PayrollNet.Net(gross, deductions, adjustments, round)`; the validation and the
@@ -72,6 +97,7 @@ None.
 
 ## Next step
 
-P1: fix the five test compile errors of the net change (`Phase2Tests`, `Qa002InvariantCoverageTests`, `PayrollEnginePipelineTests`),
-write `Pay056NetFormulaTests`, `Pay056NetComputationArchitectureTests`, the posting tests and `Pay056MigrationPostgreSqlTests`, then
-build with `-warnaserror`, run the unit filter and the PostgreSQL migration test, format, commit.
+P2: `PayrollRunTransitions` and `EnsureTransition` in every method of `PayrollRun`; `Status` not settable after construction (an init
+accessor for the seeders and the two creators of a draft; `ForTesting.SetStatus` for tests); the calculator's named methods; the
+validation handler's state check; remove `AddSalaryLine` (actions, view, link, allowlist row, tests); the duplicate bank reference
+as 409; `Pay056TransitionTests`.
