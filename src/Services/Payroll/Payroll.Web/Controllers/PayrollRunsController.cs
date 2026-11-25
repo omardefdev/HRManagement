@@ -126,6 +126,18 @@ public class PayrollRunsController : Controller
             .OrderByDescending(j => j.CreatedAt)
             .FirstOrDefaultAsync();
         ViewBag.Job = job;
+        // PLAN-56 (G-PAY-06): the run's reversal requests, the pending one first.
+        ViewBag.ReversalRequests = (IReadOnlyList<PayrollReversalRequest>)await _db.PayrollReversalRequests
+            .AsNoTracking()
+            .Where(r => r.PayrollRunId == id)
+            .OrderByDescending(r => r.RequestedAt)
+            .ToListAsync();
+        // PLAN-56 (G-PAY-04): what each rejected version of the run was.
+        ViewBag.Revisions = (IReadOnlyList<PayrollRunRevision>)await _db.PayrollRunRevisions
+            .AsNoTracking()
+            .Where(r => r.PayrollRunId == id)
+            .OrderBy(r => r.Revision)
+            .ToListAsync();
         // PLAN-54 (§3): what the pinned framework version is: interim (and under which exceptions), or older than legal packs.
         ViewBag.FrameworkNote = await Payroll.Application.Features.PayrollConfigurations.PayrollFrameworkIndicators.ForRunAsync(
             HttpContext.RequestServices.GetRequiredService<Payroll.Application.Abstractions.IPayrollRepository>(),
@@ -157,58 +169,6 @@ public class PayrollRunsController : Controller
                 .LogWarning(ex, "Employee name lookup failed for payroll details.");
         }
         return result;
-    }
-
-    [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
-    public async Task<IActionResult> AddSalaryLine(Guid payrollRunId)
-    {
-        var run = await _db.PayrollRuns.AsNoTracking().FirstOrDefaultAsync(r => r.Id == payrollRunId);
-        if (run == null) return NotFound();
-
-        var error = run.ValidateCanModifyLines();
-        if (error != null)
-        {
-            TempData["Error"] = error;
-            return RedirectToAction(nameof(Details), new { id = payrollRunId });
-        }
-
-        return View(new SalaryLine { PayrollRunId = payrollRunId });
-    }
-
-    [HttpPost]
-    [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
-    public async Task<IActionResult> AddSalaryLine([Bind("PayrollRunId,EmployeeId,GrossPay,TotalDeductions,PayComponents")] SalaryLine line)
-    {
-        if (!ModelState.IsValid) return View(line);
-
-        var run = await _db.PayrollRuns.FirstOrDefaultAsync(r => r.Id == line.PayrollRunId);
-        if (run == null) return NotFound();
-
-        var stateError = run.ValidateCanModifyLines();
-        if (stateError != null)
-        {
-            ModelState.AddModelError(string.Empty, stateError);
-            return View(line);
-        }
-
-        if (await _db.SalaryLines.AnyAsync(s =>
-                s.PayrollRunId == line.PayrollRunId && s.EmployeeId == line.EmployeeId))
-        {
-            ModelState.AddModelError(string.Empty, "يوجد بالفعل بند راتب لهذا الموظف في نفس التشغيل.");
-            return View(line);
-        }
-
-        PayrollCalculation.ApplyNetFromGrossAndDeductions(line);
-        _db.SalaryLines.Add(line);
-        await _db.SaveChangesAsync();
-        SecurityAudit.Log(
-            HttpContext,
-            SecurityAudit.EventTypes.PayrollOverride,
-            resource: $"PayrollRun:{line.PayrollRunId}/Employee:{line.EmployeeId}",
-            detailJson: "{\"action\":\"AddSalaryLine\"}");
-        TempData["Success"] = "تم إضافة بند الراتب";
-        return RedirectToAction(nameof(Details), new { id = line.PayrollRunId });
     }
 
     [HttpPost]
@@ -249,10 +209,45 @@ public class PayrollRunsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
-    public async Task<IActionResult> CancelJob(Guid jobId, Guid runId)
+    public async Task<IActionResult> CancelJob(Guid jobId, Guid runId, string? reason, [FromServices] IAuthorizationService authorization)
     {
-        var (success, error) = await _mediator.Send(new CancelPayrollRunJobCommand(jobId));
-        TempData[success ? "Success" : "Error"] = success ? "تم إلغاء مهمة التشغيل" : error;
+        // PLAN-56 (G-PAY-04): cancelling the job is cancelling the run, with its reason, its rule (D-PAY-18) and the release of its inputs.
+        var (mayProcess, mayApprove) = await PayrollRunActHttp.CancelRightsAsync(authorization, User);
+        var (success, error) = await _mediator.Send(
+            new CancelPayrollRunJobCommand(jobId, RequireUserId(), reason, mayProcess, mayApprove));
+        TempData[success ? "Success" : "Error"] = success ? "تم إلغاء التشغيل وتحرير مدخلاته" : error;
+        return RedirectToAction(nameof(Details), new { id = runId });
+    }
+
+    /// <summary>
+    /// PLAN-56 (G-PAY-04, D-PAY-18): cancels a run that is not posted, with a reason. The processor cancels what was not sent for
+    /// review; a run under review or approved is cancelled by the holder of the approval policy.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollRunCancel)]
+    public async Task<IActionResult> CancelRun(Guid id, string? reason, [FromServices] IAuthorizationService authorization)
+    {
+        var (mayProcess, mayApprove) = await PayrollRunActHttp.CancelRightsAsync(authorization, User);
+        var result = await _mediator.Send(new CancelPayrollRunCommand(id, RequireUserId(), reason, mayProcess, mayApprove));
+        if (result.Outcome == Payroll.Application.Features.PayrollRuns.Lifecycle.RunActOutcome.NotFound)
+            return NotFound();
+        if (result.Outcome == Payroll.Application.Features.PayrollRuns.Lifecycle.RunActOutcome.Forbidden)
+            return Forbid();
+        TempData[result.Success ? "Success" : "Error"] = result.Success ? "تم إلغاء التشغيل وتحرير فترته ومدخلاته" : result.Error;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    /// <summary>PLAN-56 (G-PAY-07): gives up a failed or paused calculation and starts a new one with a new snapshot.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
+    public async Task<IActionResult> RestartJob(Guid jobId, Guid runId)
+    {
+        var (result, lines, _) = await _mediator.Send(new RestartCalculationCommand(jobId, RequireUserId()));
+        TempData[result.Success ? "Success" : "Error"] = result.Success
+            ? $"أُعيد بدء الحساب بلقطة جديدة ({lines} بند)"
+            : result.Error;
         return RedirectToAction(nameof(Details), new { id = runId });
     }
 
@@ -303,8 +298,9 @@ public class PayrollRunsController : Controller
     public async Task<IActionResult> RejectRun(Guid id, string? notes)
     {
         var userId = RequireUserId();
-        var (success, error) = await _mediator.Send(new RejectPayrollRunCommand(id, userId, notes));
-        TempData[success ? "Success" : "Warning"] = success ? "تم رفض التشغيل وإعادته للحساب" : error;
+        var (success, error) = await _mediator.Send(
+            new Payroll.Application.Features.PayrollRuns.Lifecycle.RejectPayrollRunCommand(id, userId, notes));
+        TempData[success ? "Success" : "Warning"] = success ? "تم رفض التشغيل وإعادة فتحه مسودةً للتصحيح وإعادة الحساب" : error;
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -321,10 +317,16 @@ public class PayrollRunsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollReverse)]
-    public async Task<IActionResult> ReverseRun(Guid id)
+    public async Task<IActionResult> ReverseRun(Guid id, string? reason)
     {
-        var (success, error) = await _mediator.Send(new ReversePayrollRunCommand(id));
-        TempData[success ? "Success" : "Error"] = success ? "تم عكس التشغيل" : error;
+        // PLAN-56 (G-PAY-06): a reversal is a request with a reason; another person decides it («طلبات العكس»).
+        var result = await _mediator.Send(
+            new Payroll.Application.Features.PayrollRuns.Reversal.RequestPayrollReversalCommand(id, RequireUserId(), reason));
+        if (result.Outcome == Payroll.Application.Features.PayrollRuns.Lifecycle.RunActOutcome.NotFound)
+            return NotFound();
+        TempData[result.Success ? "Success" : "Error"] = result.Success
+            ? "سُجّل طلب عكس التشغيل؛ يقرر فيه معتمد آخر غير طالبه وغير من رحّل التشغيل."
+            : result.Error;
         return RedirectToAction(nameof(Details), new { id });
     }
 

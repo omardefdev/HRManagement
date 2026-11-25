@@ -21,4 +21,23 @@ public class PayrollEventPublisher(IPublishEndpoint publish) : IPayrollEventPubl
             PeriodEnd = periodEnd,
             TotalNetPay = totalNetPay
         }, ct);
+
+    [StagesOutboxMessages]
+    public Task PublishPayrollReversedAsync(
+        Guid payrollRunId,
+        DateTime periodStart,
+        DateTime periodEnd,
+        decimal reversedNetPay,
+        Guid reversalRequestId,
+        DateTime reversedAt,
+        CancellationToken ct) =>
+        publish.Publish<IPayrollReversed>(new
+        {
+            PayrollRunId = payrollRunId,
+            PeriodStart = periodStart,
+            PeriodEnd = periodEnd,
+            ReversedNetPay = reversedNetPay,
+            ReversalRequestId = reversalRequestId,
+            ReversedAt = reversedAt
+        }, ct);
 }

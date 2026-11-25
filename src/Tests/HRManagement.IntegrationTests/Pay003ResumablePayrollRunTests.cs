@@ -1,3 +1,4 @@
+using HRManagement.TestSupport.PayrollRuns;
 using MediatR;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -108,9 +109,8 @@ public class Pay003ResumablePayrollRunTests
         // Unfreeze to allow restart path (simulate kill mid-run by clearing freeze + job completed → new calc blocked)
         db.ChangeTracker.Clear();
         var run = await db.PayrollRuns.FirstAsync(r => r.Id == runId);
-        run.ResultsFrozen = false;
-        run.ValidatedAtCalculate = false;
-        run.Status = PayrollRunStatus.Calculating;
+        ForTesting.Unfreeze(run);
+        ForTesting.SetStatus(run, PayrollRunStatus.Calculating);
         var job = await db.PayrollRunJobs.FirstAsync(j => j.PayrollRunId == runId);
         job.Status = PayrollRunJobStatus.Paused;
         await db.SaveChangesAsync();
@@ -149,7 +149,7 @@ public class Pay003ResumablePayrollRunTests
         };
         db.PayrollRunJobs.Add(job);
         var run = await db.PayrollRuns.FirstAsync(r => r.Id == runId);
-        run.Status = PayrollRunStatus.Calculating;
+        ForTesting.SetStatus(run, PayrollRunStatus.Calculating);
         await db.SaveChangesAsync();
 
         var (ok, _, err) = await mediator.Send(new CalculatePayrollRunCommand(runId.Value));
@@ -192,9 +192,8 @@ public class Pay003ResumablePayrollRunTests
         last.ProcessedCount = 1;
         job.ProcessedEmployeeCount = 1;
         var run = await db.PayrollRuns.FirstAsync(r => r.Id == runId);
-        run.ResultsFrozen = false;
-        run.ValidatedAtCalculate = false;
-        run.Status = PayrollRunStatus.Calculating;
+        ForTesting.Unfreeze(run);
+        ForTesting.SetStatus(run, PayrollRunStatus.Calculating);
         // Remove last employee's line to force recompute on resume
         var lastSnapEmp = await db.PayrollRunInputSnapshots
             .Where(s => s.PayrollRunJobId == job.Id)
@@ -376,8 +375,14 @@ public class Pay003ResumablePayrollRunTests
         Assert.Contains("تعارض إصدار", resume.Error!);
     }
 
+    /// <summary>
+    /// PLAN-56 (G-PAY-06, D-PAY-16): this test used to reverse a run whose batch was paid and see a «compensating» reversal batch
+    /// that no channel had been asked for. A reversal is now a request another person approves, and a run whose money has left is
+    /// not reversed at all: the approval is refused with the message that points to a correction run, no batch is written, and the
+    /// run, its batch and its lines stay as they were (the lines were always append-only).
+    /// </summary>
     [Fact]
-    public async Task Reverse_CreatesCompensatingBatch()
+    public async Task Reverse_OfAPaidRun_IsRefused_AndWritesNoCompensatingBatch()
     {
         var (root, scope, db, mediator) = await CreateScopeAsync();
         await using var _ = scope;
@@ -414,13 +419,19 @@ public class Pay003ResumablePayrollRunTests
         db.PaymentBatches.Add(original);
         await db.SaveChangesAsync();
 
-        var (revOk, revErr) = await mediator.Send(new ReversePayrollRunCommand(run.Id));
-        Assert.True(revOk, revErr);
+        var requested = await mediator.Send(new Payroll.Application.Features.PayrollRuns.Reversal.RequestPayrollReversalCommand(
+            run.Id, Guid.NewGuid(), "رُحّل التشغيل لفترة خاطئة"));
+        Assert.True(requested.Success, requested.Error);
+        var decided = await mediator.Send(new Payroll.Application.Features.PayrollRuns.Reversal.DecidePayrollReversalCommand(
+            requested.Id!.Value, Guid.NewGuid(), Approve: true, Notes: null));
 
+        Assert.False(decided.Success);
+        Assert.Equal(Payroll.Application.Features.PayrollRuns.Reversal.PayrollReversalMessages.MoneyHasLeft, decided.Error);
+        db.ChangeTracker.Clear();
         var batches = await db.PaymentBatches.Where(b => b.PayrollRunId == run.Id).ToListAsync();
-        Assert.Contains(batches, b => b.BatchKind == PaymentBatchKind.Reversal);
-        Assert.Contains(batches, b => b.Status == PaymentBatchStatus.Reversed && b.BatchKind == PaymentBatchKind.Disbursement);
-        Assert.Equal(PayrollRunStatus.Reversed, (await db.PayrollRuns.FindAsync(run.Id))!.Status);
+        var kept = Assert.Single(batches);
+        Assert.Equal((PaymentBatchKind.Disbursement, PaymentBatchStatus.Processed), (kept.BatchKind, kept.Status));
+        Assert.Equal(PayrollRunStatus.Posted, (await db.PayrollRuns.FindAsync(run.Id))!.Status);
         Assert.Equal(1, await db.SalaryLines.CountAsync(l => l.PayrollRunId == run.Id)); // append-only
     }
 
@@ -443,14 +454,17 @@ public class Pay003ResumablePayrollRunTests
             ResultsFrozen = true
         };
         var employeeId = Guid.NewGuid();
-        run.SalaryLines.Add(new SalaryLine
+        var line = new SalaryLine
         {
             PayrollRunId = run.Id,
             EmployeeId = employeeId,
             GrossPay = 1000m,
             TotalDeductions = 100m,
             NetPay = 900m
-        });
+        };
+        run.SalaryLines.Add(line);
+        // PLAN-56: the posting checks the saved lines again, so the planted line is a sound one.
+        db.SalaryLineComponents.AddRange(TestDataFactory.ComponentsOf(line));
         run.Approvals.Add(new PayrollRunApproval
         {
             PayrollRunId = run.Id,

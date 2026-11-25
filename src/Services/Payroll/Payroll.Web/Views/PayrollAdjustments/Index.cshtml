@@ -7,6 +7,7 @@
     var employeeNames = ViewBag.EmployeeNames as IReadOnlyDictionary<Guid, string>
 
                         ?? new Dictionary<Guid, string>();
+    var targetRuns = ViewBag.TargetRuns as IReadOnlyDictionary<Guid, string> ?? new Dictionary<Guid, string>();
 
     var filterEmployeeId = ViewBag.EmployeeId as Guid?;
 
@@ -102,7 +103,7 @@
             <div class="alert alert-danger m-3" role="alert" data-testid="manual-input-refusal">@decisionError</div>
         }
         <table class="table table-striped mb-0">
-            <thead><tr><th>موظف</th><th>المبلغ</th><th>السبب</th><th>حالة الاعتماد</th><th>القرار</th></tr></thead>
+            <thead><tr><th>موظف</th><th>المبلغ</th><th>السبب</th><th>تصحيح لتشغيل</th><th>حالة الاعتماد</th><th>القرار</th></tr></thead>
             <tbody>
             @foreach (var x in Model)
             {
@@ -110,10 +111,11 @@
                     <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(x.EmployeeId, employeeNames.GetValueOrDefault(x.EmployeeId)))</td>
                     <td>@x.Amount</td>
                     <td>@(x.AdjustmentReason ?? "—")</td>
+                    <td>@(x.TargetSourceRunId is Guid target && targetRuns.TryGetValue(target, out var targetLabel) ? targetLabel : "—")</td>
                     @await Html.PartialAsync("_ManualInputDecision", Payroll.Web.ViewModels.ManualInputDecisionCell.For("PayrollAdjustments", x, canApprove, userId))
                 </tr>
             }
-            @if (!Model.Any()) { <tr><td colspan="5"><partial name="_HrEmptyState" model="@("لا توجد تسويات مسجلة.")" /></td></tr> }
+            @if (!Model.Any()) { <tr><td colspan="6"><partial name="_HrEmptyState" model="@("لا توجد تسويات مسجلة.")" /></td></tr> }
             </tbody>
         </table>
 

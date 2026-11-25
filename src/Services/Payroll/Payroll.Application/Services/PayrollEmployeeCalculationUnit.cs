@@ -31,14 +31,11 @@ public static class PayrollEmployeeCalculationUnit
         IEnumerable<DeductionType> deductionTypes,
         IList<PayrollAdjustment> adjustments,
         IList<AbsenceDeduction> absences,
-        decimal? correctionDeltaGross = null,
-        decimal? correctionDeltaNet = null,
         Guid? bankAccountId = null)
     {
         var context = PayrollRunCalculationSupport.BuildContext(
             run, profile, grade, config, extraHolidays,
-            allowances, deductions, deductionTypes, adjustments, absences,
-            correctionDeltaGross, correctionDeltaNet);
+            allowances, deductions, deductionTypes, adjustments, absences);
 
         var result = engine.Calculate(context);
 

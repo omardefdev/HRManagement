@@ -34,4 +34,6 @@ public sealed record SalaryLineDetailsDto(
     decimal GrossPay,
     decimal TotalDeductions,
     decimal NetPay,
-    string? PayComponents);
+    string? PayComponents,
+    // PLAN-56 (G-PAY-03): gross − deductions + adjustments = net, floored at zero. Added at the end of the shape.
+    decimal TotalAdjustments);

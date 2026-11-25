@@ -82,7 +82,10 @@ internal static class PayrollPostgresTestSupport
     {
         db.ChangeTracker.Clear();
         var run = await db.PayrollRuns.FirstAsync(r => r.Id == payrollRunId);
-        run.MarkCancelled();
+        // PLAN-56: a cancellation has an actor and a reason, and leaves a decision row. This helper frees the period only, as before:
+        // the comparison's second run reads the same snapshot of inputs, so nothing is released here.
+        var decision = run.Cancel(Guid.NewGuid(), DateTime.UtcNow, "تشغيل ثانٍ للفترة نفسها لمقارنة النتائج");
+        db.PayrollRunApprovals.Add(decision);
         await db.SaveChangesAsync();
     }
 }

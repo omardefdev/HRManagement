@@ -14,7 +14,9 @@ public sealed record PayslipPdfModel(
     IReadOnlyList<PayslipComponentLine> Components,
     decimal GrossPay,
     decimal TotalDeductions,
-    decimal NetPay);
+    decimal NetPay,
+    // PLAN-56 (G-PAY-03): the line's adjustments, shown between the deductions and the net: gross − deductions + adjustments = net.
+    decimal TotalAdjustments = 0m);
 
 public static class HrPayslipPdfGenerator
 {
@@ -69,6 +71,11 @@ public static class HrPayslipPdfGenerator
                     {
                         r.RelativeItem().Text("الخصومات:");
                         r.ConstantItem(120).AlignRight().Text(model.TotalDeductions.ToString("N2"));
+                    });
+                    col.Item().Row(r =>
+                    {
+                        r.RelativeItem().Text("التسويات:");
+                        r.ConstantItem(120).AlignRight().Text(model.TotalAdjustments.ToString("N2"));
                     });
                     col.Item().Row(r =>
                     {

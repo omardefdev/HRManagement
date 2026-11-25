@@ -24,8 +24,6 @@ public sealed class PayrollCalculationContext
     public required PayrollConfiguration Configuration { get; init; }
     public required IReadOnlySet<DateOnly> ExtraHolidays { get; init; }
     public PayrollRunType RunType { get; init; } = PayrollRunType.Regular;
-    public decimal? CorrectionDeltaGross { get; init; }
-    public decimal? CorrectionDeltaNet { get; init; }
 }
 
 public sealed class PayrollCalculationResult
@@ -34,6 +32,9 @@ public sealed class PayrollCalculationResult
     public List<SalaryLineComponent> Components { get; init; } = new();
     public decimal GrossPay { get; set; }
     public decimal TotalDeductions { get; set; }
+
+    /// <summary>PLAN-56: the sum of the adjustments this calculation applied; outside the gross and the deductions (D-PAY-17).</summary>
+    public decimal TotalAdjustments { get; set; }
     public decimal NetPay { get; set; }
 
     /// <summary>

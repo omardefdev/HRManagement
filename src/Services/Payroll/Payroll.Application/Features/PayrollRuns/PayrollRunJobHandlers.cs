@@ -14,6 +14,17 @@ using Payroll.Domain.Services.Engine;
 
 namespace Payroll.Application.Features.PayrollRuns;
 
+/// <summary>Messages of the calculation job's acts that more than one handler gives.</summary>
+public static class PayrollRunJobMessages
+{
+    /// <summary>
+    /// PLAN-56 (review): the job was cancelled, restarted or taken by another request between this request's reading of it and
+    /// its save. Nothing was written.
+    /// </summary>
+    public const string JobChangedMeanwhile =
+        "تغيّرت حالة مهمة الحساب أثناء الطلب (أُلغيت أو أُعيد بدؤها أو استؤنفت من طلب آخر)؛ لم يُنفَّذ شيء. حدّث الصفحة.";
+}
+
 public record StartPayrollRunJobCommand(Guid PayrollRunId, int PartitionSize = 200)
     : IRequest<(bool Success, int LinesGenerated, Guid? JobId, string? Error)>;
 
@@ -40,6 +51,11 @@ public class StartPayrollRunJobHandler(
         var run = await repository.GetPayrollRunAsync(request.PayrollRunId, includeLines: true, cancellationToken);
         if (run is null) return (false, 0, null, "التشغيل غير موجود.");
 
+        // PLAN-56 (G-PAY-03): a correction run is not a calculation over every pay profile; its lines are the adjustments aimed at
+        // its source (CalculateCorrectionRunCommand, which CalculatePayrollRunCommand sends for a correction).
+        if (run.RunType == PayrollRunType.Correction)
+            return (false, 0, null, CorrectionRunMessages.NotCalculatedByAJob);
+
         var calcErr = run.ValidateCanCalculate();
         if (calcErr != null) return (false, 0, null, calcErr);
 
@@ -62,12 +78,23 @@ public class StartPayrollRunJobHandler(
                 return (false, 0, existing.Id, expired);
             }
 
-            existing.Status = PayrollRunJobStatus.Running;
-            existing.Attempt++;
-            existing.LeaseOwner = Environment.MachineName;
-            existing.LeaseUntil = DateTime.UtcNow.AddMinutes(30);
-            existing.Error = null;
-            await repository.SaveChangesAsync(cancellationToken);
+            // PLAN-56 (G-PAY-06): a calculation that goes on is a calculation: the run is «قيد الحساب» by its own method.
+            // PLAN-56 (review): the job is taken by one conditional statement, in the transaction of this save. A cancellation or
+            // a restart that committed since the job was read is not undone here; one in flight waits for this commit.
+            await using (var claim = await repository.BeginTransactionAsync(cancellationToken))
+            {
+                if (!await repository.ClaimJobForCalculationAsync(existing.Id, cancellationToken))
+                    return (false, 0, existing.Id, PayrollRunJobMessages.JobChangedMeanwhile);
+                run.BeginCalculating();
+                existing.Status = PayrollRunJobStatus.Running;
+                existing.Attempt++;
+                existing.LeaseOwner = Environment.MachineName;
+                existing.LeaseUntil = DateTime.UtcNow.AddMinutes(30);
+                existing.Error = null;
+                await repository.SaveChangesAsync(cancellationToken);
+                await claim.CommitAsync(cancellationToken);
+            }
+
             return await PayrollRunJobProcessor.ProcessAsync(
                 repository, scopeFactory, engine, batchOptions.Value, existing.Id, cancellationToken);
         }
@@ -263,9 +290,9 @@ public class PausePayrollRunJobHandler(IPayrollRepository repository)
         if (job is null) return (false, "المهمة غير موجودة.");
         if (job.Status != PayrollRunJobStatus.Running)
             return (false, "لا يمكن الإيقاف إلا لمهمة قيد التشغيل.");
-        job.Status = PayrollRunJobStatus.Paused;
-        job.LastCheckpointAt = DateTime.UtcNow;
-        await repository.SaveChangesAsync(cancellationToken);
+        // PLAN-56 (review): one conditional statement: a job that was cancelled since it was read is not relabelled «paused».
+        if (!await repository.PauseRunningJobAsync(job.Id, cancellationToken))
+            return (false, "لا يمكن الإيقاف إلا لمهمة قيد التشغيل.");
         return (true, null);
     }
 }
@@ -319,60 +346,64 @@ public class ResumePayrollRunJobHandler(
             return (false, 0, job.Id, expired);
         }
 
-        job.Status = PayrollRunJobStatus.Running;
-        job.Attempt++;
-        job.Error = null;
-        job.LeaseOwner = Environment.MachineName;
-        job.LeaseUntil = DateTime.UtcNow.AddMinutes(30);
-        job.ProcessedEmployeeCount = job.Partitions
-            .Where(p => p.Status == PayrollRunPartitionStatus.Completed)
-            .Sum(p => p.EmployeeCount);
-        foreach (var p in job.Partitions.Where(p => p.Status != PayrollRunPartitionStatus.Completed))
+        // PLAN-56 (G-PAY-06): a resumed calculation is a calculation: the run is «قيد الحساب» by its own method.
+        // PLAN-56 (review): the job is taken by one conditional statement, in the transaction of this save. A cancellation or a
+        // restart that committed since the job was read is not undone by this resume; one in flight waits for this commit.
+        await using (var claim = await repository.BeginTransactionAsync(cancellationToken))
         {
-            p.Status = PayrollRunPartitionStatus.Pending;
-            p.ProcessedCount = 0;
-            p.CursorEmployeeId = null;
-            p.WorkerId = null;
-            p.Error = null;
+            if (!await repository.ClaimJobForCalculationAsync(job.Id, cancellationToken))
+                return (false, 0, job.Id, PayrollRunJobMessages.JobChangedMeanwhile);
+            run.BeginCalculating();
+            job.Status = PayrollRunJobStatus.Running;
+            job.Attempt++;
+            job.Error = null;
+            job.LeaseOwner = Environment.MachineName;
+            job.LeaseUntil = DateTime.UtcNow.AddMinutes(30);
+            job.ProcessedEmployeeCount = job.Partitions
+                .Where(p => p.Status == PayrollRunPartitionStatus.Completed)
+                .Sum(p => p.EmployeeCount);
+            foreach (var p in job.Partitions.Where(p => p.Status != PayrollRunPartitionStatus.Completed))
+            {
+                p.Status = PayrollRunPartitionStatus.Pending;
+                p.ProcessedCount = 0;
+                p.CursorEmployeeId = null;
+                p.WorkerId = null;
+                p.Error = null;
+            }
+            await repository.SaveChangesAsync(cancellationToken);
+            await claim.CommitAsync(cancellationToken);
         }
-        await repository.SaveChangesAsync(cancellationToken);
 
         return await PayrollRunJobProcessor.ProcessAsync(
             repository, scopeFactory, engine, batchOptions.Value, job.Id, cancellationToken);
     }
 }
 
-public record CancelPayrollRunJobCommand(Guid JobId) : IRequest<(bool Success, string? Error)>;
+/// <summary>
+/// The older way to cancel: by the job. PLAN-56 (G-PAY-04): it delegates to <see cref="CancelPayrollRunCommand"/>, so it needs a
+/// reason, it follows D-PAY-18, it releases the run's inputs, and it no longer refuses a completed job (any run not posted can be
+/// cancelled).
+/// </summary>
+public record CancelPayrollRunJobCommand(Guid JobId, Guid ActorId, string? Reason, bool ActorMayProcess, bool ActorMayApprove)
+    : IRequest<Lifecycle.RunActResult>;
 
-public class CancelPayrollRunJobHandler(IPayrollRepository repository)
-    : IRequestHandler<CancelPayrollRunJobCommand, (bool Success, string? Error)>
+public class CancelPayrollRunJobHandler(IPayrollRepository repository, IMediator mediator)
+    : IRequestHandler<CancelPayrollRunJobCommand, Lifecycle.RunActResult>
 {
-    public async Task<(bool Success, string? Error)> Handle(
+    public async Task<Lifecycle.RunActResult> Handle(
         CancelPayrollRunJobCommand request,
         CancellationToken cancellationToken)
     {
-        var job = await repository.PayrollRunJobs.FirstOrDefaultAsync(j => j.Id == request.JobId, cancellationToken);
-        if (job is null) return (false, "المهمة غير موجودة.");
-        if (job.Status is PayrollRunJobStatus.Completed)
-            return (false, "لا يمكن إلغاء مهمة مكتملة.");
+        var runId = await repository.PayrollRunJobs.AsNoTracking()
+            .Where(j => j.Id == request.JobId)
+            .Select(j => (Guid?)j.PayrollRunId)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (runId is null)
+            return Lifecycle.RunActResult.NotFound(Lifecycle.RunLifecycleMessages.JobNotFound);
 
-        var run = await repository.GetPayrollRunAsync(job.PayrollRunId, includeLines: false, cancellationToken);
-        if (run is null) return (false, "التشغيل غير موجود.");
-        if (run.Status is PayrollRunStatus.Posted or PayrollRunStatus.Reversed)
-            return (false, "لا يمكن إلغاء تشغيل مرحّل.");
-
-        job.Status = PayrollRunJobStatus.Cancelled;
-        foreach (var p in await repository.PayrollRunPartitions
-                     .Where(x => x.PayrollRunJobId == job.Id && x.Status != PayrollRunPartitionStatus.Completed)
-                     .ToListAsync(cancellationToken))
-        {
-            p.Status = PayrollRunPartitionStatus.Cancelled;
-            p.WorkerId = null;
-        }
-
-        run.MarkCancelled();
-        await repository.SaveChangesAsync(cancellationToken);
-        return (true, null);
+        return await mediator.Send(
+            new CancelPayrollRunCommand(runId.Value, request.ActorId, request.Reason, request.ActorMayProcess, request.ActorMayApprove),
+            cancellationToken);
     }
 }
 
@@ -388,6 +419,11 @@ public class ValidatePayrollRunHandler(IPayrollRepository repository)
         var run = await repository.GetPayrollRunAsync(request.PayrollRunId, includeLines: true, cancellationToken);
         if (run is null) return (false, "التشغيل غير موجود.");
 
+        // PLAN-56 (G-PAY-06): the state first. A validation never brings back a run that was sent for review, approved, posted,
+        // reversed or cancelled; nothing is read or written on refusal.
+        if (PayrollRunTransitions.Refusal(PayrollRunAct.MarkValidated, run.Status) is { } notNow)
+            return (false, notNow);
+
         var job = await repository.PayrollRunJobs
             .Include(j => j.Partitions)
             .Include(j => j.InputSnapshots)
@@ -398,21 +434,14 @@ public class ValidatePayrollRunHandler(IPayrollRepository repository)
         if (job is not null && job.Partitions.Any(p => p.Status != PayrollRunPartitionStatus.Completed))
             return (false, "هناك أقسام حساب غير مكتملة — لا يمكن التحقق.");
 
-        var lines = run.SalaryLines.ToList();
-        if (lines.Count == 0)
-            lines = await repository.SalaryLines.Where(l => l.PayrollRunId == run.Id).ToListAsync(cancellationToken);
-
-        var lineIds = lines.Select(l => l.Id).ToList();
-        var comps = await repository.SalaryLineComponents
-            .Where(c => lineIds.Contains(c.SalaryLineId))
-            .ToListAsync(cancellationToken);
-        var byLine = comps.GroupBy(c => c.SalaryLineId).ToDictionary(g => g.Key, g => g.ToList());
-
+        // PLAN-56 (G-PAY-03): the validation's net is the engine's: PayrollNet, under the pinned framework's rounding. The total it
+        // freezes is the sum of the saved lines.
+        var saved = await PayrollRunLines.LoadAsync(repository, run, cancellationToken);
         var expected = job?.InputSnapshots.Count;
-        var (ok, err) = PayrollRunReconciliation.ValidateTotals(run, lines, byLine, expected);
+        var (ok, err) = PayrollRunReconciliation.ValidateTotals(run, saved.Lines, saved.ComponentsByLine, expected, round: saved.Round);
         if (!ok) return (false, err);
 
-        var totalNet = PayrollRunReconciliation.SumNet(lines);
+        var totalNet = saved.SumNet;
         run.MarkValidated(totalNet);
         if (job is not null)
         {

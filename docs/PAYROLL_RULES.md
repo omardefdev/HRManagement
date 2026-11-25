@@ -9,26 +9,116 @@
 |------|--------|----------------------|
 | Architecture | MVC → DbContext directly | Domain → Application (MediatR) → Infrastructure → Web |
 | Engine | Static `PayrollCalculation` / `PayrollEngine` | `IPayrollEngine` pipeline with ordered `IPayrollRule` plugins |
-| Run lifecycle | Pending → Processed → Posted | Draft → Calculated → UnderReview → Approved → Posted → Reversed |
+| Run lifecycle | Pending → Processed → Posted | Draft → Calculating → Validating → Calculated → UnderReview → Approved → Posted → Reversed, with Cancelled (PLAN-56: see «Run Lifecycle») |
 | Proration | `PayrollPeriodRules` unused in runs | `BaseSalaryRule` + `AbsenceRule` use working days |
 | Tax | Hardcoded brackets | `PayrollConfiguration` + `TaxBracket` entities |
 | Pay profile | DB only, broken dashboard link | CRUD UI + `EmployeePayProfileHistory` |
 | Events | Marker idempotency | `IntegrationMessageReceipts` + MediatR handlers |
-| Corrections | None | `PayrollRunType.Correction` with delta lines |
+| Corrections | None | `PayrollRunType.Correction`: lines made of the adjustments aimed at the posted run (PLAN-56) |
 | Payslips | EmployeeId only PDF | Name lookup + bulk ZIP export |
 
-## Run Lifecycle
+## Run Lifecycle (PLAN-56)
+
+A run's state is written in one place: `PayrollRun.Move`, through `PayrollRunTransitions` (the table below). Product code
+cannot assign a state: `Status` has no setter, a run is constructed as a draft by its two creators (and in a given state by
+the seeds only), and no bulk statement updates the runs (`Pay056TransitionTests`, `scripts/pay056-validate.ps1`).
 
 ```mermaid
 stateDiagram-v2
     [*] --> Draft
-    Draft --> Calculated: CalculatePayrollRun
-    Calculated --> UnderReview: SubmitForReview
-    UnderReview --> Approved: ApprovePayrollRun
-    UnderReview --> Calculated: Reject
-    Approved --> Posted: PostPayrollRun
-    Posted --> Reversed: ReversePayrollRun
+    Draft --> Calculating: calculate
+    Calculating --> Validating: every partition done
+    Validating --> Calculated: validation passed (results frozen)
+    Calculating --> Calculating: resume / a failed partition
+    Calculated --> UnderReview: submit for review
+    UnderReview --> Approved: approve
+    UnderReview --> Draft: reject with a note (Revision + 1)
+    Approved --> Posted: post (needs a closed audit record)
+    Posted --> Reversed: an approved reversal request
+    Draft --> Cancelled: cancel with a reason
+    Calculating --> Cancelled: cancel with a reason
+    Calculated --> Cancelled: cancel with a reason
+    UnderReview --> Cancelled: cancel with a reason (approver)
+    Approved --> Cancelled: cancel with a reason (approver)
+    Calculating --> Draft: restart a failed or paused calculation
 ```
+
+| Act | From | To | Who (policy) | Answers |
+|---|---|---|---|---|
+| Calculate / resume | Draft, Calculating, Calculated (not frozen) | Calculating → Validating → Calculated | `Payroll.Process` | 400 for any other state: an approved run is never calculated again without a rejection |
+| Validate | Calculating, Calculated, Validating | Calculated | `Payroll.Process` | 400 for a run sent for review, approved, posted, reversed or cancelled: a validation revives nothing |
+| Submit for review | Calculated (validated) | UnderReview | `Payroll.Process` | 400 |
+| Approve | UnderReview | Approved | `Payroll.Approve`, not the run's creator | 400 |
+| Reject | UnderReview | Draft | `Payroll.Approve` | 400 without a note or from another state |
+| Post | Approved | Posted | `Payroll.Post`, neither creator nor approver | 400 |
+| Cancel | any state but Posted, Reversed, Cancelled | Cancelled | `Payroll.RunCancel`; D-PAY-18: the processor before the run was sent for review, the approver after | 400 without a reason or for a posted run; 403 for the processor on a run under review or approved |
+| Restart a calculation | a failed or paused job on a run that is not frozen | Draft, then a new calculation | `Payroll.Process` | 400 |
+| Request a reversal | Posted | (the run does not move) | `Payroll.Reverse` | 400 without a reason; 409 while a request waits |
+| Decide a reversal | Posted | Reversed (approval) | `Payroll.Approve`, neither the requester nor the poster | 400, 409 for a decided request |
+
+Every refusal carries its Arabic message and changes nothing; another agency's run answers 404; a request that lost to
+another answers 409. Every API write validates an antiforgery token (`GET api/payroll/run-lifecycle/antiforgery`).
+
+**A rejection reopens the run.** The rejected version is kept as a `PayrollRunRevision` (its number, line count, total, a
+SHA-256 fingerprint of its lines, the rejecter and the note); its lines and components are deleted, its inputs released, and
+the run is a draft at `Revision + 1`. The processor corrects the inputs and calculates the same run again.
+
+**A cancellation** (D-PAY-18) stops the run's jobs and partitions, releases its inputs, and records who cancelled it, when and
+why (`CancelledBy`, `CancelledAt`, `CancellationReason`, and a `PayrollRunApproval` row with the decision `Cancelled`). A
+cancelled run keeps its lines as its record; its period is free for a new run (the live-period index leaves cancelled and
+reversed runs out). The calculation worker's save checks, in its own transaction, that its job is still running, so nothing
+is written after a cancellation; and a resume takes its job by one conditional statement, so a resume that read the job before
+a cancellation committed is refused.
+
+**The release of inputs** (`PayrollInputRelease`) frees `DeductionRecord.AppliedInRunId`, `AbsenceDeduction.AppliedInRunId` and
+`PayrollAdjustment.PayrollRunId` for the run, and deletes the recovery deductions the run created that no run applied. It
+touches the applied markers only. Its callers: the cancellation, the rejection, the restart, the recalculation of a
+correction and the reversal. No input stays attached to a cancelled run or a rejected revision.
+
+**A reversal is a request and its decision** (D-PAY-16). The requester gives a reason; another person, who is neither the
+requester nor the run's poster, decides. An approval, in one save: every disbursement batch that has not left (`Pending`,
+`Failed`, `Rejected`) becomes `Voided` through `PaymentBatchTransitions` and its draft orders `Cancelled`; the inputs are
+released; the run is `Reversed`; `IPayrollReversed` is staged in the outbox. If any batch was sent, acknowledged, settled,
+processed or returned, or any order left, the decision is refused and nothing changes: what was paid is corrected by a
+correction run. No reversal batch is written. A run with a funding decision or a partial batch is neither cancelled nor
+reversed here (PLAN-58). A run that has a correction still standing is not reversed, and a posted correction whose recovery
+a later run already took is not reversed.
+
+## The net (PLAN-56)
+
+One definition, `PayrollNet` (`Payroll.Domain/Services/PayrollNet.cs`):
+
+```
+net = round(max(0, gross − deductions + adjustments))
+```
+
+- `SalaryLine.TotalAdjustments` is stored beside `GrossPay`, `TotalDeductions` and `NetPay`; a line's components add up to
+  `gross − deductions + adjustments` (an earning positive, a deduction negative, an adjustment with its sign).
+- The engine (`RoundingRule`), the validation (`ValidateLineIntegrity`), the posting's check, the payslip, the run's page, the
+  reports and the files all read this one net. No other code subtracts deductions from a gross
+  (`Pay056NetComputationArchitectureTests`), and a line's net is written by three named writers only.
+- The posting checks and writes nothing: the saved lines must still be sound and still add up to the total the validation
+  froze, or the posting is refused. What is posted is what was approved.
+- Migration `PAY056_NetFormula` filled `TotalAdjustments` from each line's referenced `Adjustment` components and changed no
+  stored amount. A line posted before PLAN-56 keeps the net it was posted with.
+
+## The correction run (PLAN-56, D-PAY-17)
+
+- An adjustment can be aimed at one posted run (`PayrollAdjustment.TargetSourceRunId`, chosen on the adjustment's form,
+  approved by a second person like any manual input). A regular run never takes a targeted adjustment; the correction of
+  that run takes nothing else.
+- `POST api/payroll/runs/{id}/corrections` (or «تصحيح رجعي» on the run's page) creates the correction from its source: pinned
+  to the source's framework version, one line per employee of the source run who has approved adjustments aimed at it. The
+  general creation of a run makes no correction. One correction not yet posted per source run (409 for a second).
+- A correction line has no base, no deduction and no tax: only `AdjustmentRule` and `RoundingRule` apply. An adjustment is
+  outside the tax and insurance base in a regular run and in a correction alike (D-PAY-17).
+- The correction passes the validation a regular run passes before it is marked validated, then goes through review,
+  approval and posting like every run. It is not posted beside a source that is no longer posted.
+- **A negative difference is not lost.** The line pays nothing, and a `DeductionRecord` of type `CorrectionRecovery` is made
+  in the same save for the shortfall: system-made, approved, naming its line, due on the first day of the period after the
+  corrected one. A regular run takes it once its correction is posted (until then the correction can still be rejected,
+  cancelled or calculated again, and each of those deletes its free recoveries). A recovery larger than that month's net is
+  consumed whole: carrying a deduction above the salary is wave 2 (PAY-E).
 
 ## Rule Pipeline (deterministic order)
 
@@ -139,7 +229,7 @@ reference and status inside the version.
 ## Rounding
 
 - Component amounts: rounded per rule application where applicable  
-- Line `GrossPay`, `TotalDeductions`, `NetPay`: single final pass in `RoundingRule`  
+- Line `GrossPay`, `TotalDeductions`, `TotalAdjustments`, `NetPay`: single final pass in `RoundingRule`; the net is `PayrollNet`'s under the pinned framework's rounding  
 - Policy: `MidpointRounding.AwayFromZero`, scale 2 — **LD-ROUNDING**
 
 ## Event Integration

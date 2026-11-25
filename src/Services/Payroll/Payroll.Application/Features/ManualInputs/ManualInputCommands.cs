@@ -106,12 +106,20 @@ public static class ManualInputMessages
     public const string RejectNoteRequired = "ملاحظة الرفض إلزامية";
     public const string NoteTooLong = "الملاحظة أطول من 500 حرف";
     public const string UnknownActor = "تعذّر تحديد هوية المستخدم";
+    public const string TargetOnlyForAdjustment = "التوجيه إلى تصحيح تشغيل مرحّل للتسوية وحدها";
+    public const string TargetRunNotPosted = "التشغيل المراد تصحيحه غير موجود أو ليس مرحّلاً";
+    public const string TargetRunHasNoLine = "ليس للموظف بند في التشغيل المراد تصحيحه";
 }
 
 /// <summary>
 /// PLAN-54 (§4): a person enters an allowance, a deduction or an adjustment by hand. It is written <c>PendingApproval</c> and of origin
 /// <c>Manual</c>, with who entered it, and counts in no calculation until a second person approves it. The command carries only what
 /// a person may say: the employee, the type, the amount, the dates, the reason. Never the run it applies to.
+/// <para>
+/// PLAN-56 (G-PAY-03): an adjustment may be aimed at the correction of one posted run (<paramref name="TargetSourceRunId"/>): the
+/// run in which the employee was paid what is now corrected. Such an adjustment enters no regular run; the correction run of that
+/// source takes it, after the same approval by a second person.
+/// </para>
 /// </summary>
 public sealed record CreateManualInputCommand(
     ManualInputKind Kind,
@@ -123,7 +131,8 @@ public sealed record CreateManualInputCommand(
     string? DeductionType = null,
     DateOnly? EffectiveFrom = null,
     DateOnly? EffectiveTo = null,
-    DateOnly? DueDate = null) : IRequest<ManualInputResult>;
+    DateOnly? DueDate = null,
+    Guid? TargetSourceRunId = null) : IRequest<ManualInputResult>;
 
 /// <summary>PLAN-54 (§4): a second person, who did not enter the input, approves or rejects it (a rejection needs a reason).</summary>
 public sealed record DecideManualInputCommand(
@@ -155,6 +164,19 @@ public sealed class CreateManualInputHandler(
             return Invalid(request.Kind == ManualInputKind.Adjustment ? ManualInputMessages.AdjustmentNotZero : ManualInputMessages.AmountPositive);
         if (!await repository.EmployeePayProfiles.AsNoTracking().AnyAsync(p => p.EmployeeId == request.EmployeeId, cancellationToken))
             return Invalid(ManualInputMessages.NoPayProfile);
+
+        // PLAN-56 (G-PAY-03): an adjustment aimed at a correction names a posted run in which this employee has a line.
+        if (request.TargetSourceRunId is Guid targetRunId)
+        {
+            if (request.Kind != ManualInputKind.Adjustment)
+                return Invalid(ManualInputMessages.TargetOnlyForAdjustment);
+            if (!await repository.PayrollRuns.AsNoTracking()
+                    .AnyAsync(r => r.Id == targetRunId && r.Status == PayrollRunStatus.Posted, cancellationToken))
+                return Invalid(ManualInputMessages.TargetRunNotPosted);
+            if (!await repository.SalaryLines.AsNoTracking()
+                    .AnyAsync(l => l.PayrollRunId == targetRunId && l.EmployeeId == request.EmployeeId, cancellationToken))
+                return Invalid(ManualInputMessages.TargetRunHasNoLine);
+        }
 
         var approved = !ManualInputApproval.IsRequired(options.Value, environment);
 
@@ -211,6 +233,7 @@ public sealed class CreateManualInputHandler(
                     EmployeeId = request.EmployeeId,
                     Amount = request.Amount,
                     AdjustmentReason = reason,
+                    TargetSourceRunId = request.TargetSourceRunId,
                 });
                 await repository.AddAsync(adjustment, cancellationToken);
                 input = adjustment;

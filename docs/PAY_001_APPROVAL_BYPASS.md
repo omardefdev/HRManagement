@@ -15,49 +15,60 @@ Prevent any endpoint from creating a `PaymentBatch` without a properly reviewed 
 
 ## State Machine
 
-### PayrollRun Lifecycle
+### PayrollRun Lifecycle (as built, PLAN-56)
 
 ```
-Draft ──► Calculating ──► Calculated ──► UnderReview ──► Approved ──► Posted ──► Reversed
-  │                           │                                         │
-  └──► Cancelled              └── (reject) ──► Calculated              └──► (PaymentBatch created)
+Draft ──► Calculating ──► Validating ──► Calculated ──► UnderReview ──► Approved ──► Posted ──► Reversed
+  ▲            │                                            │                          │   (an approved reversal request)
+  │            └── restart a failed/paused calculation ──► Draft                       └──► (PaymentBatch created at the posting)
+  └──────────────────── reject with a note (Revision + 1) ──┘
+
+Draft, Calculating, Validating, Calculated, UnderReview, Approved ──► Cancelled   (with a reason; D-PAY-18)
 ```
+
+The state is written in one place (`PayrollRun.Move`, through `PayrollRunTransitions`). `PayrollRun.Status` has no setter;
+product code cannot assign a state around a transition (`Pay056TransitionTests`, `scripts/pay056-validate.ps1`).
 
 | Transition | Guard | Actor |
 |-----------|-------|-------|
-| Draft → Calculating | `ValidateCanCalculate()` | PayrollProcess policy |
-| Calculating → Calculated | Job completes all partitions | System |
-| Calculated → Validated/Frozen | `ValidatePayrollRunCommand` succeeds | PayrollProcess policy |
+| Draft → Calculating | `BeginCalculating` (`ValidateCanCalculate()`) | PayrollProcess policy |
+| Calculating → Validating → Calculated | Job completes all partitions; `ValidateLineIntegrity` passes; results frozen (`MarkValidated`) | System |
+| Calculated → Calculated (validate again) | `ValidatePayrollRunCommand`: only a run being calculated or calculated; a run sent for review, approved, posted, reversed or cancelled is never brought back | PayrollProcess policy |
 | Calculated → UnderReview | `ValidateCanSubmitForReview()`: lines > 0, validated | PayrollProcess policy |
 | UnderReview → Approved | `ValidateCanApprove()`, creator ≠ approver | PayrollApprove policy |
-| Approved → Posted | `ValidateCanPost()`, approver ≠ poster, audit closed | PayrollPost policy |
-| Posted → Reversed | `ValidateCanReverse()` | PayrollPost policy |
-| Any pre-post → Cancelled | Not posted or reversed | PayrollProcess policy |
+| UnderReview → Draft | `ReopenAfterRejection`: the note is mandatory; the rejected version is kept as a `PayrollRunRevision`, its lines deleted, its inputs released | PayrollApprove policy |
+| Approved → Posted | `ValidateCanPost()`, approver ≠ poster, audit closed; the saved lines still add up to the frozen total (the posting writes no line); `PostedBy`/`PostedAt` recorded | PayrollPost policy |
+| Posted → Reversed | An approved `PayrollReversalRequest`: requested with a reason (`Payroll.Reverse`), decided by another person who is neither the requester nor the poster (`Payroll.Approve`); refused once a batch or an order has left (D-PAY-16) | PayrollReverse + PayrollApprove policies |
+| Any pre-post → Cancelled | `Cancel`: reason mandatory; jobs stopped, inputs released; D-PAY-18: the processor before the run was sent for review, the approver after | PayrollRunCancel policy |
+| Calculating (failed or paused job) → Draft | `RestartCalculationCommand`: results not frozen; job cancelled, lines deleted, inputs released, then a new calculation with a new snapshot | PayrollProcess policy |
 
 ### PaymentBatch Lifecycle
 
 ```
-(created on Post) Pending ──► Processed
-                     │
-                     └──► Reversed (via run reversal)
+(created on Post) Pending ──► Submitted ──► Acked ──► Settled
+                     │             └──► Rejected / Returned
+                     └──► Voided   (an approved reversal of a run whose batch has not left: Pending, Failed or Rejected)
 ```
 
 - **PaymentBatch is ONLY created server-side** inside `PostPayrollRunHandler` after all guards pass
 - No controller endpoint exposes `PaymentBatch` creation
-- `TotalAmount` is computed from `SalaryLines`, never client-supplied
+- `TotalAmount` is the run's frozen total, never client-supplied
 - `ProcessPaymentBatchCommand` requires batch `Pending` + run `Posted`
+- A batch moves only through `PaymentBatchTransitions`. A reversal writes no batch: `PaymentBatchKind.Reversal` stays in the
+  enum for rows written before PLAN-56, and nothing creates one any more
 
 ### SalaryLine Immutability
 
 - Lines modifiable only when run is `Draft`, `Calculated`, or `Calculating` AND `ResultsFrozen == false`
 - After `ValidatePayrollRunCommand` freezes results, no line edits allowed
-- Post-lock corrections use `CreateCorrectionRunCommand` (new run linked to source)
+- Post-lock corrections use `CreateCorrectionRunCommand` (a new run linked to its posted source, made of the approved adjustments aimed at it: PLAN-56)
+- A rejection or a restart deletes the run's lines (the rejected version's fingerprint is kept in `PayrollRunRevision`); no person edits or adds a line
 
 ## Bypass Prevention Controls
 
 ### 1. No Direct DbContext Mutation
 
-All payroll write operations route through MediatR command handlers. The `AddSalaryLine` MVC action checks `ValidateCanModifyLines()` before any persistence. `PaymentBatch` has no create/edit endpoint — only read (index view).
+All payroll write operations route through MediatR command handlers. The manual salary line page is removed (PLAN-56): a line is written by the calculation only, with its components. `PaymentBatch` has no create/edit endpoint — only read (index view).
 
 ### 2. ApproverId from Server Identity
 

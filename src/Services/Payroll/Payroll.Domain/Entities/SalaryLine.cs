@@ -20,6 +20,14 @@ public class SalaryLine : AuditableEntity
     [Display(Name = "إجمالي الخصومات")]
     public decimal TotalDeductions { get; set; }
 
+    /// <summary>
+    /// PLAN-56 (G-PAY-03): the sum of the line's adjustments (positive or negative), written by the engine with the gross and the
+    /// deductions. The net is <see cref="Services.PayrollNet"/> of the three; an adjustment is outside the tax and insurance base
+    /// (D-PAY-17), so it is in neither the gross nor the deductions.
+    /// </summary>
+    [Display(Name = "إجمالي التسويات")]
+    public decimal TotalAdjustments { get; set; }
+
     [Display(Name = "صافي الراتب")]
     public decimal NetPay { get; set; }
 

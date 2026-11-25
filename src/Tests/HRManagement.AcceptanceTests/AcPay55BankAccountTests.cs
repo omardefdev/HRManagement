@@ -495,8 +495,9 @@ public class AcPay55BankAccountTests
             Processor, Approver);
         s.Steps("""
             1. Precondition, in before.json: agency A has no run that covers May or June 2029 (two months the seed's v1 framework
-               governs, that no other class takes), and no pending adjustment with an amount (a run that holds one fails its own
-               reconciliation: PLAN-56's). A second run of the class on the same stack stops here: a rerun needs a fresh stack.
+               governs, that no other class takes), and no pending adjustment with an amount (isolation: a regular run takes every
+               free approved adjustment of its agency, so one left by another class would enter this scenario's runs and move the
+               lines it reads). A second run of the class on the same stack stops here: a rerun needs a fresh stack.
                The two employees 55a left with an account in force are found by the references of their verification.
             2. payroll-processor creates and calculates the Regular run of May 2029. The first employee's input snapshot and salary
                line carry his account in force; the readiness report counts the lines with an account as payroll_db does, and does
@@ -515,8 +516,8 @@ public class AcPay55BankAccountTests
             $"Agency A already has a payroll run covering May or June 2029 ({covering}): AC-PAY-55c took the months in an earlier run; start a fresh stack.");
         var pendingAmounts = await Count($"SELECT count(*) FROM \"PayrollAdjustments\" WHERE \"TenantId\"='{TenantA}' AND \"PayrollRunId\" IS NULL AND \"Amount\" <> 0;");
         AcceptanceGate.RequireData(s.Recorder, pendingAmounts == 0,
-            "للجهة A تسوية معلّقة بمبلغ: التشغيل الذي يحملها لا يطابق نفسه (PLAN-56)",
-            $"Agency A has {pendingAmounts} pending adjustment(s) with an amount: a run that holds one fails its own reconciliation (PLAN-56).");
+            "للجهة A تسوية معلّقة بمبلغ: تدخل تشغيلات هذا السيناريو وتغيّر سطوره (عزل الأصناف)",
+            $"Agency A has {pendingAmounts} pending adjustment(s) with an amount: a regular run would take them into this scenario's runs (isolation between classes).");
         var employee = await EmployeeVerifiedUnderAsync(s.Recorder, "55c", FirstReference);
         var other = await EmployeeVerifiedUnderAsync(s.Recorder, "55c", SecondReference);
         var firstAccount = await ActiveAccountAsync(employee);

@@ -1,0 +1,84 @@
+@model Payroll.Web.ViewModels.PayrollReversalRequestListViewModel
+@{ ViewData["Title"] = "طلبات العكس"; }
+<div class="card">
+    <div class="card-header"><h3 class="card-title mb-0"><i class="fas fa-undo"></i> طلبات العكس</h3></div>
+    <div class="card-body">
+        <p class="text-muted mb-3">عكس تشغيل مرحّل طلبٌ بسبب، يقرر فيه معتمد غير طالبه وغير من رحّل التشغيل. الاعتماد يُبطل دفعة التشغيل ما دامت لم تُرسل إلى المصرف ويحرر مدخلاته؛ وإن خرج المال رُفض العكس ويُصحَّح ما صُرف بتشغيل تصحيح.</p>
+        <form method="get" class="row g-2 mb-3">
+            <div class="col-md-3">
+                <label class="form-label" for="status">الحالة</label>
+                <select id="status" name="status" class="form-select form-select-sm">
+                    <option value="">كل الحالات</option>
+                    @foreach (var option in Html.HrEnumSelectList<PayrollReversalRequestStatus>())
+                    {
+                        <option value="@option.Value" selected="@(Model.Status?.ToString() == option.Value ? "selected" : null)">@option.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end gap-1">
+                <button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary btn-sm" title="مسح الفلاتر" aria-label="مسح الفلاتر"><i aria-hidden="true" class="fas fa-times"></i></a>
+            </div>
+        </form>
+    </div>
+    <div class="card-body p-0 border-top-0 pt-0">
+        <table class="table table-striped mb-0">
+            <thead><tr><th>التشغيل</th><th>حالة التشغيل</th><th>إجمالي الصافي</th><th>الطالب</th><th>تاريخ الطلب</th><th>سبب العكس</th><th>حالة الطلب</th><th>القرار</th></tr></thead>
+            <tbody>
+                @foreach (var r in Model.Items)
+                {
+                    <tr>
+                        <td><a asp-controller="PayrollRuns" asp-action="Details" asp-route-id="@r.PayrollRunId">فترة @Html.HrDate(r.PeriodStart) — @Html.HrEnumDisplay(r.RunType)</a></td>
+                        <td>@Html.HrEnumDisplay(r.RunStatus)</td>
+                        <td>@r.TotalNetPay.ToString("N2")</td>
+                        <td>@await Html.PartialAsync("_UserDisplayName", (object)r.RequestedBy)</td>
+                        <td>@Html.HrDateTime(r.RequestedAt)</td>
+                        <td>@r.Reason</td>
+                        <td>@Html.HrEnumDisplay(r.Status)</td>
+                        <td>
+                            @if (Model.MayDecide(r))
+                            {
+                                <form asp-action="Decide" asp-route-id="@r.Id" method="post" class="d-flex gap-1 mb-1"
+                                      data-hr-confirm="اعتماد عكس التشغيل؟ تُبطَل دفعته التي لم تُرسل، وتتحرر مدخلاته، ويصير التشغيل معكوساً ولا يُصرف."
+                                      data-hr-confirm-title="اعتماد طلب العكس"
+                                      data-hr-confirm-variant="danger"
+                                      data-hr-confirm-label="اعتماد العكس">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="approve" value="true" />
+                                    <input name="notes" class="form-control form-control-sm" maxlength="2000" placeholder="ملاحظة (اختيارية)" aria-label="ملاحظة الاعتماد" />
+                                    <button type="submit" class="btn btn-danger btn-xs"><i class="fas fa-undo"></i> اعتماد العكس</button>
+                                </form>
+                                <form asp-action="Decide" asp-route-id="@r.Id" method="post" class="d-flex gap-1"
+                                      data-hr-confirm="رفض طلب العكس؟ يبقى التشغيل ودفعته كما هما."
+                                      data-hr-confirm-title="رفض طلب العكس"
+                                      data-hr-confirm-variant="warning"
+                                      data-hr-confirm-label="رفض الطلب">
+                                    @Html.AntiForgeryToken()
+                                    <input type="hidden" name="approve" value="false" />
+                                    <input name="notes" class="form-control form-control-sm" maxlength="2000" required placeholder="ملاحظة الرفض (إلزامية)" aria-label="ملاحظة الرفض" />
+                                    <button type="submit" class="btn btn-outline-secondary btn-xs"><i class="fas fa-times"></i> رفض الطلب</button>
+                                </form>
+                            }
+                            else if (r.Status != PayrollReversalRequestStatus.Pending)
+                            {
+                                <span>@await Html.PartialAsync("_UserDisplayName", (object?)r.DecidedBy) — @Html.HrDateTime(r.DecidedAt)</span>
+                                @if (!string.IsNullOrWhiteSpace(r.DecisionNotes))
+                                {
+                                    <div class="text-muted small">@r.DecisionNotes</div>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted">بانتظار قرار معتمد آخر</span>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Items.Any())
+                {
+                    <tr><td colspan="8"><partial name="_HrEmptyState" model="@("لا توجد طلبات عكس.")" /></td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

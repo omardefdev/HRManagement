@@ -1,3 +1,4 @@
+using HRManagement.TestSupport.PayrollRuns;
 using HRManagement.ServiceDefaults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -226,7 +227,7 @@ public sealed class Iam053ActivationJobTests(PostgreSqlFixture fixture)
         await host.AsAsync(tenant, async sp =>
         {
             var db = sp.GetRequiredService<PayrollDbContext>();
-            (await db.PayrollRuns.SingleAsync(r => r.Id == run)).Status = PayrollRunStatus.Reversed;
+            ForTesting.SetStatus(await db.PayrollRuns.SingleAsync(r => r.Id == run), PayrollRunStatus.Reversed);
             return await db.SaveChangesAsync();
         });
         var after = await host.Job.RunOnceAsync();

@@ -136,6 +136,12 @@ public static class PayrollPartitionInputLoader
 
             cancellationToken);
 
+        // PLAN-56 (review): a correction's recovery is taken back only once its correction is posted. Until then the correction
+
+        // can still be rejected, cancelled or calculated again, and each of those deletes its free recoveries.
+
+        await CorrectionRecoveryGate.KeepOnlyThoseOfPostedCorrectionsAsync(repository, deductionsByEmployee, cancellationToken);
+
 
 
         var adjustmentsByEmployee = await LoadKeyedGroupedAsync(
@@ -146,6 +152,9 @@ public static class PayrollPartitionInputLoader
 
                 .Where(a => idSet.Contains(a.EmployeeId)
                             && (a.PayrollRunId == null || a.PayrollRunId == run.Id)
+                            // PLAN-56 (G-PAY-03): an adjustment aimed at the correction of a posted run is that correction's
+                            // alone; a regular run never takes it.
+                            && a.TargetSourceRunId == null
                             && a.ApprovalStatus == ManualInputApprovalStatus.Approved),
 
             cancellationToken);

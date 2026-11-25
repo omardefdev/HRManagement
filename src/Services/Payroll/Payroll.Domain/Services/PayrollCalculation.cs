@@ -5,14 +5,6 @@ namespace Payroll.Domain.Services;
 
 public static class PayrollCalculation
 {
-    public static void ApplyNetFromGrossAndDeductions(SalaryLine line)
-    {
-        line.NetPay = decimal.Round(Math.Max(0, line.GrossPay - line.TotalDeductions), 2, MidpointRounding.AwayFromZero);
-    }
-
-    public static decimal SumNetPay(IEnumerable<SalaryLine> lines) =>
-        lines.Sum(l => l.NetPay);
-
     public static string? ValidatePayrollPeriod(DateTime periodStart, DateTime periodEnd)
     {
         if (periodEnd < periodStart)
@@ -47,9 +39,6 @@ public static class PayrollCalculation
 
         return decimal.Round(total, 2);
     }
-
-    public static decimal CalculateNetPay(decimal gross, decimal totalDeductions) =>
-        decimal.Round(Math.Max(0, gross - totalDeductions), 2, MidpointRounding.AwayFromZero);
 
     public static (SalaryLine Line, List<SalaryLineComponent> Components) GenerateSalaryLine(
         Guid payrollRunId,
@@ -136,7 +125,9 @@ public static class PayrollCalculation
         }
 
         line.TotalDeductions = decimal.Round(totalDeductions, 2);
-        line.NetPay = decimal.Round(Math.Max(0, line.GrossPay - totalDeductions + totalAdjustments), 2, MidpointRounding.AwayFromZero);
+        line.TotalAdjustments = totalAdjustments;
+        // PLAN-56 (G-PAY-03): this builder has no framework version; its net is PayrollNet's under the legacy two-place rounding.
+        line.NetPay = PayrollNet.Net(line.GrossPay, totalDeductions, totalAdjustments, PayrollNet.LegacyRound);
 
         return (line, components);
     }

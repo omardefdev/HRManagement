@@ -84,7 +84,14 @@ public enum PaymentBatchStatus
 
     /// <summary>Funds were returned after settlement (bad account, recall).</summary>
     [Display(Name = "مُرتَجَع")]
-    Returned = 8
+    Returned = 8,
+
+    /// <summary>
+    /// PLAN-56 (D-PAY-16): a batch that never left for the channel, voided when its run's reversal was approved. Final: nothing was
+    /// paid by it and nothing is to be recovered.
+    /// </summary>
+    [Display(Name = "مُبطَل")]
+    Voided = 9
 }
 
 /// <summary>Legal transitions for <see cref="PaymentBatchStatus"/>.</summary>
@@ -92,19 +99,27 @@ public static class PaymentBatchTransitions
 {
     private static readonly Dictionary<PaymentBatchStatus, PaymentBatchStatus[]> Allowed = new()
     {
-        [PaymentBatchStatus.Pending] = [PaymentBatchStatus.Submitted, PaymentBatchStatus.Failed],
+        // PLAN-56 (D-PAY-16): a batch that has not left (pending, failed, rejected by the channel) can be voided by an approved
+        // reversal of its run. Nothing leads out of Voided, and nothing leads into it from a batch the channel holds or has paid.
+        [PaymentBatchStatus.Pending] = [PaymentBatchStatus.Submitted, PaymentBatchStatus.Failed, PaymentBatchStatus.Voided],
         [PaymentBatchStatus.Submitted] = [PaymentBatchStatus.Acked, PaymentBatchStatus.Rejected, PaymentBatchStatus.Failed],
         [PaymentBatchStatus.Acked] = [PaymentBatchStatus.Settled, PaymentBatchStatus.Rejected, PaymentBatchStatus.Failed],
         [PaymentBatchStatus.Settled] = [PaymentBatchStatus.Returned, PaymentBatchStatus.Reversed],
         [PaymentBatchStatus.Processed] = [PaymentBatchStatus.Reversed],
-        [PaymentBatchStatus.Rejected] = [PaymentBatchStatus.Submitted],
+        [PaymentBatchStatus.Rejected] = [PaymentBatchStatus.Submitted, PaymentBatchStatus.Voided],
         [PaymentBatchStatus.Returned] = [PaymentBatchStatus.Submitted],
-        [PaymentBatchStatus.Failed] = [PaymentBatchStatus.Submitted],
-        [PaymentBatchStatus.Reversed] = []
+        [PaymentBatchStatus.Failed] = [PaymentBatchStatus.Submitted, PaymentBatchStatus.Voided],
+        [PaymentBatchStatus.Reversed] = [],
+        [PaymentBatchStatus.Voided] = []
     };
 
     public static bool CanTransition(PaymentBatchStatus from, PaymentBatchStatus to) =>
         Allowed.TryGetValue(from, out var targets) && targets.Contains(to);
+
+    /// <summary>
+    /// PLAN-56 (D-PAY-16): the states of a batch that has not left for the channel. Its run can still be reversed; the batch is voided.
+    /// </summary>
+    public static bool HasNotLeft(PaymentBatchStatus status) => CanTransition(status, PaymentBatchStatus.Voided);
 
     /// <summary>States in which money is considered to have left the treasury.</summary>
     public static bool IsPaid(PaymentBatchStatus status) =>

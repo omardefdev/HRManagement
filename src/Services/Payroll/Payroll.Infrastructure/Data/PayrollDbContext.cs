@@ -47,6 +47,8 @@ public class PayrollDbContext : TenantAwareDbContext
     public DbSet<EmployeeBankAccount> EmployeeBankAccounts => Set<EmployeeBankAccount>();
     public DbSet<PayrollReferenceChangeRequest> PayrollReferenceChangeRequests => Set<PayrollReferenceChangeRequest>();
     public DbSet<PayrollRunApproval> PayrollRunApprovals => Set<PayrollRunApproval>();
+    public DbSet<PayrollRunRevision> PayrollRunRevisions => Set<PayrollRunRevision>();
+    public DbSet<PayrollReversalRequest> PayrollReversalRequests => Set<PayrollReversalRequest>();
     public DbSet<PayslipDelivery> PayslipDeliveries => Set<PayslipDelivery>();
     public DbSet<AbsenceDeduction> AbsenceDeductions => Set<AbsenceDeduction>();
     public DbSet<FraudAlert> FraudAlerts => Set<FraudAlert>();
@@ -76,6 +78,8 @@ public class PayrollDbContext : TenantAwareDbContext
         modelBuilder.Entity<PayrollRun>(entity =>
         {
             entity.Property(e => e.RunType).HasConversion<string>().HasMaxLength(50);
+            // PLAN-56 (G-PAY-04): every run that existed before the column is its first version.
+            entity.Property(e => e.Revision).HasDefaultValue(1);
             entity.Property(e => e.ConfigContentHash).HasMaxLength(64);
             entity.HasOne(e => e.PayrollConfiguration)
                   .WithMany()
@@ -101,11 +105,19 @@ public class PayrollDbContext : TenantAwareDbContext
                   .HasForeignKey(e => e.PayrollRunId)
                   .OnDelete(DeleteBehavior.Cascade);
 
-            // DATA-001 / PAY-003: one live run per tenant/period/type (Reversed=5, Cancelled=8 excluded)
+            // DATA-001 / PAY-003: one live run per tenant/period/type (Reversed=5, Cancelled=8 excluded).
+            // PLAN-56 (§2 rule 4): limited to regular runs. A correction has the period of its source, so the old key refused the
+            // second correction of a month for ever; and a final settlement is per employee (its key is PLAN-64's).
             entity.HasIndex(e => new { e.TenantId, e.PeriodStart, e.PeriodEnd, e.RunType })
                 .IsUnique()
-                .HasDatabaseName("IX_PayrollRuns_LivePeriod")
-                .HasFilter("\"Status\" <> 5 AND \"Status\" <> 8");
+                .HasDatabaseName(PayrollRunIndexNames.LivePeriod)
+                .HasFilter("\"RunType\" = 'Regular' AND \"Status\" <> 5 AND \"Status\" <> 8");
+
+            // PLAN-56 (§2 rule 4): one correction not yet posted per source run (Posted=2, Reversed=5, Cancelled=8 are not open).
+            entity.HasIndex(e => new { e.TenantId, e.SourceRunId })
+                .IsUnique()
+                .HasDatabaseName(PayrollRunIndexNames.OneOpenCorrectionPerSource)
+                .HasFilter("\"RunType\" = 'Correction' AND \"SourceRunId\" IS NOT NULL AND \"Status\" NOT IN (2, 5, 8)");
 
             entity.ConfigureOptimisticConcurrency(this);
         });
@@ -307,6 +319,13 @@ public class PayrollDbContext : TenantAwareDbContext
             entity.Property(e => e.Origin).HasConversion<string>().HasMaxLength(20);
             entity.HasIndex(e => new { e.TenantId, e.ApprovalStatus })
                   .HasDatabaseName("IX_PayrollAdjustments_Tenant_ApprovalStatus");
+            // PLAN-56 (G-PAY-03): an adjustment aimed at the correction of one posted run. That run is never deleted from under it.
+            entity.HasOne(e => e.TargetSourceRun)
+                  .WithMany()
+                  .HasForeignKey(e => e.TargetSourceRunId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => e.TargetSourceRunId)
+                  .HasDatabaseName("IX_PayrollAdjustments_TargetSourceRunId");
         });
 
         modelBuilder.Entity<SalaryScale>(entity =>
@@ -519,6 +538,34 @@ public class PayrollDbContext : TenantAwareDbContext
         modelBuilder.Entity<PayrollRunApproval>(entity =>
         {
             entity.Property(e => e.Decision).HasConversion<string>().HasMaxLength(50);
+        });
+
+        // PLAN-56 (G-PAY-04): what each rejected version of a run was. Kept when the rejection deletes the version's lines.
+        modelBuilder.Entity<PayrollRunRevision>(entity =>
+        {
+            entity.HasOne(e => e.PayrollRun)
+                  .WithMany()
+                  .HasForeignKey(e => e.PayrollRunId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.PayrollRunId, e.Revision })
+                  .IsUnique()
+                  .HasDatabaseName(PayrollRunIndexNames.OneRevisionPerVersion);
+        });
+
+        // PLAN-56 (G-PAY-06): a reversal is a request another person decides; one request waits on a run at a time.
+        modelBuilder.Entity<PayrollReversalRequest>(entity =>
+        {
+            entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(20);
+            entity.HasOne(e => e.PayrollRun)
+                  .WithMany()
+                  .HasForeignKey(e => e.PayrollRunId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.TenantId, e.PayrollRunId })
+                  .IsUnique()
+                  .HasDatabaseName(PayrollRunIndexNames.OnePendingReversalRequest)
+                  .HasFilter("\"Status\" = 'Pending'");
+            entity.HasIndex(e => new { e.TenantId, e.Status });
+            entity.ConfigureOptimisticConcurrency(this);
         });
 
         modelBuilder.Entity<PayslipDelivery>(entity =>

@@ -90,6 +90,9 @@ public static class Ux067PageProbe
         new("payroll-bank-accounts-pending", "/ui/payroll/EmployeeBankAccounts/Pending"),
         new("payroll-bank-accounts", "/ui/payroll/EmployeePayProfiles", @"/EmployeeBankAccounts\?employeeId=[0-9a-fA-F-]{36}"),
         new("payroll-run-details", "/ui/payroll/PayrollRuns", @"/PayrollRuns/Details/[0-9a-fA-F-]{36}"),
+        // PLAN-56: the run's page above carries the run's new acts (reject with a note, cancel with a reason, restart, ask for a
+        // reversal) and its revisions; the reversal requests' list is where an approver decides (the list may be empty).
+        new("payroll-reversal-requests", "/ui/payroll/PayrollReversalRequests"),
         new("asset-details", "/ui/admin-logistics/Assets", @"/Assets/Details/[0-9a-fA-F-]{36}"),
         new("transfers", "/ui/hr-movements/TransferRequests"),
     ];

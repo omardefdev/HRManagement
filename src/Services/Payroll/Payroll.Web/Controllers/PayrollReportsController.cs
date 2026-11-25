@@ -99,7 +99,8 @@ public class PayrollReportsController : Controller
                 c.Amount)).ToList(),
             line.GrossPay,
             line.TotalDeductions,
-            line.NetPay);
+            line.NetPay,
+            line.TotalAdjustments);
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -171,6 +172,8 @@ public class PayrollReportsController : Controller
 
         ws.Cell(1, 1).Value = "الموظف"; ws.Cell(1, 2).Value = "الإجمالي";
         ws.Cell(1, 3).Value = "الخصومات"; ws.Cell(1, 4).Value = "الصافي";
+        // PLAN-56 (G-PAY-03): the adjustments, in a new last column: gross − deductions + adjustments = net.
+        ws.Cell(1, 5).Value = "التسويات";
         ws.Row(1).Style.Font.Bold = true;
 
         int row = 2;
@@ -180,6 +183,7 @@ public class PayrollReportsController : Controller
             ws.Cell(row, 2).Value = line.GrossPay;
             ws.Cell(row, 3).Value = line.TotalDeductions;
             ws.Cell(row, 4).Value = line.NetPay;
+            ws.Cell(row, 5).Value = line.TotalAdjustments;
             row++;
         }
 
@@ -187,6 +191,7 @@ public class PayrollReportsController : Controller
         ws.Cell(row, 2).FormulaA1 = $"SUM(B2:B{row - 1})";
         ws.Cell(row, 3).FormulaA1 = $"SUM(C2:C{row - 1})";
         ws.Cell(row, 4).FormulaA1 = $"SUM(D2:D{row - 1})";
+        ws.Cell(row, 5).FormulaA1 = $"SUM(E2:E{row - 1})";
         ws.Row(row).Style.Font.Bold = true;
         ws.Columns().AdjustToContents();
 
@@ -214,6 +219,7 @@ public class PayrollReportsController : Controller
         ViewBag.Runs = runs;
         ViewBag.TotalGross = runs.SelectMany(r => r.SalaryLines).Sum(l => l.GrossPay);
         ViewBag.TotalDeductions = runs.SelectMany(r => r.SalaryLines).Sum(l => l.TotalDeductions);
+        ViewBag.TotalAdjustments = runs.SelectMany(r => r.SalaryLines).Sum(l => l.TotalAdjustments);
         ViewBag.TotalNet = runs.SelectMany(r => r.SalaryLines).Sum(l => l.NetPay);
         ViewBag.EmployeeCount = runs.SelectMany(r => r.SalaryLines).Select(l => l.EmployeeId).Distinct().Count();
 
@@ -236,9 +242,10 @@ public class PayrollReportsController : Controller
         }
 
         var csv = new System.Text.StringBuilder();
-        csv.AppendLine("EmployeeId,GrossPay,TotalDeductions,NetPay");
+        // PLAN-56 (G-PAY-03): the adjustments are the last column, so a reader by position keeps every column it knew.
+        csv.AppendLine("EmployeeId,GrossPay,TotalDeductions,NetPay,TotalAdjustments");
         foreach (var line in run.SalaryLines.OrderBy(l => l.EmployeeId).Take(SearchFilterBase.MaxExportRows))
-            csv.AppendLine($"{line.EmployeeId},{line.GrossPay},{line.TotalDeductions},{line.NetPay}");
+            csv.AppendLine($"{line.EmployeeId},{line.GrossPay},{line.TotalDeductions},{line.NetPay},{line.TotalAdjustments}");
 
         return File(System.Text.Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", $"payroll-{run.PeriodStart:yyyyMM}.csv");
     }

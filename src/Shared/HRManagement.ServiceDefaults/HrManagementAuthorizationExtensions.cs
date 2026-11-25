@@ -234,6 +234,10 @@ public static class HrManagementAuthorizationExtensions
             // PLAN-55 (P-8): the repair of pay profiles is an administrator's act (roles from configuration, hr-admin by default).
             options.RolesPolicy(HrManagementPolicies.PayrollRepair, HrManagementRoles.Admin);
 
+            // PLAN-56 (D-PAY-18): a run is cancelled by the processing or the approval role (or hr-admin), and by no one else; the
+            // run's state decides which of the two it needs (CancelPayrollRunHandler).
+            options.AddPolicy(HrManagementPolicies.PayrollRunCancel, p => p.RequireAssertion(c => PayrollPolicyRules.CanCancelRun(c.User)));
+
             // PLAN-50 (§5, rule 3): or an active delegate of hr-management-approver for the action's entity type. With no lookup registered
             // (the gateway, HR.Contracts' HireWizard.Step3Approve) it is the two roles only.
             options.AddPolicy(HrManagementPolicies.HrManagementApprove, p => p.AddRequirements(

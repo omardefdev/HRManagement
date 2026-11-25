@@ -24,6 +24,12 @@ public class CreatePayrollRunHandler(IPayrollRepository repository)
         CreatePayrollRunCommand request,
         CancellationToken cancellationToken)
     {
+        // PLAN-56 (review): a correction is made from its source (CreateCorrectionRunCommand): pinned to the source's framework and
+        // period, one open correction per source, calculated from the adjustments aimed at it. This door would make one with none
+        // of that.
+        if (request.RunType == PayrollRunType.Correction)
+            return (false, null, CorrectionRunMessages.CreatedFromItsSource);
+
         var periodErr = PayrollCalculation.ValidatePayrollPeriod(request.PeriodStart, request.PeriodEnd);
         if (periodErr != null) return (false, null, periodErr);
 
@@ -62,13 +68,25 @@ public class CreatePayrollRunHandler(IPayrollRepository repository)
 
 public record CalculatePayrollRunCommand(Guid PayrollRunId) : IRequest<(bool Success, int LinesGenerated, string? Error)>;
 
-public class CalculatePayrollRunHandler(IMediator mediator)
+public class CalculatePayrollRunHandler(IMediator mediator, IPayrollRepository repository)
     : IRequestHandler<CalculatePayrollRunCommand, (bool Success, int LinesGenerated, string? Error)>
 {
     public async Task<(bool Success, int LinesGenerated, string? Error)> Handle(
         CalculatePayrollRunCommand request,
         CancellationToken cancellationToken)
     {
+        // PLAN-56 (G-PAY-03): a correction run that was reopened by a rejection is calculated again as a correction: from the
+        // adjustments aimed at its source, through the validation.
+        var runType = await repository.PayrollRuns.AsNoTracking()
+            .Where(r => r.Id == request.PayrollRunId)
+            .Select(r => (PayrollRunType?)r.RunType)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (runType == PayrollRunType.Correction)
+        {
+            var corrected = await mediator.Send(new CalculateCorrectionRunCommand(request.PayrollRunId), cancellationToken);
+            return (corrected.Success, corrected.LinesGenerated, corrected.Result.Error);
+        }
+
         // PAY-003 / PERF-001: job-based path (snapshot → bounded workers → validate)
         var jobResult = await mediator.Send(new StartPayrollRunJobCommand(request.PayrollRunId), cancellationToken);
         return (jobResult.Success, jobResult.LinesGenerated, jobResult.Error);
@@ -146,35 +164,6 @@ public class ApprovePayrollRunHandler(IPayrollRepository repository, SeparationO
     }
 }
 
-public record RejectPayrollRunCommand(Guid PayrollRunId, Guid ApproverId, string? Notes)
-    : IRequest<(bool Success, string? Error)>;
-
-public class RejectPayrollRunHandler(IPayrollRepository repository)
-    : IRequestHandler<RejectPayrollRunCommand, (bool Success, string? Error)>
-{
-    public async Task<(bool Success, string? Error)> Handle(
-        RejectPayrollRunCommand request,
-        CancellationToken cancellationToken)
-    {
-        repository.ClearChangeTracker();
-        var run = await repository.GetPayrollRunAsync(request.PayrollRunId, includeLines: false, cancellationToken);
-        if (run is null) return (false, "التشغيل غير موجود.");
-
-        try
-        {
-            run.Reject(request.ApproverId, request.Notes);
-            var approval = run.Approvals.OrderByDescending(a => a.DecidedAt).First();
-            repository.MarkAsAdded(approval);
-            await repository.SaveChangesAsync(cancellationToken);
-            return (true, null);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return (false, ex.Message);
-        }
-    }
-}
-
 public record PostPayrollRunCommand(Guid PayrollRunId, Guid PosterId) : IRequest<(bool Success, string? Error)>;
 
 public class PostPayrollRunHandler(
@@ -218,6 +207,17 @@ public class PostPayrollRunHandler(
             var postErr = run.ValidateCanPost();
             if (postErr != null) return (false, postErr);
 
+            // PLAN-56 (review): a correction is posted beside a posted run. If its source was reversed since, there is nothing to
+            // correct: the correction would pay or recover a difference on top of a run that paid nothing.
+            if (run.RunType == PayrollRunType.Correction)
+            {
+                var sourcePosted = run.SourceRunId is Guid sourceId
+                    && await repository.PayrollRuns.AsNoTracking()
+                        .AnyAsync(r => r.Id == sourceId && r.Status == PayrollRunStatus.Posted, cancellationToken);
+                if (!sourcePosted)
+                    return (false, CorrectionRunMessages.SourceNoLongerPosted);
+            }
+
             var job = await repository.PayrollRunJobs
                 .Include(j => j.Partitions)
                 .Where(j => j.PayrollRunId == run.Id)
@@ -235,11 +235,19 @@ public class PostPayrollRunHandler(
                 return (false, "يجب نجاح التحقق قبل الترحيل.");
             }
 
-            foreach (var sl in run.SalaryLines)
-                PayrollCalculation.ApplyNetFromGrossAndDeductions(sl);
+            // PLAN-56 (G-PAY-03): the posting checks and writes nothing. The saved lines must still be sound, and still add up to the
+            // total the validation froze: what is posted is what was approved. No line is assigned here.
+            var saved = await PayrollRunLines.LoadAsync(repository, run, cancellationToken);
+            var (totalsOk, totalsError) = PayrollRunReconciliation.ValidateTotals(
+                run, saved.Lines, saved.ComponentsByLine, round: saved.Round);
+            if (!totalsOk)
+                return (false, $"{PayrollRunReconciliation.ResultsChangedSinceValidation} ({totalsError})");
+            if (saved.SumNet != run.TotalNetPay)
+                return (false, PayrollRunReconciliation.ResultsChangedSinceValidation);
 
-            var total = PayrollCalculation.SumNetPay(run.SalaryLines);
-            run.Post(total);
+            var total = run.TotalNetPay;
+            // PLAN-56 (G-PAY-06): the run keeps who posted it; the decider of its reversal is never that person.
+            run.Post(request.PosterId, DateTime.UtcNow);
 
             // PAY-003: Post creates Pending disbursement; Pay sets ProcessedAt later.
             await repository.AddAsync(new PaymentBatch
@@ -262,76 +270,6 @@ public class PostPayrollRunHandler(
                 run.Id, run.PeriodStart, run.PeriodEnd, run.TotalNetPay, cancellationToken);
             await repository.SaveChangesAsync(cancellationToken);
 
-            return (true, null);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return (false, ex.Message);
-        }
-    }
-}
-
-public record ReversePayrollRunCommand(Guid PayrollRunId) : IRequest<(bool Success, string? Error)>;
-
-public class ReversePayrollRunHandler(IPayrollRepository repository)
-    : IRequestHandler<ReversePayrollRunCommand, (bool Success, string? Error)>
-{
-    public async Task<(bool Success, string? Error)> Handle(
-        ReversePayrollRunCommand request,
-        CancellationToken cancellationToken)
-    {
-        repository.ClearChangeTracker();
-        var run = await repository.GetPayrollRunAsync(request.PayrollRunId, includeLines: true, cancellationToken);
-        if (run is null) return (false, "التشغيل غير موجود.");
-
-        try
-        {
-            var original = await repository.PaymentBatches
-                .Where(b => b.PayrollRunId == run.Id
-                            && b.BatchKind == PaymentBatchKind.Disbursement
-                            && b.Status != PaymentBatchStatus.Reversed)
-                .OrderByDescending(b => b.CreatedAt)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            run.Reverse();
-
-            // A reversal moves real money back and therefore goes through the same banking cycle
-            // as a disbursement. Creating it already "Processed" recorded a refund that no bank
-            // had been asked to make.
-            var reversal = new PaymentBatch
-            {
-                PayrollRunId = run.Id,
-                TotalAmount = original?.TotalAmount ?? run.TotalNetPay,
-                Status = PaymentBatchStatus.Pending,
-                BatchKind = PaymentBatchKind.Reversal,
-                ReversesBatchId = original?.Id,
-                BankTransferReference = $"REV-{run.PeriodStart:yyyyMM}-{run.Id:N}"[..32]
-            };
-            await repository.AddAsync(reversal, cancellationToken);
-
-            if (original is not null)
-                original.Status = PaymentBatchStatus.Reversed;
-
-            // Release applied deductions/absences for compensation path
-            var deductions = await repository.DeductionRecords
-                .Where(d => d.AppliedInRunId == run.Id)
-                .ToListAsync(cancellationToken);
-            foreach (var d in deductions) d.AppliedInRunId = null;
-
-            var absences = await repository.AbsenceDeductions
-                .Where(a => a.AppliedInRunId == run.Id)
-                .ToListAsync(cancellationToken);
-            foreach (var a in absences) a.AppliedInRunId = null;
-
-            await repository.AddAsync(new PayrollAuditRecord
-            {
-                PayrollRunId = run.Id,
-                Status = AuditStatus.Closed,
-                Findings = "عكس تعويضي PAY-003",
-                ClosedAt = DateTime.UtcNow
-            }, cancellationToken);
-
-            await repository.SaveChangesAsync(cancellationToken);
             return (true, null);
         }
         catch (InvalidOperationException ex)

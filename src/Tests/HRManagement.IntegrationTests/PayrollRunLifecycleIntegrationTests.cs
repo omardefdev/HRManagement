@@ -103,8 +103,13 @@ public class PayrollRunLifecycleIntegrationTests
         Assert.Equal(PayrollRunStatus.Approved, run!.Status);
     }
 
+    /// <summary>
+    /// PLAN-56 (G-PAY-06): this test used to post a manual line to an approved run and see it refused. The manual line is removed
+    /// altogether, so no request can add a line to any run: the lines of an approved run are the calculation's, and the run still
+    /// says they cannot be modified.
+    /// </summary>
     [Fact]
-    public async Task AddSalaryLine_WhenRunApproved_DoesNotPersistLine()
+    public async Task A_line_cannot_be_added_to_an_approved_run_because_no_action_adds_a_line()
     {
         var (root, scope, db, _) = await CreatePayrollScopeAsync();
         await using var _ = scope;
@@ -121,24 +126,13 @@ public class PayrollRunLifecycleIntegrationTests
         db.PayrollRuns.Add(run);
         await db.SaveChangesAsync();
 
-        var controller = new PayrollRunsController(
-            db,
-            Mock.Of<IMediator>(),
-            Mock.Of<IHrCoreLookupClient>());
-        var line = new SalaryLine
-        {
-            PayrollRunId = run.Id,
-            EmployeeId = Guid.NewGuid(),
-            GrossPay = 1000m,
-            TotalDeductions = 100m,
-            PayComponents = "manual"
-        };
-
-        var result = await controller.AddSalaryLine(line);
-
-        var view = Assert.IsType<ViewResult>(result);
-        Assert.False(controller.ModelState.IsValid);
-        Assert.Equal(line, view.Model);
+        Assert.NotNull(run.ValidateCanModifyLines());
+        Assert.DoesNotContain(
+            typeof(PayrollRunsController).GetMethods(),
+            m => m.GetParameters().Any(p => p.ParameterType == typeof(SalaryLine)));
+        Assert.Null(typeof(PayrollRunsController).GetMethod("AddSalaryLine"));
+        Assert.False(System.IO.File.Exists(Path.Combine(
+            HRManagement.TestSupport.RepoPaths.Root, "src", "Services", "Payroll", "Payroll.Web", "Views", "PayrollRuns", "AddSalaryLine.cshtml")));
         Assert.Empty(await db.SalaryLines.ToListAsync());
     }
 
