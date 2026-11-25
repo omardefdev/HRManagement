@@ -32,14 +32,29 @@ On `feature/plan-56-pay-run-state-machine`, from `origin/main` `a8f6ee32` (after
 | `3f76e56c` | feat(pay056): every transition of a payroll run passes a guard; the validation revives nothing; the manual salary line is removed |
 | `6b1d3730` | feat(pay056): a rejection reopens the run with its revision; any run not posted can be cancelled with a reason; inputs are released; a failed calculation can be restarted |
 | `fc82f704` | feat(pay056): the correction run takes only the adjustments aimed at its source, passes the validation, taxes no difference, and recovers a negative difference in the next cycle |
-| `4635260c` | feat(pay056): a reversal is a request with a reason that another person approves; it voids a batch that has not left, refuses one that has, frees the inputs and publishes IPayrollReversed |
-| `ceb579ef` | test(pay056): PostgreSQL proofs of a concurrent rejection, a cancellation under a running job, the run indexes, and the reversal's event in its own transaction |
-| `93de869e` | test(pay056): AC-PAY-56's class with its CI scope, ownership and personas; the validate script with its self-test; AC-UX-67's key pages |
-| `ff7143ff` | fix(pay056): the independent review — a recovery waits for its correction's posting; a cancelled job is never revived; a correction and a reversal check each other; one door to a correction; the poster of an older run |
-| `e2f12e1c` | fix(pay056): the payslip API answers the line's stored figures and components (it answered 500 on a serializer cycle); AC-PAY-56a reads it |
-| `69570ea4` | test(pay056): AC-PAY-56a..f pass on the prod-like stack; review fixes; CI scope and ownership — **the commit the demo server runs** (`69570ea4e1f6`) |
-| `22fdebb0` | test(pay056): demo server with the new run acts, a refused reversal request and the net migration; PLAN-36..55 server checks still green |
-| (this commit) | docs(pay056): the documents and this report |
+| `98275551` | feat(pay056): a reversal is a request with a reason that another person approves; it voids a batch that has not left, refuses one that has, frees the inputs and publishes IPayrollReversed |
+| `3e8a5db3` | test(pay056): PostgreSQL proofs of a concurrent rejection, a cancellation under a running job, the run indexes, and the reversal's event in its own transaction |
+| `6921a5cb` | test(pay056): AC-PAY-56's class with its CI scope, ownership and personas; the validate script with its self-test; AC-UX-67's key pages |
+| `5caa8da7` | fix(pay056): the independent review — a recovery waits for its correction's posting; a cancelled job is never revived; a correction and a reversal check each other; one door to a correction; the poster of an older run |
+| `9072032f` | fix(pay056): the payslip API answers the line's stored figures and components (it answered 500 on a serializer cycle); AC-PAY-56a reads it |
+| `93b09c18` | test(pay056): AC-PAY-56a..f pass on the prod-like stack; review fixes; CI scope and ownership — **the code the demo server was built from in P9** (as `69570ea4e1f6`, this commit's id before the rewrite below) |
+| `87f956c7` | test(pay056): demo server with the new run acts, a refused reversal request and the net migration; PLAN-36..55 server checks still green |
+| `6847ab14` | docs(pay056): the documents and this report |
+| `f540b95a` | docs(pay056): the pull request's description |
+| (this commit) | docs(pay056): the history rewritten before the push for one test literal gitleaks read as a key |
+
+**The ids changed once, before anything was pushed.** The pre-push check's gitleaks found one `generic-api-key` in this plan's
+range: the test literal `IdempotencyKey = "pay056-…"` of a planted payment order in `Pay056ReversalTests.cs` (commit
+`4635260c`). It is no secret; but gitleaks reads every commit, an allowlist entry is not an answer, and a later fix would have
+left the finding in the history. So the three literals were shortened **in the commit that introduced them**
+(`git commit --amend` on a branch at that commit) and the eight later commits were replayed onto it (`git rebase --onto`).
+Nothing had been pushed, so nothing was force-pushed. The whole difference between the old history and the new one is those
+three lines of one test file (`git diff` of the two heads); a local branch `backup/plan-56-before-gitleaks-rewrite` keeps the
+old one until the merge. Old → new: `4635260c` → `98275551`, `ceb579ef` → `3e8a5db3`, `93de869e` → `6921a5cb`,
+`ff7143ff` → `5caa8da7`, `e2f12e1c` → `9072032f`, `69570ea4` → `93b09c18`, `22fdebb0` → `87f956c7`, `6bf88b25` → `6847ab14`,
+`d9d11ab6` → `f540b95a`. The acceptance images and the server's images of P9 were built from the old ids; their product code
+is the same. **The server is built and deployed again from the final head, so that its tag is a commit of `main`** (the merge
+note in `reports/plan56-progress.md`); and the local gates were run again on the new head.
 
 ## 3. Decisions applied and deviations
 
@@ -305,7 +320,8 @@ as they were.
 (posted 4, approved 1, calculated 1), 2,550 lines with the checksum `994e497f…`, no adjustment component, batches `Processed` 5
 and `Pending` 1, no order, hold or job; 425 pay profiles with no legal regime.
 
-**After:** tag **`69570ea4e1f6`**, 22 containers, healthy at 12:04:55Z; the same six runs in the same states at revision 1, the
+**After:** tag **`69570ea4e1f6`** (the P7 commit under its id before the rewrite of §2; redeployed from the final head
+afterwards: the merge note), 22 containers, healthy at 12:04:55Z; the same six runs in the same states at revision 1, the
 same 2,550 lines with the same checksum, the same batches. **No demo run changed state and no amount changed.**
 
 | # | Time (UTC) | Change | Undo |
