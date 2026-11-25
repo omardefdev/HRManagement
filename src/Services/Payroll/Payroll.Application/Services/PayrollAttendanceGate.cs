@@ -22,8 +22,8 @@ public sealed record PayrollAttendanceGateDecision(string? Refusal, int Missing,
 
 /// <summary>
 /// PLAN-57 (§4 rule 7, §5): before a regular run is calculated, payroll knows which employees' attendance is not closed for its
-/// period. «Not closed» is an employee in the run's scope (an active pay profile) with no <see cref="AttendanceSummaryReceipt"/>
-/// whose period overlaps the run's.
+/// period. «Not closed» is an employee in the run's scope (an active pay profile, and a pay profile that began by the period's end)
+/// with no <see cref="AttendanceSummaryReceipt"/> whose period overlaps the run's.
 /// <list type="bullet">
 /// <item><c>Warn</c> (the default, D-LVA-10): the calculation goes on, and one <b>open</b> <see cref="PayrollAuditRecord"/> of the run
 /// carries the count and the list. It is never a closed record: a closed record is what lets a run be posted.</item>
@@ -50,8 +50,14 @@ public sealed class PayrollAttendanceGate(IPayrollRepository repository, IOption
     {
         var periodStart = DateOnly.FromDateTime(run.PeriodStart);
         var periodEnd = DateOnly.FromDateTime(run.PeriodEnd);
+        // The run's scope for attendance: an employee with an active pay profile who had a pay profile by the period's end. A person
+        // whose first profile begins after the period was not on the payroll then and has no attendance to close for it; without
+        // this, one new hire would hold back (Block) or flag (Warn) every run of an earlier month for ever.
+        var startedBefore = periodEnd.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var inScope = await repository.EmployeePayProfiles.AsNoTracking()
-            .Where(p => p.IsActive)
+            .Where(p => p.IsActive
+                        && (repository.EmployeePayProfiles.Any(q => q.EmployeeId == p.EmployeeId && q.EffectiveFrom < startedBefore)
+                            || repository.EmployeePayProfileHistories.Any(h => h.EmployeeId == p.EmployeeId && h.EffectiveFrom < startedBefore)))
             .Select(p => p.EmployeeId)
             .Distinct()
             .ToListAsync(ct);

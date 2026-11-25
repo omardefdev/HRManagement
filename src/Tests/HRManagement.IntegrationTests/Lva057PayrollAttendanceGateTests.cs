@@ -113,6 +113,52 @@ public sealed class Lva057PayrollAttendanceGateTests
     }
 
     [Fact]
+    public async Task An_employee_whose_first_pay_profile_begins_after_the_period_is_not_in_the_gates_scope()
+    {
+        await using var scope = await Pay056RunScope.CreateAsync(Mode(PayrollAttendanceGateMode.Block));
+        var onPayroll = await scope.EmployeeAsync();
+        // Hired after January 2028: no attendance of that month can ever be closed for him, and he must not hold its run back.
+        var hiredLater = Guid.NewGuid();
+        scope.Db.EmployeePayProfiles.Add(new EmployeePayProfile
+        {
+            EmployeeId = hiredLater,
+            BaseSalary = 900_000m,
+            EffectiveFrom = new DateTime(2028, 3, 1, 0, 0, 0, DateTimeKind.Utc),
+            IsActive = true
+        });
+        // On the payroll since 2020 with a salary change that began after the period: his older profile keeps him in scope.
+        var changedLater = Guid.NewGuid();
+        scope.Db.EmployeePayProfiles.AddRange(
+            new EmployeePayProfile
+            {
+                EmployeeId = changedLater,
+                BaseSalary = 800_000m,
+                EffectiveFrom = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+                EffectiveTo = new DateTime(2028, 2, 29, 0, 0, 0, DateTimeKind.Utc),
+                IsActive = false
+            },
+            new EmployeePayProfile
+            {
+                EmployeeId = changedLater,
+                BaseSalary = 900_000m,
+                EffectiveFrom = new DateTime(2028, 3, 1, 0, 0, 0, DateTimeKind.Utc),
+                IsActive = true
+            });
+        await scope.Db.SaveChangesAsync();
+        await Lva057Payroll.ReceiveAsync(scope.Db, Lva057Summary.Close(onPayroll, 2028, 1, absentDays: 0));
+        var run = await scope.CreateRunAsync(2028, 1);
+        var gate = scope.Services.GetRequiredService<PayrollAttendanceGate>();
+
+        var (inScope, missing) = await gate.MissingAsync(await scope.Db.PayrollRuns.SingleAsync(r => r.Id == run));
+
+        Assert.Equal(2, inScope);
+        Assert.Equal([changedLater], missing);
+        // March's run has all three in scope.
+        var march = await scope.CreateRunAsync(2028, 3);
+        Assert.Equal(3, (await gate.MissingAsync(await scope.Db.PayrollRuns.SingleAsync(r => r.Id == march))).InScope);
+    }
+
+    [Fact]
     public async Task One_warning_record_per_run_is_refreshed_by_the_next_evaluation()
     {
         await using var scope = await Pay056RunScope.CreateAsync();
