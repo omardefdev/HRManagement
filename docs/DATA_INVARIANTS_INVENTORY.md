@@ -19,7 +19,7 @@
 |---|-----------|-------------|------|--------|-------|
 | 1 | سطر راتب واحد لكل موظف لكل تشغيل | Payroll / `SalaryLines` | UK `(PayrollRunId, EmployeeId)` | P0 | C |
 | 2 | ملف دفع نشط واحد لكل موظف | Payroll / `EmployeePayProfiles` | PUK `(EmployeeId) WHERE "IsActive"` | P0 | C |
-| 3 | تشغيل حي واحد لكل جهة/فترة/نوع | Payroll / `PayrollRuns` | PUK `(TenantId, PeriodStart, PeriodEnd, RunType) WHERE Status NOT IN (Reversed)` | P0 | C |
+| 3 | تشغيل حي واحد لكل جهة/فترة/نوع | Payroll / `PayrollRuns` | PUK `(TenantId, PeriodStart, PeriodEnd, RunType) WHERE RunType = Regular AND Status NOT IN (Reversed, Cancelled)` (PLAN-56); تصحيح مفتوح واحد لكل تشغيل مرجعي: PUK `(TenantId, SourceRunId) WHERE RunType = Correction AND Status NOT IN (Posted, Reversed, Cancelled)`؛ طلب عكس معلّق واحد لكل تشغيل: PUK `(TenantId, PayrollRunId) WHERE Status = Pending` | P0 | C |
 | 4 | دفعة بنكية فريدة لكل مرجع ضمن التشغيل | Payroll / `PaymentBatches` | UK `(PayrollRunId, BankTransferReference)` | P0 | C |
 | 5 | مرجع ملف فريد لكل حامل | File.Storage / `FileReferences` | UK `(FileId, HolderKey)` — موجود | — | — |
 | 6 | عدّاد مراجع متسق | File.Storage / `Files.ReferenceCount` | ATOM ±1 | P0 | D |
@@ -57,9 +57,13 @@ GROUP BY 1,2 HAVING COUNT(*) > 1;
 SELECT "EmployeeId", COUNT(*) FROM "EmployeePayProfiles"
 WHERE "IsActive" GROUP BY 1 HAVING COUNT(*) > 1;
 
--- Live payroll runs
+-- Live regular payroll runs (PLAN-56: IX_PayrollRuns_LivePeriod leaves out Reversed 5 and Cancelled 8, and other run types)
 SELECT "TenantId", "PeriodStart", "PeriodEnd", "RunType", COUNT(*) FROM "PayrollRuns"
-WHERE "Status" <> 5 GROUP BY 1,2,3,4 HAVING COUNT(*) > 1;
+WHERE "RunType" = 'Regular' AND "Status" <> 5 AND "Status" <> 8 GROUP BY 1,2,3,4 HAVING COUNT(*) > 1;
+
+-- Open corrections per source run (PLAN-56: IX_PayrollRuns_OneOpenCorrectionPerSource; not Posted 2, Reversed 5, Cancelled 8)
+SELECT "TenantId", "SourceRunId", COUNT(*) FROM "PayrollRuns"
+WHERE "RunType" = 'Correction' AND "SourceRunId" IS NOT NULL AND "Status" NOT IN (2, 5, 8) GROUP BY 1,2 HAVING COUNT(*) > 1;
 ```
 
 سكربت مساعد: `scripts/detect-data001-duplicates.sql`.
