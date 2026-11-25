@@ -21,7 +21,9 @@ public static class PayrollDeterminismComparer
         decimal GrossPay,
         decimal TotalDeductions,
         decimal NetPay,
-        IReadOnlyList<CanonicalComponent> Components);
+        IReadOnlyList<CanonicalComponent> Components,
+        // PLAN-56 (G-PAY-03): two runs are the same only if their adjustments are too; gross − deductions + adjustments = net.
+        decimal TotalAdjustments = 0m);
 
     public static string ComputeAggregateInputFingerprint(IEnumerable<(Guid EmployeeId, string? Fingerprint)> snapshots)
     {
@@ -59,7 +61,8 @@ public static class PayrollDeterminismComparer
                 line.GrossPay,
                 line.TotalDeductions,
                 line.NetPay,
-                canonicalComps);
+                canonicalComps,
+                line.TotalAdjustments);
         }).ToList();
     }
 
@@ -111,6 +114,7 @@ public static class PayrollDeterminismComparer
         a.GrossPay == b.GrossPay
         && a.TotalDeductions == b.TotalDeductions
         && a.NetPay == b.NetPay
+        && a.TotalAdjustments == b.TotalAdjustments
         && a.Components.Count == b.Components.Count
         && a.Components.Zip(b.Components).All(pair =>
             pair.First.ComponentType == pair.Second.ComponentType

@@ -110,4 +110,26 @@ public static class TestDataFactory
             EffectiveFrom = DateTime.UtcNow.AddYears(-1),
             IsActive = true
         };
+
+    /// <summary>
+    /// PLAN-56: the components of a planted line with no adjustment, so that it is a sound line (its components add up to its gross
+    /// minus its deductions). The posting checks the saved lines again, and refuses a line with no components.
+    /// </summary>
+    public static IEnumerable<Payroll.Domain.Entities.SalaryLineComponent> ComponentsOf(Payroll.Domain.Entities.SalaryLine line) =>
+    [
+        new()
+        {
+            SalaryLineId = line.Id,
+            ComponentType = Payroll.Domain.Enums.SalaryComponentType.BaseSalary,
+            ComponentName = "الراتب الأساسي",
+            Amount = line.GrossPay,
+        },
+        new()
+        {
+            SalaryLineId = line.Id,
+            ComponentType = Payroll.Domain.Enums.SalaryComponentType.Deduction,
+            ComponentName = "اقتطاعات",
+            Amount = -line.TotalDeductions,
+        },
+    ];
 }

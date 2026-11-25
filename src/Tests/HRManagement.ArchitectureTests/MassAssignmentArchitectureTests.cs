@@ -25,7 +25,8 @@ public sealed class MassAssignmentArchitectureTests
         ["hr-health"] = 20,
         // 16 until PLAN-53 replaced five entity bindings with view models: the pay profile form (PayProfileChangeRequestViewModel) and
         // the Create and Edit forms of the grades and the salary scales (PayGradeChangeViewModel, SalaryScaleChangeViewModel).
-        ["payroll"] = 11,
+        // 11 until PLAN-56 removed the manual salary line (`PayrollRuns.AddSalaryLine`): a manual change is an approved adjustment.
+        ["payroll"] = 6,
         ["hr-training"] = 14,
         ["it-infra"] = 14,
         ["dev-analytics"] = 12,

@@ -14,6 +14,10 @@ internal static class PayProfileChangeHttp
         return Guid.TryParse(value, out var id) ? id : throw new UnauthorizedAccessException("Missing user identity claim.");
     }
 
+    /// <summary>The caller's id, or null when the principal carries none (a page that only reads).</summary>
+    public static Guid? TryUserId(ClaimsPrincipal user) =>
+        Guid.TryParse(user.FindFirstValue(ClaimTypes.NameIdentifier) ?? user.FindFirstValue("sub"), out var id) ? id : null;
+
     public static string? UserName(ClaimsPrincipal user) =>
         user.FindFirstValue("preferred_username") ?? user.FindFirstValue("name") ?? user.Identity?.Name;
 

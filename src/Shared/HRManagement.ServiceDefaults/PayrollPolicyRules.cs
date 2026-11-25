@@ -24,6 +24,9 @@ public static class PayrollPolicyRules
     public static bool CanApprove(ClaimsPrincipal user) =>
         user.IsInRole(HrManagementRoles.Admin) || user.IsInRole(HrManagementRoles.PayrollApprover);
 
+    /// <summary>PLAN-56 (D-PAY-18): who may cancel a run at all: the processing or the approval role (or hr-admin).</summary>
+    public static bool CanCancelRun(ClaimsPrincipal user) => CanProcess(user) || CanApprove(user);
+
     public static bool CanChangeMasterData(ClaimsPrincipal user, IConfiguration? configuration) =>
         ConfiguredRolesHandler.IsSatisfied(user, configuration, MasterData);
 

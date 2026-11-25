@@ -98,21 +98,16 @@ public sealed class PaymentOrderService(PayrollDbContext db)
             case PaymentOrderStatus.Rejected:
                 order.RejectedAt ??= now;
                 break;
+            case PaymentOrderStatus.Cancelled:
+                // PLAN-56 (D-PAY-16): nothing was sent and nothing was paid; the order keeps no date of its own (its audit row has it).
+                break;
         }
 
         await db.SaveChangesAsync(cancellationToken);
         return true;
     }
 
+    // PLAN-56: the transitions are the domain's (PaymentOrderTransitions), shared with the reversal that cancels a draft order.
     private static bool CanTransition(PaymentOrderStatus current, PaymentOrderStatus target) =>
-        (current, target) switch
-        {
-            (PaymentOrderStatus.Draft, PaymentOrderStatus.Submitted) => true,
-            (PaymentOrderStatus.Submitted, PaymentOrderStatus.Acknowledged) => true,
-            (PaymentOrderStatus.Submitted, PaymentOrderStatus.Rejected) => true,
-            (PaymentOrderStatus.Acknowledged, PaymentOrderStatus.Settled) => true,
-            (PaymentOrderStatus.Acknowledged, PaymentOrderStatus.PartiallySettled) => true,
-            (PaymentOrderStatus.Acknowledged, PaymentOrderStatus.Rejected) => true,
-            _ => false
-        };
+        PaymentOrderTransitions.CanTransition(current, target);
 }

@@ -59,6 +59,27 @@ dotnet test src/Tests/HRManagement.ArchitectureTests/HRManagement.ArchitectureTe
   صفوف مفروض في جهتين، تحققين متزامنين وتسجيلات متزامنة والفهرس المرشَّح، ترتيب حدثَي إنشاء الموظف وتفعيل العقد بالاتجاهين،
   تشغيلاً حقيقياً يثبّت الحساب ثم أوامر دفعه وملف خزينته، ونطاق الفرع والإصلاح عبر HTTP. صنف القبول يحسب تشغيلَي أيار وحزيران
   2029 للجهة A (شهران تحكمهما نسخة البذرة v1 ولا يأخذهما صنف آخر): إعادة تشغيله على المكدس نفسه تتوقف عند شرط 55c.
+- منذ PLAN-56 (آلة حالات تشغيل الرواتب): `Pay056NetComputationArchitectureTests` يقرأ شيفرة الرواتب والشيفرة المشتركة التي
+  تحمل أرقام السطر نصاً، ويفشل عند أي طرح من إجمالي أو طرح لمجموع الاستقطاعات خارج `PayrollNet`، وعند كاتب جديد لـ`NetPay`
+  غير الثلاثة المسمَّين. `Pay056TransitionTests` يغطي مصفوفة الانتقالات كلها (كل فعل من كل حالة) ويثبت أن حالة التشغيل لا تُكتب
+  إلا في `PayrollRun.cs`؛ الاختبارات التي تحتاج تشغيلاً في حالة لم يبلغها بأفعاله تضبطها بـ`ForTesting.SetStatus` (ملف في
+  مشاريع الاختبار وحدها). `PayrollWriteActionsTests` كسب صفوف الأفعال الجديدة (الرفض `Payroll.Approve`، الإلغاء
+  `Payroll.RunCancel`، إعادة البدء والتصحيح `Payroll.Process`، طلب العكس `Payroll.Reverse`، قراره `Payroll.Approve`)، وسقف
+  ربط الكيانات للرواتب نزل إلى 6 بحذف «إضافة سطر». اختبارات التكامل على SQLite: `Pay056PostingTests`، `Pay056GuardTests`،
+  `Pay056LifecycleTests`، `Pay056CorrectionTests`، `Pay056ReversalTests`، `Pay056ReviewFixTests` (ما وجدته المراجعة المستقلة
+  بين التصحيح واسترداده والعكس). وعلى PostgreSQL (Testcontainers، يلتقطها مرشح CI): `Pay056MigrationPostgreSqlTests` (ملء
+  `TotalAdjustments` بدور الهجرة تحت أمان صفوف مفروض، ولا مبلغ يتغير)، `Pay056RunLifecyclePostgreSqlTests` (رفض متزامن مع
+  اعتماد، إلغاء تحت مهمة تعمل، استئناف قرأ مهمته قبل إلغاء مثبَّت، فهارس الفترة الحية والتصحيح المفتوح، حدث العكس في outbox
+  معاملته، مرجع مصرفي مكرر)، `Pay056RunLifecycleHttpTests` (الأجوبة 400/403/404/409، رمز منع التزوير على كل كتابة، القسيمة).
+  `Pay056RollbackReadingTests` يثبّت ما تبني عليه ملاحظة التراجع: أسماء الحالات الجديدة تُخزَّن نصاً، وإصدار لا يعرف الاسم
+  لا يقرأ صفّه. `scripts/pay056-validate.ps1` (ومعه `-SelfTest` بواحد وأربعين عيباً مزروعاً) يجمع ثوابت الخطة السبعة: الصافي
+  في `PayrollNet` وحده، حالة التشغيل لا تُكتب خارج مكانها ولا يُنشأ تشغيل خارج المنشئَين والبذرتين، لا دفعة عكس ولا
+  `ReversePayrollRunCommand` ولا `AddSalaryLine`، الهجرتان بلا BOM والأولى ترفع `FORCE` حول ملئها وتعيده ولا تكتب غير
+  `TotalAdjustments`، رمز منع التزوير على كل كتابة في متحكمات التشغيل وعلى إلغاء المهمة القديم (`POST api/payroll/jobs/{id}/cancel`)، صف `IPayrollReversed` في جرد الناشرين، و
+  `AcPay56RunStateMachineTests` مطلوبة في prod-like (مجموعة `main`). صنف القبول يأخذ أشهر كانون الثاني–حزيران 2028 للجهة A
+  (تحكمها نسخة البذرة v1 ولا يأخذها صنف آخر): إعادة تشغيله على المكدس نفسه تتوقف عند شرط 56a، ولا يترك مدخلاً حراً بمبلغ
+  في الجهة A (شرط AC-PAY-55c باقٍ بسبب العزل بين الأصناف). ترحيل تشغيلاته يحتاج سجل مراجعة مغلقاً يصنعه
+  `scripts/acceptance-payroll-audit-fixture.ps1` شرطاً مسبقاً للاختبار وحده (G-PAY-05، PLAN-58).
 - منذ PLAN-52 (BOLA v2، بديل `BolaArchitectureTests`): `OrgScopeCoverageTests` يمسح بالانعكاس كل متحكم في التجميعات الخمس عشرة
   والمتحكمات المشتركة: لكل متحكم موقف نطاق معلن (`[OrgScoped]`، `[OrgScopeCentralOnly]`، `[OrgScopeNotApplicable]`،
   `[RecruitmentOrgScope]`) أو صف في `org-scope-allowlist/<service>.txt` موقّع `IAM-H:` مع سبب، ولا يكون الصف لمتحكم يصله مستخدم مقيّد

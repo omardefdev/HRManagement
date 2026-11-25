@@ -4,7 +4,10 @@
 
 | EntityType | Maker | Checker | Poster | Reverser | Different actors | Financial threshold | Min approvals |
 |---|---|---|---|---|---|---|---|
-| PayrollRun | payroll-processor | payroll-approver | payroll-poster | payroll-poster / payroll-reverser | yes | 50,000,000 SYP | 1 (2 above threshold) |
+| PayrollRun | payroll-processor | payroll-approver | payroll-poster | payroll-poster / payroll-reverser **request** the reversal; a payroll-approver decides it (PLAN-56, below) | yes | 50,000,000 SYP | 1 (2 above threshold) |
+| PayrollRun — reject (PLAN-56) | — | payroll-approver (`Payroll.Approve`), from «قيد المراجعة» only, with a mandatory note: the run reopens as a draft at `Revision + 1`, the rejected version kept in `PayrollRunRevisions` | — | — | yes — the approver is not the run's creator | — | 1 |
+| PayrollRun — cancel (PLAN-56, D-PAY-18; `Payroll.RunCancel`) | payroll-processor cancels a run that was not sent for review (draft, calculating, calculated) | payroll-approver cancels a run under review or approved (403 for the processor) | — | — | — (the reason is mandatory; who cancelled, when and why are on the run and in a `Cancelled` decision row) | — | 1 |
+| PayrollReversalRequest — the reversal of a posted run (PLAN-56, D-PAY-16) | payroll-reverser, payroll-poster or hr-admin (`Payroll.Reverse`) **requests**, with a mandatory reason; one pending request per run | payroll-approver (`Payroll.Approve`) **decides** — never the requester and never the run's poster (400), for an approval and a rejection alike; a rejection needs its note | — | — | yes — the handler refuses the requester and the poster whatever roles they hold. The poster is `PayrollRun.PostedBy`; for a run posted before PLAN-56 it is the run's last writer (`KnownPoster`); a seeded run has neither, so only the requester is excluded there | — | 1 |
 | LeaveRequest | hr-contracts | hr-contracts | — | — | yes | — | 1 |
 | AdvanceRequest | hr-contracts | hr-contracts | — | — | yes | 5,000,000 SYP | 1 (2 above threshold) |
 | TransferRequest | hr-movements | hr-management-approver | — | — | yes | — | 1 |

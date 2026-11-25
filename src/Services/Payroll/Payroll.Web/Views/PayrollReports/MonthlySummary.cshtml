@@ -12,6 +12,7 @@
             <div class="col-md-3"><div class="info-box"><span class="info-box-icon bg-info"><i class="fas fa-users"></i></span><div class="info-box-content"><span class="info-box-text">الموظفين</span><span class="info-box-number">@ViewBag.EmployeeCount</span></div>
             <div class="col-md-3"><div class="info-box"><span class="info-box-icon bg-success"><i class="fas fa-plus"></i></span><div class="info-box-content"><span class="info-box-text">إجمالي الرواتب</span><span class="info-box-number">@(((decimal)ViewBag.TotalGross).ToString("N2"))</span></div>
             <div class="col-md-3"><div class="info-box"><span class="info-box-icon bg-danger"><i class="fas fa-minus"></i></span><div class="info-box-content"><span class="info-box-text">إجمالي الخصومات</span><span class="info-box-number">@(((decimal)ViewBag.TotalDeductions).ToString("N2"))</span></div>
+            <div class="col-md-3"><div class="info-box"><span class="info-box-icon bg-warning"><i class="fas fa-balance-scale"></i></span><div class="info-box-content"><span class="info-box-text">إجمالي التسويات</span><span class="info-box-number">@(((decimal)ViewBag.TotalAdjustments).ToString("N2"))</span></div>
             <div class="col-md-3"><div class="info-box"><span class="info-box-icon bg-primary"><i class="fas fa-wallet"></i></span><div class="info-box-content"><span class="info-box-text">صافي الرواتب</span><span class="info-box-number">@(((decimal)ViewBag.TotalNet).ToString("N2"))</span></div>
         </div>
 
@@ -54,11 +55,11 @@
     new Chart(document.getElementById('summaryChart'), {
         type: 'bar',
         data: {
-            labels: ['الإجمالي', 'الخصومات', 'الصافي'],
+            labels: ['الإجمالي', 'الخصومات', 'التسويات', 'الصافي'],
             datasets: [{
                 label: 'المبالغ',
-                data: [@ViewBag.TotalGross, @ViewBag.TotalDeductions, @ViewBag.TotalNet],
-                backgroundColor: ['#28a745', '#dc3545', '#007bff']
+                data: [@ViewBag.TotalGross, @ViewBag.TotalDeductions, @ViewBag.TotalAdjustments, @ViewBag.TotalNet],
+                backgroundColor: ['#28a745', '#dc3545', '#ffc107', '#007bff']
             }]
         },
         options: { responsive: true, plugins: { legend: { display: false } } }

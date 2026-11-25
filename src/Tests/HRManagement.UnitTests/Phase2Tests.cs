@@ -164,14 +164,15 @@ public class PayrollCalculationExtendedTests
     [Fact]
     public void CalculateNetPay_NeverNegative()
     {
-        var net = PayrollCalculation.CalculateNetPay(1000, 5000);
+        // PLAN-56: the one net (PayrollNet) keeps the invariant the deleted second formula had: a net is never negative.
+        var net = PayrollNet.Net(1000, 5000, 0, PayrollNet.LegacyRound);
         Assert.Equal(0, net);
     }
 
     [Fact]
     public void CalculateNetPay_CorrectDifference()
     {
-        var net = PayrollCalculation.CalculateNetPay(10000, 2500);
+        var net = PayrollNet.Net(10000, 2500, 0, PayrollNet.LegacyRound);
         Assert.Equal(7500, net);
     }
 

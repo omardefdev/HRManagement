@@ -15,3 +15,22 @@ public static class PayrollChangeIndexNames
     /// </summary>
     public const string OneActiveOnePendingBankAccount = "IX_EmployeeBankAccounts_OneActiveOnePending";
 }
+
+/// <summary>PLAN-56: the names of the filtered unique indexes of a payroll run's life, so a unique violation is told apart by name.</summary>
+public static class PayrollRunIndexNames
+{
+    /// <summary>
+    /// One live regular run per agency and period (a reversed or cancelled run is not live). PLAN-56 limits it to regular runs: a
+    /// correction has the period of its source, and the key of a final settlement is PLAN-64's.
+    /// </summary>
+    public const string LivePeriod = "IX_PayrollRuns_LivePeriod";
+
+    /// <summary>One correction run not yet posted (nor reversed, nor cancelled) per source run.</summary>
+    public const string OneOpenCorrectionPerSource = "IX_PayrollRuns_OneOpenCorrectionPerSource";
+
+    /// <summary>One reversal request waiting for its decision per run.</summary>
+    public const string OnePendingReversalRequest = "IX_PayrollReversalRequests_OnePending";
+
+    /// <summary>One kept revision per rejected version of a run.</summary>
+    public const string OneRevisionPerVersion = "IX_PayrollRunRevisions_Run_Revision";
+}

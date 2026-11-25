@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Payroll.Domain.Constants;
 using Payroll.Domain.Entities;
 using Payroll.Domain.Enums;
+using Payroll.Domain.Services;
 
 namespace Payroll.Infrastructure.Data;
 
@@ -385,7 +386,9 @@ public static class DemoPayrollSeeder
                 var allowance = Math.Round(baseSalary * 0.15m, 0);
                 var deduction = Math.Round(baseSalary * 0.12m, 0);
                 var gross = baseSalary + allowance;
-                var net = gross - deduction;
+                // PLAN-56 (G-PAY-03): a seeded line is built like an engine line: its net is PayrollNet's, and its components add
+                // up to its parts (a deduction component is negative), so a seeded run passes the validation and the posting's check.
+                var net = PayrollNet.Net(gross, deduction, 0m, PayrollNet.LegacyRound);
                 totalNet += net;
 
                 var lineId = DemoSeedIds.Named($"sal-line-{month:D2}-{empIndex}");
@@ -433,7 +436,7 @@ public static class DemoPayrollSeeder
                         SalaryLineId = lineId,
                         ComponentType = SalaryComponentType.Deduction,
                         ComponentName = "خصومات",
-                        Amount = deduction,
+                        Amount = -deduction,
                         CreatedAt = now,
                         UpdatedAt = now,
                     });

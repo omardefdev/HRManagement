@@ -66,10 +66,14 @@ public static class BankAccountPinning
         PaymentOrderStatus.Submitted, PaymentOrderStatus.Acknowledged, PaymentOrderStatus.Settled, PaymentOrderStatus.PartiallySettled,
     ];
 
-    /// <summary>The batch states in which nothing was paid, or what was paid came back: its lines are to be paid again.</summary>
+    /// <summary>
+    /// The batch states in which nothing was paid, or what was paid came back: its lines are to be paid again. PLAN-56 (D-PAY-16): a
+    /// batch voided by an approved reversal paid nothing.
+    /// </summary>
     public static readonly PaymentBatchStatus[] UnpaidBatchStatuses =
     [
         PaymentBatchStatus.Rejected, PaymentBatchStatus.Returned, PaymentBatchStatus.Failed, PaymentBatchStatus.Reversed,
+        PaymentBatchStatus.Voided,
     ];
 
     /// <summary>
