@@ -16,7 +16,7 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
 | P4 correction | done | 2026-11-25T06:33:59Z |
 | P5 reversal | done | 2026-11-25T06:46:31Z |
 | P6 PostgreSQL proofs | done | 2026-11-25T07:24Z |
-| P7 acceptance + review | in progress | |
+| P7 acceptance + review | done | 2026-11-25T11:26:59Z |
 | P8 main | | |
 | P9 demo server | | |
 | P10 docs, gates, PR, merge | | |
@@ -224,7 +224,7 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
 - **Findings while writing the tests:** a branch-restricted user is refused at the lifecycle token endpoint itself
   (`[OrgScopeCentralOnly]`), so the test takes a token from another endpoint to prove the acts answer 403 and not 400.
 
-## P7 — acceptance, then the independent review (in progress)
+## P7 — acceptance, then the independent review (finished 2026-11-25T11:26:59Z)
 
 - **Pieces (commit `93de869e`):** `AcPay56RunStateMachineTests` (AC-PAY-56a..f, months January to June 2028 of agency A),
   `ci-scope.json` (`prodLike[]`, required, main), `ac-ownership.json` (`AC-PAY-56`, PLAN-56, `provesClaim`), AC-PAY-56 in the
@@ -262,6 +262,43 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
   → 400), `Pay056CorrectionTests` (one test now posts the correction before the next cycle: its meaning kept). Integration
   (SQLite) PLAN-56 classes 99 passed; PostgreSQL lifecycle, HTTP and migration classes 20 passed; architecture 414 passed.
 
+- **A defect older than this plan, found by AC-PAY-56a on its first run:** `GET api/payroll/payslips/{line}` answered 500 (the
+  line with its run and the run's lines is a cycle the serializer refuses; the endpoint was never tested). Fixed (commit
+  `e2f12e1c`): it answers the line's stored figures (gross, deductions, adjustments, net, with its run's period and state) and
+  its components, as a projection. `Pay056RunLifecycleHttpTests` +1 (another agency → 404).
+- **Acceptance on this machine (all with `-NoBuild` on images of this tree; Payroll's image rebuilt twice, 89 s and 115 s):**
+
+  | Step | Start (UTC) | End (UTC) | Result |
+  |---|---|---|---|
+  | Prod-like stack 1 (`acceptance-up.ps1 -Profile ProdLike -UseLocalBaseImages -NoBuild`) | 08:30:09 | 08:44 | ready on the first try, about 14 min |
+  | AC-PAY-56 alone, first run | 08:44:33 | 08:47:47 | 5 of 6: 56a stopped at the payslip API's 500 (above); 56b..f passed |
+  | Prod-like stack 2 (after the payslip fix and a reset) | 09:00 | 09:14:44 | ready on the first try |
+  | AC-PAY-56 alone | 09:14:49 | 09:18:02 | **6 of 6** (the batch of May 2028 went out through the channel itself: nothing planted) |
+  | AC-UX-67 by hand on that stack (Chromium is installed for the user; the job's install needs sudo) | 09:18:08 | 09:21:50 | 7 of 7, with the reversal requests' list among the key pages |
+  | Acceptance job, prod-like, fresh stack: `-Stage prodLike:journey,prodLike:main,prodLike:isolated`, 15 classes | 09:22:18 | 09:57:41 | **PASS**, 2,123 s: stack 915 s; journey 1 of 1; main **42 of 42** (AC-PAY-56a..f with AC-PAY-55, AC-PAY-54, AC-IAM-53/52/51 and AC-HCM-25 in the group's order); isolated 8 + 8 + 5 + 8 + 9 + 1 + 8; `acceptance-guard: PASS (15 classes in 9 trx files)` |
+  | Acceptance job, lab: `-Stage lab:main,lab:journey`, 8 classes (AC-12, AC-21, AC-23, AC-24, AC-25, the catalog, AC-HCM-29, the lab journey) | 10:03:47 | 10:23:16 | **PASS**, 1,169 s: stack 883 s; main 16 passed and 1 skipped (AC-12, `Blocked` as in the committed evidence, with the same reason: PLAN-59's); journey 1 of 1; `acceptance-guard: PASS (8 classes in 2 trx files)` |
+  | Seeded counts by psql on the fresh lab stack, before its tests (`artifacts/plan56/p7-seeded-counts.txt`) | 10:19:19 | 10:19:23 | the 32 tables of `acceptance-verify.ps1` have their expected counts |
+  | Migrator image (`hr-migrate:local`) through `docker compose build` from a one-service file (`artifacts/plan56/migrator-compose.yml`; no buildx here) | 10:25:09 | 10:46:26 | 1,277 s, 5.13 GB; disk 41 GB before, 32 GB after |
+  | Acceptance job, leastpriv (`-Stage prodLike:leastpriv -NoBuild`), first run | 10:46:38 | 10:55:58 | **1 of 9 failed, from the environment:** the first test (`AcTen48…An_agency_reads_the_national_settings…`) called HR-core 6 s after the stack came up and the gateway answered 502 (HR-core not ready yet; 158 MB of memory free at that moment, right after the migrator build). Not chased in the code |
+  | Acceptance job, leastpriv, again after the load fell (2.6) | 10:56:36 | 11:06:04 | **PASS**, 9 of 9 (stack 169 s, tests 368 s): both PAY056 migrations are applied by the migrator's role from empty volumes and Payroll starts on them as its own role; `acceptance-guard: PASS (2 classes in 1 trx files)` |
+
+- **The full Testcontainers step on the final code** (CI's filter): **303 passed, 0 failed, 1 skipped** (the known skip) in
+  14 m 25 s (11:06:14Z → 11:20:44Z). Full unit suite on the review fixes: 7,140 passed (7 m 33 s); architecture 414; build
+  `-warnaserror` 0 errors (4 m 29 s).
+- **Guard scripts:** `pay056-validate` and its `-SelfTest` (39), `pay055`, `pay054`, `iam053`, `iam052`, `iam051`, `iam050`,
+  `pol047`: pass. `vps/lint-compose.ps1`: production 22 services, single-host 24, prod-like parity: pass.
+  `int037-wiring-check.ps1`: pass (the k8s rendering is skipped: no `kubectl` here).
+  - **`ux067-validate.ps1` was red on `main`:** a Razor comment PLAN-53 wrote in Payroll's `_FormErrors.cshtml` quotes an inline
+    style attribute, which the script reads as one. The comment is reworded (no behaviour changes); the script passes.
+  - **`pol049-validate.ps1` is red on `main`, and stays so:** PLAN-67 reshaped `PolicyDomainCatalog.cs` (commit `0a1abee5`) and
+    the script's patterns no longer find a governed domain («the catalog governs 0 domains»). Neither file is this plan's;
+    the unit tests that hold the same rules against the compiled catalog (`Pol049PolicyDomainCatalogTests`,
+    `Pol049PolicyModeConsistencyTests`) pass in the unit suite. Recorded as a defect for a later plan (final report §13).
+- **`AcPay56VpsChecks.cs`** (the server checks of P9) is written and compiled: five checks, in the partial class of the AC-OPS-36
+  helpers. They act on their own runs (a month from September 2028 on) and end each cancelled; on a demo posted run they only
+  ask for a reversal and have it rejected; no approval of a reversal is ever sent; a request a person of the demo made is
+  never touched (the checks tell theirs by the reason).
+
 ## Decisions (with reasons)
 
 - **D1 (P1): the net's rounding in the validation.** `PayrollNet.Net(gross, deductions, adjustments, round)`; the validation and the
@@ -280,7 +317,8 @@ None.
 
 ## Next step
 
-P7 (continuing): full unit suite on the review fixes; rebuild Payroll's image (`build-images-sequential.ps1 -Only payroll-web`);
-`scripts/acceptance-reset.ps1` (the personas changed); start the prod-like stack; AC-PAY-56, then P-13's lists (prod-like, lab,
-leastpriv with the migrator image), the validate scripts, the seeded counts; `down -v`; the full Testcontainers step again; the
-P7 commit.
+P8: `git fetch`; merge `origin/main` only if it moved (it had not at 07:36Z: `a8f6ee32`). Then P9: check `ssh hrm-vps` and that the
+running tag (`c95179904e05`) is on `origin/main`; backup under `/opt/hrm/backups/pre-plan56-<utc>/` and verify it; the server's
+disk (30 GB free before the build: remove the build cache and the local images of releases older than the running one);
+build once, detached, on HEAD; `scripts/vps/deploy.ps1 -Tag <sha12>`; the five `AC_PAY_56_vps_*` checks
+(`PAY056_VPS_LINES_MD5=994e497ffbd877d18b4d5eb7c737840e`); the PLAN-36..55 server checks; the smoke.
