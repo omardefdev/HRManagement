@@ -15,8 +15,8 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
 | P3 reject / cancel / release / restart | done | 2026-11-25T06:16:06Z |
 | P4 correction | done | 2026-11-25T06:33:59Z |
 | P5 reversal | done | 2026-11-25T06:46:31Z |
-| P6 PostgreSQL proofs | in progress | |
-| P7 acceptance + review | | |
+| P6 PostgreSQL proofs | done | 2026-11-25T07:24Z |
+| P7 acceptance + review | in progress | |
 | P8 main | | |
 | P9 demo server | | |
 | P10 docs, gates, PR, merge | | |
@@ -202,6 +202,28 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
   classes 89); architecture 414 passed (one interface finding fixed: a hand-formatted date in the new list);
   `has-pending-model-changes`: none; format clean.
 
+## P6 — PostgreSQL proofs (finished 2026-11-25T07:24Z)
+
+- **`Pay056RunLifecyclePostgreSqlTests`** (`[Collection("PgRabbit")]`, the application role under forced row security, the real
+  outbox; 6 tests): a rejection concurrent with an approval of the same run → one wins, the other is a version conflict, and the
+  run is in exactly one of the two states; a cancellation while a job runs waits for the save in flight (`FOR SHARE` on the job
+  row in the worker's save, the cancellation updates the job row first), frees every input, and the worker writes no line after it;
+  a second regular run of a period is refused while the first is live and made after it is reversed; two corrections of one source
+  at the same moment → the index lets one in; `IPayrollReversed` is in the outbox of the reversal's own transaction and a reversal
+  whose save fails leaves nothing (no event, run posted, batch as it was); a duplicate bank reference of a run's batch is a named
+  conflict and the posting changes nothing.
+- **`Pay056RunLifecycleHttpTests`** (`[Collection("PostgreSql")]`, Payroll.Web over PostgreSQL; 9 tests): every new write needs the
+  antiforgery token; the rejection is the approver's, needs its note and reopens the run; the cancellation follows D-PAY-18 and
+  needs its reason; another agency's run → 404 and a branch-restricted user → 403; the reversal is requested by a reverser and
+  decided by an approver who is neither the requester nor the poster; a run whose batch was sent is not reversed (400, the answer
+  points to a correction run); a correction of targeted adjustments, a second open one → 409; validate on an approved run and a
+  restart of what did not fail → 400 and nothing changes; a duplicate bank reference at the posting → 409 with its Arabic message.
+- **Results:** the two classes 15/15, three consecutive runs; the full Testcontainers step with CI's filter
+  (`Category=Testcontainers&Category!=ObjectStorage`): **301 passed, 0 failed, 1 skipped** (`Ops038BootstrapIdempotencyTests`,
+  the known skip) in **13 m 58 s** (07:03:15Z → 07:17:19Z); build `-warnaserror` 0 errors; format clean.
+- **Findings while writing the tests:** a branch-restricted user is refused at the lifecycle token endpoint itself
+  (`[OrgScopeCentralOnly]`), so the test takes a token from another endpoint to prove the acts answer 403 and not 400.
+
 ## Decisions (with reasons)
 
 - **D1 (P1): the net's rounding in the validation.** `PayrollNet.Net(gross, deductions, adjustments, round)`; the validation and the
@@ -220,8 +242,7 @@ None.
 
 ## Next step
 
-P6: `Pay056RunLifecyclePostgreSqlTests` (a rejection concurrent with an approval → one wins, the other an `xmin` conflict; a
-cancellation while a job runs → inputs free, no orphan line; the indexes → a second regular run after a reversal, a second open
-correction refused; `IPayrollReversed` in the outbox of the reversal's own transaction; the duplicate bank reference → 409) and
-`Pay056RunLifecycleHttpTests` (statuses, antiforgery, roles, another agency → 404) on Payroll.Web over PostgreSQL; then the full
-Testcontainers filter of CI.
+P7: `AcPay56RunStateMachineTests` (AC-PAY-56a..f; written, not yet compiled or run), then `ci-scope.json` (prodLike, required),
+`ac-ownership.json`, the personas' scenarios, AC-PAY-55c's gate text, the two pages in `AcUx67ReadableInterfaceTests`,
+`scripts/pay056-validate.ps1 -SelfTest`; build the images one service at a time from local base images; prod-like stack;
+AC-PAY-56 then P-13's lists; the independent review; the commit.
