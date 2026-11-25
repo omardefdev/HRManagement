@@ -15,8 +15,8 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
 | P0 baseline | done | 2026-11-25T20:49:10Z |
 | P1 model, calendar, summary, migration | done | 2026-11-25T21:06:33Z |
 | P2 one writer | done | 2026-11-25T21:25:58Z |
-| P3 close and contract | in progress | |
-| P4 correction | | |
+| P3 close and contract | done | 2026-11-25T21:44:57Z |
+| P4 correction | in progress | |
 | P5 payroll's side | | |
 | P6 PostgreSQL proofs | | |
 | P7 acceptance and review | | |
@@ -97,6 +97,37 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
 - **Format:** the whitespace formatter rewrote multi-line object initializers of three test files; clean after it.
 - **Commit:** see `git log` (the P2 commit follows `6f887768`).
 
+## P3 — the close and the contract (finished 2026-11-25T21:44:57Z)
+
+- **`AttendancePeriodService`**: `CloseAsync` (a month, or custom bounds behind `Mode=Custom`), `GetStatusAsync`,
+  `EnsurePeriodAsync`, `PublishSummaryAsync` (`[StagesOutboxMessages]`). One save writes the period, every summary (v1), the
+  closure row and the staged events; a unique violation in that save is the concurrent close's answer and writes nothing.
+  `RequireComplete` refuses before anything is created (not even the period).
+- **`IAttendanceSummaryPublished`** (`HRManagement.MessageContracts`): the plan's fields, `TenantId` explicit, schema v1.
+  `IAttendancePeriodClosed` is `[Obsolete]` with no publisher and no reference; payroll's `AttendancePeriodClosedConsumer` is
+  deleted (its replacement is P5; in between payroll consumes no attendance event).
+- **`AttendancePeriodsController`** (`[OrgScopeNotApplicable]`, class `HrCore.ReadOnly`): MVC `Index`, `Close` (GET/POST), and
+  the API `GET api/attendance/periods/antiforgery`, `POST api/attendance/periods/{yyyy-MM}/close`,
+  `GET api/attendance/periods/{yyyy-MM}`; the POSTs name `HrCore.AttendanceClose` and validate an antiforgery token. Views
+  `AttendancePeriods/Index`, `Close` (what is missing: the first 50 and the total; the warning when no holiday is configured).
+  The old close is removed (service method, POST action, view); `DailyAttendanceRecords/ClosePeriod` redirects to the new page.
+  The menu has «فترات الحضور» and «تصحيحات الحضور».
+- **Deviations recorded:**
+  1. **A period is closed only once it has ended** (`PeriodEnd <= today` in Damascus): closing a running month would lock days
+     that have not happened. The plan is silent; the refusal is a 400 with «لا تُغلق فترة الحضور قبل انتهائها».
+  2. A repeat close that finds everyone closed writes nothing at all (no second closure row, no event) and answers 200 with
+     `closedEmployees = 0`.
+  3. `CloseAsync` is not marked `[StagesOutboxMessages]`: the guard matches a marked method by its name, and
+     `RecruitmentRequisitionsController` calls another `CloseAsync`. It saves itself; `PublishSummaryAsync` carries the mark.
+- **Tests:** `Lva057AttendanceCloseTests` (10): the close's employees, working days only, `RequireComplete` and its two
+  alternatives, idempotence, the period's status, a branch outside its tree, a period not ended, custom periods, the scoped status.
+  `OutboxAtomicityIntegrationTests.CloseAttendancePeriod_SavesAfterPublishLoop` rewritten on the new service (every event staged
+  before the one save; the same meaning). `Iam051DirectServiceWriteTests`: the former `ClosePeriod` row is gone with the action.
+  Unit filter 794 passed; architecture project 414 passed (the interface guard needed an empty message under each looped table and
+  the month through `HrMonthInputValue`); integration (SQLite) 52 passed, 2 skipped.
+- **Docs:** `EVENT_PUBLISHER_INVENTORY.md` (the new event, SingleSave; the old row replaced, its end noted),
+  `MESSAGE_EVENT_MATRIX.md` (the new row). The runbook is written in P10 with the final behaviour.
+
 ## Decisions (with reasons)
 
 - **D-P57-1, the reserved months:** 2025-01 … 2025-07 (see the baseline). 57a January, 57b February (and the current month for «no
@@ -114,8 +145,7 @@ None yet (P0 was read-only).
 
 ## The exact next step
 
-P3: `IAttendanceSummaryPublished` (contract); `AttendancePeriodService` (close, status, ensure period) with the summaries, the
-closure and the events in one save; `AttendancePeriodsController` (MVC Index/Close + API close/get + antiforgery) and its two
-views; remove `ClosePeriodAndPublishAsync`, the old actions and view; mark `IAttendancePeriodClosed` obsolete and delete payroll's
-old consumer (its replacement is P5: until then payroll has no attendance consumer); rewrite the outbox test; docs inventories and
-the runbook; tests of the close's employees, `RequireComplete` and its alternatives, idempotence, the period's status, 403.
+P4: `AttendanceCorrectionService` (`RequestAsync`, `ApproveAsync`, `RejectAsync`, `ApplySystemCorrectionAsync`), route the leave
+consumers' locked days to it (`AttendanceIntegrationService`), `AttendanceCorrectionsController` (MVC Index/Create/Details +
+Approve/Reject, API POST corrections, approve, reject, antiforgery; `[OrgScoped(typeof(AttendanceCorrection))]` with its key in
+`HrCoreOrgScopeKeys`), views, `Lva057AttendanceCorrectionRulesTests`. Then P5 (payroll). HTTP tests of both HR.Core APIs go in P6.
