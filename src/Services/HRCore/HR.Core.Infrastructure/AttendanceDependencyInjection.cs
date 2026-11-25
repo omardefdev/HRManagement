@@ -31,6 +31,7 @@ public static class AttendanceDependencyInjection
         services.AddScoped<AttendanceEligibility>();
         services.AddScoped<AttendanceDayWriter>();
         services.AddScoped<AttendancePeriodService>();
+        services.AddScoped<AttendanceCorrectionService>();
         return services;
     }
 }

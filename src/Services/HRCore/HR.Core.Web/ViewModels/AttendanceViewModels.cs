@@ -37,3 +37,61 @@ public sealed class AttendancePeriodCloseViewModel
 
     public int IncompleteTotal { get; set; }
 }
+
+/// <summary>PLAN-57: the corrections the caller may see (his scope): those waiting for a decision, or his own requests.</summary>
+public sealed class AttendanceCorrectionsIndexViewModel
+{
+    public IReadOnlyList<HR.Core.Domain.Entities.AttendanceCorrection> Items { get; init; } = [];
+
+    public AttendanceCorrectionStatus? Status { get; init; }
+
+    public bool Mine { get; init; }
+
+    /// <summary>The caller is central and may decide a request that is not his own.</summary>
+    public bool CanDecide { get; init; }
+
+    public Guid? CurrentUserId { get; init; }
+}
+
+/// <summary>
+/// PLAN-57: a request to correct a locked day. The employee and the day come from the day the request starts from and are posted
+/// back as they are; the requester chooses the status and writes the reason.
+/// </summary>
+public sealed class AttendanceCorrectionCreateViewModel
+{
+    [System.ComponentModel.DataAnnotations.Required]
+    [System.ComponentModel.DataAnnotations.Display(Name = "الموظف")]
+    public Guid EmployeeId { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Display(Name = "اليوم")]
+    public DateOnly AttendanceDate { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Display(Name = "الحالة المطلوبة")]
+    public DailyAttendanceStatus NewStatus { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Display(Name = "سبب التصحيح")]
+    public string? Reason { get; set; }
+
+    // What the form shows and does not bind.
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+    public string? EmployeeName { get; set; }
+
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+    public DailyAttendanceStatus? CurrentStatus { get; set; }
+
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+    public bool LeaveMade { get; set; }
+
+    [Microsoft.AspNetCore.Mvc.ModelBinding.BindNever]
+    public bool Locked { get; set; }
+}
+
+public sealed class AttendanceCorrectionDetailsViewModel
+{
+    public required HR.Core.Domain.Entities.AttendanceCorrection Correction { get; init; }
+
+    /// <summary>The caller may decide this request: central, the request waits, and it is not his own.</summary>
+    public bool CanDecide { get; init; }
+
+    public bool IsOwnRequest { get; init; }
+}

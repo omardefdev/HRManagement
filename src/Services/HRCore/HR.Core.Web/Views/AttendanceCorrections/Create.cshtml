@@ -1,0 +1,54 @@
+@model HR.Core.Web.ViewModels.AttendanceCorrectionCreateViewModel
+@using HR.Core.Domain.Enums
+@{ ViewData["Title"] = "طلب تصحيح حضور"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <h3 class="mb-0">طلب تصحيح حضور</h3>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">عودة إلى تصحيحات الحضور</a>
+    </div>
+    <form asp-action="Create" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="EmployeeId" />
+        <input type="hidden" name="AttendanceDate" value="@Html.HrDateInputValue(Model.AttendanceDate)" />
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <dl class="row mb-3">
+                <dt class="col-sm-3">الموظف</dt>
+                <dd class="col-sm-9">@Model.EmployeeName</dd>
+                <dt class="col-sm-3">اليوم</dt>
+                <dd class="col-sm-9">@Html.HrDate(Model.AttendanceDate)</dd>
+                <dt class="col-sm-3">الحالة الحالية</dt>
+                <dd class="col-sm-9">@Html.HrEnumDisplay(Model.CurrentStatus, "بلا سجل")</dd>
+            </dl>
+            @if (!Model.Locked)
+            {
+                <div class="alert alert-warning">هذا اليوم ليس ضمن فترة حضور مغلقة لهذا الموظف: يُعدَّل مباشرة من سجل الحضور، ولا يحتاج طلب تصحيح.</div>
+            }
+            else if (Model.LeaveMade)
+            {
+                <div class="alert alert-warning">هذا اليوم إجازة معتمدة؛ يتغير بإلغاء الإجازة لا بطلب تصحيح.</div>
+            }
+            <div class="mb-3">
+                <label asp-for="NewStatus" class="form-label"></label>
+                <select asp-for="NewStatus" class="form-control">
+                    @foreach (var s in Enum.GetValues<DailyAttendanceStatus>().Where(s => s != DailyAttendanceStatus.OnLeave))
+                    {
+                        if (Model.NewStatus == s) { <option value="@((int)s)" selected="selected">@Html.HrEnumDisplay(s)</option> }
+                        else { <option value="@((int)s)">@Html.HrEnumDisplay(s)</option> }
+                    }
+                </select>
+                <div class="form-text">حالة «في إجازة» تأتي من إجازة معتمدة فقط.</div>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Reason" class="form-label"></label>
+                <textarea asp-for="Reason" class="form-control" rows="3" minlength="15" maxlength="1000" required></textarea>
+                <div class="form-text">السبب إلزامي، ولا يقل عن 15 حرفاً. يعتمد الطلب مستخدم مركزي غيرك، ثم يصل أثره إلى الرواتب فرقاً.</div>
+                <span asp-validation-for="Reason" class="text-danger"></span>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">تقديم الطلب</button>
+            <a asp-controller="DailyAttendanceRecords" asp-action="Index" class="btn btn-secondary">إلغاء</a>
+        </div>
+    </form>
+</div>

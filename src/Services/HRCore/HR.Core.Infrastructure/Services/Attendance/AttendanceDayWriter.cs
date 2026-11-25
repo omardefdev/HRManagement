@@ -8,9 +8,12 @@ using Microsoft.EntityFrameworkCore;
 namespace HR.Core.Infrastructure.Services.Attendance;
 
 /// <summary>Who writes: the caller's subject and his org scope. A consumer (a leave decision) acts as <see cref="System"/>.</summary>
-public readonly record struct AttendanceActor(Guid? UserId, OrgAccessScope Scope)
+public readonly record struct AttendanceActor(Guid? UserId, OrgAccessScope Scope, string? DisplayName = null)
 {
     public static AttendanceActor System { get; } = new(null, OrgAccessScope.Unrestricted());
+
+    /// <summary>The name to keep beside a request or a decision (the pages show it instead of an id), bounded to its column.</summary>
+    public string? BoundedName => string.IsNullOrWhiteSpace(DisplayName) ? null : DisplayName.Trim().Length > 200 ? DisplayName.Trim()[..200] : DisplayName.Trim();
 }
 
 public enum AttendanceRefusal

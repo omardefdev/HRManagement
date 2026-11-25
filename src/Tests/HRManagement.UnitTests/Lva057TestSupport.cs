@@ -115,6 +115,26 @@ internal sealed class Lva057Db : IAsyncDisposable
         AttendancePeriodMode periods = AttendancePeriodMode.CalendarMonth) =>
         new(Db, Publish, Eligibility, Calendar, Microsoft.Extensions.Options.Options.Create(Options(unrecorded, periods)));
 
+    public AttendanceCorrectionService CorrectionService(
+        AttendanceLeaveEventMode leaveEvents = AttendanceLeaveEventMode.AutoApply,
+        AttendanceUnrecordedDaysMode unrecorded = AttendanceUnrecordedDaysMode.RequireComplete) =>
+        new(Db, Writer, PeriodService(unrecorded), Eligibility, Calendar,
+            Microsoft.Extensions.Options.Options.Create(Options(unrecorded, leaveEvents: leaveEvents)));
+
+    /// <summary>What a leave decision does to the days, on the main context.</summary>
+    public HR.Core.Infrastructure.Integration.AttendanceIntegrationService Integration(
+        AttendanceLeaveEventMode leaveEvents = AttendanceLeaveEventMode.AutoApply) => new(Writer, CorrectionService(leaveEvents));
+
+    /// <summary>The same services on another context (a redelivery's own scope).</summary>
+    public HR.Core.Infrastructure.Integration.AttendanceIntegrationService IntegrationOn(HRCoreDbContext other)
+    {
+        var eligibility = new AttendanceEligibility(other);
+        var otherWriter = new AttendanceDayWriter(other, new AttendanceLockService(other), Calendar, eligibility);
+        var options = Microsoft.Extensions.Options.Options.Create(Options());
+        var otherPeriods = new AttendancePeriodService(other, Publish, eligibility, Calendar, options);
+        return new(otherWriter, new AttendanceCorrectionService(other, otherWriter, otherPeriods, eligibility, Calendar, options));
+    }
+
     /// <summary>A second context on the same database: what is really stored, whatever the first context tracks.</summary>
     public HRCoreDbContext Fresh() => new(_options);
 

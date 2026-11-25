@@ -222,6 +222,10 @@ namespace HR.Core.Infrastructure.Migrations
                     b.Property<Guid?>("DecidedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("DecidedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("DecisionNote")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
@@ -245,6 +249,10 @@ namespace HR.Core.Infrastructure.Migrations
 
                     b.Property<Guid?>("RequestedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<string>("RequestedByName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
 
                     b.Property<int?>("ResultingVersion")
                         .HasColumnType("integer");

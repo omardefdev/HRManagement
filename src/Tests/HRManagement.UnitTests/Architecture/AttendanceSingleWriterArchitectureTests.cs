@@ -29,6 +29,8 @@ public sealed partial class AttendanceSingleWriterArchitectureTests
     {
         ["HR.Core.Infrastructure/Services/Attendance/AttendancePeriodService.cs"] =
             "the period's own status (Closed or PartiallyClosed): the close reads the attendance records and writes none",
+        ["HR.Core.Infrastructure/Services/Attendance/AttendanceCorrectionService.cs"] =
+            "the correction's own status (Approved or Rejected): the day itself is written by the writer's ApplyApprovedCorrectionAsync",
     };
 
     [GeneratedRegex(@"\bDailyAttendanceRecords\s*\.\s*(Add|AddAsync|AddRange|AddRangeAsync|Remove|RemoveRange|Update|UpdateRange|Attach|AttachRange)\s*\(")]

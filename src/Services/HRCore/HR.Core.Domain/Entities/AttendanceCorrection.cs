@@ -49,10 +49,17 @@ public class AttendanceCorrection : AuditableEntity
     /// <summary>The requester's subject; null on a system correction.</summary>
     public Guid? RequestedBy { get; set; }
 
+    /// <summary>The requester's name as he was signed in, for the decider's page; null on a system correction.</summary>
+    [MaxLength(200)]
+    public string? RequestedByName { get; set; }
+
     public DateTime RequestedAt { get; set; }
 
     /// <summary>The decider's subject; null while pending and on a system correction.</summary>
     public Guid? DecidedBy { get; set; }
+
+    [MaxLength(200)]
+    public string? DecidedByName { get; set; }
 
     public DateTime? DecidedAt { get; set; }
 
