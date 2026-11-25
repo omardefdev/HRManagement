@@ -146,35 +146,6 @@ public class ApprovePayrollRunHandler(IPayrollRepository repository, SeparationO
     }
 }
 
-public record RejectPayrollRunCommand(Guid PayrollRunId, Guid ApproverId, string? Notes)
-    : IRequest<(bool Success, string? Error)>;
-
-public class RejectPayrollRunHandler(IPayrollRepository repository)
-    : IRequestHandler<RejectPayrollRunCommand, (bool Success, string? Error)>
-{
-    public async Task<(bool Success, string? Error)> Handle(
-        RejectPayrollRunCommand request,
-        CancellationToken cancellationToken)
-    {
-        repository.ClearChangeTracker();
-        var run = await repository.GetPayrollRunAsync(request.PayrollRunId, includeLines: false, cancellationToken);
-        if (run is null) return (false, "التشغيل غير موجود.");
-
-        try
-        {
-            run.Reject(request.ApproverId, request.Notes);
-            var approval = run.Approvals.OrderByDescending(a => a.DecidedAt).First();
-            repository.MarkAsAdded(approval);
-            await repository.SaveChangesAsync(cancellationToken);
-            return (true, null);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return (false, ex.Message);
-        }
-    }
-}
-
 public record PostPayrollRunCommand(Guid PayrollRunId, Guid PosterId) : IRequest<(bool Success, string? Error)>;
 
 public class PostPayrollRunHandler(
@@ -246,7 +217,8 @@ public class PostPayrollRunHandler(
                 return (false, PayrollRunReconciliation.ResultsChangedSinceValidation);
 
             var total = run.TotalNetPay;
-            run.Post();
+            // PLAN-56 (G-PAY-06): the run keeps who posted it; the decider of its reversal is never that person.
+            run.Post(request.PosterId, DateTime.UtcNow);
 
             // PAY-003: Post creates Pending disbursement; Pay sets ProcessedAt later.
             await repository.AddAsync(new PaymentBatch

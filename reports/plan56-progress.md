@@ -12,8 +12,8 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
 | P0 baseline | done | 2026-11-25T05:17Z |
 | P1 one net | done | 2026-11-25T05:28:33Z |
 | P2 guards | done | 2026-11-25T05:41:08Z |
-| P3 reject / cancel / release / restart | in progress | |
-| P4 correction | | |
+| P3 reject / cancel / release / restart | done | 2026-11-25T06:16:06Z |
+| P4 correction | in progress | |
 | P5 reversal | | |
 | P6 PostgreSQL proofs | | |
 | P7 acceptance + review | | |
@@ -104,6 +104,47 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
 - **For P3:** `Reject` still returns the run to `Calculated` (frozen) in the table; P3 replaces it with `ReopenAfterRejection`
   (`UnderReview → Draft`) and updates the matrix. `MarkCancelled()` gets its actor and reason in P3.
 
+## P3 — a rejection reopens; a cancellation; the release; the restart (finished 2026-11-25T06:16:06Z)
+
+- **Domain:** `PayrollRun.Revision` (1), `PostedBy/PostedAt`, `CancelledBy/CancelledAt/CancellationReason`;
+  `ReopenAfterRejection` (UnderReview → Draft, unfrozen, revision + 1, note mandatory), `Cancel(by, at, reason)` (replaces
+  `MarkCancelled`), `ResetForRestart` (new act `RestartCalculation`), `Post(by, at)`. `PayrollRunRevision`,
+  `PayrollReversalRequest` (entity only; its commands are P5), `ApprovalDecision.Cancelled` = 3, `PaymentOrderStatus.Cancelled` = 6,
+  `PaymentBatchStatus.Voided` = 9 with `Pending/Failed/Rejected → Voided`, `PayrollAdjustment.TargetSourceRunId` (used in P4),
+  `CorrectionRecovery` (type, source reference, due date).
+- **Application:** `PayrollInputRelease.ReleaseAsync` (applied markers only, deletes unapplied recoveries of the run's lines, one
+  audit row `InputsReleased`, idempotent); `PayrollRunLifecycle` (lines' fingerprint in pages, the funding/partial check, the
+  audited deletion of lines); `RejectPayrollRunCommand` (one transaction: the run's row first, then the revision, the release, the
+  deletion); `CancelPayrollRunCommand` (D-PAY-18 by two flags the controller reads from `IAuthorizationService`; a run with a
+  funding decision or a partial batch refused); `RestartCalculationCommand`; `CancelPayrollRunJobCommand` delegates. `RunActResult`
+  with its outcome (400/403/404/409).
+- **The worker:** `IPayrollRepository.SaveEmployeePackagesForJobAsync` checks in the save's transaction that the job is running
+  (`FOR SHARE` on the job's row on PostgreSQL) and writes nothing otherwise; `StopRunJobsAsync` takes the row first, so a
+  cancellation waits for a save in flight and every later save finds the job stopped. The calculator writes nothing after a stop
+  (no run state, no partition), and a checkpoint that loses on the job's version is skipped.
+- **Web:** policy `Payroll.RunCancel` (processor, approver, hr-admin); `PayrollRunLifecycleApiController`
+  (`[OrgScopeCentralOnly]`, antiforgery on every POST, token at `GET api/payroll/run-lifecycle/antiforgery`): `POST runs/{id}/reject`,
+  `POST runs/{id}/cancel`, `POST jobs/{jobId}/restart`; `POST jobs/{jobId}/cancel` (old, no antiforgery) now takes an optional
+  body `reason` and answers 400 without one. Screens: reject with a note, cancel with a reason (shown by D-PAY-18), restart, the
+  run's version, its cancellation, its rejected versions.
+- **Migration `20261125055305_PAY056_RunLifecycle`:** the columns, the two tables with forced row security, the adjustment's target,
+  the live index limited to `RunType = 'Regular'`, one open correction per source. A `FinalSettlement` run is left with no
+  uniqueness (PLAN-64's key). It already holds P4's and P5's columns and tables, so it is not regenerated.
+- **P-10:** `UnpaidBatchStatuses` gains `Voided`; a retirement's snapshot query reads only a job still in hand (a rejected
+  version's snapshot no longer holds its run); holds are untouched by every act (tested).
+- **Decisions:** D3 the release and the deletion are bulk statements inside the caller's transaction (a run of any size), with one
+  summarising audit row each, not one row per line. D4 a cancelled run keeps its lines as its record; a rejection and a restart
+  delete them. D5 a restart keeps the run's pinned framework version (a run keeps its framework for its life; cancel to change it).
+  D6 a paused job's packages in hand are not written (the save refuses a job that is not running); the resume recalculates them.
+- **Tests:** `Pay056LifecycleTests` (36 cases), `Pay056TransitionTests` (matrix with the new act, note/reason/restart rules),
+  `Pay056MigrationPostgreSqlTests` (+1: the lifecycle migration as the owner), `PayrollWriteActionsTests` (+ the six actions and
+  who reaches them). `scripts/detect-data001-duplicates.sql` follows the new indexes.
+- **Results:** build `-warnaserror` 0 errors; **full unit suite 7,128 passed in 7 min 33 s**; architecture 409 passed; integration
+  (SQLite) Pay056 59 passed, wider payroll filter 92 passed; PostgreSQL (migrations PAY055/PAY056, Pay021, Pay022, Pay054V2, Pay055,
+  Perf001) 30 passed in 56 s; `has-pending-model-changes`: none; no byte order mark; format clean.
+- **For P6:** HTTP tests of the new API (statuses, antiforgery, roles) on Payroll.Web over PostgreSQL; the concurrent rejection
+  and approval; the cancellation under a running job; the duplicate bank reference as 409.
+
 ## Decisions (with reasons)
 
 - **D1 (P1): the net's rounding in the validation.** `PayrollNet.Net(gross, deductions, adjustments, round)`; the validation and the
@@ -122,8 +163,7 @@ None.
 
 ## Next step
 
-P3: `PayrollInputRelease`; `PayrollRun.ReopenAfterRejection` + `Revision`; `PayrollRunRevision`; the rejection in one transaction;
-`CancelPayrollRunCommand` (D-PAY-18, a run with a funding decision or a partial batch refused); the worker's save checks the job in
-its own transaction; `RestartCalculationCommand`; `ApprovalDecision.Cancelled`; the cancel policy; the API (`reject`, `cancel`,
-`restart`, antiforgery) and the screens; migration `PAY056_RunLifecycle` (revision, cancel columns, `PayrollRunRevisions`, the live
-index limited to regular runs, one open correction per source); tests.
+P4: the adjustment's form and command take `TargetSourceRunId` (a posted run of the agency); the regular loader ignores targeted
+adjustments; `CreateCorrectionRunHandler` takes only the approved adjustments aimed at its source, builds lines without base or tax
+(the delta paths leave `BaseSalaryRule` and `RoundingRule`), validates with `ValidateLineIntegrity` and `MarkValidated`, creates a
+`CorrectionRecovery` deduction for a negative line, answers 409 on a second open correction; tests.

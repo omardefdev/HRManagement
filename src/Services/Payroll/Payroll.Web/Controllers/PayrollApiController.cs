@@ -378,11 +378,18 @@ public class PayrollApiController : ControllerBase
 
     [HttpPost("jobs/{jobId:guid}/cancel")]
     [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
-    public async Task<IActionResult> CancelJob(Guid jobId, CancellationToken ct)
+    public async Task<IActionResult> CancelJob(
+        Guid jobId,
+        [FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] CancelPayrollRunApiRequest? request,
+        [FromServices] IAuthorizationService authorization,
+        CancellationToken ct)
     {
-        var (success, error) = await _mediator.Send(new CancelPayrollRunJobCommand(jobId), ct);
-        if (!success) return BadRequest(new { error });
-        return Ok();
+        // PLAN-56 (G-PAY-04): cancelling by the job is cancelling the run: it needs a reason (400 without one), follows D-PAY-18,
+        // and releases the run's inputs. The answers are those of POST runs/{id}/cancel.
+        var (mayProcess, mayApprove) = await PayrollRunActHttp.CancelRightsAsync(authorization, User);
+        var result = await _mediator.Send(
+            new CancelPayrollRunJobCommand(jobId, RequireUserId(), request?.Reason, mayProcess, mayApprove), ct);
+        return result.Success ? Ok() : PayrollRunActHttp.Answer(result);
     }
 
     [HttpPost("runs/{id:guid}/validate")]

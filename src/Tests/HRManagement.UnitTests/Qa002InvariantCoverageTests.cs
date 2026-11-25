@@ -182,7 +182,7 @@ public class Qa002InvariantCoverageTests
         Assert.Equal(PayrollRunStatus.UnderReview, run.Status);
         run.Approve(Guid.NewGuid());
         Assert.Equal(PayrollRunStatus.Approved, run.Status);
-        run.Post();
+        run.Post(Guid.NewGuid(), DateTime.UtcNow);
         Assert.Equal(PayrollRunStatus.Posted, run.Status);
         Assert.Equal(900, run.TotalNetPay);
         run.Reverse();

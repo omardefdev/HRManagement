@@ -39,5 +39,14 @@ public class PayrollAdjustment : AuditableEntity, IManualPayInput
     [Display(Name = "ملاحظة القرار")]
     public string? DecisionNote { get; set; }
 
+    /// <summary>
+    /// PLAN-56 (G-PAY-03): an adjustment aimed at the correction of one posted run. A regular run never takes it, and the correction
+    /// run of that source takes nothing else. Null for an ordinary adjustment, which the next regular run takes.
+    /// </summary>
+    [Display(Name = "تصحيح للتشغيل المرحّل")]
+    public Guid? TargetSourceRunId { get; set; }
+
     public PayrollRun? PayrollRun { get; set; }
+
+    public PayrollRun? TargetSourceRun { get; set; }
 }

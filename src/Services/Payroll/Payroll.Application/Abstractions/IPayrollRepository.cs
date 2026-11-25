@@ -38,6 +38,9 @@ public interface IPayrollRepository
     IQueryable<PaymentHold> PaymentHolds { get; }
     IQueryable<LegalDecisionRecord> LegalDecisionRecords { get; }
     IQueryable<LegalAttestation> LegalAttestations { get; }
+    IQueryable<PayrollRunRevision> PayrollRunRevisions { get; }
+    IQueryable<PayrollReversalRequest> PayrollReversalRequests { get; }
+    IQueryable<PayrollRunApproval> PayrollRunApprovals { get; }
 
     Task<PayrollRun?> GetPayrollRunAsync(Guid id, bool includeLines, CancellationToken ct);
     /// <summary>The version that governs today (the payroll calendar's date); see <c>PayrollConfigurationVersioning.ResolveGoverning</c>.</summary>
@@ -76,4 +79,39 @@ public interface IPayrollRepository
 
     /// <summary>PERF-001: atomic claim Pending→Running for a partition.</summary>
     Task<bool> TryClaimPartitionAsync(Guid partitionId, string workerId, CancellationToken ct);
+
+    /// <summary>
+    /// PLAN-56 (G-PAY-04): the calculation worker's save. In the same transaction as the save it checks that
+    /// <paramref name="jobId"/> is still running, holding the job's row against a cancellation until the commit; a job that was
+    /// cancelled, paused or failed gets nothing written (null): no line, no component, no input marked applied. So a package
+    /// written after a cancellation released the run's inputs can neither re-attach an input nor leave a line.
+    /// </summary>
+    Task<(int Saved, int AlreadyExists)?> SaveEmployeePackagesForJobAsync(
+        Guid payrollRunId,
+        Guid jobId,
+        IReadOnlyList<PayrollEmployeeCalculationPackage> packages,
+        CancellationToken ct);
+
+    /// <summary>
+    /// PLAN-56 (G-PAY-04): stops a run's jobs that are not finished (pending, running, paused, failed) and their open partitions, in
+    /// the caller's transaction. It waits for a worker's save in flight and then holds the jobs' rows until the caller commits, so the
+    /// caller reads every input the workers attached. Returns how many jobs it stopped.
+    /// </summary>
+    Task<int> StopRunJobsAsync(Guid payrollRunId, CancellationToken ct);
+
+    /// <summary>
+    /// PLAN-56 (G-PAY-07): frees what a run's calculation consumed, in the caller's transaction: the applied marker of its
+    /// deductions, absences and adjustments, and nothing else of them. It also deletes the recovery deductions a correction run
+    /// created for its lines that no run has applied. Idempotent: a second call finds nothing.
+    /// </summary>
+    Task<PayrollRunInputsReleased> ReleaseRunInputsAsync(Guid payrollRunId, CancellationToken ct);
+
+    /// <summary>PLAN-56 (G-PAY-04): deletes a run's lines and their components, in the caller's transaction.</summary>
+    Task<(int Lines, int Components)> DeleteRunLinesAsync(Guid payrollRunId, CancellationToken ct);
+}
+
+/// <summary>PLAN-56: what a release of a run's inputs freed.</summary>
+public sealed record PayrollRunInputsReleased(int Deductions, int Absences, int Adjustments, int RecoveriesDeleted)
+{
+    public int Total => Deductions + Absences + Adjustments + RecoveriesDeleted;
 }

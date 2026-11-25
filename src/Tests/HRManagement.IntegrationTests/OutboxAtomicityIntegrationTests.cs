@@ -69,6 +69,9 @@ public class OutboxAtomicityIntegrationTests
         public IQueryable<LegalDecisionRecord> LegalDecisionRecords => _inner.LegalDecisionRecords;
         public IQueryable<CompensationType> CompensationTypes => _inner.CompensationTypes;
         public IQueryable<LegalAttestation> LegalAttestations => _inner.LegalAttestations;
+        public IQueryable<PayrollRunRevision> PayrollRunRevisions => _inner.PayrollRunRevisions;
+        public IQueryable<PayrollReversalRequest> PayrollReversalRequests => _inner.PayrollReversalRequests;
+        public IQueryable<PayrollRunApproval> PayrollRunApprovals => _inner.PayrollRunApprovals;
 
         public Task<PayrollRun?> GetPayrollRunAsync(Guid id, bool includeLines, CancellationToken ct) =>
             _inner.GetPayrollRunAsync(id, includeLines, ct);
@@ -126,6 +129,18 @@ public class OutboxAtomicityIntegrationTests
 
         public Task<bool> TryClaimPartitionAsync(Guid partitionId, string workerId, CancellationToken ct) =>
             _inner.TryClaimPartitionAsync(partitionId, workerId, ct);
+
+        public Task<(int Saved, int AlreadyExists)?> SaveEmployeePackagesForJobAsync(
+            Guid payrollRunId, Guid jobId, IReadOnlyList<Payroll.Application.Services.PayrollEmployeeCalculationPackage> packages, CancellationToken ct) =>
+            _inner.SaveEmployeePackagesForJobAsync(payrollRunId, jobId, packages, ct);
+
+        public Task<int> StopRunJobsAsync(Guid payrollRunId, CancellationToken ct) => _inner.StopRunJobsAsync(payrollRunId, ct);
+
+        public Task<PayrollRunInputsReleased> ReleaseRunInputsAsync(Guid payrollRunId, CancellationToken ct) =>
+            _inner.ReleaseRunInputsAsync(payrollRunId, ct);
+
+        public Task<(int Lines, int Components)> DeleteRunLinesAsync(Guid payrollRunId, CancellationToken ct) =>
+            _inner.DeleteRunLinesAsync(payrollRunId, ct);
     }
 
     private sealed class RecordingPayrollPublisher(CountingPayrollRepository repo) : IPayrollEventPublisher

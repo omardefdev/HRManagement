@@ -34,13 +34,22 @@ public sealed partial class Pay056TransitionTests
         [PayrollRunAct.MarkValidated] = ([PayrollRunStatus.Calculating, PayrollRunStatus.Calculated, PayrollRunStatus.Validating], PayrollRunStatus.Calculated),
         [PayrollRunAct.SubmitForReview] = ([PayrollRunStatus.Calculated], PayrollRunStatus.UnderReview),
         [PayrollRunAct.Approve] = ([PayrollRunStatus.UnderReview], PayrollRunStatus.Approved),
-        [PayrollRunAct.Reject] = ([PayrollRunStatus.UnderReview], PayrollRunStatus.Calculated),
+        // A rejection reopens the run: a draft again (G-PAY-04). It used to leave the run «محسوب» with frozen results.
+        [PayrollRunAct.Reject] = ([PayrollRunStatus.UnderReview], PayrollRunStatus.Draft),
         [PayrollRunAct.Post] = ([PayrollRunStatus.Approved], PayrollRunStatus.Posted),
         [PayrollRunAct.Reverse] = ([PayrollRunStatus.Posted], PayrollRunStatus.Reversed),
         [PayrollRunAct.Cancel] =
             ([PayrollRunStatus.Draft, PayrollRunStatus.Calculating, PayrollRunStatus.Validating, PayrollRunStatus.Calculated,
               PayrollRunStatus.UnderReview, PayrollRunStatus.Approved], PayrollRunStatus.Cancelled),
+        [PayrollRunAct.RestartCalculation] =
+            ([PayrollRunStatus.Draft, PayrollRunStatus.Calculating, PayrollRunStatus.Validating, PayrollRunStatus.Calculated], PayrollRunStatus.Draft),
     };
+
+    /// <summary>The acts that need results that are not frozen; every other act is indifferent to it or needs them frozen.</summary>
+    private static bool NeedsUnfrozen(PayrollRunAct act) => act is PayrollRunAct.BeginCalculating or PayrollRunAct.RestartCalculation;
+
+    private static readonly Guid Actor = Guid.Parse("56000000-0000-4000-8000-0000000000aa");
+    private static readonly DateTime When = new(2028, 2, 3, 9, 0, 0, DateTimeKind.Utc);
 
     /// <summary>The method of the run behind each act.</summary>
     private static void Apply(PayrollRun run, PayrollRunAct act)
@@ -54,10 +63,11 @@ public sealed partial class Pay056TransitionTests
             case PayrollRunAct.MarkValidated: run.MarkValidated(900m); break;
             case PayrollRunAct.SubmitForReview: run.SubmitForReview(); break;
             case PayrollRunAct.Approve: run.Approve(Guid.NewGuid(), "payroll-approver", "موافق"); break;
-            case PayrollRunAct.Reject: run.Reject(Guid.NewGuid(), "الإجمالي لا يطابق كشف المالية"); break;
-            case PayrollRunAct.Post: run.Post(); break;
+            case PayrollRunAct.Reject: run.ReopenAfterRejection(Actor, When, "الإجمالي لا يطابق كشف المالية"); break;
+            case PayrollRunAct.Post: run.Post(Actor, When); break;
             case PayrollRunAct.Reverse: run.Reverse(); break;
-            case PayrollRunAct.Cancel: run.MarkCancelled(); break;
+            case PayrollRunAct.Cancel: run.Cancel(Actor, When, "أُنشئ التشغيل لفترة خاطئة"); break;
+            case PayrollRunAct.RestartCalculation: run.ResetForRestart(); break;
             default: throw new ArgumentOutOfRangeException(nameof(act), act, "an act with no method of the run");
         }
     }
@@ -76,8 +86,7 @@ public sealed partial class Pay056TransitionTests
             Status = state,
             TotalNetPay = 900m,
             ValidatedAtCalculate = true,
-            // A recalculation needs results that are not frozen; everything else is indifferent to it or needs them frozen.
-            ResultsFrozen = act != PayrollRunAct.BeginCalculating,
+            ResultsFrozen = !NeedsUnfrozen(act),
         };
         run.SalaryLines.Add(new SalaryLine { PayrollRunId = run.Id, EmployeeId = Guid.NewGuid(), GrossPay = 1000m, TotalDeductions = 100m, NetPay = 900m });
         return run;
@@ -116,8 +125,11 @@ public sealed partial class Pay056TransitionTests
             Assert.Equal(state, run.Status);
             Assert.Equal(900m, run.TotalNetPay);
             Assert.True(run.ValidatedAtCalculate);
-            Assert.Equal(act != PayrollRunAct.BeginCalculating, run.ResultsFrozen);
+            Assert.Equal(!NeedsUnfrozen(act), run.ResultsFrozen);
             Assert.Equal(approvalsBefore, run.Approvals.Count);
+            Assert.Equal(1, run.Revision);
+            Assert.Null(run.CancelledBy);
+            Assert.Null(run.PostedBy);
         }
     }
 
@@ -180,6 +192,66 @@ public sealed partial class Pay056TransitionTests
             Assert.Throws<InvalidOperationException>(run.BeginCalculating);
             Assert.Equal(state, run.Status);
         }
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void A_rejection_needs_its_note_and_a_cancellation_its_reason(string? text)
+    {
+        var underReview = RunIn(PayrollRunStatus.UnderReview, PayrollRunAct.Reject);
+        Assert.Equal(PayrollRun.RejectionNoteRequired,
+            Assert.Throws<InvalidOperationException>(() => underReview.ReopenAfterRejection(Actor, When, text)).Message);
+        Assert.Equal(PayrollRunStatus.UnderReview, underReview.Status);
+        Assert.Equal(1, underReview.Revision);
+        Assert.True(underReview.ResultsFrozen);
+
+        var calculated = RunIn(PayrollRunStatus.Calculated, PayrollRunAct.Cancel);
+        Assert.Equal(PayrollRun.CancellationReasonRequired,
+            Assert.Throws<InvalidOperationException>(() => calculated.Cancel(Actor, When, text)).Message);
+        Assert.Equal(PayrollRunStatus.Calculated, calculated.Status);
+        Assert.Null(calculated.CancelledBy);
+        Assert.Empty(calculated.Approvals);
+    }
+
+    [Fact]
+    public void A_rejection_reopens_the_run_and_a_cancellation_names_its_actor_and_reason()
+    {
+        var run = RunIn(PayrollRunStatus.UnderReview, PayrollRunAct.Reject);
+        var rejection = run.ReopenAfterRejection(Actor, When, "  يُصحَّح بدل النقل  ");
+
+        Assert.Equal(PayrollRunStatus.Draft, run.Status);
+        Assert.Equal(2, run.Revision);
+        Assert.False(run.ResultsFrozen);
+        Assert.False(run.ValidatedAtCalculate);
+        Assert.Equal(0m, run.TotalNetPay);
+        Assert.Equal((ApprovalDecision.Rejected, "يُصحَّح بدل النقل", Actor, When), (rejection.Decision, rejection.Notes, rejection.ApproverId, rejection.DecidedAt));
+        // A reopened run is calculated again: it is a draft whose results are not frozen.
+        run.BeginCalculating();
+        Assert.Equal(PayrollRunStatus.Calculating, run.Status);
+
+        var cancelled = RunIn(PayrollRunStatus.Approved, PayrollRunAct.Cancel);
+        var cancellation = cancelled.Cancel(Actor, When, "أُنشئ لفترة خاطئة");
+        Assert.Equal((PayrollRunStatus.Cancelled, (Guid?)Actor, (DateTime?)When, "أُنشئ لفترة خاطئة"),
+            (cancelled.Status, cancelled.CancelledBy, cancelled.CancelledAt, cancelled.CancellationReason));
+        Assert.Equal((ApprovalDecision.Cancelled, "أُنشئ لفترة خاطئة", Actor), (cancellation.Decision, cancellation.Notes, cancellation.ApproverId));
+    }
+
+    [Fact]
+    public void A_posting_names_its_poster_and_a_restart_needs_results_that_are_not_frozen()
+    {
+        var approved = RunIn(PayrollRunStatus.Approved, PayrollRunAct.Post);
+        approved.Post(Actor, When);
+        Assert.Equal(((Guid?)Actor, (DateTime?)When, 900m), (approved.PostedBy, approved.PostedAt, approved.TotalNetPay));
+
+        var frozen = RunIn(PayrollRunStatus.Calculated, PayrollRunAct.Post);
+        Assert.Equal(PayrollRun.RestartNeedsUnfrozenResults, Assert.Throws<InvalidOperationException>(frozen.ResetForRestart).Message);
+        Assert.Equal(PayrollRunStatus.Calculated, frozen.Status);
+
+        var failed = RunIn(PayrollRunStatus.Calculating, PayrollRunAct.RestartCalculation);
+        failed.ResetForRestart();
+        Assert.Equal((PayrollRunStatus.Draft, 0m, false), (failed.Status, failed.TotalNetPay, failed.ValidatedAtCalculate));
     }
 
     // --- nothing sets the state after construction ---

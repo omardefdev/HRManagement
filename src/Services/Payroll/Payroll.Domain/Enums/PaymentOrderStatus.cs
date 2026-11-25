@@ -16,5 +16,12 @@ public enum PaymentOrderStatus
     [Display(Name = "مسدّد")]
     Settled = 4,
     [Display(Name = "مسدّد جزئياً")]
-    PartiallySettled = 5
+    PartiallySettled = 5,
+
+    /// <summary>
+    /// PLAN-56 (D-PAY-16): an order that never left, cancelled with its batch when its run's reversal was approved. Final: nothing
+    /// was paid by it, and it is not «disbursed».
+    /// </summary>
+    [Display(Name = "ملغى")]
+    Cancelled = 6
 }

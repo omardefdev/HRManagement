@@ -23,7 +23,7 @@ public enum PayrollRunAct
     SubmitForReview,
     Approve,
 
-    /// <summary>The reviewer sends the run back.</summary>
+    /// <summary>The reviewer sends the run back, and the run reopens as a draft.</summary>
     Reject,
 
     Post,
@@ -31,6 +31,9 @@ public enum PayrollRunAct
 
     /// <summary>The run is abandoned before its posting.</summary>
     Cancel,
+
+    /// <summary>A failed or paused calculation is given up; the run goes back to a draft for a new one.</summary>
+    RestartCalculation,
 }
 
 /// <summary>
@@ -38,7 +41,7 @@ public enum PayrollRunAct
 /// <see cref="Entities.PayrollRun"/>, and every such method asks <see cref="EnsureTransition"/> first:
 /// <code>
 /// Draft → Calculating → Calculated (validated) → UnderReview → Approved → Posted → Reversed
-///                                                  UnderReview → (rejected)
+///                                                  UnderReview → Draft (a rejection reopens the run)
 /// any state before the posting → Cancelled
 /// </code>
 /// with the calculator's own steps (<c>Validating</c>, and a failure back to <c>Calculating</c>). <c>Posted</c> leaves only by a
@@ -91,7 +94,7 @@ public static class PayrollRunTransitions
             "لا يمكن الاعتماد إلا للتشغيلات قيد المراجعة."),
         new(PayrollRunAct.Reject,
             [PayrollRunStatus.UnderReview],
-            PayrollRunStatus.Calculated,
+            PayrollRunStatus.Draft,
             "لا يمكن الرفض إلا للتشغيلات قيد المراجعة."),
         new(PayrollRunAct.Post,
             [PayrollRunStatus.Approved],
@@ -105,6 +108,10 @@ public static class PayrollRunTransitions
             BeforeThePosting,
             PayrollRunStatus.Cancelled,
             "لا يمكن إلغاء تشغيل مرحّل أو معكوس أو ملغى."),
+        new(PayrollRunAct.RestartCalculation,
+            [PayrollRunStatus.Draft, PayrollRunStatus.Calculating, PayrollRunStatus.Validating, PayrollRunStatus.Calculated],
+            PayrollRunStatus.Draft,
+            "لا يمكن إعادة بدء الحساب إلا لتشغيل لم يُرسل للمراجعة بعد."),
     ];
 
     private static readonly IReadOnlyDictionary<PayrollRunAct, Rule> ByAct = Rules.ToDictionary(r => r.Act);

@@ -2021,6 +2021,9 @@ namespace Payroll.Infrastructure.Migrations
                     b.Property<Guid?>("PayrollRunId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("TargetSourceRunId")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 
@@ -2033,6 +2036,9 @@ namespace Payroll.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("PayrollRunId");
+
+                    b.HasIndex("TargetSourceRunId")
+                        .HasDatabaseName("IX_PayrollAdjustments_TargetSourceRunId");
 
                     b.HasIndex("TenantId", "ApprovalStatus")
                         .HasDatabaseName("IX_PayrollAdjustments_Tenant_ApprovalStatus");
@@ -2488,10 +2494,90 @@ namespace Payroll.Infrastructure.Migrations
                     b.ToTable("PayrollReferenceChangeRequests");
                 });
 
+            modelBuilder.Entity("Payroll.Domain.Entities.PayrollReversalRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DecidedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DecisionNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("PayrollRunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PayrollRunId");
+
+                    b.HasIndex("TenantId", "PayrollRunId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PayrollReversalRequests_OnePending")
+                        .HasFilter("\"Status\" = 'Pending'");
+
+                    b.HasIndex("TenantId", "Status");
+
+                    b.ToTable("PayrollReversalRequests");
+                });
+
             modelBuilder.Entity("Payroll.Domain.Entities.PayrollRun", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CancelledBy")
                         .HasColumnType("uuid");
 
                     b.Property<string>("ConfigContentHash")
@@ -2513,8 +2599,19 @@ namespace Payroll.Infrastructure.Migrations
                     b.Property<DateTime>("PeriodStart")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("PostedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("PostedBy")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("ResultsFrozen")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("Revision")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(1);
 
                     b.Property<DateTime>("RunDate")
                         .HasColumnType("timestamp with time zone");
@@ -2556,10 +2653,15 @@ namespace Payroll.Infrastructure.Migrations
 
                     b.HasIndex("PayrollConfigurationId");
 
+                    b.HasIndex("TenantId", "SourceRunId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PayrollRuns_OneOpenCorrectionPerSource")
+                        .HasFilter("\"RunType\" = 'Correction' AND \"SourceRunId\" IS NOT NULL AND \"Status\" NOT IN (2, 5, 8)");
+
                     b.HasIndex("TenantId", "PeriodStart", "PeriodEnd", "RunType")
                         .IsUnique()
                         .HasDatabaseName("IX_PayrollRuns_LivePeriod")
-                        .HasFilter("\"Status\" <> 5 AND \"Status\" <> 8");
+                        .HasFilter("\"RunType\" = 'Regular' AND \"Status\" <> 5 AND \"Status\" <> 8");
 
                     b.ToTable("PayrollRuns");
                 });
@@ -2797,6 +2899,65 @@ namespace Payroll.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("PayrollRunPartitions");
+                });
+
+            modelBuilder.Entity("Payroll.Domain.Entities.PayrollRunRevision", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("LineCount")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LinesFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<Guid>("PayrollRunId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("RejectedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RejectedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("TotalNetPay")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("UpdatedBy")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PayrollRunId", "Revision")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PayrollRunRevisions_Run_Revision");
+
+                    b.ToTable("PayrollRunRevisions");
                 });
 
             modelBuilder.Entity("Payroll.Domain.Entities.PayslipDelivery", b =>
@@ -3297,7 +3458,14 @@ namespace Payroll.Infrastructure.Migrations
                         .HasForeignKey("PayrollRunId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("Payroll.Domain.Entities.PayrollRun", "TargetSourceRun")
+                        .WithMany()
+                        .HasForeignKey("TargetSourceRunId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("PayrollRun");
+
+                    b.Navigation("TargetSourceRun");
                 });
 
             modelBuilder.Entity("Payroll.Domain.Entities.PayrollAuditRecord", b =>
@@ -3350,6 +3518,17 @@ namespace Payroll.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("PayrollConfiguration");
+                });
+
+            modelBuilder.Entity("Payroll.Domain.Entities.PayrollReversalRequest", b =>
+                {
+                    b.HasOne("Payroll.Domain.Entities.PayrollRun", "PayrollRun")
+                        .WithMany()
+                        .HasForeignKey("PayrollRunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PayrollRun");
                 });
 
             modelBuilder.Entity("Payroll.Domain.Entities.PayrollRun", b =>
@@ -3411,6 +3590,17 @@ namespace Payroll.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Job");
+                });
+
+            modelBuilder.Entity("Payroll.Domain.Entities.PayrollRunRevision", b =>
+                {
+                    b.HasOne("Payroll.Domain.Entities.PayrollRun", "PayrollRun")
+                        .WithMany()
+                        .HasForeignKey("PayrollRunId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PayrollRun");
                 });
 
             modelBuilder.Entity("Payroll.Domain.Entities.PayslipDelivery", b =>

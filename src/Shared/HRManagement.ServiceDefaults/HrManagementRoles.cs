@@ -236,6 +236,13 @@ public static class HrManagementPolicies
     /// </summary>
     public const string PayrollRepair = "Payroll.Repair";
 
+    /// <summary>
+    /// PLAN-56 (D-PAY-18): cancelling a payroll run that is not posted: exactly whoever passes <see cref="PayrollProcess"/> or
+    /// <see cref="PayrollApprove"/>, and no one else. Which of the two a given run needs is decided on the run's state: the processor
+    /// cancels what was not sent for review, and a run under review or approved is cancelled by the approver.
+    /// </summary>
+    public const string PayrollRunCancel = "Payroll.RunCancel";
+
     public const string HrManagementApprove = "HrManagement.Approve";
 
     /// <summary>

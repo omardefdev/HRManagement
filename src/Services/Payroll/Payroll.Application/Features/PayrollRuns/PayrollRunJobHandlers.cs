@@ -346,37 +346,31 @@ public class ResumePayrollRunJobHandler(
     }
 }
 
-public record CancelPayrollRunJobCommand(Guid JobId) : IRequest<(bool Success, string? Error)>;
+/// <summary>
+/// The older way to cancel: by the job. PLAN-56 (G-PAY-04): it delegates to <see cref="CancelPayrollRunCommand"/>, so it needs a
+/// reason, it follows D-PAY-18, it releases the run's inputs, and it no longer refuses a completed job (any run not posted can be
+/// cancelled).
+/// </summary>
+public record CancelPayrollRunJobCommand(Guid JobId, Guid ActorId, string? Reason, bool ActorMayProcess, bool ActorMayApprove)
+    : IRequest<Lifecycle.RunActResult>;
 
-public class CancelPayrollRunJobHandler(IPayrollRepository repository)
-    : IRequestHandler<CancelPayrollRunJobCommand, (bool Success, string? Error)>
+public class CancelPayrollRunJobHandler(IPayrollRepository repository, IMediator mediator)
+    : IRequestHandler<CancelPayrollRunJobCommand, Lifecycle.RunActResult>
 {
-    public async Task<(bool Success, string? Error)> Handle(
+    public async Task<Lifecycle.RunActResult> Handle(
         CancelPayrollRunJobCommand request,
         CancellationToken cancellationToken)
     {
-        var job = await repository.PayrollRunJobs.FirstOrDefaultAsync(j => j.Id == request.JobId, cancellationToken);
-        if (job is null) return (false, "المهمة غير موجودة.");
-        if (job.Status is PayrollRunJobStatus.Completed)
-            return (false, "لا يمكن إلغاء مهمة مكتملة.");
+        var runId = await repository.PayrollRunJobs.AsNoTracking()
+            .Where(j => j.Id == request.JobId)
+            .Select(j => (Guid?)j.PayrollRunId)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (runId is null)
+            return Lifecycle.RunActResult.NotFound(Lifecycle.RunLifecycleMessages.JobNotFound);
 
-        var run = await repository.GetPayrollRunAsync(job.PayrollRunId, includeLines: false, cancellationToken);
-        if (run is null) return (false, "التشغيل غير موجود.");
-        if (run.Status is PayrollRunStatus.Posted or PayrollRunStatus.Reversed)
-            return (false, "لا يمكن إلغاء تشغيل مرحّل.");
-
-        job.Status = PayrollRunJobStatus.Cancelled;
-        foreach (var p in await repository.PayrollRunPartitions
-                     .Where(x => x.PayrollRunJobId == job.Id && x.Status != PayrollRunPartitionStatus.Completed)
-                     .ToListAsync(cancellationToken))
-        {
-            p.Status = PayrollRunPartitionStatus.Cancelled;
-            p.WorkerId = null;
-        }
-
-        run.MarkCancelled();
-        await repository.SaveChangesAsync(cancellationToken);
-        return (true, null);
+        return await mediator.Send(
+            new CancelPayrollRunCommand(runId.Value, request.ActorId, request.Reason, request.ActorMayProcess, request.ActorMayApprove),
+            cancellationToken);
     }
 }
 

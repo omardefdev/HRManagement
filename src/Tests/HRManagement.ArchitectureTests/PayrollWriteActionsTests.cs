@@ -142,6 +142,24 @@ public sealed class PayrollWriteActionsTests
         ["PayrollAdmin.BackfillProfileOrgUnit"] = HrManagementPolicies.PayrollRepair,
     };
 
+    /// <summary>
+    /// PLAN-56 (§2–4, P-4): the acts of a payroll run's life. A rejection is the approver's; the restart of a calculation is the
+    /// processor's; a cancellation is reached by the processing and the approval roles only (<c>Payroll.RunCancel</c>), and which of
+    /// the two a given run needs is the handler's rule on the run's state (D-PAY-18). On the screens and the API alike.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> Pay056 = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["PayrollRunLifecycleApi.Reject"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollRunLifecycleApi.Cancel"] = HrManagementPolicies.PayrollRunCancel,
+        ["PayrollRunLifecycleApi.Restart"] = HrManagementPolicies.PayrollProcess,
+        ["PayrollRuns.RejectRun"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollRuns.CancelRun"] = HrManagementPolicies.PayrollRunCancel,
+        ["PayrollRuns.RestartJob"] = HrManagementPolicies.PayrollProcess,
+    };
+
+    /// <summary>The controllers PLAN-56 adds: every write of theirs has a row in <see cref="Pay056"/>.</summary>
+    private static readonly string[] Pay056Controllers = ["PayrollRunLifecycleApi"];
+
     /// <summary>The controllers PLAN-55 adds: every write of theirs has a row in <see cref="Pay055"/>.</summary>
     private static readonly string[] Pay055Controllers = ["EmployeeBankAccounts", "EmployeeBankAccountsApi", "PayrollAdmin"];
 
@@ -490,6 +508,52 @@ public sealed class PayrollWriteActionsTests
 
     private static IEnumerable<ActionInfo> SixteenActions => Writes.Where(a => Sixteen.ContainsKey(a.Key));
 
+    public static TheoryData<string, string> Pay056Rows()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var (key, policy) in Pay056)
+            data.Add(key, policy);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(Pay056Rows))]
+    public void Each_action_plan_56_adds_names_its_policy_on_the_action(string key, string policy)
+    {
+        var actions = Writes.Where(a => a.Key == key).ToList();
+        Assert.True(actions.Count > 0, $"{key} is not a write action of Payroll.Web");
+        Assert.All(actions, a => Assert.Equal([policy], a.ActionPolicies));
+    }
+
+    [Fact]
+    public void Every_write_of_the_controllers_plan_56_adds_is_in_its_table()
+    {
+        var unlisted = Writes.Where(a => Pay056Controllers.Contains(a.ControllerName)).Select(a => a.Key)
+            .Where(k => !Pay056.ContainsKey(k)).Distinct(StringComparer.Ordinal).ToList();
+        Assert.True(unlisted.Count == 0, "Write actions with no row in PayrollWriteActionsTests.Pay056: " + string.Join(", ", unlisted));
+    }
+
+    [Fact]
+    public async Task The_acts_of_a_runs_life_are_reached_by_the_roles_the_plan_names_and_by_no_other()
+    {
+        var pay056 = Writes.Where(a => Pay056.ContainsKey(a.Key)).ToList();
+        async Task<List<string>> ReachedByAsync(params string[] roles) =>
+            (await ReachedAsync(User(roles), pay056)).ToList();
+
+        var forProcessor = Pay056.Where(r => r.Value is HrManagementPolicies.PayrollProcess or HrManagementPolicies.PayrollRunCancel)
+            .Select(r => r.Key).Order(StringComparer.Ordinal).ToList();
+        var forApprover = Pay056.Where(r => r.Value is HrManagementPolicies.PayrollApprove or HrManagementPolicies.PayrollRunCancel)
+            .Select(r => r.Key).Order(StringComparer.Ordinal).ToList();
+
+        Assert.Equal(forProcessor, await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollProcessor));
+        Assert.Equal(forApprover, await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollApprover));
+        // D-PAY-18: a run is cancelled by the processing or the approval role, and by no one else.
+        Assert.Empty(await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollPoster));
+        Assert.Empty(await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollReverser));
+        Assert.Empty(await ReachedByAsync(HrManagementRoles.Payroll));
+        Assert.Empty(await ReachedByAsync(HrManagementRoles.PayrollProcessor));
+    }
+
     [Fact]
     public async Task The_module_role_alone_reaches_no_payroll_write_but_cancelling_its_own_export_job()
     {
@@ -517,10 +581,12 @@ public sealed class PayrollWriteActionsTests
         var byRole = new Dictionary<string, string[]>(StringComparer.Ordinal)
         {
             [HrManagementRoles.PayrollProcessor] =
-                [HrManagementPolicies.PayrollProcess, HrManagementPolicies.PayrollMasterData, HrManagementPolicies.PayrollChangeCancel],
+                [HrManagementPolicies.PayrollProcess, HrManagementPolicies.PayrollMasterData, HrManagementPolicies.PayrollChangeCancel,
+                 HrManagementPolicies.PayrollRunCancel],
             // PLAN-54 (D-PAY-12): the legal attestation is met through the policy the setting names, Payroll.Approve by default.
             [HrManagementRoles.PayrollApprover] =
-                [HrManagementPolicies.PayrollApprove, HrManagementPolicies.PayrollChangeCancel, HrManagementPolicies.PayrollLegalAttest],
+                [HrManagementPolicies.PayrollApprove, HrManagementPolicies.PayrollChangeCancel, HrManagementPolicies.PayrollLegalAttest,
+                 HrManagementPolicies.PayrollRunCancel],
             [HrManagementRoles.PayrollPoster] = [HrManagementPolicies.PayrollPost, HrManagementPolicies.PayrollReverse],
             [HrManagementRoles.PayrollReverser] = [HrManagementPolicies.PayrollReverse],
         };

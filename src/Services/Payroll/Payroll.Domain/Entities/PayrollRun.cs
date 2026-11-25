@@ -60,6 +60,37 @@ public class PayrollRun : AuditableEntity
     [Display(Name = "تم التحقق")]
     public bool ValidatedAtCalculate { get; set; }
 
+    /// <summary>
+    /// PLAN-56 (G-PAY-04): the version of the run's results. 1 for the first calculation; a rejection that reopens the run adds one,
+    /// and keeps what the rejected version was in a <see cref="PayrollRunRevision"/>.
+    /// </summary>
+    [Display(Name = "رقم النسخة")]
+    public int Revision { get; private set; } = 1;
+
+    /// <summary>PLAN-56 (G-PAY-06): who posted the run. The decider of its reversal is never this person.</summary>
+    [Display(Name = "المُرحِّل")]
+    public Guid? PostedBy { get; private set; }
+
+    [Display(Name = "تاريخ الترحيل")]
+    public DateTime? PostedAt { get; private set; }
+
+    /// <summary>PLAN-56 (D-PAY-18): who cancelled the run, when and why. The reason is always given.</summary>
+    [Display(Name = "ألغاه")]
+    public Guid? CancelledBy { get; private set; }
+
+    [Display(Name = "تاريخ الإلغاء")]
+    public DateTime? CancelledAt { get; private set; }
+
+    [MaxLength(ReasonMaxLength)]
+    [Display(Name = "سبب الإلغاء")]
+    public string? CancellationReason { get; private set; }
+
+    public const int ReasonMaxLength = 2000;
+
+    public const string RejectionNoteRequired = "ملاحظة الرفض مطلوبة: اذكر ما يجب تصحيحه قبل إعادة الإرسال.";
+    public const string CancellationReasonRequired = "سبب الإلغاء مطلوب.";
+    public const string RestartNeedsUnfrozenResults = "لا يمكن إعادة بدء الحساب بعد تجميد النتائج؛ ألغِ التشغيل أو استخدم الرفض من المراجعة.";
+
     [ForeignKey(nameof(PayrollConfigurationId))]
     public PayrollConfiguration? PayrollConfiguration { get; set; }
 
@@ -143,7 +174,49 @@ public class PayrollRun : AuditableEntity
         ResultsFrozen = true;
     }
 
-    public void MarkCancelled() => Move(PayrollRunAct.Cancel);
+    /// <summary>
+    /// PLAN-56 (G-PAY-04, D-PAY-18): the run is abandoned before its posting, by a named person, for a stated reason. Its period is
+    /// free for a new run; the caller releases its inputs in the same transaction. A row of the run's decisions keeps the reason.
+    /// </summary>
+    public PayrollRunApproval Cancel(Guid cancelledBy, DateTime cancelledAt, string? reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+            throw new InvalidOperationException(CancellationReasonRequired);
+        Move(PayrollRunAct.Cancel);
+        CancelledBy = cancelledBy;
+        CancelledAt = cancelledAt;
+        CancellationReason = Trimmed(reason);
+        var decision = new PayrollRunApproval
+        {
+            PayrollRunId = Id,
+            TenantId = TenantId,
+            ApproverId = cancelledBy,
+            Decision = ApprovalDecision.Cancelled,
+            Notes = CancellationReason,
+            DecidedAt = cancelledAt
+        };
+        Approvals.Add(decision);
+        return decision;
+    }
+
+    /// <summary>
+    /// PLAN-56 (G-PAY-07): a calculation that failed or was paused is given up, and the run goes back to a draft for a calculation
+    /// with a new snapshot. Only while the results are not frozen; the caller deletes the lines and releases the inputs with it.
+    /// </summary>
+    public void ResetForRestart()
+    {
+        if (ResultsFrozen)
+            throw new InvalidOperationException(RestartNeedsUnfrozenResults);
+        Move(PayrollRunAct.RestartCalculation);
+        TotalNetPay = 0m;
+        ValidatedAtCalculate = false;
+    }
+
+    private static string Trimmed(string text)
+    {
+        var trimmed = text.Trim();
+        return trimmed.Length <= ReasonMaxLength ? trimmed : trimmed[..ReasonMaxLength];
+    }
 
     public void SubmitForReview()
     {
@@ -168,27 +241,44 @@ public class PayrollRun : AuditableEntity
         });
     }
 
-    public void Reject(Guid approverId, string? notes = null)
+    /// <summary>
+    /// PLAN-56 (G-PAY-04): the reviewer sends the run back, and the run reopens: a draft again, its results neither frozen nor
+    /// validated, its version one more. The note is mandatory: it says what to correct. The caller keeps the rejected version in a
+    /// <see cref="PayrollRunRevision"/>, deletes its lines and releases its inputs in the same transaction. A rejection used to leave
+    /// the run «محسوب» with frozen results, which could be neither recalculated nor resubmitted.
+    /// </summary>
+    public PayrollRunApproval ReopenAfterRejection(Guid rejectedBy, DateTime rejectedAt, string? notes)
     {
+        if (string.IsNullOrWhiteSpace(notes))
+            throw new InvalidOperationException(RejectionNoteRequired);
         Move(PayrollRunAct.Reject);
-        Approvals.Add(new PayrollRunApproval
+        ResultsFrozen = false;
+        ValidatedAtCalculate = false;
+        TotalNetPay = 0m;
+        Revision++;
+        var decision = new PayrollRunApproval
         {
             PayrollRunId = Id,
-            ApproverId = approverId,
+            TenantId = TenantId,
+            ApproverId = rejectedBy,
             Decision = ApprovalDecision.Rejected,
-            Notes = notes,
-            DecidedAt = DateTime.UtcNow
-        });
+            Notes = Trimmed(notes),
+            DecidedAt = rejectedAt
+        };
+        Approvals.Add(decision);
+        return decision;
     }
 
     /// <summary>
     /// PLAN-56 (G-PAY-03): the posting keeps the total the validation froze. It writes no amount: what is posted is what was approved.
     /// </summary>
-    public void Post()
+    public void Post(Guid postedBy, DateTime postedAt)
     {
         var err = ValidateCanPost();
         if (err != null) throw new InvalidOperationException(err);
         Move(PayrollRunAct.Post);
+        PostedBy = postedBy;
+        PostedAt = postedAt;
     }
 
     public void Reverse()

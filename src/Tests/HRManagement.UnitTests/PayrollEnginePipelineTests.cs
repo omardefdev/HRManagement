@@ -149,7 +149,7 @@ public class PayrollEnginePipelineTests
         Assert.Equal(PayrollRunStatus.Approved, run.Status);
 
         // PLAN-56: the posting keeps the total the validation froze; it writes no amount.
-        run.Post();
+        run.Post(Guid.NewGuid(), DateTime.UtcNow);
         Assert.Equal(PayrollRunStatus.Posted, run.Status);
         Assert.Equal(900, run.TotalNetPay);
 

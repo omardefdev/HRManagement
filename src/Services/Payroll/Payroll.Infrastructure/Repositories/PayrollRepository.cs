@@ -56,6 +56,9 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
     public IQueryable<LegalDecisionRecord> LegalDecisionRecords => db.LegalDecisionRecords;
     public IQueryable<CompensationType> CompensationTypes => db.CompensationTypes;
     public IQueryable<LegalAttestation> LegalAttestations => db.LegalAttestations;
+    public IQueryable<PayrollRunRevision> PayrollRunRevisions => db.PayrollRunRevisions;
+    public IQueryable<PayrollReversalRequest> PayrollReversalRequests => db.PayrollReversalRequests;
+    public IQueryable<PayrollRunApproval> PayrollRunApprovals => db.PayrollRunApprovals;
 
     /// <summary>Every table of a version that governs pay.</summary>
     private IQueryable<PayrollConfiguration> WithContent() =>
@@ -140,8 +143,35 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
             entry.State = EntityState.Added;
     }
 
-    public async Task<(bool Saved, bool AlreadyExists)> SaveEmployeePackageAtomicAsync(
+    public Task<(bool Saved, bool AlreadyExists)> SaveEmployeePackageAtomicAsync(
         Guid payrollRunId,
+        PayrollEmployeeCalculationPackage package,
+        CancellationToken ct) =>
+        SaveOnePackageAsync(payrollRunId, runningJobId: null, package, ct);
+
+    /// <summary>The marker of a save refused because its job is no longer running: nothing was written.</summary>
+    private sealed class JobNoLongerRunningException : Exception;
+
+    /// <summary>
+    /// PLAN-56: true while <paramref name="jobId"/> is running. Called inside the save's transaction; on PostgreSQL it takes a share
+    /// lock on the job's row, which a cancellation's update of that row waits for, and which waits for a cancellation in flight.
+    /// </summary>
+    private async Task<bool> JobIsRunningAsync(Guid jobId, CancellationToken ct)
+    {
+        if (db.Database.IsNpgsql())
+        {
+            var running = await db.Database
+                .SqlQuery<int>($"""SELECT 1 AS "Value" FROM "PayrollRunJobs" WHERE "Id" = {jobId} AND "Status" = 'Running' FOR SHARE""")
+                .ToListAsync(ct);
+            return running.Count > 0;
+        }
+
+        return await db.PayrollRunJobs.AsNoTracking().AnyAsync(j => j.Id == jobId && j.Status == PayrollRunJobStatus.Running, ct);
+    }
+
+    private async Task<(bool Saved, bool AlreadyExists)> SaveOnePackageAsync(
+        Guid payrollRunId,
+        Guid? runningJobId,
         PayrollEmployeeCalculationPackage package,
         CancellationToken ct)
     {
@@ -153,6 +183,9 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
         await using var tx = ownsTx ? await db.Database.BeginTransactionAsync(ct) : null;
         try
         {
+            if (runningJobId is Guid jobId && !await JobIsRunningAsync(jobId, ct))
+                throw new JobNoLongerRunningException();
+
             await db.SalaryLines.AddAsync(package.Line, ct);
             await db.SaveChangesAsync(ct);
 
@@ -203,8 +236,33 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
         }
     }
 
-    public async Task<(int Saved, int AlreadyExists)> SaveEmployeePackagesBulkAsync(
+    public Task<(int Saved, int AlreadyExists)> SaveEmployeePackagesBulkAsync(
         Guid payrollRunId,
+        IReadOnlyList<PayrollEmployeeCalculationPackage> packages,
+        CancellationToken ct) =>
+        SavePackagesAsync(payrollRunId, runningJobId: null, packages, ct);
+
+    public async Task<(int Saved, int AlreadyExists)?> SaveEmployeePackagesForJobAsync(
+        Guid payrollRunId,
+        Guid jobId,
+        IReadOnlyList<PayrollEmployeeCalculationPackage> packages,
+        CancellationToken ct)
+    {
+        try
+        {
+            return await SavePackagesAsync(payrollRunId, jobId, packages, ct);
+        }
+        catch (JobNoLongerRunningException)
+        {
+            // The transaction of the refused save was rolled back; nothing of these packages is tracked or written.
+            db.ChangeTracker.Clear();
+            return null;
+        }
+    }
+
+    private async Task<(int Saved, int AlreadyExists)> SavePackagesAsync(
+        Guid payrollRunId,
+        Guid? runningJobId,
         IReadOnlyList<PayrollEmployeeCalculationPackage> packages,
         CancellationToken ct)
     {
@@ -227,6 +285,9 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
         await using var tx = ownsTx ? await db.Database.BeginTransactionAsync(ct) : null;
         try
         {
+            if (runningJobId is Guid jobId && !await JobIsRunningAsync(jobId, ct))
+                throw new JobNoLongerRunningException();
+
             foreach (var package in toSave)
                 await db.SalaryLines.AddAsync(package.Line, ct);
             await db.SaveChangesAsync(ct);
@@ -278,7 +339,7 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
             var skipped = already;
             foreach (var package in toSave)
             {
-                var (ok, exists) = await SaveEmployeePackageAtomicAsync(payrollRunId, package, ct);
+                var (ok, exists) = await SaveOnePackageAsync(payrollRunId, runningJobId, package, ct);
                 if (ok) saved++;
                 else if (exists) skipped++;
             }
@@ -290,6 +351,74 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
                 await tx.RollbackAsync(ct);
             throw;
         }
+    }
+
+    public async Task<int> StopRunJobsAsync(Guid payrollRunId, CancellationToken ct)
+    {
+        // A bulk update, not tracked entities: a worker's checkpoint changes the job's row all the time, and a cancellation must not
+        // lose to it on the concurrency token. The update takes the row's lock: it waits for a worker's save in flight (which holds
+        // a share lock on the row until its commit), and every later save of a worker waits for this transaction and then finds the
+        // job stopped.
+        var stopped = await db.PayrollRunJobs
+            .Where(j => j.PayrollRunId == payrollRunId
+                        && (j.Status == PayrollRunJobStatus.Pending || j.Status == PayrollRunJobStatus.Running
+                            || j.Status == PayrollRunJobStatus.Paused || j.Status == PayrollRunJobStatus.Failed))
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(j => j.Status, PayrollRunJobStatus.Cancelled)
+                      .SetProperty(j => j.LeaseOwner, (string?)null)
+                      .SetProperty(j => j.LeaseUntil, (DateTime?)null),
+                ct);
+
+        await db.PayrollRunPartitions
+            .Where(p => p.Status != PayrollRunPartitionStatus.Completed && p.Status != PayrollRunPartitionStatus.Cancelled
+                        && db.PayrollRunJobs.Any(j => j.Id == p.PayrollRunJobId && j.PayrollRunId == payrollRunId))
+            .ExecuteUpdateAsync(
+                s => s.SetProperty(p => p.Status, PayrollRunPartitionStatus.Cancelled)
+                      .SetProperty(p => p.WorkerId, (string?)null),
+                ct);
+
+        return stopped;
+    }
+
+    public async Task<PayrollRunInputsReleased> ReleaseRunInputsAsync(Guid payrollRunId, CancellationToken ct)
+    {
+        // The recovery deductions a correction run created for its negative lines (PLAN-56 §1), while no run has applied them. They
+        // name their line; the lines are still there when a release runs (a caller deletes lines after it, if at all).
+        var recoveryReferences = await db.SalaryLines
+            .Where(l => l.PayrollRunId == payrollRunId)
+            .Select(l => l.Id)
+            .ToListAsync(ct);
+        var recoveriesDeleted = 0;
+        foreach (var chunk in recoveryReferences.Select(CorrectionRecovery.SourceReferenceOf).Chunk(500))
+        {
+            recoveriesDeleted += await db.DeductionRecords
+                .Where(d => d.DeductionType == CorrectionRecovery.DeductionType
+                            && d.AppliedInRunId == null
+                            && d.SourceReference != null && chunk.Contains(d.SourceReference))
+                .ExecuteDeleteAsync(ct);
+        }
+
+        // The applied markers, and nothing else of the rows (PLAN-57 adds its own fields to an absence without changing this).
+        var deductions = await db.DeductionRecords
+            .Where(d => d.AppliedInRunId == payrollRunId)
+            .ExecuteUpdateAsync(s => s.SetProperty(d => d.AppliedInRunId, (Guid?)null), ct);
+        var absences = await db.AbsenceDeductions
+            .Where(a => a.AppliedInRunId == payrollRunId)
+            .ExecuteUpdateAsync(s => s.SetProperty(a => a.AppliedInRunId, (Guid?)null), ct);
+        var adjustments = await db.PayrollAdjustments
+            .Where(a => a.PayrollRunId == payrollRunId)
+            .ExecuteUpdateAsync(s => s.SetProperty(a => a.PayrollRunId, (Guid?)null), ct);
+
+        return new PayrollRunInputsReleased(deductions, absences, adjustments, recoveriesDeleted);
+    }
+
+    public async Task<(int Lines, int Components)> DeleteRunLinesAsync(Guid payrollRunId, CancellationToken ct)
+    {
+        var components = await db.SalaryLineComponents
+            .Where(c => db.SalaryLines.Any(l => l.Id == c.SalaryLineId && l.PayrollRunId == payrollRunId))
+            .ExecuteDeleteAsync(ct);
+        var lines = await db.SalaryLines.Where(l => l.PayrollRunId == payrollRunId).ExecuteDeleteAsync(ct);
+        return (lines, components);
     }
 
     public async Task<bool> TryClaimPartitionAsync(Guid partitionId, string workerId, CancellationToken ct)

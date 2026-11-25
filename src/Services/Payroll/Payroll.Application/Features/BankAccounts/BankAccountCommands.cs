@@ -106,8 +106,12 @@ public sealed class BankAccountRules(IPayrollRepository repository)
         var runsToHold = lines.Where(l => !disbursed.Contains(l.Id)).Select(l => l.PayrollRunId).ToHashSet();
 
         // The runs whose snapshot pinned the account and whose line for this employee is not written yet.
+        // PLAN-56 (P-10): only the snapshot of a calculation still in hand. A job that completed wrote every line (the query above
+        // reads them); if its run was reopened by a rejection, or its job was given up by a restart or a cancellation, its snapshot
+        // pins nothing any more: the next calculation takes a new snapshot and pins the account in force then (D-PAY-15).
         var snapshotRuns = await repository.PayrollRunInputSnapshots.AsNoTracking()
             .Where(s => s.BankAccountId == account.Id && s.EmployeeId == account.EmployeeId
+                        && s.Job.Status != PayrollRunJobStatus.Completed && s.Job.Status != PayrollRunJobStatus.Cancelled
                         && s.Job.PayrollRun.Status != PayrollRunStatus.Reversed && s.Job.PayrollRun.Status != PayrollRunStatus.Cancelled)
             .Select(s => s.Job.PayrollRunId)
             .Distinct()

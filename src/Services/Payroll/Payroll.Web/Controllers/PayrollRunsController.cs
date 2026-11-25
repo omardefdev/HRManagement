@@ -126,6 +126,12 @@ public class PayrollRunsController : Controller
             .OrderByDescending(j => j.CreatedAt)
             .FirstOrDefaultAsync();
         ViewBag.Job = job;
+        // PLAN-56 (G-PAY-04): what each rejected version of the run was.
+        ViewBag.Revisions = (IReadOnlyList<PayrollRunRevision>)await _db.PayrollRunRevisions
+            .AsNoTracking()
+            .Where(r => r.PayrollRunId == id)
+            .OrderBy(r => r.Revision)
+            .ToListAsync();
         // PLAN-54 (§3): what the pinned framework version is: interim (and under which exceptions), or older than legal packs.
         ViewBag.FrameworkNote = await Payroll.Application.Features.PayrollConfigurations.PayrollFrameworkIndicators.ForRunAsync(
             HttpContext.RequestServices.GetRequiredService<Payroll.Application.Abstractions.IPayrollRepository>(),
@@ -197,10 +203,45 @@ public class PayrollRunsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
-    public async Task<IActionResult> CancelJob(Guid jobId, Guid runId)
+    public async Task<IActionResult> CancelJob(Guid jobId, Guid runId, string? reason, [FromServices] IAuthorizationService authorization)
     {
-        var (success, error) = await _mediator.Send(new CancelPayrollRunJobCommand(jobId));
-        TempData[success ? "Success" : "Error"] = success ? "تم إلغاء مهمة التشغيل" : error;
+        // PLAN-56 (G-PAY-04): cancelling the job is cancelling the run, with its reason, its rule (D-PAY-18) and the release of its inputs.
+        var (mayProcess, mayApprove) = await PayrollRunActHttp.CancelRightsAsync(authorization, User);
+        var (success, error) = await _mediator.Send(
+            new CancelPayrollRunJobCommand(jobId, RequireUserId(), reason, mayProcess, mayApprove));
+        TempData[success ? "Success" : "Error"] = success ? "تم إلغاء التشغيل وتحرير مدخلاته" : error;
+        return RedirectToAction(nameof(Details), new { id = runId });
+    }
+
+    /// <summary>
+    /// PLAN-56 (G-PAY-04, D-PAY-18): cancels a run that is not posted, with a reason. The processor cancels what was not sent for
+    /// review; a run under review or approved is cancelled by the holder of the approval policy.
+    /// </summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollRunCancel)]
+    public async Task<IActionResult> CancelRun(Guid id, string? reason, [FromServices] IAuthorizationService authorization)
+    {
+        var (mayProcess, mayApprove) = await PayrollRunActHttp.CancelRightsAsync(authorization, User);
+        var result = await _mediator.Send(new CancelPayrollRunCommand(id, RequireUserId(), reason, mayProcess, mayApprove));
+        if (result.Outcome == Payroll.Application.Features.PayrollRuns.Lifecycle.RunActOutcome.NotFound)
+            return NotFound();
+        if (result.Outcome == Payroll.Application.Features.PayrollRuns.Lifecycle.RunActOutcome.Forbidden)
+            return Forbid();
+        TempData[result.Success ? "Success" : "Error"] = result.Success ? "تم إلغاء التشغيل وتحرير فترته ومدخلاته" : result.Error;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    /// <summary>PLAN-56 (G-PAY-07): gives up a failed or paused calculation and starts a new one with a new snapshot.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
+    public async Task<IActionResult> RestartJob(Guid jobId, Guid runId)
+    {
+        var (result, lines, _) = await _mediator.Send(new RestartCalculationCommand(jobId, RequireUserId()));
+        TempData[result.Success ? "Success" : "Error"] = result.Success
+            ? $"أُعيد بدء الحساب بلقطة جديدة ({lines} بند)"
+            : result.Error;
         return RedirectToAction(nameof(Details), new { id = runId });
     }
 
@@ -251,8 +292,9 @@ public class PayrollRunsController : Controller
     public async Task<IActionResult> RejectRun(Guid id, string? notes)
     {
         var userId = RequireUserId();
-        var (success, error) = await _mediator.Send(new RejectPayrollRunCommand(id, userId, notes));
-        TempData[success ? "Success" : "Warning"] = success ? "تم رفض التشغيل وإعادته للحساب" : error;
+        var (success, error) = await _mediator.Send(
+            new Payroll.Application.Features.PayrollRuns.Lifecycle.RejectPayrollRunCommand(id, userId, notes));
+        TempData[success ? "Success" : "Warning"] = success ? "تم رفض التشغيل وإعادة فتحه مسودةً للتصحيح وإعادة الحساب" : error;
         return RedirectToAction(nameof(Details), new { id });
     }
 

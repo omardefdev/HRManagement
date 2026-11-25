@@ -204,6 +204,60 @@ public sealed class Pay056MigrationPostgreSqlTests(PostgreSqlFixture fixture, IT
 
     [Trait("Category", "Testcontainers")]
     [SkippableFact]
+    public async Task The_lifecycle_migration_as_the_owner_keeps_every_run_as_its_first_version_and_forces_row_security_on_its_tables()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        var (admin, owner) = await Pay055SchemaOwnedByAMigratorAsync();
+        await PlantAsync(admin);
+
+        await using (var migrator = Db(owner))
+            await migrator.Database.MigrateAsync();
+
+        // PAY056_RunLifecycle: every run that existed is its first version, never posted by a named person, never cancelled.
+        Assert.Equal(3L, await Pol047Pg.ScalarAsync<long>(admin,
+            """SELECT count(*) FROM "PayrollRuns" WHERE "Revision" = 1 AND "PostedBy" IS NULL AND "PostedAt" IS NULL AND "CancelledBy" IS NULL AND "CancellationReason" IS NULL"""));
+        Assert.Equal(0L, await Pol047Pg.ScalarAsync<long>(admin, """SELECT count(*) FROM "PayrollAdjustments" WHERE "TargetSourceRunId" IS NOT NULL"""));
+
+        // The two new tables are tenant tables: forced row security with the tenant policy (USING and WITH CHECK).
+        foreach (var table in new[] { "PayrollRunRevisions", "PayrollReversalRequests" })
+        {
+            Assert.True(
+                await Pol047Pg.ScalarAsync<bool>(admin, $"SELECT relrowsecurity AND relforcerowsecurity FROM pg_class WHERE relname = '{table}'"),
+                $"{table} is not under forced row security");
+            Assert.Equal(1L, await Pol047Pg.ScalarAsync<long>(admin,
+                $"SELECT count(*) FROM pg_policies WHERE tablename = '{table}' AND policyname = 'tenant_isolation' AND qual IS NOT NULL AND with_check IS NOT NULL"));
+        }
+
+        // An agency writes and reads its own rows only.
+        var runA = await Pol047Pg.ScalarAsync<Guid>(admin, $"""SELECT "Id" FROM "PayrollRuns" WHERE "TenantId" = '{TenantA}' AND "RunType" = 'Regular'""");
+        var request = $"""
+            INSERT INTO "PayrollReversalRequests" ("Id","TenantId","CreatedAt","UpdatedAt","PayrollRunId","RequestedBy","RequestedAt","Reason","Status")
+            VALUES (gen_random_uuid(),'{TenantA}',now(),now(),'{runA}',gen_random_uuid(),now(),'ترحيل لفترة خاطئة','Pending');
+            """;
+        await Pol047Pg.ExecAsync(owner, request, TenantA);
+        Assert.Equal(1L, await Pol047Pg.ScalarAsync<long>(owner, """SELECT count(*) FROM "PayrollReversalRequests" """, TenantA));
+        Assert.Equal(0L, await Pol047Pg.ScalarAsync<long>(owner, """SELECT count(*) FROM "PayrollReversalRequests" """, TenantB));
+        Assert.Equal(0L, await Pol047Pg.ScalarAsync<long>(owner, """SELECT count(*) FROM "PayrollReversalRequests" """));
+        var crossWrite = await Assert.ThrowsAsync<PostgresException>(() => Pol047Pg.ExecAsync(owner, request, TenantB));
+        Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, crossWrite.SqlState);
+
+        // One request waits on a run at a time.
+        var second = await Assert.ThrowsAsync<PostgresException>(() => Pol047Pg.ExecAsync(owner, request, TenantA));
+        Assert.Equal(PostgresErrorCodes.UniqueViolation, second.SqlState);
+        Assert.Equal(Payroll.Domain.Constants.PayrollRunIndexNames.OnePendingReversalRequest, second.ConstraintName);
+
+        // The live index is limited to regular runs, and the correction index exists with its filter.
+        Assert.Contains("Regular", await Pol047Pg.ScalarAsync<string>(admin,
+            $"SELECT indexdef FROM pg_indexes WHERE indexname = '{Payroll.Domain.Constants.PayrollRunIndexNames.LivePeriod}'"));
+        var correctionIndex = await Pol047Pg.ScalarAsync<string>(admin,
+            $"SELECT indexdef FROM pg_indexes WHERE indexname = '{Payroll.Domain.Constants.PayrollRunIndexNames.OneOpenCorrectionPerSource}'");
+        Assert.Contains("UNIQUE", correctionIndex);
+        Assert.Contains("Correction", correctionIndex);
+        output.WriteLine("PAY056_RunLifecycle: 3 planted runs at revision 1; 2 new tables under forced row security; the indexes as designed.");
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
     public async Task The_migration_goes_down_and_up_again()
     {
         Skip.IfNot(RealInfra.IsEnabled);

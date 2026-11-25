@@ -181,13 +181,30 @@ public static class PayrollRunParallelCalculator
                         Guid? lastEmployee = null;
                         var partitionProcessed = partition.ProcessedCount;
 
-                        async Task FlushAsync()
+                        // PLAN-56 (G-PAY-04): false when the job was stopped (cancelled, restarted, paused) before this save: the
+                        // save checks the job in its own transaction and writes nothing then, so the worker stops here.
+                        async Task<bool> FlushAsync()
                         {
-                            if (packages.Count == 0) return;
-                            var (saved, _) = await repo.SaveEmployeePackagesBulkAsync(run.Id, packages, cancellationToken);
-                            Interlocked.Add(ref linesGenerated, saved);
+                            if (packages.Count == 0) return true;
+                            var written = await repo.SaveEmployeePackagesForJobAsync(run.Id, jobId, packages, cancellationToken);
                             packages.Clear();
                             repo.ClearChangeTracker();
+                            if (written is null)
+                            {
+                                var stoppedJob = await repo.PayrollRunJobs.AsNoTracking()
+                                    .FirstAsync(j => j.Id == jobId, cancellationToken);
+                                // Paused: 1. Cancelled: 2. Failed by another worker's partition: 3 (that worker holds the reason).
+                                var why = stoppedJob.Status switch
+                                {
+                                    PayrollRunJobStatus.Paused => 1,
+                                    PayrollRunJobStatus.Cancelled => 2,
+                                    _ => 3,
+                                };
+                                Interlocked.CompareExchange(ref stopRequested, why, 0);
+                                return false;
+                            }
+
+                            Interlocked.Add(ref linesGenerated, written.Value.Saved);
 
                             partition = await repo.PayrollRunPartitions.FirstAsync(p => p.Id == partitionId, cancellationToken);
                             partition.ProcessedCount = partitionProcessed;
@@ -196,8 +213,19 @@ public static class PayrollRunParallelCalculator
                             jobRow.LastCheckpointAt = DateTime.UtcNow;
                             jobRow.ProcessedEmployeeCount = Volatile.Read(ref processedEmployees);
                             UpdateEta(jobRow);
-                            await repo.SaveChangesAsync(cancellationToken);
+                            try
+                            {
+                                await repo.SaveChangesAsync(cancellationToken);
+                            }
+                            catch (DbUpdateConcurrencyException)
+                            {
+                                // The job's row changed under this checkpoint (a pause, a cancellation, another worker's
+                                // checkpoint). The lines are saved; the checkpoint is only a progress note, and the next look at the
+                                // job decides whether to go on.
+                            }
+
                             repo.ClearChangeTracker();
+                            return true;
                         }
 
                         foreach (var snap in slice)
@@ -206,7 +234,9 @@ public static class PayrollRunParallelCalculator
                                 .FirstAsync(j => j.Id == jobId, cancellationToken);
                             if (liveJob.Status == PayrollRunJobStatus.Paused)
                             {
-                                await FlushAsync();
+                                // A paused job is not running: the packages in hand are not written (the save refuses them), and
+                                // the resume calculates these employees again from the same snapshot.
+                                packages.Clear();
                                 partition = await repo.PayrollRunPartitions.FirstAsync(p => p.Id == partitionId, cancellationToken);
                                 partition.CursorEmployeeId = snap.EmployeeId;
                                 await repo.SaveChangesAsync(cancellationToken);
@@ -215,9 +245,9 @@ public static class PayrollRunParallelCalculator
                             }
                             if (liveJob.Status == PayrollRunJobStatus.Cancelled)
                             {
-                                partition = await repo.PayrollRunPartitions.FirstAsync(p => p.Id == partitionId, cancellationToken);
-                                partition.Status = PayrollRunPartitionStatus.Cancelled;
-                                await repo.SaveChangesAsync(cancellationToken);
+                                // PLAN-56 (G-PAY-04): the cancellation stopped the job and its partitions itself, and released the
+                                // run's inputs. A worker that notices it writes nothing more: no line, no input, no state.
+                                packages.Clear();
                                 Interlocked.Exchange(ref stopRequested, 2);
                                 return;
                             }
@@ -279,11 +309,12 @@ public static class PayrollRunParallelCalculator
                             Interlocked.Increment(ref processedEmployees);
                             PayrollRunMetrics.EmployeesProcessed.Add(1);
 
-                            if (packages.Count >= bulkSize)
-                                await FlushAsync();
+                            if (packages.Count >= bulkSize && !await FlushAsync())
+                                return;
                         }
 
-                        await FlushAsync();
+                        if (!await FlushAsync())
+                            return;
 
                         partition = await repo.PayrollRunPartitions.FirstAsync(p => p.Id == partitionId, cancellationToken);
                         partition.Status = PayrollRunPartitionStatus.Completed;
@@ -320,6 +351,14 @@ public static class PayrollRunParallelCalculator
         finalJob.LastCheckpointAt = DateTime.UtcNow;
 
         var stop = Volatile.Read(ref stopRequested);
+        // PLAN-56 (G-PAY-04): a job that was cancelled (the run was cancelled, or its calculation restarted) is no longer this
+        // coordinator's: whoever stopped it moved the run and released its inputs. Nothing is written here, whatever the workers saw.
+        if (stop == 2 || finalJob.Status == PayrollRunJobStatus.Cancelled)
+        {
+            repository.ClearChangeTracker();
+            return (false, linesGenerated, jobId, "أُلغيت مهمة التشغيل.");
+        }
+
         // Pause is a durable operator decision. A worker can finish its last item
         // between the final status check and this coordinator reload, so honor the
         // persisted pause before any validation/finalization can mark the job complete.
@@ -329,16 +368,6 @@ public static class PayrollRunParallelCalculator
             await repository.SaveChangesAsync(cancellationToken);
             repository.ClearChangeTracker();
             return (true, linesGenerated, jobId, null);
-        }
-        if (stop == 2)
-        {
-            // The cancellation already moved the run; a worker that only notices it does not move it again.
-            if (finalRun.Status != PayrollRunStatus.Cancelled)
-                finalRun.MarkCancelled();
-            finalJob.Status = PayrollRunJobStatus.Cancelled;
-            await repository.SaveChangesAsync(cancellationToken);
-            repository.ClearChangeTracker();
-            return (false, linesGenerated, jobId, "أُلغيت مهمة التشغيل.");
         }
         if (stop == 3 || fatalError != null)
         {
