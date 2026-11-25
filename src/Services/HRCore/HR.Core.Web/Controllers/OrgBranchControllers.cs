@@ -308,6 +308,7 @@ public class DailyAttendanceRecordsController(
     }
 
     /// <summary>PLAN-57 (§1): the old close is gone; its address leads to the attendance periods' close page.</summary>
+    [HttpGet]
     public IActionResult ClosePeriod() => RedirectToAction("Close", "AttendancePeriods");
 
     private async Task<AttendanceActor> ActorAsync()

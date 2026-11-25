@@ -5,6 +5,7 @@ using HR.Core.Infrastructure.Data;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Messaging;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
 namespace HR.Core.Infrastructure.Services.Attendance;
@@ -67,7 +68,8 @@ public static class AttendanceCorrectionMessages
 /// compared with <c>RequestedBy</c> here, on the server. A rejection needs a note.</item>
 /// <item><b>An approval is atomic</b>: the day (through <see cref="AttendanceDayWriter.ApplyApprovedCorrectionAsync"/>), the
 /// summary recomputed by the same calculator with <c>Version</c> + 1, the staged <c>IAttendanceSummaryPublished</c> and the
-/// correction's state are written by one save, retried when the summary changed under it (<c>xmin</c>).</item>
+/// correction's state are written by one save; when the summary changed under it (<c>xmin</c>) the approval starts again in a
+/// new unit of work, from what is stored.</item>
 /// <item>A correction that changes no figure still raises the version and publishes it.</item>
 /// <item>A leave decision that touches a locked day makes a system correction with no requester and no decider (D-LVA-12):
 /// approved in the consumer's own save under <c>AutoApply</c>, waiting for a central person under <c>Pending</c>. Every locked day
@@ -81,7 +83,8 @@ public sealed class AttendanceCorrectionService(
     AttendancePeriodService periods,
     AttendanceEligibility eligibility,
     AttendanceCalendar calendar,
-    IOptions<AttendanceOptions> options)
+    IOptions<AttendanceOptions> options,
+    IServiceScopeFactory? scopes = null)
 {
     private const int ApprovalAttempts = 4;
 
@@ -166,53 +169,65 @@ public sealed class AttendanceCorrectionService(
 
     public async Task<AttendanceCorrectionResult> ApproveAsync(AttendanceActor actor, Guid correctionId, string? note, CancellationToken ct = default)
     {
-        for (var attempt = 1; ; attempt++)
+        var (result, changedMeanwhile) = await ApproveOnceAsync(actor, correctionId, note, ct);
+
+        // The summary's version changed under the approval (xmin): nothing was written. Each further attempt runs in a unit of work
+        // of its own (a new scope: a new context and a new bus outbox), which reads what is stored now. The context of the attempt
+        // that lost is not reused: it still holds what that attempt staged.
+        for (var attempt = 2; changedMeanwhile && scopes is not null && attempt <= ApprovalAttempts; attempt++)
         {
-            var (correction, refusal) = await LoadForDecisionAsync(actor, correctionId, ct);
-            if (refusal is not null)
-                return refusal;
+            await using var scope = scopes.CreateAsyncScope();
+            var again = scope.ServiceProvider.GetRequiredService<AttendanceCorrectionService>();
+            (result, changedMeanwhile) = await again.ApproveOnceAsync(actor, correctionId, note, ct);
+        }
 
-            var summary = await db.AttendanceEmployeeSummaries
-                .Include(s => s.Period)
-                .FirstOrDefaultAsync(s => s.AttendancePeriodId == correction!.AttendancePeriodId && s.EmployeeId == correction.EmployeeId, ct);
-            if (summary?.Period is null)
-                return AttendanceCorrectionResult.Refused(AttendanceCorrectionOutcome.Conflict, AttendanceCorrectionMessages.DayNotLocked);
+        return changedMeanwhile
+            ? AttendanceCorrectionResult.Refused(AttendanceCorrectionOutcome.Conflict, AttendanceCorrectionMessages.ChangedMeanwhile)
+            : result!;
+    }
 
-            // The day may have changed since the request (a leave decision is the usual cause): the correction records what it
-            // really replaces, and one that would change nothing is not approved.
-            var current = await db.DailyAttendanceRecords.AsNoTracking()
-                .Where(r => r.EmployeeId == correction!.EmployeeId && r.AttendanceDate == correction.AttendanceDate)
-                .Select(r => (DailyAttendanceStatus?)r.Status)
-                .FirstOrDefaultAsync(ct);
-            if (current == correction!.NewStatus)
-                return AttendanceCorrectionResult.Refused(AttendanceCorrectionOutcome.Conflict, AttendanceCorrectionMessages.NoLongerApplies);
-            correction.OldStatus = current;
+    /// <summary>One attempt of an approval, in this unit of work. <c>ChangedMeanwhile</c>: the summary moved under it, and nothing was written.</summary>
+    private async Task<(AttendanceCorrectionResult? Result, bool ChangedMeanwhile)> ApproveOnceAsync(
+        AttendanceActor actor, Guid correctionId, string? note, CancellationToken ct)
+    {
+        var (correction, refusal) = await LoadForDecisionAsync(actor, correctionId, ct);
+        if (refusal is not null)
+            return (refusal, false);
 
-            var now = DateTime.UtcNow;
-            await ApplyCorrectionsAndStageSummaryAsync([correction], summary, summary.Period,
-                correction.Source == AttendanceCorrectionSource.LeaveEvent ? AttendanceSummaryReason.LeaveEvent : AttendanceSummaryReason.Correction,
-                now, ct);
-            correction.Status = AttendanceCorrectionStatus.Approved;
-            correction.DecidedBy = actor.UserId;
-            correction.DecidedByName = actor.BoundedName;
-            correction.DecidedAt = now;
-            correction.DecisionNote = Clean(note);
+        var summary = await db.AttendanceEmployeeSummaries
+            .Include(s => s.Period)
+            .FirstOrDefaultAsync(s => s.AttendancePeriodId == correction!.AttendancePeriodId && s.EmployeeId == correction.EmployeeId, ct);
+        if (summary?.Period is null)
+            return (AttendanceCorrectionResult.Refused(AttendanceCorrectionOutcome.Conflict, AttendanceCorrectionMessages.DayNotLocked), false);
 
-            try
-            {
-                await db.SaveChangesAsync(ct);
-                return AttendanceCorrectionResult.Done(correction);
-            }
-            catch (DbUpdateConcurrencyException) when (attempt < ApprovalAttempts)
-            {
-                // The summary's version changed under this approval (xmin): nothing was written. Start again from what is stored.
-                db.ChangeTracker.Clear();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                db.ChangeTracker.Clear();
-                return AttendanceCorrectionResult.Refused(AttendanceCorrectionOutcome.Conflict, AttendanceCorrectionMessages.ChangedMeanwhile);
-            }
+        // The day may have changed since the request (a leave decision is the usual cause): the correction records what it really
+        // replaces, and one that would change nothing is not approved.
+        var current = await db.DailyAttendanceRecords.AsNoTracking()
+            .Where(r => r.EmployeeId == correction!.EmployeeId && r.AttendanceDate == correction.AttendanceDate)
+            .Select(r => (DailyAttendanceStatus?)r.Status)
+            .FirstOrDefaultAsync(ct);
+        if (current == correction!.NewStatus)
+            return (AttendanceCorrectionResult.Refused(AttendanceCorrectionOutcome.Conflict, AttendanceCorrectionMessages.NoLongerApplies), false);
+        correction.OldStatus = current;
+
+        var now = DateTime.UtcNow;
+        await ApplyCorrectionsAndStageSummaryAsync([correction], summary, summary.Period,
+            correction.Source == AttendanceCorrectionSource.LeaveEvent ? AttendanceSummaryReason.LeaveEvent : AttendanceSummaryReason.Correction,
+            now, ct);
+        correction.Status = AttendanceCorrectionStatus.Approved;
+        correction.DecidedBy = actor.UserId;
+        correction.DecidedByName = actor.BoundedName;
+        correction.DecidedAt = now;
+        correction.DecisionNote = Clean(note);
+
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            return (AttendanceCorrectionResult.Done(correction), false);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return (null, true);
         }
     }
 
