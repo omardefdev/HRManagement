@@ -159,6 +159,20 @@ public class OutboxAtomicityIntegrationTests
             PublishCount++;
             return Task.CompletedTask;
         }
+
+        public Task PublishPayrollReversedAsync(
+            Guid payrollRunId,
+            DateTime periodStart,
+            DateTime periodEnd,
+            decimal reversedNetPay,
+            Guid reversalRequestId,
+            DateTime reversedAt,
+            CancellationToken ct)
+        {
+            SaveCountAtPublish = repo.SaveCount;
+            PublishCount++;
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class CountingContractsRepository(ContractsDbContext db) : IContractsRepository

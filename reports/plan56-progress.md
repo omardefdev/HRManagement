@@ -14,8 +14,8 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
 | P2 guards | done | 2026-11-25T05:41:08Z |
 | P3 reject / cancel / release / restart | done | 2026-11-25T06:16:06Z |
 | P4 correction | done | 2026-11-25T06:33:59Z |
-| P5 reversal | in progress | |
-| P6 PostgreSQL proofs | | |
+| P5 reversal | done | 2026-11-25T06:46:31Z |
+| P6 PostgreSQL proofs | in progress | |
 | P7 acceptance + review | | |
 | P8 main | | |
 | P9 demo server | | |
@@ -173,6 +173,35 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
   architecture 410; integration (SQLite) payroll filter 101 passed and PLAN-56 classes 72; PostgreSQL (Pay054V2, Pay022, PAY056
   migrations) 12 passed; `has-pending-model-changes`: none; format clean.
 
+## P5 — the approved reversal (finished 2026-11-25T06:46:31Z)
+
+- **Commands** (`Features/PayrollRuns/Reversal/PayrollReversalCommands.cs`): `RequestPayrollReversalCommand` (reason mandatory, a
+  posted run, no funding decision or partial batch, one pending request per run → 409) and `DecidePayrollReversalCommand` (the
+  decider is neither the requester nor `PostedBy`, for an approval and a rejection alike → 400; a rejection needs its note; a
+  decided request → 409). An approval, in one transaction and one save: every live disbursement batch `Pending/Failed/Rejected`
+  → `Voided` through `PaymentBatchTransitions`, its draft orders → `Cancelled` (`PaymentOrderTransitions`, now the domain's), any
+  batch or order that left → the whole decision refused with D-PAY-16's message; `PayrollInputRelease`; `run.Reverse()`;
+  `IPayrollReversed` staged before the save. `ReversePayrollRunCommand` and its handler are deleted: no reversal batch, no closed
+  audit record without an actor.
+- **Decision D7: D-PAY-16 is checked at the decision, not at the request** (the plan's table; a batch can leave or come back
+  between the two, and the request is the record that someone asked). So a request on a run whose money has left is accepted and
+  its approval refused; it is then rejected with a note. This is also what the demo check of P9 needs (its posted runs' seeded
+  batches are `Processed`).
+- **Event:** `IPayrollReversed` (run, period, `ReversedNetPay`, `ReversalRequestId`, `ReversedAt`; schema 1);
+  `PayrollEventPublisher.PublishPayrollReversedAsync`; `PayrollReversedConsumer` in Dev.Analytics (`PayrollReversed:<run>`,
+  idempotent, `NetEffect` = −amount). Rows in `EVENT_PUBLISHER_INVENTORY.md`, `MESSAGE_EVENT_MATRIX.md`,
+  `rel-compat/event-schema-inventory.json`. No analytics reader names `PayrollProcessed`, so none changes.
+- **Web:** `POST api/payroll/runs/{id}/reversal-requests` (`Payroll.Reverse`), `POST api/payroll/reversal-requests/{id}/decide`
+  (`Payroll.Approve`), `GET api/payroll/reversal-requests` (module); `PayrollReversalRequestsController` (`[OrgScopeCentralOnly]`,
+  «طلبات العكس», menu link); the run's page asks with a reason and lists the run's requests; `ReverseRun` is the request now.
+- **Tests:** `Pay056ReversalSodTests` (unit, SQLite: requester, poster, a third person; the consumer's idempotency; the schema),
+  `Pay056ReversalTests` (integration: the approved reversal end to end, every batch status, an order that left, the rejection,
+  one pending request, a funded run, a reversed correction), `PayrollWriteActionsTests` (+4 rows; the poster and the reverser reach
+  the request only). `Pay003…Reverse_CreatesCompensatingBatch` → `Reverse_OfAPaidRun_IsRefused_AndWritesNoCompensatingBatch`.
+- **Results:** build `-warnaserror` 0 errors; unit filter 689 passed; integration (SQLite) payroll filter 122 passed (PLAN-56
+  classes 89); architecture 414 passed (one interface finding fixed: a hand-formatted date in the new list);
+  `has-pending-model-changes`: none; format clean.
+
 ## Decisions (with reasons)
 
 - **D1 (P1): the net's rounding in the validation.** `PayrollNet.Net(gross, deductions, adjustments, round)`; the validation and the
@@ -191,7 +220,8 @@ None.
 
 ## Next step
 
-P5: `RequestPayrollReversalCommand` and `DecidePayrollReversalCommand` (decider ≠ requester ≠ poster; the batches voided through
-`PaymentBatchTransitions`, their draft orders cancelled, D-PAY-16's refusal, the release, `run.Reverse()`, `IPayrollReversed` staged
-before the one save); delete `ReversePayrollRunCommand`; the consumer in Dev.Analytics; the API (`reversal-requests`), the «طلبات
-العكس» screen and the request form on the run's page; rows in the event inventories; tests (`Pay056ReversalSodTests` and the rest).
+P6: `Pay056RunLifecyclePostgreSqlTests` (a rejection concurrent with an approval → one wins, the other an `xmin` conflict; a
+cancellation while a job runs → inputs free, no orphan line; the indexes → a second regular run after a reversal, a second open
+correction refused; `IPayrollReversed` in the outbox of the reversal's own transaction; the duplicate bank reference → 409) and
+`Pay056RunLifecycleHttpTests` (statuses, antiforgery, roles, another agency → 404) on Payroll.Web over PostgreSQL; then the full
+Testcontainers filter of CI.

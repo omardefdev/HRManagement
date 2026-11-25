@@ -22,6 +22,10 @@
 
     var cancelNeedsApprover = Model.Status is PayrollRunStatus.UnderReview or PayrollRunStatus.Approved;
 
+    var reversalRequests = ViewBag.ReversalRequests as IReadOnlyList<Payroll.Domain.Entities.PayrollReversalRequest> ?? [];
+
+    var hasPendingReversal = reversalRequests.Any(r => r.Status == PayrollReversalRequestStatus.Pending);
+
     var canCancel = Model.Status is not (PayrollRunStatus.Posted or PayrollRunStatus.Reversed or PayrollRunStatus.Cancelled)
                     && (cancelNeedsApprover ? mayApprove : mayProcess);
 }
@@ -288,17 +292,27 @@
 
         {
 
-            <form asp-action="ReverseRun" asp-route-id="@Model.Id" method="post" class="d-inline me-2"
-                  data-hr-confirm="تأكيد عكس التشغيل؟"
-                  data-hr-confirm-title="عكس تشغيل الرواتب"
-                  data-hr-confirm-variant="warning"
-                  data-hr-confirm-label="عكس">
+            @if (hasPendingReversal)
+            {
+                <a asp-controller="PayrollReversalRequests" asp-action="Index" asp-route-status="@PayrollReversalRequestStatus.Pending" class="btn btn-outline-danger me-2"><i class="fas fa-hourglass-half"></i> طلب عكس بانتظار القرار</a>
+            }
+            else
+            {
+                <form asp-action="ReverseRun" asp-route-id="@Model.Id" method="post" class="d-inline-flex gap-1 me-2 align-items-center"
+                      data-hr-confirm="تسجيل طلب عكس التشغيل؟ لا يُعكس التشغيل إلا بعد أن يعتمد الطلب معتمد آخر غير طالبه وغير من رحّله."
+                      data-hr-confirm-title="طلب عكس تشغيل الرواتب"
+                      data-hr-confirm-variant="warning"
+                      data-hr-confirm-label="تسجيل الطلب">
 
-                @Html.AntiForgeryToken()
+                    @Html.AntiForgeryToken()
 
-                <button type="submit" class="btn btn-danger"><i class="fas fa-undo"></i> عكس</button>
+                    <input name="reason" class="form-control form-control-sm" maxlength="2000" required
+                           placeholder="سبب العكس (إلزامي)" aria-label="سبب العكس" />
 
-            </form>
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-undo"></i> طلب عكس</button>
+
+                </form>
+            }
 
             <form asp-action="CreateCorrection" asp-route-sourceRunId="@Model.Id" method="post" class="d-inline">
 
@@ -315,6 +329,35 @@
 </div>
 
 
+
+@if (reversalRequests.Count > 0)
+{
+    <div class="card mb-3">
+        <div class="card-header"><h3 class="card-title mb-0">طلبات العكس</h3></div>
+        <div class="card-body p-0">
+            <table class="table table-sm mb-0">
+                <thead><tr><th>الطالب</th><th>تاريخ الطلب</th><th>سبب العكس</th><th>حالة الطلب</th><th>قرّر فيه</th><th>ملاحظة القرار</th></tr></thead>
+                <tbody>
+                @foreach (var reversal in reversalRequests)
+                {
+                    <tr>
+                        <td>@await Html.PartialAsync("_UserDisplayName", (object)reversal.RequestedBy)</td>
+                        <td>@Html.HrDateTime(reversal.RequestedAt)</td>
+                        <td>@reversal.Reason</td>
+                        <td>@Html.HrEnumDisplay(reversal.Status)</td>
+                        <td>@await Html.PartialAsync("_UserDisplayName", (object?)reversal.DecidedBy)</td>
+                        <td>@(reversal.DecisionNotes ?? "—")</td>
+                    </tr>
+                }
+                @if (!reversalRequests.Any())
+                    {
+                        <tr><td colspan="6"><partial name="_HrEmptyState" model="@("لا توجد سجلات لعرضها.")" /></td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+}
 
 @if (ViewBag.Revisions is IReadOnlyList<Payroll.Domain.Entities.PayrollRunRevision> revisions && revisions.Count > 0)
 {

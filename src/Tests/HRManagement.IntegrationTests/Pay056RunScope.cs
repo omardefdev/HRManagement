@@ -37,6 +37,9 @@ internal sealed class Pay056RunScope : IAsyncDisposable
 
     public IServiceProvider Services => _scope.ServiceProvider;
 
+    /// <summary>The events the handlers staged, in order (recorded, not sent: the outbox itself is proved on PostgreSQL).</summary>
+    public RecordedPayrollEvents Events => _root.GetRequiredService<RecordedPayrollEvents>();
+
     public static async Task<Pay056RunScope> CreateAsync(Action<IServiceCollection>? configure = null)
     {
         var connection = new SqliteConnection("Data Source=:memory:");
@@ -46,6 +49,8 @@ internal sealed class Pay056RunScope : IAsyncDisposable
         services.AddLogging();
         services.AddDbContext<PayrollDbContext>(o => o.UseSqlite(connection));
         PayrollIntegrationTestSetup.AddPayrollConsumerServices(services);
+        services.AddSingleton<RecordedPayrollEvents>();
+        services.AddSingleton<Payroll.Application.Abstractions.IPayrollEventPublisher>(sp => sp.GetRequiredService<RecordedPayrollEvents>());
         configure?.Invoke(services);
 
         var root = services.BuildServiceProvider();
@@ -211,5 +216,27 @@ internal sealed class Pay056RunScope : IAsyncDisposable
     {
         await _scope.DisposeAsync();
         await _root.DisposeAsync();
+    }
+}
+
+/// <summary>PLAN-56: the payroll events a test's handlers staged.</summary>
+internal sealed class RecordedPayrollEvents : Payroll.Application.Abstractions.IPayrollEventPublisher
+{
+    public List<(Guid RunId, decimal TotalNetPay)> Processed { get; } = [];
+
+    public List<(Guid RunId, decimal ReversedNetPay, Guid RequestId, DateTime ReversedAt)> Reversed { get; } = [];
+
+    public Task PublishPayrollProcessedAsync(Guid payrollRunId, DateTime periodStart, DateTime periodEnd, decimal totalNetPay, CancellationToken ct)
+    {
+        Processed.Add((payrollRunId, totalNetPay));
+        return Task.CompletedTask;
+    }
+
+    public Task PublishPayrollReversedAsync(
+        Guid payrollRunId, DateTime periodStart, DateTime periodEnd, decimal reversedNetPay, Guid reversalRequestId, DateTime reversedAt,
+        CancellationToken ct)
+    {
+        Reversed.Add((payrollRunId, reversedNetPay, reversalRequestId, reversedAt));
+        return Task.CompletedTask;
     }
 }

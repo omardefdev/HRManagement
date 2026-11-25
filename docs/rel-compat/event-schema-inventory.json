@@ -58,6 +58,17 @@
       "idempotency": "referenceKey"
     },
     {
+      "id": "IPayrollReversed",
+      "kind": "event",
+      "schemaVersion": 1,
+      "namespace": "HRManagement.MessageContracts.Events",
+      "publisher": "Payroll",
+      "consumers": ["Dev.Analytics"],
+      "category": "domain",
+      "compatRule": "additive-only-minor",
+      "idempotency": "referenceKey"
+    },
+    {
       "id": "IPayProfileChangeSubmitted",
       "kind": "event",
       "schemaVersion": 1,

@@ -156,10 +156,16 @@ public sealed class PayrollWriteActionsTests
         ["PayrollRuns.RejectRun"] = HrManagementPolicies.PayrollApprove,
         ["PayrollRuns.CancelRun"] = HrManagementPolicies.PayrollRunCancel,
         ["PayrollRuns.RestartJob"] = HrManagementPolicies.PayrollProcess,
+        // §4: a reversal is requested with Payroll.Reverse (its roles unchanged: the poster and the reverser), and decided with
+        // Payroll.Approve by a person who is neither the requester nor the run's poster (the handler's rule).
+        ["PayrollRunLifecycleApi.RequestReversal"] = HrManagementPolicies.PayrollReverse,
+        ["PayrollRunLifecycleApi.DecideReversal"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollRuns.ReverseRun"] = HrManagementPolicies.PayrollReverse,
+        ["PayrollReversalRequests.Decide"] = HrManagementPolicies.PayrollApprove,
     };
 
     /// <summary>The controllers PLAN-56 adds: every write of theirs has a row in <see cref="Pay056"/>.</summary>
-    private static readonly string[] Pay056Controllers = ["PayrollRunLifecycleApi"];
+    private static readonly string[] Pay056Controllers = ["PayrollRunLifecycleApi", "PayrollReversalRequests"];
 
     /// <summary>The controllers PLAN-55 adds: every write of theirs has a row in <see cref="Pay055"/>.</summary>
     private static readonly string[] Pay055Controllers = ["EmployeeBankAccounts", "EmployeeBankAccountsApi", "PayrollAdmin"];
@@ -541,6 +547,8 @@ public sealed class PayrollWriteActionsTests
         async Task<List<string>> ReachedByAsync(params string[] roles) =>
             (await ReachedAsync(User(roles), pay056)).ToList();
 
+        var forReverser = Pay056.Where(r => r.Value is HrManagementPolicies.PayrollReverse)
+            .Select(r => r.Key).Order(StringComparer.Ordinal).ToList();
         var forProcessor = Pay056.Where(r => r.Value is HrManagementPolicies.PayrollProcess or HrManagementPolicies.PayrollRunCancel)
             .Select(r => r.Key).Order(StringComparer.Ordinal).ToList();
         var forApprover = Pay056.Where(r => r.Value is HrManagementPolicies.PayrollApprove or HrManagementPolicies.PayrollRunCancel)
@@ -548,9 +556,12 @@ public sealed class PayrollWriteActionsTests
 
         Assert.Equal(forProcessor, await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollProcessor));
         Assert.Equal(forApprover, await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollApprover));
-        // D-PAY-18: a run is cancelled by the processing or the approval role, and by no one else.
-        Assert.Empty(await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollPoster));
-        Assert.Empty(await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollReverser));
+        // D-PAY-18: a run is cancelled by the processing or the approval role, and by no one else. The poster and the reverser reach
+        // the request of a reversal and nothing else here: neither decides one (no persona holds both before PLAN-58).
+        Assert.Equal(forReverser, await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollPoster));
+        Assert.Equal(forReverser, await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollReverser));
+        Assert.DoesNotContain("PayrollRunLifecycleApi.DecideReversal", forReverser);
+        Assert.DoesNotContain("PayrollRunLifecycleApi.RequestReversal", forApprover);
         Assert.Empty(await ReachedByAsync(HrManagementRoles.Payroll));
         Assert.Empty(await ReachedByAsync(HrManagementRoles.PayrollProcessor));
     }

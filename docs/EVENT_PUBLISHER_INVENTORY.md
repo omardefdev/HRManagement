@@ -126,6 +126,7 @@ outbox on every receive endpoint.
 | Event | Publisher | Pattern |
 |-------|-----------|---------|
 | `IPayrollProcessed` | `PostPayrollRunHandler` | SingleSave |
+| `IPayrollReversed` | `DecidePayrollReversalHandler` → `PayrollEventPublisher.PublishPayrollReversedAsync` (PLAN-56: an approved reversal of a posted run; the voided batch, the released inputs, the reversed run, the decided request and the message in one transaction and one save) | SingleSave |
 | `IExportJobRequested` | `PayrollExportJobService.EnqueueAsync` | SingleSave |
 | `IPayProfileChangeSubmitted` | `SubmitPayProfileChangeHandler` → `PayProfileChangeEventPublisher.PublishSubmittedAsync` (PLAN-53: a salary change is requested; the request and the message in one save) | SingleSave |
 | `IPayProfileChangeDecided` | `DecidePayProfileChangeHandler` (rejected, or approved and scheduled) and `PayProfileChangeApplier.ApplyAsync` (approved and applied at once) → `PayProfileChangeEventPublisher.PublishDecidedAsync` | SingleSave |

@@ -375,8 +375,14 @@ public class Pay003ResumablePayrollRunTests
         Assert.Contains("تعارض إصدار", resume.Error!);
     }
 
+    /// <summary>
+    /// PLAN-56 (G-PAY-06, D-PAY-16): this test used to reverse a run whose batch was paid and see a «compensating» reversal batch
+    /// that no channel had been asked for. A reversal is now a request another person approves, and a run whose money has left is
+    /// not reversed at all: the approval is refused with the message that points to a correction run, no batch is written, and the
+    /// run, its batch and its lines stay as they were (the lines were always append-only).
+    /// </summary>
     [Fact]
-    public async Task Reverse_CreatesCompensatingBatch()
+    public async Task Reverse_OfAPaidRun_IsRefused_AndWritesNoCompensatingBatch()
     {
         var (root, scope, db, mediator) = await CreateScopeAsync();
         await using var _ = scope;
@@ -413,13 +419,19 @@ public class Pay003ResumablePayrollRunTests
         db.PaymentBatches.Add(original);
         await db.SaveChangesAsync();
 
-        var (revOk, revErr) = await mediator.Send(new ReversePayrollRunCommand(run.Id));
-        Assert.True(revOk, revErr);
+        var requested = await mediator.Send(new Payroll.Application.Features.PayrollRuns.Reversal.RequestPayrollReversalCommand(
+            run.Id, Guid.NewGuid(), "رُحّل التشغيل لفترة خاطئة"));
+        Assert.True(requested.Success, requested.Error);
+        var decided = await mediator.Send(new Payroll.Application.Features.PayrollRuns.Reversal.DecidePayrollReversalCommand(
+            requested.Id!.Value, Guid.NewGuid(), Approve: true, Notes: null));
 
+        Assert.False(decided.Success);
+        Assert.Equal(Payroll.Application.Features.PayrollRuns.Reversal.PayrollReversalMessages.MoneyHasLeft, decided.Error);
+        db.ChangeTracker.Clear();
         var batches = await db.PaymentBatches.Where(b => b.PayrollRunId == run.Id).ToListAsync();
-        Assert.Contains(batches, b => b.BatchKind == PaymentBatchKind.Reversal);
-        Assert.Contains(batches, b => b.Status == PaymentBatchStatus.Reversed && b.BatchKind == PaymentBatchKind.Disbursement);
-        Assert.Equal(PayrollRunStatus.Reversed, (await db.PayrollRuns.FindAsync(run.Id))!.Status);
+        var kept = Assert.Single(batches);
+        Assert.Equal((PaymentBatchKind.Disbursement, PaymentBatchStatus.Processed), (kept.BatchKind, kept.Status));
+        Assert.Equal(PayrollRunStatus.Posted, (await db.PayrollRuns.FindAsync(run.Id))!.Status);
         Assert.Equal(1, await db.SalaryLines.CountAsync(l => l.PayrollRunId == run.Id)); // append-only
     }
 

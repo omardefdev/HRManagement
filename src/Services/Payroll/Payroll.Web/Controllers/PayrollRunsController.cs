@@ -126,6 +126,12 @@ public class PayrollRunsController : Controller
             .OrderByDescending(j => j.CreatedAt)
             .FirstOrDefaultAsync();
         ViewBag.Job = job;
+        // PLAN-56 (G-PAY-06): the run's reversal requests, the pending one first.
+        ViewBag.ReversalRequests = (IReadOnlyList<PayrollReversalRequest>)await _db.PayrollReversalRequests
+            .AsNoTracking()
+            .Where(r => r.PayrollRunId == id)
+            .OrderByDescending(r => r.RequestedAt)
+            .ToListAsync();
         // PLAN-56 (G-PAY-04): what each rejected version of the run was.
         ViewBag.Revisions = (IReadOnlyList<PayrollRunRevision>)await _db.PayrollRunRevisions
             .AsNoTracking()
@@ -311,10 +317,16 @@ public class PayrollRunsController : Controller
     [HttpPost]
     [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollReverse)]
-    public async Task<IActionResult> ReverseRun(Guid id)
+    public async Task<IActionResult> ReverseRun(Guid id, string? reason)
     {
-        var (success, error) = await _mediator.Send(new ReversePayrollRunCommand(id));
-        TempData[success ? "Success" : "Error"] = success ? "تم عكس التشغيل" : error;
+        // PLAN-56 (G-PAY-06): a reversal is a request with a reason; another person decides it («طلبات العكس»).
+        var result = await _mediator.Send(
+            new Payroll.Application.Features.PayrollRuns.Reversal.RequestPayrollReversalCommand(id, RequireUserId(), reason));
+        if (result.Outcome == Payroll.Application.Features.PayrollRuns.Lifecycle.RunActOutcome.NotFound)
+            return NotFound();
+        TempData[result.Success ? "Success" : "Error"] = result.Success
+            ? "سُجّل طلب عكس التشغيل؛ يقرر فيه معتمد آخر غير طالبه وغير من رحّل التشغيل."
+            : result.Error;
         return RedirectToAction(nameof(Details), new { id });
     }
 
