@@ -62,13 +62,25 @@ public class CreatePayrollRunHandler(IPayrollRepository repository)
 
 public record CalculatePayrollRunCommand(Guid PayrollRunId) : IRequest<(bool Success, int LinesGenerated, string? Error)>;
 
-public class CalculatePayrollRunHandler(IMediator mediator)
+public class CalculatePayrollRunHandler(IMediator mediator, IPayrollRepository repository)
     : IRequestHandler<CalculatePayrollRunCommand, (bool Success, int LinesGenerated, string? Error)>
 {
     public async Task<(bool Success, int LinesGenerated, string? Error)> Handle(
         CalculatePayrollRunCommand request,
         CancellationToken cancellationToken)
     {
+        // PLAN-56 (G-PAY-03): a correction run that was reopened by a rejection is calculated again as a correction: from the
+        // adjustments aimed at its source, through the validation.
+        var runType = await repository.PayrollRuns.AsNoTracking()
+            .Where(r => r.Id == request.PayrollRunId)
+            .Select(r => (PayrollRunType?)r.RunType)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (runType == PayrollRunType.Correction)
+        {
+            var corrected = await mediator.Send(new CalculateCorrectionRunCommand(request.PayrollRunId), cancellationToken);
+            return (corrected.Success, corrected.LinesGenerated, corrected.Result.Error);
+        }
+
         // PAY-003 / PERF-001: job-based path (snapshot → bounded workers → validate)
         var jobResult = await mediator.Send(new StartPayrollRunJobCommand(request.PayrollRunId), cancellationToken);
         return (jobResult.Success, jobResult.LinesGenerated, jobResult.Error);

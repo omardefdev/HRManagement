@@ -152,6 +152,7 @@ public sealed class PayrollWriteActionsTests
         ["PayrollRunLifecycleApi.Reject"] = HrManagementPolicies.PayrollApprove,
         ["PayrollRunLifecycleApi.Cancel"] = HrManagementPolicies.PayrollRunCancel,
         ["PayrollRunLifecycleApi.Restart"] = HrManagementPolicies.PayrollProcess,
+        ["PayrollRunLifecycleApi.CreateCorrection"] = HrManagementPolicies.PayrollProcess,
         ["PayrollRuns.RejectRun"] = HrManagementPolicies.PayrollApprove,
         ["PayrollRuns.CancelRun"] = HrManagementPolicies.PayrollRunCancel,
         ["PayrollRuns.RestartJob"] = HrManagementPolicies.PayrollProcess,

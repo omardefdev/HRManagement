@@ -80,6 +80,24 @@ internal sealed class Pay056RunScope : IAsyncDisposable
         return adjustment;
     }
 
+    /// <summary>An adjustment aimed at the correction of <paramref name="sourceRunId"/> (approved, unless said otherwise).</summary>
+    public async Task<PayrollAdjustment> TargetedAdjustmentAsync(
+        Guid employee, decimal amount, Guid sourceRunId, string reason = "تصحيح ما صُرف", bool approved = true)
+    {
+        var adjustment = new PayrollAdjustment
+        {
+            EmployeeId = employee,
+            Amount = amount,
+            AdjustmentReason = reason,
+            TargetSourceRunId = sourceRunId,
+            Origin = ManualInputOrigin.Manual,
+            ApprovalStatus = approved ? ManualInputApprovalStatus.Approved : ManualInputApprovalStatus.PendingApproval,
+        };
+        Db.PayrollAdjustments.Add(adjustment);
+        await Db.SaveChangesAsync();
+        return adjustment;
+    }
+
     public async Task<DeductionRecord> DeductionAsync(Guid employee, decimal amount, string type = "Manual", DateOnly? dueDate = null)
     {
         var deduction = new DeductionRecord { EmployeeId = employee, Amount = amount, DeductionType = type, DueDate = dueDate };

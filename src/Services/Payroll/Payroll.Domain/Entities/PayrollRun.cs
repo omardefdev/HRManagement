@@ -52,13 +52,27 @@ public class PayrollRun : AuditableEntity
     [Display(Name = "إجمالي صافي الرواتب")]
     public decimal TotalNetPay { get; set; }
 
-    /// <summary>PAY-003: lines locked after successful validate.</summary>
-    [Display(Name = "نتائج مُجمّدة")]
-    public bool ResultsFrozen { get; set; }
+    private bool _resultsFrozen;
+    private bool _validatedAtCalculate;
 
-    /// <summary>PAY-003: validate phase completed successfully.</summary>
+    /// <summary>
+    /// PAY-003: lines locked after successful validate. PLAN-56: given at construction (a seeded run), and after that changed only by
+    /// the validation (frozen) and by a rejection that reopens the run or a restart (unfrozen). Nothing freezes a run by hand.
+    /// </summary>
+    [Display(Name = "نتائج مُجمّدة")]
+    public bool ResultsFrozen
+    {
+        get => _resultsFrozen;
+        init => _resultsFrozen = value;
+    }
+
+    /// <summary>PAY-003: validate phase completed successfully. PLAN-56: set by the validation alone, like <see cref="ResultsFrozen"/>.</summary>
     [Display(Name = "تم التحقق")]
-    public bool ValidatedAtCalculate { get; set; }
+    public bool ValidatedAtCalculate
+    {
+        get => _validatedAtCalculate;
+        init => _validatedAtCalculate = value;
+    }
 
     /// <summary>
     /// PLAN-56 (G-PAY-04): the version of the run's results. 1 for the first calculation; a rejection that reopens the run adds one,
@@ -170,8 +184,8 @@ public class PayrollRun : AuditableEntity
     {
         Move(PayrollRunAct.MarkValidated);
         TotalNetPay = totalNetPay;
-        ValidatedAtCalculate = true;
-        ResultsFrozen = true;
+        _validatedAtCalculate = true;
+        _resultsFrozen = true;
     }
 
     /// <summary>
@@ -209,7 +223,7 @@ public class PayrollRun : AuditableEntity
             throw new InvalidOperationException(RestartNeedsUnfrozenResults);
         Move(PayrollRunAct.RestartCalculation);
         TotalNetPay = 0m;
-        ValidatedAtCalculate = false;
+        _validatedAtCalculate = false;
     }
 
     private static string Trimmed(string text)
@@ -252,8 +266,8 @@ public class PayrollRun : AuditableEntity
         if (string.IsNullOrWhiteSpace(notes))
             throw new InvalidOperationException(RejectionNoteRequired);
         Move(PayrollRunAct.Reject);
-        ResultsFrozen = false;
-        ValidatedAtCalculate = false;
+        _resultsFrozen = false;
+        _validatedAtCalculate = false;
         TotalNetPay = 0m;
         Revision++;
         var decision = new PayrollRunApproval

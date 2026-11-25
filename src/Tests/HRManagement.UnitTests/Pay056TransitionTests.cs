@@ -267,12 +267,31 @@ public sealed partial class Pay056TransitionTests
             modifier => modifier.FullName == "System.Runtime.CompilerServices.IsExternalInit");
     }
 
+    [Theory]
+    [InlineData(nameof(PayrollRun.ResultsFrozen))]
+    [InlineData(nameof(PayrollRun.ValidatedAtCalculate))]
+    public void Nothing_freezes_or_validates_a_run_by_hand(string property)
+    {
+        // The correction run used to set both after construction, around the validation. They are given at construction (a seeded
+        // run) and changed by the run's own methods only.
+        var setter = typeof(PayrollRun).GetProperty(property)!.SetMethod;
+
+        Assert.NotNull(setter);
+        Assert.Contains(
+            setter!.ReturnParameter.GetRequiredCustomModifiers(),
+            modifier => modifier.FullName == "System.Runtime.CompilerServices.IsExternalInit");
+    }
+
     [Fact]
     public void The_tests_helper_sets_a_state_and_exists_in_the_test_projects_only()
     {
         var run = RunIn(PayrollRunStatus.Draft, PayrollRunAct.Cancel);
         ForTesting.SetStatus(run, PayrollRunStatus.Reversed);
         Assert.Equal(PayrollRunStatus.Reversed, run.Status);
+        var frozen = RunIn(PayrollRunStatus.Calculated, PayrollRunAct.Post);
+        ForTesting.Unfreeze(frozen);
+        Assert.False(frozen.ResultsFrozen);
+        Assert.False(frozen.ValidatedAtCalculate);
 
         var users = ProductSources().Where(s => s.Text.Contains("ForTesting", StringComparison.Ordinal)).Select(s => s.Relative).ToList();
         Assert.Empty(users);

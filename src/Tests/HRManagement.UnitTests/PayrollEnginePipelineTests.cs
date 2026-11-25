@@ -16,9 +16,7 @@ public class PayrollEnginePipelineTests
         IEnumerable<AllowanceRecord>? allowances = null,
         IEnumerable<DeductionRecord>? deductions = null,
         IEnumerable<PayrollAdjustment>? adjustments = null,
-        IEnumerable<AbsenceDeduction>? absences = null,
-        decimal? correctionGross = null,
-        decimal? correctionNet = null)
+        IEnumerable<AbsenceDeduction>? absences = null)
     {
         var config = new PayrollConfiguration
         {
@@ -48,9 +46,7 @@ public class PayrollEnginePipelineTests
             AbsenceDeductions = absences?.ToList() ?? [],
             Configuration = config,
             ExtraHolidays = new HashSet<DateOnly>(),
-            RunType = runType,
-            CorrectionDeltaGross = correctionGross,
-            CorrectionDeltaNet = correctionNet
+            RunType = runType
         };
     }
 
@@ -113,15 +109,47 @@ public class PayrollEnginePipelineTests
         Assert.Equal(500m, result.NetPay);
     }
 
+    /// <summary>
+    /// PLAN-56 (G-PAY-03, D-PAY-17): this test used to say «a correction's net is the delta it is handed» (and the delta was also
+    /// written into the base and taxed). A correction's line is now its adjustments and nothing else, and its net is the one net of
+    /// them: no base salary, no deduction, no tax, however large the employee's salary is.
+    /// </summary>
     [Fact]
-    public void CorrectionRun_UsesDeltaNet()
+    public void CorrectionRun_NetIsTheOneNetOfItsAdjustments_NoBaseAndNoTax()
+    {
+        var engine = PayrollEngine.CreateDefaultPipeline();
+        var adjustments = new[]
+        {
+            new PayrollAdjustment { Id = Guid.NewGuid(), Amount = 1000m, AdjustmentReason = "فرق ترفيع" },
+            new PayrollAdjustment { Id = Guid.NewGuid(), Amount = -200m, AdjustmentReason = "تصحيح بدل" },
+        };
+        var result = engine.Calculate(CreateContext(
+            baseSalary: 900_000m,
+            runType: PayrollRunType.Correction,
+            adjustments: adjustments,
+            deductions: [new DeductionRecord { Id = Guid.NewGuid(), Amount = 50m, DeductionType = "Manual" }]));
+
+        Assert.Equal(800m, result.NetPay);
+        Assert.Equal(0m, result.Line.GrossPay);
+        Assert.Equal(0m, result.Line.TotalDeductions);
+        Assert.Equal(800m, result.Line.TotalAdjustments);
+        Assert.All(result.Components, c => Assert.Equal(SalaryComponentType.Adjustment, c.ComponentType));
+        Assert.All(result.Components, c => Assert.NotNull(c.ReferenceId));
+        Assert.Equal(2, result.Components.Count);
+        Assert.Empty(result.ConsumedDeductionIds);
+    }
+
+    [Fact]
+    public void CorrectionRun_NegativeDifference_PaysNothingAndKeepsTheShortfall()
     {
         var engine = PayrollEngine.CreateDefaultPipeline();
         var result = engine.Calculate(CreateContext(
             runType: PayrollRunType.Correction,
-            correctionGross: 1000m,
-            correctionNet: 800m));
-        Assert.Equal(800m, result.NetPay);
+            adjustments: [new PayrollAdjustment { Id = Guid.NewGuid(), Amount = -30_000m, AdjustmentReason = "استرداد" }]));
+
+        Assert.Equal(0m, result.NetPay);
+        Assert.Equal(-30_000m, result.Line.TotalAdjustments);
+        Assert.Equal(30_000m, PayrollNet.Shortfall(result.Line));
     }
 
     [Fact]

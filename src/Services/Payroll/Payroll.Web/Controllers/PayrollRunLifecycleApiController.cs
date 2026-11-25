@@ -61,6 +61,19 @@ public sealed class PayrollRunLifecycleApiController(IMediator mediator, IAuthor
             new RestartCalculationCommand(jobId, PayProfileChangeHttp.RequireUserId(User)), ct);
         return PayrollRunActHttp.Answer(result, new { runId = result.Id, jobId = newJobId, linesGenerated = lines });
     }
+
+    /// <summary>
+    /// Creates the correction run of a posted run from the approved adjustments aimed at it. 409 while that run has a correction not
+    /// yet posted; 400 when no approved adjustment is aimed at it, or the run is not posted.
+    /// </summary>
+    [HttpPost("runs/{id:guid}/corrections")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
+    public async Task<IActionResult> CreateCorrection(Guid id, CancellationToken ct)
+    {
+        var correction = await mediator.Send(new CreateCorrectionRunCommand(id, DateTime.UtcNow), ct);
+        return PayrollRunActHttp.Answer(correction.Result, new { id = correction.CorrectionRunId, linesGenerated = correction.LinesGenerated });
+    }
 }
 
 /// <summary>The body of a rejection: the note that says what to correct (mandatory).</summary>

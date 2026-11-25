@@ -24,8 +24,6 @@ public sealed class PayrollCalculationContext
     public required PayrollConfiguration Configuration { get; init; }
     public required IReadOnlySet<DateOnly> ExtraHolidays { get; init; }
     public PayrollRunType RunType { get; init; } = PayrollRunType.Regular;
-    public decimal? CorrectionDeltaGross { get; init; }
-    public decimal? CorrectionDeltaNet { get; init; }
 }
 
 public sealed class PayrollCalculationResult

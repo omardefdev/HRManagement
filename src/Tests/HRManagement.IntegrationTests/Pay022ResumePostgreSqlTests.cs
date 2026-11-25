@@ -51,8 +51,7 @@ public class Pay022ResumePostgreSqlTests
         lastPartition.ProcessedCount = 0;
 
         var run = await db.PayrollRuns.FirstAsync(r => r.Id == runId);
-        run.ResultsFrozen = false;
-        run.ValidatedAtCalculate = false;
+        ForTesting.Unfreeze(run);
         ForTesting.SetStatus(run, PayrollRunStatus.Calculating);
 
         var lastEmp = await db.PayrollRunInputSnapshots

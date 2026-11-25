@@ -16,6 +16,21 @@ internal static class ForTesting
         typeof(PayrollRun).GetField("_status", BindingFlags.Instance | BindingFlags.NonPublic)
         ?? throw new InvalidOperationException("PayrollRun no longer keeps its state in the field _status; update ForTesting.SetStatus.");
 
+    private static FieldInfo Field(string name) =>
+        typeof(PayrollRun).GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)
+        ?? throw new InvalidOperationException($"PayrollRun no longer has the field {name}; update ForTesting.");
+
+    /// <summary>
+    /// Makes <paramref name="run"/> a run whose results are not frozen and not validated, around the run's methods (a planted
+    /// calculation in progress on a run that was calculated before). Tests only.
+    /// </summary>
+    public static PayrollRun Unfreeze(PayrollRun run)
+    {
+        Field("_resultsFrozen").SetValue(run, false);
+        Field("_validatedAtCalculate").SetValue(run, false);
+        return run;
+    }
+
     /// <summary>Puts <paramref name="run"/> in <paramref name="status"/> around its transitions. Tests only.</summary>
     public static PayrollRun SetStatus(PayrollRun run, PayrollRunStatus status)
     {

@@ -146,6 +146,9 @@ public static class PayrollPartitionInputLoader
 
                 .Where(a => idSet.Contains(a.EmployeeId)
                             && (a.PayrollRunId == null || a.PayrollRunId == run.Id)
+                            // PLAN-56 (G-PAY-03): an adjustment aimed at the correction of a posted run is that correction's
+                            // alone; a regular run never takes it.
+                            && a.TargetSourceRunId == null
                             && a.ApprovalStatus == ManualInputApprovalStatus.Approved),
 
             cancellationToken);

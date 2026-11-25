@@ -271,16 +271,46 @@ public class PayrollAdjustmentsController(PayrollDbContext db, IEmployeeLookup e
         ViewBag.EmployeeNames = await employeeLookup.GetEmployeeDisplayNamesAsync(
             items.Select(x => x.EmployeeId).Append(employeeId ?? Guid.Empty).Where(id => id != Guid.Empty),
             HttpContext.RequestAborted);
+        // PLAN-56 (G-PAY-03): the posted run each targeted adjustment corrects, by its period (never an id on the page).
+        var targetIds = items.Where(x => x.TargetSourceRunId.HasValue).Select(x => x.TargetSourceRunId!.Value).Distinct().ToList();
+        ViewBag.TargetRuns = (await db.PayrollRuns.AsNoTracking()
+                .Where(r => targetIds.Contains(r.Id))
+                .Select(r => new { r.Id, r.PeriodStart, r.RunType })
+                .ToListAsync())
+            .ToDictionary(r => r.Id, r => PostedRunLabel(r.PeriodStart, r.RunType));
         await ManualInputActions.StampAsync(this, authorization);
         return View(nameof(Index), items);
     }
 
     [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
-    public IActionResult Create() => View(new ManualAdjustmentCreateViewModel());
+    public async Task<IActionResult> Create()
+    {
+        await StampPostedRunsAsync(null);
+        return View(new ManualAdjustmentCreateViewModel());
+    }
+
+    /// <summary>
+    /// PLAN-56 (G-PAY-03): the posted runs an adjustment may be aimed at, for the form's list: each by its period and its type.
+    /// </summary>
+    private async Task StampPostedRunsAsync(Guid? selected)
+    {
+        var posted = await db.PayrollRuns.AsNoTracking()
+            .Where(r => r.Status == PayrollRunStatus.Posted)
+            .OrderByDescending(r => r.PeriodStart)
+            .Take(SearchFilterBase.LookupMaxPageSize)
+            .Select(r => new { r.Id, r.PeriodStart, r.RunType })
+            .ToListAsync();
+        ViewBag.PostedRuns = new SelectList(
+            posted.Select(r => new { r.Id, Label = PostedRunLabel(r.PeriodStart, r.RunType) }), "Id", "Label", selected);
+    }
+
+    internal static string PostedRunLabel(DateTime periodStart, PayrollRunType runType) =>
+        $"{periodStart:yyyy-MM} — {HRManagement.SharedKernel.Localization.EnumDisplayExtensions.GetDisplayName(runType)}";
 
     /// <summary>
     /// A manual adjustment is entered pending: it counts in no calculation before a second person approves it (PLAN-54 §4). The form
-    /// names no run: which run applies it is the calculation's matter, never the client's.
+    /// names no run that applies it: which run applies it is the calculation's matter, never the client's. PLAN-56: it may name the
+    /// posted run it corrects; then only that run's correction takes it.
     /// </summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -289,12 +319,14 @@ public class PayrollAdjustmentsController(PayrollDbContext db, IEmployeeLookup e
     {
         var result = ModelState.IsValid
             ? await mediator.Send(new CreateManualInputCommand(
-                ManualInputKind.Adjustment, model.EmployeeId!.Value, model.Amount!.Value, model.AdjustmentReason, PayProfileChangeHttp.RequireUserId(User)))
+                ManualInputKind.Adjustment, model.EmployeeId!.Value, model.Amount!.Value, model.AdjustmentReason, PayProfileChangeHttp.RequireUserId(User),
+                TargetSourceRunId: model.TargetSourceRunId))
             : null;
         if (result is not { Success: true })
         {
             if (result is not null) ModelState.AddModelError(string.Empty, result.Error!);
             Response.StatusCode = StatusCodes.Status400BadRequest;
+            await StampPostedRunsAsync(model.TargetSourceRunId);
             return View(model);
         }
 

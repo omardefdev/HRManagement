@@ -11,19 +11,6 @@ public sealed class BaseSalaryRule : IPayrollRule
 
     public void Apply(PayrollCalculationContext context, PayrollCalculationResult result)
     {
-        if (context.RunType == PayrollRunType.Correction && context.CorrectionDeltaGross.HasValue)
-        {
-            var delta = context.CorrectionDeltaGross.Value;
-            result.Components.Add(new SalaryLineComponent
-            {
-                ComponentType = SalaryComponentType.Adjustment,
-                ComponentName = "تصحيح رجعي — فرق إجمالي",
-                Amount = delta
-            });
-            result.GrossPay += delta;
-            return;
-        }
-
         var baseAmount = context.MonthlyBaseSalary;
         if (context.WorkingDaysInPeriod > 0
             && context.EmployeeWorkingDays > 0
@@ -340,10 +327,7 @@ public sealed class RoundingRule : IPayrollRule
         result.GrossPay = context.Configuration.RoundMoney(result.GrossPay);
         result.TotalDeductions = context.Configuration.RoundMoney(result.TotalDeductions);
 
-        if (context.RunType == PayrollRunType.Correction && context.CorrectionDeltaNet.HasValue)
-            result.NetPay = context.Configuration.RoundMoney(context.CorrectionDeltaNet.Value);
-        else
-            result.NetPay = PayrollNet.Net(result.GrossPay, result.TotalDeductions, result.TotalAdjustments, context.Configuration);
+        result.NetPay = PayrollNet.Net(result.GrossPay, result.TotalDeductions, result.TotalAdjustments, context.Configuration);
 
         result.Line.GrossPay = result.GrossPay;
         result.Line.TotalDeductions = result.TotalDeductions;
@@ -355,6 +339,9 @@ public sealed class RoundingRule : IPayrollRule
 public sealed class PayrollEnginePipeline(IEnumerable<IPayrollRule> rules) : IPayrollEngine
 {
     private readonly IReadOnlyList<IPayrollRule> _rules = rules.OrderBy(r => r.Order).ToList();
+
+    /// <summary>The rules a correction line passes: its adjustments, and the one net of them.</summary>
+    public static bool AppliesToACorrection(IPayrollRule rule) => rule is AdjustmentRule or RoundingRule;
 
     public PayrollCalculationResult Calculate(PayrollCalculationContext context)
     {
@@ -368,7 +355,14 @@ public sealed class PayrollEnginePipeline(IEnumerable<IPayrollRule> rules) : IPa
         };
 
         foreach (var rule in _rules)
+        {
+            // PLAN-56 (G-PAY-03, D-PAY-17): a correction line is the adjustments aimed at its source run and nothing else. It has
+            // no base salary, no allowance, no statutory deduction and no tax: the difference is outside the tax and insurance base,
+            // in a correction as in a regular run, and it is counted once (it used to be written into the base as well, and taxed).
+            if (context.RunType == PayrollRunType.Correction && !AppliesToACorrection(rule))
+                continue;
             rule.Apply(context, result);
+        }
 
         return result;
     }

@@ -40,6 +40,11 @@ public class StartPayrollRunJobHandler(
         var run = await repository.GetPayrollRunAsync(request.PayrollRunId, includeLines: true, cancellationToken);
         if (run is null) return (false, 0, null, "التشغيل غير موجود.");
 
+        // PLAN-56 (G-PAY-03): a correction run is not a calculation over every pay profile; its lines are the adjustments aimed at
+        // its source (CalculateCorrectionRunCommand, which CalculatePayrollRunCommand sends for a correction).
+        if (run.RunType == PayrollRunType.Correction)
+            return (false, 0, null, CorrectionRunMessages.NotCalculatedByAJob);
+
         var calcErr = run.ValidateCanCalculate();
         if (calcErr != null) return (false, 0, null, calcErr);
 

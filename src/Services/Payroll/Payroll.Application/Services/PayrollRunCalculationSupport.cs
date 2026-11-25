@@ -42,9 +42,7 @@ public static class PayrollRunCalculationSupport
         IEnumerable<DeductionRecord> deductions,
         IEnumerable<DeductionType> deductionTypes,
         IEnumerable<PayrollAdjustment> adjustments,
-        IEnumerable<AbsenceDeduction> absenceDeductions,
-        decimal? correctionDeltaGross = null,
-        decimal? correctionDeltaNet = null)
+        IEnumerable<AbsenceDeduction> absenceDeductions)
     {
         var periodStart = DateOnly.FromDateTime(run.PeriodStart);
         var periodEnd = DateOnly.FromDateTime(run.PeriodEnd);
@@ -68,9 +66,7 @@ public static class PayrollRunCalculationSupport
             AbsenceDeductions = absenceDeductions.ToList(),
             Configuration = config,
             ExtraHolidays = extraHolidays,
-            RunType = run.RunType,
-            CorrectionDeltaGross = correctionDeltaGross,
-            CorrectionDeltaNet = correctionDeltaNet
+            RunType = run.RunType
         };
     }
 }

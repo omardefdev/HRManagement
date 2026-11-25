@@ -109,8 +109,7 @@ public class Pay003ResumablePayrollRunTests
         // Unfreeze to allow restart path (simulate kill mid-run by clearing freeze + job completed → new calc blocked)
         db.ChangeTracker.Clear();
         var run = await db.PayrollRuns.FirstAsync(r => r.Id == runId);
-        run.ResultsFrozen = false;
-        run.ValidatedAtCalculate = false;
+        ForTesting.Unfreeze(run);
         ForTesting.SetStatus(run, PayrollRunStatus.Calculating);
         var job = await db.PayrollRunJobs.FirstAsync(j => j.PayrollRunId == runId);
         job.Status = PayrollRunJobStatus.Paused;
@@ -193,8 +192,7 @@ public class Pay003ResumablePayrollRunTests
         last.ProcessedCount = 1;
         job.ProcessedEmployeeCount = 1;
         var run = await db.PayrollRuns.FirstAsync(r => r.Id == runId);
-        run.ResultsFrozen = false;
-        run.ValidatedAtCalculate = false;
+        ForTesting.Unfreeze(run);
         ForTesting.SetStatus(run, PayrollRunStatus.Calculating);
         // Remove last employee's line to force recompute on resume
         var lastSnapEmp = await db.PayrollRunInputSnapshots

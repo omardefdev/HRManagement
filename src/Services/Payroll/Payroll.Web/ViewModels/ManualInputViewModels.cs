@@ -79,6 +79,13 @@ public sealed class ManualAdjustmentCreateViewModel
     [Required(ErrorMessage = "سبب التسوية مطلوب"), MaxLength(ManualPayInputRules.ReasonMaxLength)]
     [Display(Name = "سبب التسوية")]
     public string? AdjustmentReason { get; set; }
+
+    /// <summary>
+    /// PLAN-56 (G-PAY-03): the posted run this adjustment corrects, if any. Empty for an ordinary adjustment, which the next regular
+    /// run takes; with a run chosen, only that run's correction takes it.
+    /// </summary>
+    [Display(Name = "تصحيح لتشغيل مرحّل (اختياري)")]
+    public Guid? TargetSourceRunId { get; set; }
 }
 
 /// <summary>

@@ -13,8 +13,8 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
 | P1 one net | done | 2026-11-25T05:28:33Z |
 | P2 guards | done | 2026-11-25T05:41:08Z |
 | P3 reject / cancel / release / restart | done | 2026-11-25T06:16:06Z |
-| P4 correction | in progress | |
-| P5 reversal | | |
+| P4 correction | done | 2026-11-25T06:33:59Z |
+| P5 reversal | in progress | |
 | P6 PostgreSQL proofs | | |
 | P7 acceptance + review | | |
 | P8 main | | |
@@ -145,6 +145,34 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
 - **For P6:** HTTP tests of the new API (statuses, antiforgery, roles) on Payroll.Web over PostgreSQL; the concurrent rejection
   and approval; the cancellation under a running job; the duplicate bank reference as 409.
 
+## P4 — the correction (finished 2026-11-25T06:33:59Z)
+
+- **Engine:** a correction line passes `AdjustmentRule` and `RoundingRule` only (`PayrollEnginePipeline.AppliesToACorrection`): no
+  base, no allowance, no statutory deduction, no tax (D-PAY-17). `CorrectionDeltaGross/Net` are gone from the context, the unit and
+  the two rules; the «فرق إجمالي» component is no longer written.
+- **The correction:** `CreateCorrectionRunCommand` takes only approved, free adjustments whose `TargetSourceRunId` is its source,
+  one line per employee who has a line in the source; in one transaction it creates the run, the lines, a `CorrectionRecovery`
+  deduction for each line whose parts fall below zero (due the day after the source's period ends, naming its line), runs
+  `ValidateLineIntegrity`, and only then `MarkValidated`. Refusals: no approved targeted adjustment → 400 and nothing created; a
+  second open correction of the source → 409 (pre-check and the unique index); PLAN-54's interim gate and PLAN-55's pinning kept.
+  `CalculateCorrectionRunCommand` recalculates a correction a rejection reopened; `CalculatePayrollRunCommand` routes a correction
+  to it, and `StartPayrollRunJobCommand` refuses a correction (it is never a calculation over the pay profiles).
+- **The adjustment:** `CreateManualInputCommand.TargetSourceRunId` (a posted run in which the employee has a line; adjustment only),
+  the form's list of posted runs, the list's column. The regular loader leaves targeted adjustments out.
+- **Added beyond the prompt's API list:** `POST api/payroll/runs/{id}/corrections` (`Payroll.Process`, antiforgery), so that the
+  409 of a second open correction is an HTTP answer and the acceptance test creates a correction over the API.
+- **Flags:** `ResultsFrozen` and `ValidatedAtCalculate` have init accessors like `Status` (nothing freezes a run by hand);
+  `ForTesting.Unfreeze` for the three planted tests.
+- **A guard that caught me:** PLAN-54's «only the manual input commands set an approval state or origin» failed on the recovery
+  deduction's explicit `Origin`/`ApprovalStatus`; the entity's defaults (system, approved) say the same, so the assignment went.
+- **A defect of my own test, not of the product:** `A_correction_takes_only…` compared an unsorted pair of random ids with a sorted
+  one and failed about one run in five; fixed, then 4 runs of the PLAN-56 integration classes green.
+- **Tests:** `Pay056CorrectionTests` (13), `PayrollEnginePipelineTests.CorrectionRun_*` (the old «uses the delta net» test now says
+  what a correction line is), `Pay056TransitionTests` (+ the flags).
+- **Results:** build `-warnaserror` 0 errors; unit filter 1,050 (one guard failure, fixed; then 199 on the touched classes);
+  architecture 410; integration (SQLite) payroll filter 101 passed and PLAN-56 classes 72; PostgreSQL (Pay054V2, Pay022, PAY056
+  migrations) 12 passed; `has-pending-model-changes`: none; format clean.
+
 ## Decisions (with reasons)
 
 - **D1 (P1): the net's rounding in the validation.** `PayrollNet.Net(gross, deductions, adjustments, round)`; the validation and the
@@ -163,7 +191,7 @@ None.
 
 ## Next step
 
-P4: the adjustment's form and command take `TargetSourceRunId` (a posted run of the agency); the regular loader ignores targeted
-adjustments; `CreateCorrectionRunHandler` takes only the approved adjustments aimed at its source, builds lines without base or tax
-(the delta paths leave `BaseSalaryRule` and `RoundingRule`), validates with `ValidateLineIntegrity` and `MarkValidated`, creates a
-`CorrectionRecovery` deduction for a negative line, answers 409 on a second open correction; tests.
+P5: `RequestPayrollReversalCommand` and `DecidePayrollReversalCommand` (decider ≠ requester ≠ poster; the batches voided through
+`PaymentBatchTransitions`, their draft orders cancelled, D-PAY-16's refusal, the release, `run.Reverse()`, `IPayrollReversed` staged
+before the one save); delete `ReversePayrollRunCommand`; the consumer in Dev.Analytics; the API (`reversal-requests`), the «طلبات
+العكس» screen and the request form on the run's page; rows in the event inventories; tests (`Pay056ReversalSodTests` and the rest).
