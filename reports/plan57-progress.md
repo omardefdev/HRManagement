@@ -16,8 +16,8 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
 | P1 model, calendar, summary, migration | done | 2026-11-25T21:06:33Z |
 | P2 one writer | done | 2026-11-25T21:25:58Z |
 | P3 close and contract | done | 2026-11-25T21:44:57Z |
-| P4 correction | in progress | |
-| P5 payroll's side | | |
+| P4 correction | done | 2026-11-25T22:01:57Z |
+| P5 payroll's side | in progress | |
 | P6 PostgreSQL proofs | | |
 | P7 acceptance and review | | |
 | P8 main | | |
@@ -128,6 +128,36 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
 - **Docs:** `EVENT_PUBLISHER_INVENTORY.md` (the new event, SingleSave; the old row replaced, its end noted),
   `MESSAGE_EVENT_MATRIX.md` (the new row). The runbook is written in P10 with the final behaviour.
 
+## P4 — the correction (finished 2026-11-25T22:01:57Z)
+
+- **`AttendanceCorrectionService`**: `RequestAsync`, `ApproveAsync`, `RejectAsync` (each one save) and
+  `ApplySystemCorrectionAsync` (no save: the leave consumer's). An approval applies the day through the writer, recomputes the
+  summary by the calculator from the stored days with the change laid over them, raises the version, stages the event, writes the
+  decision, in one save, retried up to four times on an `xmin` conflict of the summary.
+- **Separation of duties:** the caller's subject is compared with `RequestedBy` in the service, for an approval and a rejection
+  alike (the requester never decides his own request, whatever his roles). `HrCore.AttendanceCorrectionApprove` leaves the branch
+  out; the two decisions also carry `[OrgScopeCentralOnly]` (PLAN-52's driver tells a policy's 403 from the scope's by a central
+  control with the same roles, which this policy defeats by design).
+- **`AttendanceCorrectionsController`** (`[OrgScoped(typeof(AttendanceCorrection))]`, keyed by the employee in
+  `HrCoreOrgScopeKeys`): MVC `Index` (waiting / mine), `Create` from a locked day, `Details` with «اعتماد» and «رفض»; API
+  `GET api/attendance/corrections/antiforgery`, `POST api/attendance/corrections`, `…/{id}/approve`, `…/{id}/reject`, every
+  POST with `[ValidateAntiForgeryToken]` and its policy. Answers as P-4: 400 a broken rule and the requester's own decision, 403
+  outside the scope and a branch on a decision, 404 not in the agency or scope, 409 a second pending request and a decided one.
+- **Leave decisions on locked days:** `AttendanceIntegrationService` passes the writer's locked days to
+  `ApplySystemCorrectionAsync`. `AutoApply`: one correction row per locked day, approved with no requester and no decider, one new
+  version and one event per period, in the consumer's save; the same event again makes nothing. `Pending`: the rows wait for a
+  central person; a person's pending request for the same day gives way; a leave cancelled before the decision withdraws its row.
+- **Schema change inside this plan's migration** (not pushed yet): `AttendanceCorrections.RequestedByName` and `DecidedByName`
+  (200), so the pages show a name and never an id (the interface guard, and what `ApprovalRequest` does). The migration file, its
+  designer and the snapshot were edited by hand; `has-pending-model-changes`: none; `Lva057MigrationPostgreSqlTests` 2 passed again.
+- **Deviations recorded:** a leave-made day of a closed month is not corrected by a person (it changes by cancelling the leave);
+  an approval whose day already holds the requested status answers 409 («no longer applies») and is rejected with a note instead.
+- **Tests:** `Lva057AttendanceCorrectionRulesTests` (13): the request's rules, the scope, one pending per day, the atomic approval
+  (one save, the day, v2, the event, the decision), the requester refused, the three policies by role, a rejection's note and a
+  decided request, a correction with no figure change, an injected save failure, and the leave events (approved, cancelled, a day
+  the leave created, `Pending`, cancelled before the decision). `Iam052HrCoreScopeHttpTests` seeds a correction in both branches
+  and exercises the new actions (3 passed). Unit (Lva057 + Architecture) 372 passed; architecture project 414 passed.
+
 ## Decisions (with reasons)
 
 - **D-P57-1, the reserved months:** 2025-01 … 2025-07 (see the baseline). 57a January, 57b February (and the current month for «no
@@ -145,7 +175,8 @@ None yet (P0 was read-only).
 
 ## The exact next step
 
-P4: `AttendanceCorrectionService` (`RequestAsync`, `ApproveAsync`, `RejectAsync`, `ApplySystemCorrectionAsync`), route the leave
-consumers' locked days to it (`AttendanceIntegrationService`), `AttendanceCorrectionsController` (MVC Index/Create/Details +
-Approve/Reject, API POST corrections, approve, reject, antiforgery; `[OrgScoped(typeof(AttendanceCorrection))]` with its key in
-`HrCoreOrgScopeKeys`), views, `Lva057AttendanceCorrectionRulesTests`. Then P5 (payroll). HTTP tests of both HR.Core APIs go in P6.
+P5 (Payroll): `AttendanceSummaryReceipt` + `AbsenceDeduction.OriginalPeriodStart/End, CarryForward, SourceVersion`; migration
+`LVA057_AttendanceHandoff`; `AttendanceSummaryPublishedConsumer` (inbox, receipt `FOR UPDATE`, freeze, difference row
+`ATT:{SummaryId}:v{Version}`); `PayrollAttendanceFreeze`; the loader's carry; `AbsenceRule` refund and «every row consumed»;
+`PayrollAttendanceGate` before `run.BeginCalculating()`; the two reads and the run's panel; `Payroll:Attendance:Gate` (already in
+the three appsettings files, uncommitted); `Lva057AbsenceRuleRefundTests`, `Lva057PayrollAttendanceGateTests`, the consumer's tests.
