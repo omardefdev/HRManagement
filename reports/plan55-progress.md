@@ -19,7 +19,7 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 | P6 acceptance, review | done | 2026-11-24T21:52:09Z |
 | P7 main | done: `origin/main` is still `12b83970` (fetched 21:44:43Z), nothing to merge | 2026-11-24T21:52:09Z |
 | P8 demo server | done | 2026-11-25T00:10:06Z |
-| P9 docs, gates, report, merge | next | |
+| P9 docs, gates, report, merge | done: merged | 2026-11-25T02:48:39Z |
 
 ## Timing log
 
@@ -70,6 +70,12 @@ Branch: `feature/plan-55-pay-bank-account-pay-profile` from `origin/main` `12b83
 | P8 the PLAN-36..54 server checks, one run | 22:51:50 | 00:05:00 | 4,389 s, 61 of 63 |
 | P8 the sweeps check again, twice; evidence restored; the final smoke | 00:05:22 | 00:10:06 | passed after a sweep cycle; smoke 50 pass |
 | P9 full build, architecture and unit suites on the final code (after the script's change and with the documents) | 00:11:26 | 00:26:50 | build 0 warnings 0 errors (7 min 32 s); architecture 401; unit 6,950 passed (7 min 36 s) |
+| P9 local CI steps in a fresh clone of `9ee5ec85` (`run-steps.sh --all`, five steps skipped and named) | 00:27:27 | 01:09:27 | 2,520 s: 87 passed, 0 failed, 5 not run; build 464 s, unit 515 s, architecture 6 s, integration 456 s |
+| P9 pre-push check (`plan035-prepush.ps1`) | 01:09:37 | 01:10:48 | gitleaks, actionlint, cilocal, forbidden, nonprod, signatures PASS |
+| P9 waiting for CI, first run `45523852944` | 01:11:20 | 02:03:02 | CodeQL failed at 01:39Z (one new finding); every other check passed; the fix was written, built and tested inside this wait |
+| P9 the CodeQL fix: full build, architecture, unit | 01:41:28 | 01:56:36 | 0 errors; 401; 6,950 passed |
+| P9 waiting for CI, second run `45530164686` | 02:03:11 | 02:48:13 | 15 of 15 checks passed (45 min) |
+| P9 the server on the final commit `c95179904e05`, beside the second run: build, deploy, this plan's five checks | 02:03:34 | 02:43:54 | upload 21 s, build 1,826 s, push 21 s; deploy 02:35:15–02:38:34 with the smoke; five checks passed (5 min 9 s) |
 | P4 chain: full build, architecture, PLAN-55 integration, full unit suite | 07:30:27 | 07:45:51 | 0 errors; 401 passed; 19 of 20 (one test of mine assumed a branch-restricted hr-admin; rewritten, 6 of 6 after); 6920 passed, 10 min 2 s |
 
 Stops:
@@ -371,17 +377,73 @@ Stops:
 7. **2026-11-24T22:52Z to 2026-11-25T00:09Z, what the older plans' checks left**, as on every run of theirs: PLAN-54's check
    version `LAW_50_2004_CHK54` (one more, approved, attested, unpublished, inside a posted month) and one rejected manual
    allowance; the usual records of the PLAN-43..53 checks. **Undo:** none needed (records).
+8. **2026-11-25T02:03:29Z, the disk before the second build.** The local images of `014db7e3a01a` (17) were removed with
+   `docker rmi` (27 → 33 GB free); the tag stays in the loopback registry (checked). **Undo:**
+   `docker pull 127.0.0.1:5050/hrmanagement/<image>:014db7e3a01a`.
+9. **2026-11-25T02:03Z to 02:34Z, the build of the final commit `c95179904e05`** (the CodeQL fix: a parameter's name, no
+   behaviour), detached: build 1,826 s, push 21 s, exit 0, 17 of 17; disk 29 GB at its start, 8.8 GB at the lowest, 25 GB after.
+   Files as in 3 (`/opt/hrm/build-c95179904e05.log`, `.done`, `/opt/hrm/build/images-c95179904e05.json`). **Undo:** none needed.
+10. **2026-11-25T02:35:15Z, the deploy of `c95179904e05`** (previous `ea0d97a6ca26`): pull 5 s, up 118 s, bootstrap 56 s,
+    reconcile 12 s, healthy 14 s; `2026-11-25T02:37:53Z|tag=c95179904e05|action=deploy|result=healthy|previous=ea0d97a6ca26`; away
+    about 2 minutes; smoke pass 50, fail 0, warn 1. No migration (PAY055 was applied by the first deploy). **Undo:**
+    `scripts/vps/deploy.ps1 -Tag ea0d97a6ca26` (the same behaviour), or `-Tag 014db7e3a01a` for PLAN-54's release.
+11. **2026-11-25T02:38Z to 02:44Z, this plan's five checks again:** all passed; they left three more test accounts (one `Retired`,
+    two `Rejected`). The demo holds seven test accounts of three employees: two `Retired`, five `Rejected`, none usable.
+    **Undo:** none needed (records).
+
+## P9 — docs, local gates, report, the pull request, the merge
+
+- Started (UTC): 2026-11-25T00:10Z. The documents, the server check class, the PR text and most of the report were written
+  during the waits of P6 and P8 (commits `55780161`, `9ee5ec85`).
+- **Local gates on `9ee5ec85` (the final commit of the feature branch):** the full build, the architecture tests (401) and the
+  unit suite (6,950) on the host; the Testcontainers step with CI's filter on the same product code (282 passed, 1 skipped);
+  `scripts/ci/run-steps.sh --all` in a fresh clone, without shared compiler servers (00:27Z to 01:09Z, 2,520 s): **87 steps
+  passed, 0 failed**, 5 not run and named (`Integration tests (Testcontainers)`: run natively on the same code;
+  `Coverage gate`, `Install ReportGenerator`, `Generate coverage report`: they follow that step and would install a global tool;
+  `Verify Docker builds`: the images were built here one at a time and seventeen on the server).
+  `scripts/plan035-prepush.ps1`: gitleaks, actionlint, cilocal, forbidden, nonprod and signatures PASS.
+- **The pull request:** <https://github.com/omardefdev/HRManagement/pull/55>, `release/plan-55` (`origin/main` `12b83970` + one
+  `--no-ff` merge of the feature branch, `2f893dc8`) pushed 2026-11-25T01:11:02Z.
+- **CI, first run (`45523852944`, 01:11Z to 02:03Z):** `CI` pass (28 min 24 s), `Gitleaks` pass, `E2E` pass (14 min 8 s),
+  `Acceptance images` pass, all seven acceptance stages pass (AC-PAY-55a..e in `prodlike`); **`CodeQL` failed.** One new
+  finding, read from the run's `codeql-sarif` artifact: `cs/cleartext-storage-of-sensitive-information` at
+  `SecurityAudit.cs:35`, its source the parameter `accountId` of `EmployeeBankAccountHttp.Audit`. The query's name heuristic
+  took the `EmployeeBankAccount` row's key (a Guid, the one the routes carry) for account data flowing into the security audit
+  line. The number, the holder and the bank never reach the audit. **Fixed in the code, as PLAN-37 did for its own
+  (`a2130040`), with no baseline entry and no attribute:** the parameter is named for what it is (`rowId`), commit `c9517990`
+  on the release branch; build 0 errors, architecture 401, unit 6,950, format clean; pushed 02:03:02Z (that branch only). The
+  first run was cancelled by the push.
+- **CI, second run (`45530164686`, 02:03Z to 02:48Z): 15 of 15 checks passed** — `CI` (28 min 18 s), `CodeQL` (19 min 59 s),
+  `Gitleaks`, `E2E` (14 min 19 s), `Acceptance images` (16 min 50 s), the stages lab-main (25 min 5 s), lab-rest, leastpriv,
+  meta, prodlike (23 min 23 s), prodlike-policy, prodlike-final (26 min 28 s), `Acceptance`, and the two PLAN-66 jobs.
+  **The evidence of record** is that run's `acceptance-evidence` artifact:
+  <https://github.com/omardefdev/HRManagement/actions/runs/45530164686/artifacts/14986227488>.
+- **The server on the final commit.** `c95179904e05` differs from `ea0d97a6ca26` in product code by that one parameter name.
+  It was built and deployed beside the second run (Server changes 8 to 10), and this plan's five checks passed on it again
+  (02:38:45Z to 02:43:54Z). The demo runs `c95179904e05`, which is on `origin/main`.
+- **The merge.** Every check green, `mergeStateStatus` CLEAN, head `c95179904e05`: `gh pr merge 55 --merge`.
+  **Merged by agent on owner instruction (UTC): 2026-11-25T02:48:39Z** — merge commit `a8f6ee32b890`. `main` = `origin/main` =
+  `a8f6ee32b890` after `git pull --ff-only`. **The post-merge run** (`45535585298`, push to `main`): success at 02:49:46Z —
+  `Dedupe post-merge run` and `Gitleaks` ran; the others reuse the pull request's green run (PLAN-66).
+- **Waiting for CI:** 01:11:20Z to 02:48:13Z, **97 minutes** in two runs (52 and 45), none of it idle: the CodeQL fix and
+  its tests in the first, the server's second build, deploy and checks in the second. **Actions:** 13,703 job-seconds in the
+  first run and 12,431 in the second, about **436 job-minutes**, plus about 2 for the post-merge run.
+- **What the final report says that this note corrects:** it was committed before the push, so it names `ea0d97a6ca26` as the
+  tag the demo runs and does not have the CodeQL fix; the demo runs `c95179904e05` and the facts above are the record.
+  `docs/OPS_VPS_SINGLE_HOST.md` gets the second deploy's rows in this note's commit.
+- **Timing, whole plan:** started 2026-11-24T05:14:03Z, merged 2026-11-25T02:48:39Z: **21 h 35 min** wall-clock, of which
+  **9 h 38 min stopped** (one stop: the turn ended on its own at 10:28:11Z; resumed on the owner's «Try again» at 20:06:20Z)
+  and about **11 h 57 min working**.
+- **Clean-up:** the keep-awake process stopped by its PID; `hr-migrate:local` and the fresh clone removed; every local stack
+  is down.
+- Finished (UTC): 2026-11-25T02:55Z.
 
 ## Open issues
 
-None.
+None for this plan. For later plans (also in the final report, §13): the sweeps check's 5,000-line tail; the outbox poll logged at
+`Information` on the demo; the server's disk falling to 8.8 GB during a build; the demo's 425 pay profiles without a legal regime.
 
 ## The exact next step
 
-P9. Commit the documents, the final report and the PR body (the report's `@@` markers filled first). Then the gates on that
-commit: the full unit suite and the architecture tests on the host; `scripts/ci/run-steps.sh --all` in a fresh `git clone --local`
-of HEAD with the four compiler-server variables exported (skipping what cannot run here, each named); then
-`pwsh -NoProfile -Command "& ./scripts/plan035-prepush.ps1 -AllowNotRun @(...)"`. In the same turn: `release/plan-55` from `main`
-with `--no-ff`, push, `gh pr create`, `gh pr checks <n> --watch --interval 60`, and `gh pr merge <n> --merge` only when every check
-is green. Then the merge note on `docs/plan-55-merge-note`, the keep-awake process stopped by its PID
-(`artifacts/plan55/keepawake.pid`), `hr-migrate:local` removed.
+None: PLAN-55 is merged (`a8f6ee32b890`) and the demo runs `c95179904e05`. The next plan cherry-picks this note from
+`docs/plan-55-merge-note`.
