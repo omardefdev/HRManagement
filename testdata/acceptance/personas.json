@@ -343,7 +343,8 @@
         "AC-22",
         "AC-IAM-53",
         "AC-PAY-54",
-        "AC-PAY-55"
+        "AC-PAY-55",
+        "AC-PAY-56"
       ],
       "enabled": true
     },
@@ -367,7 +368,8 @@
         "AC-23",
         "AC-IAM-53",
         "AC-PAY-54",
-        "AC-PAY-55"
+        "AC-PAY-55",
+        "AC-PAY-56"
       ],
       "enabled": true
     },
@@ -385,7 +387,8 @@
       "employeeOrdinal": 12,
       "purpose": "Payroll posting operator",
       "scenarios": [
-        "AC-IAM-53"
+        "AC-IAM-53",
+        "AC-PAY-56"
       ],
       "enabled": true
     },
@@ -402,6 +405,9 @@
       "employeeSiteCode": "HQ",
       "employeeOrdinal": 13,
       "purpose": "Payroll reversal operator",
+      "scenarios": [
+        "AC-PAY-56"
+      ],
       "enabled": true
     },
     {
@@ -905,7 +911,7 @@
       "employeeSiteCode": "HQ",
       "employeeOrdinal": 2,
       "purpose": "Agency B payroll processor",
-      "scenarios": [ "AC-PAY-55" ],
+      "scenarios": [ "AC-PAY-55", "AC-PAY-56" ],
       "enabled": true
     },
     {
