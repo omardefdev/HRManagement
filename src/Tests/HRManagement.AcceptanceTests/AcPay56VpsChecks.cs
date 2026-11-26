@@ -418,8 +418,38 @@ public partial class AcOps36VpsBootTests
         try
         {
             var requests = $"runs/{postedRun}/reversal-requests";
-            var (noReason, _, _) = await Pay56PostAsync(admin, requests, new { reason = " " });
+            var (noReason, noReasonError, _) = await Pay56PostAsync(admin, requests, new { reason = " " });
             var afterNoReason = Pay56One("select count(*) from \"PayrollReversalRequests\"");
+
+            // PLAN-58 (D-PAY-20): in demo mode hradmin holds every payroll policy, so his token carries conflicting roles and passes no
+            // financial act, a reversal request included: 403 naming the pair, nothing written. The demo has no other holder of
+            // Payroll.Reverse and the checks add no user (P-16), so the request and its decisions are proved on the stacks (AC-PAY-56e,
+            // Pay056RunLifecycleHttpTests); here the refusal is what is checked, and that nothing changed.
+            if (noReason == 403 && noReasonError.Contains("payroll-", StringComparison.Ordinal))
+            {
+                var (refused, refusedError, _) = await Pay56PostAsync(admin, requests, new { reason = Pay56ReversalReason });
+                var requestsAfter = Pay56One("select count(*) from \"PayrollReversalRequests\"");
+                var demoAfterRefusal = Pay56DemoData();
+                recorder.WriteScenarioDbChecks(new
+                {
+                    run = postedRun,
+                    admin = Pay56Admin,
+                    plan58 = "hradmin's token carries conflicting payroll roles: every financial act is refused (403, the pair named)",
+                    requestWithoutAReason = noReason,
+                    request = refused,
+                    refusal = refusedError,
+                    requestsBefore,
+                    requestsAfter,
+                    demoUnchanged = demoBefore == demoAfterRefusal
+                });
+                Assert.Equal(403, refused);
+                Assert.Contains("payroll-", refusedError, StringComparison.Ordinal);
+                Assert.Equal(requestsBefore, requestsAfter);
+                Assert.Equal(demoBefore, demoAfterRefusal);
+                recorder.WriteResult("Pass");
+                return;
+            }
+
             var (requested, requestError, requestBody) = await Pay56PostAsync(admin, requests, new { reason = Pay56ReversalReason });
             var request = Pay56IdOf(requestBody);
             Assert.True(requested == 200 && request.Length == 36,
@@ -516,8 +546,14 @@ public partial class AcOps36VpsBootTests
             var draft = await Pay56CreateRunAsync(processor, Pay56FreeMonth());
             var (requested, requestError, requestBody) = await Pay56PostAsync(admin, $"runs/{postedRun}/reversal-requests", new { reason = Pay56ReversalReason });
             var request = Pay56IdOf(requestBody);
-            Assert.True(requested == 200 && request.Length == 36, $"The request by {Pay56Admin} answered {requested}: {requestError}");
-            var requester = Pay56One($"select \"RequestedBy\" from \"PayrollReversalRequests\" where \"Id\" = '{request}'");
+            // PLAN-58 (D-PAY-20): hradmin's token carries conflicting payroll roles in demo mode and passes no financial act; the demo has
+            // no other reverser and the checks add no user. The pages are then read with no waiting request (the request's own parts of
+            // them are proved on the stacks, AC-PAY-56e), and the refusal is checked instead.
+            var hasRequest = requested == 200 && request.Length == 36;
+            if (!hasRequest)
+                Assert.True(requested == 403 && requestError.Contains("payroll-", StringComparison.Ordinal),
+                    $"The request by {Pay56Admin} answered {requested}: {requestError}");
+            var requester = hasRequest ? Pay56One($"select \"RequestedBy\" from \"PayrollReversalRequests\" where \"Id\" = '{request}'") : "";
 
             Ux067KeyPage[] processorPages =
             [
@@ -651,16 +687,19 @@ public partial class AcOps36VpsBootTests
             Assert.Contains("dir=\"rtl\"", draftPage, StringComparison.Ordinal);
             Assert.Contains("lang=\"ar\"", draftPage, StringComparison.Ordinal);
             Assert.Contains("data-hr-confirm-title=\"إلغاء تشغيل الرواتب\"", draftPage, StringComparison.Ordinal);
-            Assert.Contains(Pay56ReversalReason, postedPage, StringComparison.Ordinal);
             Assert.Contains("تسويات", Visible(postedPage), StringComparison.Ordinal);       // the adjustments, beside the gross and the deductions
-            Assert.Contains($"data-hr-user-id=\"{requester}\"", postedPage, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain(requester, Visible(postedPage), StringComparison.OrdinalIgnoreCase);
             Assert.Contains("طلبات العكس", Visible(requestsPage), StringComparison.Ordinal);
-            Assert.Contains(Pay56ReversalReason, requestsPage, StringComparison.Ordinal);
-            Assert.Contains("data-hr-confirm-title=\"رفض طلب العكس\"", requestsPage, StringComparison.Ordinal);
-            Assert.Contains($"data-hr-user-id=\"{requester}\"", requestsPage, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain(requester, Visible(requestsPage), StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain(postedRun!, Visible(requestsPage), StringComparison.OrdinalIgnoreCase);
+            if (hasRequest)
+            {
+                Assert.Contains(Pay56ReversalReason, postedPage, StringComparison.Ordinal);
+                Assert.Contains($"data-hr-user-id=\"{requester}\"", postedPage, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain(requester, Visible(postedPage), StringComparison.OrdinalIgnoreCase);
+                Assert.Contains(Pay56ReversalReason, requestsPage, StringComparison.Ordinal);
+                Assert.Contains("data-hr-confirm-title=\"رفض طلب العكس\"", requestsPage, StringComparison.Ordinal);
+                Assert.Contains($"data-hr-user-id=\"{requester}\"", requestsPage, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain(requester, Visible(requestsPage), StringComparison.OrdinalIgnoreCase);
+            }
             Assert.Contains($"value=\"{postedRun}\"", form, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(200, payslipStatus);
             Assert.True(payslipHasTheAdjustments, "The payslip does not carry the line's adjustments.");
