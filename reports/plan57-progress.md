@@ -218,6 +218,60 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
 - Build `-warnaserror`: 0 warnings, 0 errors (4 min 33 s). Format check on the changed files: clean.
 - Commits: `4adfe897` (tests), `73f397e5` (gate scope).
 
+## P7 — acceptance and review (in progress; written as it goes)
+
+- **The class and its pieces** (commit `cdcb541c`): `AcLva57AttendancePeriodTests` (AC-LVA-57a..h, required, ordered),
+  `testdata/acceptance/lva057-periods.json`, three publishers in `AcceptanceMessagingHelper` (the leave's approval and
+  cancellation, a summary version), `AcceptanceHarness.CreateAttendanceClientAsync`, `ci-scope.json` (`prodLike[]`, main),
+  `ac-ownership.json` (AC-LVA-57, PLAN-57), the seven personas' scenarios, `AcIam52`'s free day (no summary of the employee covers
+  it), seven attendance pages among `AcUx67`'s key pages (four optional while the stack holds no record, opened directly when it
+  does), `scripts/lva057-validate.ps1` (11 checks; `-SelfTest`: 44 planted defects refused),
+  `docs/runbooks/attendance-period-close.md`.
+- **A read-only check of the class against the source** (one subagent, 20 min, before any stack): names, enums, form fields,
+  literals and JSON shapes matched; eight assumptions about the seed did not, and were fixed before the first run — the seeded
+  employees sit in directorates under the branch, not in its root; a close also covers who left later; five employees were hired
+  inside January 2025; an integer cannot be cast to jsonb; a rounding to the cent; three «refused» assertions that the form's own
+  hint would have satisfied (now: the text once more than on the form).
+- **Images:** 16 services one at a time, 23:20:50Z → 23:43:05Z, **1,320 s**, revision `cdcb541c`; disk 32 GB before, 39 GB
+  after. HR.Core and Payroll again after the review fixes: 00:21:42Z → 00:26:33Z, 280 s, revision `b92ed935`.
+- **Prod-like stack 1** (`acceptance-up.ps1 -Profile ProdLike -UseLocalBaseImages -NoBuild`): 23:45:21Z → 00:00:04Z, ready on
+  the first try, 14 min 43 s. `AcLva57AttendancePeriodTests` alone: 00:06:04Z → 00:09:32Z, **7 of 8** (57d: the test's own wait
+  counted two inbox rows per message; fixed), then 57c and 57d again, 2 of 2. Stack down at 00:11:46Z.
+  57e on that stack: 1,011 employees in the run's scope, all missing before the close; the whole-agency close wrote 1,189
+  summaries (1,189 receipts); 20 still missing, none of them in service in June 2025 by HR.Core's rule.
+- **Independent review** (one fresh subagent, read-only, beside the image build and the stack's start; 12 min). One high, six
+  medium, seven low. All fixed with tests in `b92ed935`, except the two noted:
+  - **High — the gate's warning could be closed by one person and then satisfied the posting's «closed audit record».** Now the
+    posting looks for a closed record that is not the gate's, `CloseAudit` refuses the warning, the list hides its «إغلاق» and
+    shows its sentence without the ids, and a recalculation with nobody missing removes it.
+  - **M1 — a close and a writer could pass each other** (check, then save). Both now meet on a PostgreSQL advisory lock per
+    agency and month (`AttendanceMonthLock`): the close takes it exclusively before it reads; every save of an attendance day
+    takes it shared and reads the lock again (`HRCoreDbContext.SaveChangesAsync`); a correction's days are exempt. Two closes at
+    once now take turns (the unique index stays as the last line).
+  - **M2/M3 — a history row that notes a status over itself was read as a move:** the reconciler no longer leaves an employee on
+    leave after another leave's cancellation, and the end of a service is the last row that moved the employee into an ended
+    status.
+  - **M4 — an approval and a rejection of one request could both win:** `xmin` on `AttendanceCorrection` (the model only; no DDL).
+  - **M5 — the gate's scope.** `73f397e5` had narrowed it to «a pay profile that began by the period's end»; the run gives a line
+    to every active profile, so the narrowing hid people who are paid. **Reverted to the plan's rule** (who the run gives a line
+    to). Consequence for AC-LVA-57e, recorded as a deviation: the prod-like seed dates some pay profiles before their employee's
+    hire date, so a whole-agency close cannot empty `missingAttendance` in any month free for the class; the scenario asserts
+    that nobody HR.Core closed is missing and that whoever is left is not in service in the month by HR.Core's rule (and that
+    the warning lists exactly them). The empty list with no warning record is proved by
+    `Lva057PayrollAttendanceGateTests.A_run_whose_employees_are_all_closed_gets_no_warning_record`.
+  - **M6 — a carried row could be marked by two runs calculating at once:** `xmin` on `AbsenceDeduction` (the model only); the
+    second save is refused. The same unconditional marking of deductions and adjustments is older than this plan and stays as it
+    was (a defect for PLAN-58/PAY-H: two regular runs of one agency calculating at once).
+  - Low: a waiting request is not approved over a day a leave took meanwhile; `POST api/attendance/corrections` with no body or
+    a broken date is 400; a double bulk submit is a message, not a 500; a repeat close reads the period's state again; 57d waits
+    for the consumer's inbox rows instead of sleeping; each payroll scenario cancels its runs and deletes a freed carried row
+    in a `finally`; the rollback note goes into `OPS_VPS_SINGLE_HOST.md` in P9.
+  - The reviewer's unverified point (`Pending` mode's replacement of a waiting request under the filtered unique index, in one
+    save) now has a PostgreSQL test, and passes.
+- **After the fixes:** build `-warnaserror` 0 warnings (5 min 41 s); `has-pending-model-changes` none for both services; unit
+  filter 1,565 passed; architecture 414; integration (SQLite) 231 passed, 124 skipped (Testcontainers); the `Lva057` PostgreSQL
+  classes **22 of 22** (1 min 35 s); `Lva057AttendanceApiHttpTests` 8 of 8; format clean; gitleaks on the changed files: none.
+
 ## Decisions (with reasons)
 
 - **D-P57-1, the reserved months:** 2025-01 … 2025-07 (see the baseline). 57a January, 57b February (and the current month for «no
@@ -235,8 +289,9 @@ None yet (P0 was read-only).
 
 ## The exact next step
 
-P7: build and review `AcLva57AttendancePeriodTests` (written, uncommitted, with `AcceptanceMessagingHelper`'s three publishers,
-`AcceptanceHarness.CreateAttendanceClientAsync` and `testdata/acceptance/lva057-periods.json`); add it to
-`tests/acceptance/ci-scope.json` (`prodLike[]`, required) and `ac-ownership.json`; the personas' scenario lists; `AcIam52`'s free
-day; `AcUx67`'s key pages; `scripts/lva057-validate.ps1` static checks and `-SelfTest`; then images one service at a time, the
-prod-like stack, the class, P-13's lists, the independent review.
+P7, on prod-like stack 2 (started 2026-11-26T00:28:09Z, images of `b92ed935`): `AcLva57AttendancePeriodTests` then
+`AcUx67ReadableInterfaceTests` by hand (`artifacts/plan57/run-classes.ps1`), stack down; then
+`scripts/ci/acceptance-job.ps1 -Stage prodLike:journey,prodLike:main,prodLike:isolated -NoBuild`; the lab stage
+(`-Stage lab:main,lab:journey`) with the seeded counts; the migrator image (`artifacts/plan57/migrator-compose.yml`) and
+`-Stage prodLike:leastpriv -NoBuild`; the full Testcontainers step again (the review fixes changed what it tests); the P7 commit.
+Then P8 (`git fetch`, merge `origin/main` only if it moved) and P9 (the demo server; `AcLva57VpsChecks` is written).
