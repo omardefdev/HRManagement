@@ -38,6 +38,7 @@ public interface IPayrollRepository
     IQueryable<DisbursementPriorityRule> DisbursementPriorityRules { get; }
     IQueryable<FraudAlert> FraudAlerts { get; }
     IQueryable<PaymentHold> PaymentHolds { get; }
+    IQueryable<ArrearsLedgerEntry> ArrearsLedgerEntries { get; }
     IQueryable<LegalDecisionRecord> LegalDecisionRecords { get; }
     IQueryable<LegalAttestation> LegalAttestations { get; }
     IQueryable<PayrollRunRevision> PayrollRunRevisions { get; }

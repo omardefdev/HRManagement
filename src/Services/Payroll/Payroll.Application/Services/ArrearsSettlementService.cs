@@ -3,9 +3,23 @@ using Payroll.Domain.Enums;
 
 namespace Payroll.Application.Services;
 
+/// <summary>
+/// PLAN-58 (P-5): what an arrears settlement would pay, described — not a <see cref="PaymentBatch"/>. Nothing is saved and nothing is sent
+/// from here (paying arrears in a later cycle is PAY-I's, wave 2); when it is, the money leaves through <c>PaymentBatchIssuer</c> and
+/// <c>process</c> like every other payment.
+/// </summary>
+public sealed record ArrearsSettlementBatch(
+    Guid Id,
+    Guid TenantId,
+    Guid PayrollRunId,
+    decimal TotalAmount,
+    decimal DisbursedAmount,
+    string BankTransferReference,
+    DateTime ProcessedAt);
+
 public sealed class ArrearsSettlementResult
 {
-    public required PaymentBatch SettlementBatch { get; init; }
+    public required ArrearsSettlementBatch SettlementBatch { get; init; }
     public required IReadOnlyList<ArrearsLedgerEntry> SettledEntries { get; init; }
     public decimal AmountApplied { get; init; }
     public decimal AmountRemaining { get; init; }
@@ -57,19 +71,14 @@ public class ArrearsSettlementService
                 .ToList();
             return new ArrearsSettlementResult
             {
-                SettlementBatch = new PaymentBatch
-                {
-                    Id = replayBatchId,
-                    TenantId = tenantId ?? already.FirstOrDefault()?.TenantId ?? Guid.Empty,
-                    PayrollRunId = already.FirstOrDefault()?.PayrollRunId ?? Guid.Empty,
-                    TotalAmount = 0,
-                    DisbursedAmount = 0,
-                    IsPartial = false,
-                    Status = PaymentBatchStatus.Processed,
-                    BatchKind = PaymentBatchKind.Disbursement,
-                    BankTransferReference = settlementKey,
-                    ProcessedAt = DateTime.UtcNow
-                },
+                SettlementBatch = new ArrearsSettlementBatch(
+                    replayBatchId,
+                    tenantId ?? already.FirstOrDefault()?.TenantId ?? Guid.Empty,
+                    already.FirstOrDefault()?.PayrollRunId ?? Guid.Empty,
+                    TotalAmount: 0,
+                    DisbursedAmount: 0,
+                    settlementKey,
+                    DateTime.UtcNow),
                 SettledEntries = already,
                 AmountApplied = 0,
                 AmountRemaining = availableAmount,
@@ -82,7 +91,8 @@ public class ArrearsSettlementService
         var ordered = openEntries
             .Where(e => e.EmployeeId == employeeId
                         && e.ArrearsAmount > 0
-                        && e.Status != ArrearsLedgerStatus.FullyPaid)
+                        && e.Status != ArrearsLedgerStatus.FullyPaid
+                        && e.Status != ArrearsLedgerStatus.Voided)
             .OrderBy(e => e.CreatedAt)
             .ThenBy(e => e.Id)
             .ToList();
@@ -114,19 +124,14 @@ public class ArrearsSettlementService
 
         _settledKeys[key] = batchId;
 
-        var batch = new PaymentBatch
-        {
-            Id = batchId,
-            TenantId = tenantId ?? ordered.FirstOrDefault()?.TenantId ?? Guid.Empty,
-            PayrollRunId = ordered.FirstOrDefault()?.PayrollRunId ?? Guid.Empty,
-            TotalAmount = applied,
-            DisbursedAmount = applied,
-            IsPartial = false,
-            Status = PaymentBatchStatus.Processed,
-            BatchKind = PaymentBatchKind.Disbursement,
-            BankTransferReference = settlementKey,
-            ProcessedAt = DateTime.UtcNow
-        };
+        var batch = new ArrearsSettlementBatch(
+            batchId,
+            tenantId ?? ordered.FirstOrDefault()?.TenantId ?? Guid.Empty,
+            ordered.FirstOrDefault()?.PayrollRunId ?? Guid.Empty,
+            applied,
+            applied,
+            settlementKey,
+            DateTime.UtcNow);
 
         return new ArrearsSettlementResult
         {

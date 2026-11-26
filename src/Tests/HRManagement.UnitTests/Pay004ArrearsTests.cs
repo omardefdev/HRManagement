@@ -70,7 +70,7 @@ public class Pay004ArrearsTests
             ],
             DefaultRules());
 
-        Assert.False(result.Batch.IsPartial);
+        Assert.False(result.IsPartial);
         Assert.Equal(100_000m, result.TotalDisbursed);
         Assert.Empty(result.ArrearsEntries);
         Assert.Equal(result.TotalEntitled, result.TotalDisbursed + result.TotalArrears);
@@ -99,8 +99,8 @@ public class Pay004ArrearsTests
             [new EmployeeDisbursementClaim(emp, 100_000m, "RegularPayroll")],
             DefaultRules());
 
-        Assert.True(result.Batch.IsPartial);
-        Assert.Equal(60_000m, result.Batch.DisbursedAmount);
+        Assert.True(result.IsPartial);
+        Assert.Equal(60_000m, result.TotalDisbursed);
         Assert.Single(result.ArrearsEntries);
 
         var entry = result.ArrearsEntries[0];

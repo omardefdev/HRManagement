@@ -34,7 +34,22 @@ public static class DependencyInjection
 
         services.AddScoped<FraudAnomalyEngine>();
         services.AddScoped<PaymentHoldService>();
-        services.AddSingleton<SeparationOfDutiesService>();
+
+        // PLAN-58: disbursement governance — the agency's settings (Payroll:Approval, :Audit, :Blockers, :Sod, :DualControl), the one
+        // maker of a payment batch, and the separation of duties with the agency's double-approval threshold (D-PAY-5).
+        services.AddOptions<Options.PayrollApprovalOptions>()
+            .Configure<IServiceProvider>((o, sp) => sp.GetService<IConfiguration>()?.GetSection(Options.PayrollApprovalOptions.SectionName).Bind(o));
+        services.AddOptions<Options.PayrollAuditOptions>()
+            .Configure<IServiceProvider>((o, sp) => sp.GetService<IConfiguration>()?.GetSection(Options.PayrollAuditOptions.SectionName).Bind(o));
+        services.AddOptions<Options.PayrollBlockerOptions>()
+            .Configure<IServiceProvider>((o, sp) => sp.GetService<IConfiguration>()?.GetSection(Options.PayrollBlockerOptions.SectionName).Bind(o));
+        services.AddOptions<Options.PayrollSodOptions>()
+            .Configure<IServiceProvider>((o, sp) => sp.GetService<IConfiguration>()?.GetSection(Options.PayrollSodOptions.SectionName).Bind(o));
+        services.AddOptions<Options.PayrollDualControlOptions>()
+            .Configure<IServiceProvider>((o, sp) => sp.GetService<IConfiguration>()?.GetSection(Options.PayrollDualControlOptions.SectionName).Bind(o));
+        services.AddSingleton(sp => Options.PayrollSeparationOfDuties.Create(
+            sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Options.PayrollApprovalOptions>>().Value.DualApprovalThreshold));
+        services.AddScoped<PaymentBatchIssuer>();
 
         // PLAN-53: the salary change transaction. The clock is injected so the month rules are testable (P-6).
         services.TryAddSingleton(TimeProvider.System);

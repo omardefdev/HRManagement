@@ -164,6 +164,22 @@ public sealed class PayrollWriteActionsTests
         ["PayrollReversalRequests.Decide"] = HrManagementPolicies.PayrollApprove,
     };
 
+    /// <summary>
+    /// The write actions PLAN-58 adds or changes (P-4): a funding decision with Payroll.Approve (on the batch, and the run route kept for
+    /// its clients); the sendings (<c>process</c>, <c>submit-held</c>) with Payroll.Post.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> Pay058 = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["PaymentBatchesApi.CreateFundingDecision"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollApi.CreateFundingDecision"] = HrManagementPolicies.PayrollApprove,
+        ["PaymentBatchesApi.Process"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatchesApi.SubmitHeld"] = HrManagementPolicies.PayrollPost,
+        ["PayrollRuns.ProcessPayment"] = HrManagementPolicies.PayrollPost,
+    };
+
+    /// <summary>The controllers PLAN-58 adds: every write of theirs has a row in <see cref="Pay058"/>.</summary>
+    private static readonly string[] Pay058Controllers = ["PaymentBatchesApi"];
+
     /// <summary>The controllers PLAN-56 adds: every write of theirs has a row in <see cref="Pay056"/>.</summary>
     private static readonly string[] Pay056Controllers = ["PayrollRunLifecycleApi", "PayrollReversalRequests"];
 
@@ -564,6 +580,46 @@ public sealed class PayrollWriteActionsTests
         Assert.DoesNotContain("PayrollRunLifecycleApi.RequestReversal", forApprover);
         Assert.Empty(await ReachedByAsync(HrManagementRoles.Payroll));
         Assert.Empty(await ReachedByAsync(HrManagementRoles.PayrollProcessor));
+    }
+
+    public static TheoryData<string, string> Pay058Rows()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var (key, policy) in Pay058)
+            data.Add(key, policy);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(Pay058Rows))]
+    public void Each_action_plan_58_adds_names_its_policy_on_the_action(string key, string policy)
+    {
+        var actions = Writes.Where(a => a.Key == key).ToList();
+        Assert.True(actions.Count > 0, $"{key} is not a write action of Payroll.Web");
+        Assert.All(actions, a => Assert.Equal([policy], a.ActionPolicies));
+    }
+
+    [Fact]
+    public void Every_write_of_the_controllers_plan_58_adds_is_in_its_table()
+    {
+        var unlisted = Writes.Where(a => Pay058Controllers.Contains(a.ControllerName)).Select(a => a.Key)
+            .Where(k => !Pay058.ContainsKey(k)).Distinct(StringComparer.Ordinal).ToList();
+        Assert.True(unlisted.Count == 0, "Write actions with no row in PayrollWriteActionsTests.Pay058: " + string.Join(", ", unlisted));
+    }
+
+    [Fact]
+    public async Task The_one_payment_path_is_reached_by_the_roles_the_plan_names_and_the_processor_reaches_none_of_it()
+    {
+        var pay058 = Writes.Where(a => Pay058.ContainsKey(a.Key)).ToList();
+        async Task<List<string>> ReachedByAsync(params string[] roles) => (await ReachedAsync(User(roles), pay058)).ToList();
+        List<string> Rows(string policy) => Pay058.Where(r => r.Value == policy).Select(r => r.Key).Order(StringComparer.Ordinal).ToList();
+
+        // D-PAY-2: the funding decision is the approver's; the sending is the poster's; the processor reaches neither (403).
+        Assert.Equal(Rows(HrManagementPolicies.PayrollApprove), await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollApprover));
+        Assert.Equal(Rows(HrManagementPolicies.PayrollPost), await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollPoster));
+        Assert.Empty(await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollProcessor));
+        Assert.Empty(await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollReverser));
+        Assert.Empty(await ReachedByAsync(HrManagementRoles.Payroll));
     }
 
     [Fact]

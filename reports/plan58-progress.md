@@ -26,3 +26,40 @@ Finished (UTC): 2026-11-26T12:11:44Z
 ## Next step
 P1: PaymentBatchIssuer, posting makes batch+orders, funding on the batch, process/submit-held, partial disbursement removed, seeder,
 ArrearsSettlementService, reversal lift, Pay058SinglePaymentPathArchitectureTests.
+
+## P1 — One payment path (in progress, code done, gates running)
+
+Decisions (with reasons):
+- PaymentBatchIssuer (Payroll.Application/Services) makes the batch and one order per line with a positive net; a line with no
+  pinned account gets a Held order NO-ACCOUNT. Lines with net <= 0 (a correction's recovery) pay nothing and get no order. The batch's
+  TotalAmount stays the run's TotalNetPay; the sum rule compares orders (not cancelled) + batch.ArrearsAmount with the payable net
+  (sum of positive nets = TotalNetPay for every regular run).
+- New columns: PaymentBatch.Source (int: Legacy 0, PayrollRunPosted 1, Seeded 2), PaymentBatch.ArrearsAmount (the funding's arrears,
+  a snapshot, so a later arrears adjustment does not break the sum rule), PaymentOrder.HoldReason, PaymentOrder.PaymentBatchFileId,
+  PayrollRunApproval.Revision (approvals counted on the present version). New enum values: PaymentOrderStatus.Held=7 (by name),
+  ArrearsLedgerStatus.Voided=3 (by name) -> rollback note (P-17).
+- The per-employee gate (P6's) landed with P1's process: the sending loop needs it (NO-ACCOUNT, held orders).
+- process with nothing sendable (every order held) refuses 400 and changes nothing (no empty sending, no empty file); the held employees
+  are released and process is called again. A second process of a sent batch is 409.
+- Coordinator methods change tracked rows and save nothing; the handler saves once in a transaction, then checks the sum rule on what
+  was saved, then commits (rollback on a broken rule).
+- The funding decision: on a Pending batch of a Posted run, once (409 for a second); RequestedAmount = the run's payable net (the
+  client's requestedAmount is gone); an order allocated 0 is Cancelled with a note (its whole net is arrears). The run route
+  POST runs/{id}/funding-decisions stays as an alias (400 for a run that is not posted; AC-PAY-58a's negative).
+- The settle handler records one bank statement line per settlement (reference + settled amount): the old per-order import collided on
+  the unique statement reference for a batch of more than one order (an older defect this plan's manual settlement would have met).
+- Reversal: the refusal stays for legacy funding/partial batches; a funding on the posting's batch that never left is reversed
+  (batch Voided, orders Cancelled, arrears rows Voided with the reversal's reason).
+- Approve: PayrollRun.Approve(approver, requiredApprovals) counts distinct approvers of the present version; the run row is written by
+  every approval (row version) so two concurrent approvals cannot both count without one losing (409).
+- ArrearsSettlementService (tests only) returns an ArrearsSettlementBatch descriptor, not a PaymentBatch.
+- PLAN-56's tests: messages kept where the meaning is the same (PosterIsApprover keeps the old text).
+Files: domain (PaymentBatch, PaymentOrder + PaymentOrderHoldReasons, PaymentOrderStatus Held, ArrearsLedgerStatus Voided,
+PaymentBatchSource, PaymentBatchFileKind, PayrollRun.Approve/ApprovalsGiven, PayrollRunApproval.Revision, ArrearsLedgerEntry.VoidForReversal),
+application (PaymentBatchIssuer + PaymentBatchLedger, PaymentBatchHandlers.cs: process/submit-held/ack/settle/reject, funding decision on
+the batch, options PayrollGovernanceOptions.cs, IPaymentBatchFileWriter seam, gate/coordinator abstractions, posting/approval handlers,
+reversal lift), infrastructure (gate per employee, coordinator, order service, reconciliation, seeder), web (PaymentBatchesApiController,
+PayrollApiController without partial-disburse, MVC messages), tests (Pay058SinglePaymentPathArchitectureTests with 8 planted cases,
+Pay058PaymentPathTests 6, PartialDisbursementOrchestratorTests ported, PayrollWriteActionsTests Pay058 rows + reach, others adapted).
+Tests: unit full 7244 passed (8 min 7 s); integration payroll filter (no containers) 175 passed + Pay058 6; architecture 414 + 108 passed.
+Finished (UTC): 2026-11-26T12:48:35Z

@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Payroll.Application.Abstractions;
+using Payroll.Application.Features.PayrollRuns.Lifecycle;
 using Payroll.Application.Services;
 using Payroll.Domain.Entities;
 using Payroll.Domain.Enums;
@@ -121,55 +122,79 @@ public class SubmitPayrollRunForReviewHandler(IPayrollRepository repository)
 }
 
 public record ApprovePayrollRunCommand(Guid PayrollRunId, Guid ApproverId, string? Role, string? Notes)
-    : IRequest<(bool Success, string? Error)>;
+    : IRequest<RunActResult>;
 
-public class ApprovePayrollRunHandler(IPayrollRepository repository, SeparationOfDutiesService sod)
-    : IRequestHandler<ApprovePayrollRunCommand, (bool Success, string? Error)>
+/// <summary>PLAN-58 (D-PAY-5): the messages of the double approval.</summary>
+public static class PayrollApprovalMessages
 {
-    public async Task<(bool Success, string? Error)> Handle(
+    public const string CreatorCannotApprove = "لا يمكن لمنشئ التشغيل اعتماد نفس التشغيل.";
+
+    /// <summary>«اعتماد 1 من 2»: the run waits for its next approver.</summary>
+    public static string Progress(int given, int required) =>
+        FormattableString.Invariant($"اعتماد {given} من {required}");
+}
+
+/// <summary>
+/// PLAN-58 (D-PAY-5, G-PAY-09): an approval of the run's present version. Above the agency's threshold
+/// (<c>Payroll:Approval:DualApprovalThreshold</c>) the run needs two different approvers: the first leaves it «قيد المراجعة» («اعتماد 1
+/// من 2»), the second, who is neither the first nor the creator, moves it to «معتمد». The run's id is the answer; its state and count are
+/// read from the run.
+/// </summary>
+public class ApprovePayrollRunHandler(IPayrollRepository repository, SeparationOfDutiesService sod)
+    : IRequestHandler<ApprovePayrollRunCommand, RunActResult>
+{
+    public async Task<RunActResult> Handle(
         ApprovePayrollRunCommand request,
         CancellationToken cancellationToken)
     {
         repository.ClearChangeTracker();
         var run = await repository.GetPayrollRunAsync(request.PayrollRunId, includeLines: false, cancellationToken);
-        if (run is null) return (false, "التشغيل غير موجود.");
+        if (run is null) return RunActResult.NotFound(RunLifecycleMessages.RunNotFound);
 
         if (run.CreatedBy is Guid creatorId && creatorId == request.ApproverId)
-            return (false, "لا يمكن لمنشئ التشغيل اعتماد نفس التشغيل.");
+            return RunActResult.Invalid(PayrollApprovalMessages.CreatorCannotApprove);
 
-        var (allowed, sodError) = PayrollSodGuard.ValidatePayrollRunAction(
-            sod,
-            SodAction.Check,
-            request.ApproverId,
-            request.Role,
-            run.Id,
-            run.CreatedBy,
-            null,
-            run.TotalNetPay);
-        if (!allowed)
-            return (false, sodError);
-
+        var required = sod.GetRequiredApprovalCount(Options.PayrollSeparationOfDuties.RunEntityType, run.TotalNetPay);
         try
         {
-            run.Approve(request.ApproverId, request.Role, request.Notes);
-            var approval = run.Approvals.OrderByDescending(a => a.DecidedAt).First();
-            repository.MarkAsAdded(approval);
+            var countBefore = run.Approvals.Count;
+            run.Approve(request.ApproverId, required, request.Role, request.Notes);
+            foreach (var approval in run.Approvals.Skip(countBefore))
+                repository.MarkAsAdded(approval);
             await repository.SaveChangesAsync(cancellationToken);
-            return (true, null);
+            return RunActResult.Done(run.Id);
         }
         catch (InvalidOperationException ex)
         {
-            return (false, ex.Message);
+            return RunActResult.Invalid(ex.Message);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            repository.ClearChangeTracker();
+            return RunActResult.Conflict(PaymentBatchMessages.ChangedMeanwhile);
         }
     }
 }
 
 public record PostPayrollRunCommand(Guid PayrollRunId, Guid PosterId) : IRequest<(bool Success, string? Error)>;
 
+/// <summary>PLAN-58 (D-PAY-3): the messages of the posting's separation of duties and review.</summary>
+public static class PayrollPostingMessages
+{
+    public const string PosterIsApprover = "لا يمكن لنفس المستخدم اعتماد التشغيل ثم ترحيله.";
+    public const string PosterIsReviewer = "لا يرحّل التشغيلَ من راجعه.";
+    public const string ReviewRequired = "يجب أن يفتح مدقق سجل مراجعة للتشغيل ويغلقه مدقق آخر قبل الترحيل.";
+
+    /// <summary>The run's log line when an agency turned the review off (<c>Payroll:Audit:Required=false</c>).</summary>
+    public const string ReviewTurnedOff = "رُحّل التشغيل دون مراجعة مستقلة: الجهة عطّلت شرط المراجعة (Payroll:Audit:Required=false).";
+}
+
 public class PostPayrollRunHandler(
     IPayrollRepository repository,
     IPayrollEventPublisher eventPublisher,
-    SeparationOfDutiesService sod)
+    SeparationOfDutiesService sod,
+    PaymentBatchIssuer issuer,
+    Microsoft.Extensions.Options.IOptions<Options.PayrollAuditOptions>? auditOptions = null)
     : IRequestHandler<PostPayrollRunCommand, (bool Success, string? Error)>
 {
     public async Task<(bool Success, string? Error)> Handle(
@@ -180,11 +205,9 @@ public class PostPayrollRunHandler(
         var run = await repository.GetPayrollRunAsync(request.PayrollRunId, includeLines: true, cancellationToken);
         if (run is null) return (false, "التشغيل غير موجود.");
 
-        var latestApproval = run.Approvals
-            .Where(a => a.Decision == ApprovalDecision.Approved)
-            .OrderByDescending(a => a.DecidedAt)
-            .FirstOrDefault();
-
+        // PLAN-58 (G-PAY-09): the poster is none of the approvers — every approval of the run, not the latest.
+        if (run.Approvals.Any(a => a.Decision == ApprovalDecision.Approved && a.ApproverId == request.PosterId))
+            return (false, PayrollPostingMessages.PosterIsApprover);
         var (allowed, sodError) = PayrollSodGuard.ValidatePayrollRunAction(
             sod,
             SodAction.Post,
@@ -192,18 +215,23 @@ public class PostPayrollRunHandler(
             "payroll-poster",
             run.Id,
             run.CreatedBy,
-            latestApproval?.ApproverId,
+            null,
             run.TotalNetPay);
         if (!allowed)
             return (false, sodError);
 
-        // PLAN-57: the attendance gate's warning is not a review. Even closed (it cannot be, through the screens), it lets nothing be
-        // posted: the record that does is one an auditor opened and another person closed.
-        var hasClosedAudit = await repository.PayrollAuditRecords
-            .AnyAsync(a => a.PayrollRunId == run.Id && a.Status == AuditStatus.Closed
-                           && (a.Findings == null || !a.Findings.StartsWith(PayrollAttendanceGate.WarningPrefix)), cancellationToken);
-        if (!hasClosedAudit)
-            return (false, "يجب إغلاق سجل مراجعة الرواتب قبل الترحيل.");
+        // PLAN-57: the attendance gate's warning is not a review. PLAN-58 (D-PAY-3): the review is a record an auditor opened and another
+        // auditor closed; neither of them posts. An agency may turn the review off by its own decision: the run's log then says so.
+        var reviewRequired = auditOptions?.Value.Required ?? true;
+        var reviews = await repository.PayrollAuditRecords.AsNoTracking()
+            .Where(a => a.PayrollRunId == run.Id && a.Status == AuditStatus.Closed
+                        && (a.Findings == null || !a.Findings.StartsWith(PayrollAttendanceGate.WarningPrefix)))
+            .Select(a => new { a.AuditorId, a.ClosedBy })
+            .ToListAsync(cancellationToken);
+        if (reviews.Any(r => r.AuditorId == request.PosterId || r.ClosedBy == request.PosterId))
+            return (false, PayrollPostingMessages.PosterIsReviewer);
+        if (reviewRequired && reviews.Count == 0)
+            return (false, PayrollPostingMessages.ReviewRequired);
 
         try
         {
@@ -248,27 +276,21 @@ public class PostPayrollRunHandler(
             if (saved.SumNet != run.TotalNetPay)
                 return (false, PayrollRunReconciliation.ResultsChangedSinceValidation);
 
-            var total = run.TotalNetPay;
             // PLAN-56 (G-PAY-06): the run keeps who posted it; the decider of its reversal is never that person.
             run.Post(request.PosterId, DateTime.UtcNow);
 
-            // PAY-003: Post creates Pending disbursement; Pay sets ProcessedAt later.
-            await repository.AddAsync(new PaymentBatch
-            {
-                PayrollRunId = run.Id,
-                TotalAmount = total,
-                Status = PaymentBatchStatus.Pending,
-                BatchKind = PaymentBatchKind.Disbursement,
-                BankTransferReference = $"PAY-{run.PeriodStart:yyyyMM}-{run.Id:N}"[..32]
-            }, cancellationToken);
+            // PLAN-58 (§1, P-5): the posting makes the batch and one order per line, through the issuer, in this save.
+            await issuer.IssueAsync(run, saved.Lines, PaymentBatchSource.PayrollRunPosted, cancellationToken);
 
             if (job is not null)
             {
                 job.Phase = PayrollRunJobPhase.Post;
                 job.LastCheckpointAt = DateTime.UtcNow;
+                if (!reviewRequired && reviews.Count == 0)
+                    job.AppendLog(PayrollPostingMessages.ReviewTurnedOff);
             }
 
-            // PLAN-40 (class B): one save writes the posted run, the batch and the outbox row together.
+            // PLAN-40 (class B): one save writes the posted run, the batch, its orders and the outbox row together.
             await eventPublisher.PublishPayrollProcessedAsync(
                 run.Id, run.PeriodStart, run.PeriodEnd, run.TotalNetPay, cancellationToken);
             await repository.SaveChangesAsync(cancellationToken);

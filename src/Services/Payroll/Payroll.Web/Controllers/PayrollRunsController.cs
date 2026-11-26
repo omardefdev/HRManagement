@@ -20,12 +20,18 @@ public class PayrollRunsController : Controller
     private readonly PayrollDbContext _db;
     private readonly IMediator _mediator;
     private readonly IHrCoreLookupClient _hrCoreLookup;
+    private readonly HRManagement.SharedKernel.SeparationOfDuties.SeparationOfDutiesService _sod;
 
-    public PayrollRunsController(PayrollDbContext db, IMediator mediator, IHrCoreLookupClient hrCoreLookup)
+    public PayrollRunsController(
+        PayrollDbContext db,
+        IMediator mediator,
+        IHrCoreLookupClient hrCoreLookup,
+        HRManagement.SharedKernel.SeparationOfDuties.SeparationOfDutiesService sod)
     {
         _db = db;
         _mediator = mediator;
         _hrCoreLookup = hrCoreLookup;
+        _sod = sod;
     }
 
     private Guid RequireUserId()
@@ -274,8 +280,9 @@ public class PayrollRunsController : Controller
     [Authorize(Policy = HrManagementPolicies.PayrollPost)]
     public async Task<IActionResult> ProcessPayment(Guid batchId, Guid runId)
     {
+        // PLAN-58: «sent», not «paid»: the money is paid when two people confirm the bank statement (the batch's page).
         var (success, error) = await _mediator.Send(new ProcessPaymentBatchCommand(batchId, RequireUserId()));
-        TempData[success ? "Success" : "Error"] = success ? "تم صرف الدفعة" : error;
+        TempData[success ? "Success" : "Error"] = success ? "أُرسلت الدفعة إلى القناة مع ملفها المصرفي؛ أوامر المحجوزين خارج الإرسال" : error;
         return RedirectToAction(nameof(Details), new { id = runId });
     }
 
@@ -296,7 +303,17 @@ public class PayrollRunsController : Controller
     {
         var userId = RequireUserId();
         var (success, error) = await _mediator.Send(new ApprovePayrollRunCommand(id, userId, "PayrollApprover", null));
-        TempData[success ? "Success" : "Error"] = success ? "تم اعتماد التشغيل" : error;
+        if (!success)
+        {
+            TempData["Error"] = error;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // PLAN-58 (D-PAY-5): above the threshold the first approval leaves the run under review («اعتماد 1 من 2»).
+        var run = await _db.PayrollRuns.AsNoTracking().Include(r => r.Approvals).FirstAsync(r => r.Id == id);
+        TempData["Success"] = run.Status == PayrollRunStatus.Approved
+            ? "تم اعتماد التشغيل"
+            : $"سُجّل اعتمادك ({PayrollApprovalMessages.Progress(run.ApprovalsGiven, _sod.GetRequiredApprovalCount(Payroll.Application.Options.PayrollSeparationOfDuties.RunEntityType, run.TotalNetPay))})؛ التشغيل بانتظار معتمد آخر";
         return RedirectToAction(nameof(Details), new { id });
     }
 

@@ -1799,6 +1799,10 @@ namespace Payroll.Infrastructure.Migrations
                     b.Property<DateTime?>("AckedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<decimal>("ArrearsAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<string>("BankTransferReference")
                         .HasColumnType("text");
 
@@ -1839,6 +1843,9 @@ namespace Payroll.Infrastructure.Migrations
                     b.Property<string>("SettlementReference")
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
+
+                    b.Property<int>("Source")
+                        .HasColumnType("integer");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -1995,10 +2002,17 @@ namespace Payroll.Infrastructure.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<string>("HoldReason")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<string>("IdempotencyKey")
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
+
+                    b.Property<Guid?>("PaymentBatchFileId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("PaymentBatchId")
                         .HasColumnType("uuid");
@@ -2775,6 +2789,9 @@ namespace Payroll.Infrastructure.Migrations
 
                     b.Property<Guid>("PayrollRunId")
                         .HasColumnType("uuid");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");

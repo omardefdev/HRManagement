@@ -81,20 +81,34 @@ public static class PayrollRunLifecycle
     private static string Money(decimal value) => value.ToString("0.00", CultureInfo.InvariantCulture);
 
     /// <summary>
-    /// PLAN-56 (P-7): true when the run has a funding decision, or a payment batch that is not the posting's own (a partial
-    /// disbursement, an arrears settlement). Such a run is neither cancelled nor reversed by this plan (PLAN-58 decides what its
-    /// arrears rows become).
+    /// PLAN-56 (P-7), narrowed by PLAN-58 (P-5): true when the run has a funding decision or a partial batch that this plan's path did not
+    /// make — a decision with no batch of the issuer's, or a batch older than PLAN-58 that is partial or funded (the removed partial
+    /// disbursement). Such a run is neither cancelled nor reversed. A funding decision on the posting's own batch (source
+    /// <c>PayrollRunPosted</c>) no longer refuses: while that batch has not left, a reversal voids it, cancels its orders and closes the
+    /// run's open arrears rows (nothing of them was paid); a batch that left refuses the reversal as before (D-PAY-16).
     /// </summary>
     public static async Task<bool> HasFundingOrPartialDisbursementAsync(
         IPayrollRepository repository,
         PayrollRun run,
         CancellationToken cancellationToken)
     {
-        if (await repository.FundingDecisions.AnyAsync(f => f.PayrollRunId == run.Id, cancellationToken))
+        if (await repository.PaymentBatches.AnyAsync(
+                b => b.PayrollRunId == run.Id && b.Source != Domain.Enums.PaymentBatchSource.PayrollRunPosted
+                     && (b.FundingDecisionId != null || b.IsPartial), cancellationToken))
             return true;
-        return await repository.PaymentBatches.AnyAsync(
-            b => b.PayrollRunId == run.Id && (b.FundingDecisionId != null || b.IsPartial), cancellationToken);
+
+        var issuerFunded = await repository.PaymentBatches.AsNoTracking()
+            .Where(b => b.PayrollRunId == run.Id && b.Source == Domain.Enums.PaymentBatchSource.PayrollRunPosted && b.FundingDecisionId != null)
+            .Select(b => b.FundingDecisionId!.Value)
+            .ToListAsync(cancellationToken);
+        return await repository.FundingDecisions.AnyAsync(f => f.PayrollRunId == run.Id && !issuerFunded.Contains(f.Id), cancellationToken);
     }
+
+    /// <summary>
+    /// PLAN-58 (P-5): the reason an arrears row of a reversed run carries when it is closed (its batch never left; nothing was paid).
+    /// </summary>
+    public static string ArrearsVoidedByReversal(string? reversalReason) =>
+        "أُلغي التشغيل بالعكس قبل خروج دفعته؛ لم يُصرف من هذه المتأخرات شيء" + (string.IsNullOrWhiteSpace(reversalReason) ? "." : $": {reversalReason.Trim()}");
 
     /// <summary>
     /// Deletes a run's lines and components for a recalculation, in the caller's transaction, and writes one audit row on the run

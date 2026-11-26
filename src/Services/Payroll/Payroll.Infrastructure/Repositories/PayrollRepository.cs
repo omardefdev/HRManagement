@@ -44,6 +44,7 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
     public IQueryable<DisbursementPriorityRule> DisbursementPriorityRules => db.DisbursementPriorityRules;
     public IQueryable<FraudAlert> FraudAlerts => db.FraudAlerts;
     public IQueryable<PaymentHold> PaymentHolds => db.PaymentHolds;
+    public IQueryable<ArrearsLedgerEntry> ArrearsLedgerEntries => db.ArrearsLedgerEntries;
 
     public Task<PayrollRun?> GetPayrollRunAsync(Guid id, bool includeLines, CancellationToken ct)
     {

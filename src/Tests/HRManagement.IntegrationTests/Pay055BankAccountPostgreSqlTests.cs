@@ -154,12 +154,14 @@ public sealed partial class Pay055BankAccountPostgreSqlTests(PostgreSqlFixture f
             orders.ToDictionary(o => o.EmployeeId, o => o.BeneficiaryIban));
         db.ChangeTracker.Clear();
 
-        // While a retired pinned account's hold is active, no money goes to it: the disbursement gate refuses the batch, and the
-        // treasury file is refused too, naming the employees (never an id, never a number).
+        // While a retired pinned account's hold is active, no money goes to it: the disbursement gate holds those two employees' orders
+        // (PLAN-58: the third is sent), and the treasury file is refused too, naming the employees (never an id, never a number).
         var gate = scope.ServiceProvider.GetRequiredService<IPaymentDisbursementGate>();
         var stored = await db.PaymentBatches.AsNoTracking().SingleAsync(b => b.Id == batch.Id);
         var blocked = await gate.EvaluateAsync(stored, CancellationToken.None);
-        Assert.False(blocked.Allowed, "the gate let a batch through while two retired pinned accounts are held");
+        Assert.False(blocked.Stopped);
+        Assert.Equal(new[] { e1, e2 }, blocked.ByEmployee.Keys.Order().ToArray());
+        Assert.All(blocked.ByEmployee.Values, h => Assert.Equal(PaymentOrderHoldReasons.AccountRetired, h.Reason));
         var heldFile = await Assert.ThrowsAsync<RetiredPinnedBankAccountsException>(() => ExportTreasuryAsync(db, october, names));
         Assert.Equal(new[] { e1, e2 }, heldFile.EmployeeIds);
         Assert.Contains("أحمد الخطيب", heldFile.Message, StringComparison.Ordinal);
@@ -177,7 +179,7 @@ public sealed partial class Pay055BankAccountPostgreSqlTests(PostgreSqlFixture f
         }
 
         db.ChangeTracker.Clear();
-        Assert.True((await gate.EvaluateAsync(stored, CancellationToken.None)).Allowed);
+        Assert.Empty((await gate.EvaluateAsync(stored, CancellationToken.None)).Held);
         var afterRelease = (await mediator.Send(new GetRunBankReadinessQuery(october)))!;
         Assert.Equal(new[] { e1, e2 }, afterRelease.EmployeesWithRetiredAccount);
         Assert.Empty(afterRelease.EmployeesHeldForRetiredAccount);

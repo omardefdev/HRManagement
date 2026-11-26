@@ -57,14 +57,27 @@ public class PayrollApiController : ControllerBase
         return Ok();
     }
 
+    /// <summary>
+    /// PLAN-58 (D-PAY-5): an approval of the run's present version. Above the agency's threshold the run needs two different approvers:
+    /// the first leaves it under review («اعتماد 1 من 2»), the second approves it. 400 for the creator, or an approver approving again.
+    /// </summary>
     [HttpPost("runs/{id:guid}/approve")]
     [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
-    public async Task<IActionResult> ApproveRun(Guid id, CancellationToken ct)
+    public async Task<IActionResult> ApproveRun(Guid id, [FromServices] HRManagement.SharedKernel.SeparationOfDuties.SeparationOfDutiesService sod, CancellationToken ct)
     {
-        var (success, error) = await _mediator.Send(
-            new ApprovePayrollRunCommand(id, RequireUserId(), "payroll-approver", null), ct);
-        if (!success) return BadRequest(new { error });
-        return Ok();
+        var result = await _mediator.Send(new ApprovePayrollRunCommand(id, RequireUserId(), "payroll-approver", null), ct);
+        if (!result.Success)
+            return PayrollRunActHttp.Answer(result);
+        var run = await _db.PayrollRuns.AsNoTracking().Include(r => r.Approvals).FirstAsync(r => r.Id == id, ct);
+        var required = sod.GetRequiredApprovalCount(Payroll.Application.Options.PayrollSeparationOfDuties.RunEntityType, run.TotalNetPay);
+        return Ok(new
+        {
+            id,
+            status = run.Status.ToString(),
+            approvalsGiven = run.ApprovalsGiven,
+            approvalsRequired = required,
+            progress = PayrollApprovalMessages.Progress(run.ApprovalsGiven, required),
+        });
     }
 
     [HttpPost("runs/{id:guid}/post")]
@@ -241,57 +254,26 @@ public class PayrollApiController : ControllerBase
             : PayProfileChangeHttp.Refusal(result);
     }
 
+    /// <summary>
+    /// PLAN-58 (D-PAY-2): the run route of a funding decision, kept for its clients. A funding decision is taken after the posting only,
+    /// on the posting's batch: 400 for a run that is not posted; otherwise the same act as
+    /// <c>POST api/payroll/payment-batches/{id}/funding-decisions</c>. The decider is the caller. (<c>partial-disburse</c> is gone: a
+    /// partial disbursement is this decision, then <c>process</c> by the poster.)
+    /// </summary>
     [HttpPost("runs/{id:guid}/funding-decisions")]
+    [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
     public async Task<IActionResult> CreateFundingDecision(
         Guid id,
         [FromBody] CreateFundingDecisionApiRequest request,
-        CancellationToken ct)
-    {
-        var (success, decisionId, error) = await _mediator.Send(new CreateFundingDecisionCommand(
+        CancellationToken ct) =>
+        PayrollRunActHttp.Answer(await _mediator.Send(new CreateRunFundingDecisionCommand(
             id,
-            request.RequestedAmount,
             request.ApprovedAmount,
             request.FundingRatio,
             request.PriorityRuleSetId,
-            RequireUserId()), ct);
-        if (!success) return BadRequest(new { error });
-        return CreatedAtAction(nameof(GetRun), new { id }, new { id = decisionId });
-    }
-
-    [HttpPost("runs/{id:guid}/partial-disburse")]
-    // Partial disbursement prepares the payment batch and arrears ledger. It does not
-    // submit money to the bank, so it belongs to the processor stage; actual posting
-    // and payment remain protected by Payroll.Post.
-    [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
-    public async Task<IActionResult> PartialDisburse(
-        Guid id,
-        [FromBody] PartialDisburseApiRequest request,
-        CancellationToken ct)
-    {
-        var result = await _mediator.Send(new ExecutePartialDisbursementCommand(
-            id, request.FundingDecisionId), ct);
-        if (!result.Success) return BadRequest(new { error = result.Error });
-        if (result.WasIdempotentReplay)
-            return Conflict(new
-            {
-                batchId = result.BatchId,
-                totalDisbursed = result.TotalDisbursed,
-                totalArrears = result.TotalArrears,
-                orders = result.Orders,
-                invariantOk = result.InvariantOk,
-                idempotentReplay = true
-            });
-
-        return Ok(new
-        {
-            batchId = result.BatchId,
-            totalDisbursed = result.TotalDisbursed,
-            totalArrears = result.TotalArrears,
-            orders = result.Orders,
-            invariantOk = result.InvariantOk
-        });
-    }
+            RequireUserId(),
+            request.Notes), ct));
 
     [HttpPost("runs/{id:guid}/fraud-scan")]
     [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
@@ -459,15 +441,6 @@ public class PayrollApiController : ControllerBase
         return Ok();
     }
 
-    [HttpPost("payment-batches/{batchId:guid}/process")]
-    [Authorize(Policy = HrManagementPolicies.PayrollPost)]
-    public async Task<IActionResult> ProcessPayment(Guid batchId, CancellationToken ct)
-    {
-        var (success, error) = await _mediator.Send(new ProcessPaymentBatchCommand(batchId, RequireUserId()), ct);
-        if (!success) return BadRequest(new { error });
-        return Ok();
-    }
-
     [HttpGet("payslips/{salaryLineId:guid}")]
     public async Task<IActionResult> GetPayslip(Guid salaryLineId, CancellationToken ct)
     {
@@ -529,10 +502,12 @@ public record PayProfilePutAliasRequest(
     string? ChangeReason = null,
     string? LegalReference = null);
 
-public record PartialDisburseApiRequest(Guid FundingDecisionId);
-
+/// <summary>
+/// PLAN-58 (D-PAY-2): a funding decision. <see cref="ApprovedAmount"/> (or the ratio of the run's payable net when it is omitted) is spread
+/// by the priority rules of the run's pinned framework; the requested amount is the run's own payable net, never the client's.
+/// </summary>
 public record CreateFundingDecisionApiRequest(
-    decimal RequestedAmount,
-    decimal ApprovedAmount,
     decimal FundingRatio,
-    Guid? PriorityRuleSetId = null);
+    decimal? ApprovedAmount = null,
+    Guid? PriorityRuleSetId = null,
+    string? Notes = null);

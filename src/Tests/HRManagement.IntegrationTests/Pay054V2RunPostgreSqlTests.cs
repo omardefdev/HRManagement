@@ -547,7 +547,8 @@ public sealed class Pay054V2RunPostgreSqlTests(PostgreSqlFixture fixture)
         var v1 = await SeedAsTheDemoSeedDoesAsync(db, employees: 3);
         var v2 = await ImportAndPublishAsync(db, mediator);
 
-        async Task<(PayrollRun Run, FundingDecision Decision)> PostedRunAsync(Guid? configurationId, Guid? ruleSet, int month)
+        // PLAN-58 (D-PAY-2): a funding decision is taken on the posting's batch. Each case posts its own run (a batch is funded once).
+        async Task<(PayrollRun Run, Guid BatchId, Guid? RuleSet)> PostedRunAsync(Guid? configurationId, Guid? ruleSet, int month)
         {
             var run = new PayrollRun
             {
@@ -564,23 +565,21 @@ public sealed class Pay054V2RunPostgreSqlTests(PostgreSqlFixture fixture)
             run.SalaryLines.Add(new SalaryLine { EmployeeId = Guid.NewGuid(), GrossPay = 100_000m, TotalDeductions = 10_000m, NetPay = 90_000m });
             run.SalaryLines.Add(new SalaryLine { EmployeeId = Guid.NewGuid(), GrossPay = 80_000m, TotalDeductions = 8_000m, NetPay = 72_000m });
             db.PayrollRuns.Add(run);
-            var decision = new FundingDecision
-            {
-                PayrollRunId = run.Id,
-                RequestedAmount = 162_000m,
-                ApprovedAmount = 97_200m,
-                FundingRatio = 0.60m,
-                PriorityRuleSetId = ruleSet,
-                ApprovedBy = Guid.NewGuid(),
-            };
-            db.FundingDecisions.Add(decision);
+            var batch = await scope.ServiceProvider.GetRequiredService<Payroll.Application.Services.PaymentBatchIssuer>()
+                .IssueAsync(run, run.SalaryLines.ToList(), PaymentBatchSource.PayrollRunPosted, CancellationToken.None);
             await db.SaveChangesAsync();
             db.ChangeTracker.Clear();
-            return (run, decision);
+            return (run, batch.Id, ruleSet);
         }
 
-        Task<ExecutePartialDisbursementResult> PreviewAsync((PayrollRun Run, FundingDecision Decision) x) =>
-            mediator.Send(new ExecutePartialDisbursementCommand(x.Run.Id, x.Decision.Id, Persist: false));
+        async Task<(bool Success, string? Error, decimal TotalDisbursed, bool InvariantOk)> PreviewAsync((PayrollRun Run, Guid BatchId, Guid? RuleSet) x)
+        {
+            var result = await mediator.Send(new CreateFundingDecisionCommand(x.BatchId, 97_200m, 0.60m, x.RuleSet, Guid.NewGuid()));
+            db.ChangeTracker.Clear();
+            var funded = await db.PaymentBatches.AsNoTracking().SingleAsync(b => b.Id == x.BatchId);
+            var orders = await db.PaymentOrders.AsNoTracking().Where(o => o.PaymentBatchId == x.BatchId && o.Status != PaymentOrderStatus.Cancelled).SumAsync(o => o.Amount);
+            return (result.Success, result.Error, result.Success ? orders : 0m, orders + funded.ArrearsAmount == 162_000m);
+        }
 
         // No general rule exists: a legacy run finds none, although the v2 version holds three (they never leak into a legacy run).
         // And none of the three is an active row of the general table: the release before PLAN-54 reads every active row for a
@@ -609,13 +608,14 @@ public sealed class Pay054V2RunPostgreSqlTests(PostgreSqlFixture fixture)
         db.ChangeTracker.Clear();
         Assert.True((await PreviewAsync(legacy)).Success);
         Assert.True((await PreviewAsync(unpinned)).Success);
+        // (a refused decision changed nothing: the same batches take the decision once the rule exists)
         Assert.True((await PreviewAsync(await PostedRunAsync(v1.Id, ruleSet: generalSet, month: 3))).Success);
         var foreign = await PreviewAsync(await PostedRunAsync(v2.Id, ruleSet: generalSet, month: 12));
         Assert.False(foreign.Success);
         Assert.Equal("قرار التمويل يسمّي مجموعة قواعد غير قواعد الإطار القانوني المثبت على التشغيل.", foreign.Error);
 
-        // A v2 version with no rule of its own is not disbursed by the general ones.
+        // A v2 version with no rule of its own is not disbursed by the general ones (a fresh run: the earlier one is funded already).
         await db.DisbursementPriorityRules.Where(r => r.PayrollConfigurationId == v2.Id).ExecuteDeleteAsync();
-        Assert.Equal("لا توجد قواعد أولوية للصرف الجزئي.", (await PreviewAsync(current)).Error);
+        Assert.Equal("لا توجد قواعد أولوية للصرف الجزئي.", (await PreviewAsync(await PostedRunAsync(v2.Id, ruleSet: null, month: 9))).Error);
     }
 }

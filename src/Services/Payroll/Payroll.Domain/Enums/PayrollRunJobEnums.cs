@@ -133,3 +133,38 @@ public enum PaymentBatchKind
     [Display(Name = "عكس")]
     Reversal = 1
 }
+
+/// <summary>
+/// PLAN-58 (§1, P-5): where a payment batch came from. Every batch made since this plan is made by <c>PaymentBatchIssuer</c> with an
+/// explicit source; PLAN-64 adds its final settlement through the same interface. Stored as an integer (a new column, PLAN-57's rule).
+/// </summary>
+public enum PaymentBatchSource
+{
+    /// <summary>A batch older than PLAN-58 (the posting's, or one the removed partial disbursement made).</summary>
+    [Display(Name = "قديمة")]
+    Legacy = 0,
+
+    /// <summary>The posting of a payroll run: one order per line, to the line's pinned account.</summary>
+    [Display(Name = "ترحيل تشغيل الرواتب")]
+    PayrollRunPosted = 1,
+
+    /// <summary>A demo or acceptance seed's batch, made at construction by <c>PaymentBatch.Seeded</c>.</summary>
+    [Display(Name = "بيانات أولية")]
+    Seeded = 2,
+}
+
+/// <summary>PLAN-58 (§2): which sending a bank file carries. Stored as an integer (a new table).</summary>
+public enum PaymentBatchFileKind
+{
+    /// <summary>The batch's first sending (<c>process</c>).</summary>
+    [Display(Name = "الإرسال الأول")]
+    Initial = 0,
+
+    /// <summary>Orders whose hold was lifted after the first sending (<c>submit-held</c>).</summary>
+    [Display(Name = "ملف تكميلي للمُفرَج عنهم")]
+    HeldRelease = 1,
+
+    /// <summary>A reissue approved by four eyes (D-PAY-19): the same orders, a new sequence; the file before it is superseded.</summary>
+    [Display(Name = "إعادة إصدار")]
+    Reissue = 2,
+}

@@ -478,20 +478,17 @@ public static class DemoPayrollSeeder
             var run = await db.PayrollRuns.AsNoTracking().FirstAsync(r => r.Id == runIds[i], ct);
             var processed = run.Status is PayrollRunStatus.Posted or PayrollRunStatus.Approved;
 
-            db.PaymentBatches.Add(new PaymentBatch
-            {
-                Id = DemoSeedIds.Named($"pay-batch-{i + 1}"),
-                TenantId = TenantId,
-                PayrollRunId = runIds[i],
-                BankTransferReference = $"BT-2026-{(i + 1):D3}",
-                TotalAmount = run.TotalNetPay,
-                DisbursedAmount = processed ? run.TotalNetPay : 0,
-                ProcessedAt = processed ? run.RunDate.AddDays(1) : null,
-                Status = processed ? PaymentBatchStatus.Processed : PaymentBatchStatus.Pending,
-                BatchKind = PaymentBatchKind.Disbursement,
-                CreatedAt = now,
-                UpdatedAt = now,
-            });
+            // PLAN-58 (P-5): the seed's one named construction of a batch (PaymentBatchIssuer makes every other one).
+            db.PaymentBatches.Add(PaymentBatch.Seeded(
+                id: DemoSeedIds.Named($"pay-batch-{i + 1}"),
+                tenantId: TenantId,
+                payrollRunId: runIds[i],
+                bankTransferReference: $"BT-2026-{(i + 1):D3}",
+                totalAmount: run.TotalNetPay,
+                disbursedAmount: processed ? run.TotalNetPay : 0,
+                processedAt: processed ? run.RunDate.AddDays(1) : null,
+                status: processed ? PaymentBatchStatus.Processed : PaymentBatchStatus.Pending,
+                createdAt: now));
         }
 
         await db.SaveChangesAsync(ct);
