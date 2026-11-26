@@ -19,7 +19,7 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
 | P7 acceptance + review | done | 2026-11-25T11:26:59Z |
 | P8 main | done: `origin/main` had not moved (`a8f6ee32`), nothing to merge | 2026-11-25T11:27Z |
 | P9 demo server | done | 2026-11-25T14:26:19Z |
-| P10 docs, gates, PR, merge | | |
+| P10 docs, gates, PR, merge | done: PR #56 merged | 2026-11-25T19:45:49Z |
 
 ## P0 — timing, keep-awake, preconditions, baseline
 
@@ -397,6 +397,66 @@ Main folder: `/home/omar/HRManagement` (the owner's Linux notebook). Branch `fea
 - **The server, built and deployed again from the final head of the feature branch (`e64a0f7e65be`), so that its tag is a
   commit of `main`:** «Server changes and their undo», items 8 to 10.
 
+## Merge note
+
+**Merged by agent on owner instruction (UTC): 2026-11-25T19:45:49Z.**
+
+- **Pull request:** <https://github.com/omardefdev/HRManagement/pull/56> (`release/plan-56` → `main`), merged with
+  `gh pr merge 56 --merge` after every check was green. **Merge commit `01a8c3f96d9bdc9781c11749272ac0d96911815a`.** The first
+  call of the merge timed out on the network (TLS handshake) with the pull request still open; the second merged it. Local
+  `main` = `origin/main` = `01a8c3f96d9b`.
+- **CI, second run (`45678044689`, 18:43:29Z to 19:38:10Z), on `4402fd4f`: all green.** `CI` 38 min; `CodeQL` 19 min; `E2E`
+  15 min; `Gitleaks`; `Acceptance images` 23 min; the acceptance stages `lab-main` 23 min, `lab-rest` 17 min, `meta` 18 min,
+  `leastpriv` 8 min, `prodlike` 28 min (**AC-PAY-56a..f**, required, in the `main` group), `prodlike-policy` 12 min,
+  `prodlike-final` 30 min; `Acceptance`; `Reuse check`; `Dedupe post-merge run`. 15 of 15.
+- **The evidence of record:** the artifact `acceptance-evidence` of that run:
+  <https://github.com/omardefdev/HRManagement/actions/runs/45678044689/artifacts/15055764881>. No local evidence is committed.
+- **CI, first run (`45666496667`, 17:36:09Z to 18:28:45Z), on `448acf9b`:** `CodeQL` failed on one new finding
+  (`cs/web/missing-token-validation`, the older `POST api/payroll/jobs/{jobId}/cancel`); fixed in the code on the release branch
+  (`4402fd4f`), no baseline entry. Everything else of that run that finished had passed.
+- **Post-merge run on `main` (`45688400632`, 19:45:52Z):** success. `Gitleaks` ran; the rest is reused from the green run of
+  the same tree (`Dedupe post-merge run`).
+- **Not this plan's, seen on the way:** a scheduled run on the old `main` (`45600295085`, 11:00Z, `a8f6ee32`) failed in
+  `Acceptance stage (prodlike)`: `AcWf46PolicyOrphanTests.Ac46j…` could not reach the workflow engine for a moment. The same
+  class passed in this pull request's run.
+- **Actions minutes** (the sum of the jobs' durations): first run 227, second run 238, post-merge 1: **466 job-minutes.**
+- **The server runs `e64a0f7e65be`**, a commit of `main` (`git branch -r --contains e64a0f7e65be` → `origin/main`), 22
+  containers, healthy since 17:42:52Z, smoke 50 pass and 0 fail. **`main` is one commit ahead of it:** the CodeQL fix
+  (`[ValidateAntiForgeryToken]` on the older cancel-by-job API) came after the second server build, **and the server was not
+  built a third time because its disk cannot carry a build now**: 22 GB free, 28 GB after the removals the plan allows, and a
+  build takes about 26 GB at its peak (the second one fell to 3.1 GB). The cause is the volume `hrm_seq_data` (46.6 GB of logs,
+  growing), which is the owner's to decide. The next plan's deploy brings the fix; its precondition (the running tag on
+  `origin/main`) holds.
+- **This plan's five server checks on the redeployed server:** all passed. The screens check passed alone at 19:15Z
+  (19 min 43 s with this machine's repeats). Before it, one rerun of that check **was cut by a time limit I had put on the
+  command myself** (18:55Z): it left a draft run of the checks and a pending reversal request on the demo for about twenty
+  minutes; the next run closed both first, as the check does at its start. Read back at 19:16Z: 8 runs of the checks, all
+  cancelled; 7 reversal requests, all rejected; the demo's six runs as they were (calculated 1, posted 4, approved 1).
+- **Clean-up:** the keep-awake process stopped by its PID; the fresh clone and `hr-migrate:local` removed; no local stack is
+  running; the local branch `backup/plan-56-before-gitleaks-rewrite` deleted (it held the commit gitleaks flagged; it was never
+  on the remote).
+
+**Timing (UTC, 2026-11-25).** Started 04:53:25Z; merged 19:45:49Z: **14 h 52 min.**
+
+| | |
+|-|-|
+| Up to the first pre-push check (15:26Z) | 10 h 33 min: the plan's phases P0 to P9 and the documents |
+| The gitleaks finding and its consequences (15:27Z to 17:35Z) | **2 h 8 min:** the history rewritten for one test literal, the gates run a second time, a slip of the rewrite found by them, and the gates run a third time |
+| Waiting for CI (17:35:42Z to 19:45:49Z) | **2 h 10 min:** the first run to CodeQL's failure and its fix (67 min, with the server's deploy and checks inside it), the second run 55 min, then the merge |
+| Stops | 7 min 3 s and 11 min 55 s (the turn ended on a wait; the owner wrote «Try again»); a port-22 block of about seven minutes; no `BLOCKED:` |
+| The server | two builds (30 and 37 min), two deploys (4 min; 7 min with its repeated start), the older plans' checks 109 min |
+
+`pwsh -NoProfile -File scripts/plan-timing.ps1 -From 55 -To 56` after the merge:
+
+```
+Plan    Commits Started          FirstCommit      End              Merged Span
+----    ------- -------          -----------      ---              ------ ---- 
+PLAN-55      15 2026-11-24 08:14 2026-11-24 08:14 2026-11-25 05:51  False 21:36
+PLAN-56      27 2026-11-25 07:53 2026-11-25 07:58 2026-11-25 21:41  False 13:43
+Span = first commit -> merge (or last commit if not merged). WallClock = "Started (UTC)" in the progress file -> merge.
+Note: without a merge commit, a later commit with the same plan scope (for example a live-run fix) extends that plan's End.
+```
+
 ## Stops and resumes
 
 - **Resumed (UTC): 2026-11-25T07:21:25Z.** The session's context was summarised during P6 (the full Testcontainers step was
@@ -474,8 +534,5 @@ None.
 
 ## Next step
 
-P10 (continuing): commit this file and the report; the Testcontainers step and `scripts/ci/run-steps.sh --all` in a fresh clone
-of the new head; `scripts/plan035-prepush.ps1`; `release/plan-56` from `main` (`--no-ff`), push, `gh pr create`, wait for the
-checks; during that wait build and deploy the final head on the server and run the five `AC_PAY_56_vps_*` checks and the smoke;
-`gh pr merge <n> --merge` when every check is green; then the merge note on `docs/plan-56-merge-note` (with the server's row in
-`docs/OPS_VPS_SINGLE_HOST.md`), the backup branch deleted, the keep-awake stopped by its PID (2559133).
+None: PLAN-56 is merged. For the next plan: the server runs `e64a0f7e65be` (one commit behind `main`: the CodeQL fix); its disk
+has no room for a build until the Seq volume is trimmed or the disk grows (see the merge note).

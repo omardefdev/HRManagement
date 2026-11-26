@@ -28,6 +28,7 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
     public IQueryable<PayrollConfiguration> PayrollConfigurations => db.PayrollConfigurations;
     public IQueryable<OfficialHoliday> OfficialHolidays => db.OfficialHolidays;
     public IQueryable<AbsenceDeduction> AbsenceDeductions => db.AbsenceDeductions;
+    public IQueryable<AttendanceSummaryReceipt> AttendanceSummaryReceipts => db.AttendanceSummaryReceipts;
     public IQueryable<SalaryLine> SalaryLines => db.SalaryLines;
     public IQueryable<SalaryLineComponent> SalaryLineComponents => db.SalaryLineComponents;
     public IQueryable<EndOfServiceSettlement> EndOfServiceSettlements => db.EndOfServiceSettlements;

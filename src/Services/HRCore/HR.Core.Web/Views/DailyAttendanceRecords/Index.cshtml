@@ -4,7 +4,15 @@
    string FilterEmployeeLabel(Guid id) =>
        !string.IsNullOrWhiteSpace(Model.FilterEmployeeName) ? Model.FilterEmployeeName! : id.ToString(); }
 <div class="card">
-    <div class="card-header d-flex justify-content-between"><h3 class="mb-0">الحضور</h3><a asp-action="Create" class="btn btn-primary btn-sm">جديد</a></div>
+    <div class="card-header d-flex justify-content-between">
+        <h3 class="mb-0">الحضور</h3>
+        <div class="d-flex gap-2">
+            <a asp-action="Create" class="btn btn-primary btn-sm">جديد</a>
+            <a asp-action="BulkEntry" class="btn btn-outline-primary btn-sm">إدخال جماعي</a>
+            <a asp-controller="AttendancePeriods" asp-action="Index" class="btn btn-outline-secondary btn-sm">فترات الحضور</a>
+            <a asp-controller="AttendanceCorrections" asp-action="Index" class="btn btn-outline-secondary btn-sm">تصحيحات الحضور</a>
+        </div>
+    </div>
     <div class="card-body border-bottom">
         <form method="get" class="row g-2 align-items-end">
             <div class="col-md-3">
@@ -43,8 +51,35 @@
         </form>
     </div>
     <div class="card-body p-0">
-        <table class="table mb-0"><thead><tr><th>الموظف</th><th>اليوم</th><th>الحالة</th></tr></thead><tbody>
-        @foreach (var x in Model.Items){<tr><td>@x.Employee?.FullName</td><td>@Html.HrDate(x.AttendanceDate)</td><td>@Html.HrEnumDisplay(x.Status)</td></tr>}
-        @if(!Model.Items.Any()){<tr><td colspan="3" class="text-center text-muted">لا توجد</td></tr>}</tbody></table>
+        <table class="table mb-0">
+            <thead><tr><th>الموظف</th><th>اليوم</th><th>الحالة</th><th>المصدر</th><th>الإجراءات</th></tr></thead>
+            <tbody>
+            @foreach (var x in Model.Items)
+            {
+                var locked = Model.LockedIds.Contains(x.Id);
+                <tr>
+                    <td>@x.Employee?.FullName</td>
+                    <td>@Html.HrDate(x.AttendanceDate)</td>
+                    <td>@Html.HrEnumDisplay(x.Status)</td>
+                    <td>@Html.HrEnumDisplay(x.Source)@(locked ? " — مقفل" : "")</td>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@x.Id" class="btn btn-outline-secondary btn-sm">عرض</a>
+                        @if (locked)
+                        {
+                            <a asp-controller="AttendanceCorrections" asp-action="Create" asp-route-employeeId="@x.EmployeeId" asp-route-date="@Html.HrDateInputValue(x.AttendanceDate)" class="btn btn-outline-primary btn-sm">طلب تصحيح</a>
+                        }
+                        else if (x.Source != AttendanceRecordSource.Leave)
+                        {
+                            <a asp-action="Edit" asp-route-id="@x.Id" class="btn btn-outline-primary btn-sm">تعديل</a>
+                        }
+                    </td>
+                </tr>
+            }
+            @if (!Model.Items.Any())
+            {
+                <tr><td colspan="5" class="text-center text-muted">لا توجد</td></tr>
+            }
+            </tbody>
+        </table>
     </div>
 </div>

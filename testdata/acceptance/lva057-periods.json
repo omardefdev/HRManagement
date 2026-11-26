@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "description": "PLAN-57 (P-12): the months AcLva57AttendancePeriodTests reserves in agency A. They are in the past (the bulk entry writes no future day), have no payroll run of agency A in the acceptance seed (which posts 2025-08 to 2026-07 and holds one run per status from 2026-08 to 2027-02) and are taken by no other class (AC-PAY-56: 2028-01..06; AC-PAY-55: 2029-05..06; AC-PAY-54: 2031 on; AC-IAM-53a: the current month). The seed's v1 framework (effective from 2000) governs them. The holidays are set for the acceptance layer in docker-compose.acceptance.yml (Attendance__Calendar__Holidays__N): the class and scripts/lva057-validate.ps1 read both and refuse a difference.",
+  "tenantCode": "AGENCY-A",
+  "months": {
+    "57a": "2025-01",
+    "57b": "2025-02",
+    "57c": "2025-03",
+    "57d": "2025-04",
+    "57dNext": "2025-05",
+    "57e": "2025-06",
+    "57f": "2025-07",
+    "57g": "2025-01",
+    "57h": "2025-07"
+  },
+  "holidays": [ "2025-02-17", "2025-02-18" ]
+}

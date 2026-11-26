@@ -143,13 +143,21 @@ public class PayrollRunsController : Controller
             HttpContext.RequestServices.GetRequiredService<Payroll.Application.Abstractions.IPayrollRepository>(),
             run.PayrollConfigurationId,
             HttpContext.RequestAborted);
-        ViewBag.EmployeeNames = await ResolveEmployeeNamesAsync(run.SalaryLines.Select(line => line.EmployeeId));
+        // PLAN-57 (§5): the attendance panel: the gate's mode, who is not closed for the run's period (by name), the carried differences.
+        var attendance = await HttpContext.RequestServices.GetRequiredService<Payroll.Application.Services.PayrollAttendanceGate>()
+            .StatusAsync(run, HttpContext.RequestAborted);
+        ViewBag.Attendance = attendance;
+        ViewBag.EmployeeNames = await ResolveEmployeeNamesAsync(
+            run.SalaryLines.Select(line => line.EmployeeId).Concat(attendance.MissingAttendance.Take(AttendanceNamesShown)));
         // PLAN-55 (§2): the accounts the run pinned, and the employees with none (shown by name).
         ViewBag.BankReadiness = await _mediator.Send(
             new Payroll.Application.Features.BankAccounts.GetRunBankReadinessQuery(id), HttpContext.RequestAborted);
 
         return View(run);
     }
+
+    /// <summary>PLAN-57: how many employees with no closed attendance the run's page lists by name; the count is always shown.</summary>
+    public const int AttendanceNamesShown = 50;
 
     private async Task<Dictionary<Guid, string>> ResolveEmployeeNamesAsync(IEnumerable<Guid> ids)
     {

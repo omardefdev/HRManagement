@@ -59,6 +59,112 @@ public static class AcceptanceMessagingHelper
         }
     }
 
+    /// <summary>
+    /// PLAN-57 (AC-LVA-57g): an approved leave, as HR.Contracts publishes it. It is injected until LVA-A makes the leave's approval and
+    /// its event one transaction on PostgreSQL; HR.Core, Payroll and the archive consume it as they consume the real one.
+    /// </summary>
+    public static Task<Guid> PublishLeaveApprovedAsync(
+        Guid tenantId, Guid employeeId, Guid leaveRequestId, DateOnly start, DateOnly end, string leaveType, string correlationId,
+        Guid? messageId = null, int duplicateCount = 1) =>
+        PublishAsync<ILeaveApproved>(new
+        {
+            TransactionId = Guid.NewGuid(),
+            LeaveRequestId = leaveRequestId,
+            EmployeeId = employeeId,
+            ApprovedBy = Guid.NewGuid(),
+            OccurredAt = DateTime.UtcNow,
+            CorrelationId = correlationId,
+            SourceSystem = "HR.Contracts",
+            LeaveType = leaveType,
+            StartDate = start.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            EndDate = end.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            DurationDays = end.DayNumber - start.DayNumber + 1,
+            TenantId = (Guid?)tenantId
+        }, tenantId, correlationId, messageId, duplicateCount);
+
+    /// <summary>PLAN-57 (AC-LVA-57g): the cancellation of that leave.</summary>
+    public static Task<Guid> PublishLeaveCancelledAsync(
+        Guid tenantId, Guid employeeId, Guid leaveRequestId, DateOnly start, DateOnly end, string leaveType, string correlationId,
+        Guid? messageId = null, int duplicateCount = 1) =>
+        PublishAsync<ILeaveCancelled>(new
+        {
+            TransactionId = Guid.NewGuid(),
+            LeaveRequestId = leaveRequestId,
+            EmployeeId = employeeId,
+            CancelledBy = Guid.NewGuid(),
+            OccurredAt = DateTime.UtcNow,
+            CorrelationId = correlationId,
+            SourceSystem = "HR.Contracts",
+            LeaveType = leaveType,
+            StartDate = start.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            EndDate = end.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
+            DurationDays = end.DayNumber - start.DayNumber + 1,
+            TenantId = (Guid?)tenantId
+        }, tenantId, correlationId, messageId, duplicateCount);
+
+    /// <summary>
+    /// PLAN-57 (AC-LVA-57d): one version of an attendance summary, as HR.Core publishes it. Used to deliver a version again (a
+    /// duplicate) and to deliver an older version after a newer one; the real versions come from the close and the corrections.
+    /// </summary>
+    public static Task<Guid> PublishAttendanceSummaryAsync(
+        Guid tenantId, Guid summaryId, int version, Guid attendancePeriodId, DateOnly periodStart, DateOnly periodEnd, Guid employeeId,
+        int workingDays, int presentDays, int absentDays, int onLeaveDays, int remoteDays, int unrecordedWorkingDays, string reason,
+        string correlationId, Guid? messageId = null, int duplicateCount = 1) =>
+        PublishAsync<IAttendanceSummaryPublished>(new
+        {
+            SummaryId = summaryId,
+            Version = version,
+            AttendancePeriodId = attendancePeriodId,
+            PeriodStart = periodStart,
+            PeriodEnd = periodEnd,
+            EmployeeId = employeeId,
+            WorkingDays = workingDays,
+            PresentDays = presentDays,
+            AbsentDays = absentDays,
+            OnLeaveDays = onLeaveDays,
+            RemoteDays = remoteDays,
+            UnrecordedWorkingDays = unrecordedWorkingDays,
+            Reason = reason,
+            CorrectionId = (Guid?)null,
+            TenantId = (Guid?)tenantId,
+            OccurredAt = DateTime.UtcNow,
+            CorrelationId = correlationId,
+            SourceSystem = "HR.Core"
+        }, tenantId, correlationId, messageId, duplicateCount);
+
+    /// <summary>Publishes a message to the live broker with the tenant and correlation headers, the given number of times under one message id.</summary>
+    private static async Task<Guid> PublishAsync<T>(object values, Guid tenantId, string correlationId, Guid? messageId, int duplicateCount)
+        where T : class
+    {
+        var (bus, provider) = await ConnectBusAsync();
+        try
+        {
+            var publish = provider.GetRequiredService<IPublishEndpoint>();
+            var mid = messageId ?? Guid.NewGuid();
+            for (var i = 0; i < duplicateCount; i++)
+            {
+                await publish.Publish<T>(values, ctx =>
+                {
+                    ctx.MessageId = mid;
+                    ctx.CorrelationId = mid;
+                    ctx.Headers.Set(CorrelationIdMiddleware.HeaderName, correlationId);
+                    ctx.Headers.Set(TenantIdMiddleware.HeaderName, tenantId.ToString("D"));
+                });
+            }
+
+            await Task.Delay(TimeSpan.FromSeconds(2));
+            return mid;
+        }
+        finally
+        {
+            await bus.StopAsync();
+            if (provider is IAsyncDisposable asyncDisposable)
+                await asyncDisposable.DisposeAsync();
+            else if (provider is IDisposable disposable)
+                disposable.Dispose();
+        }
+    }
+
     public static async Task<(IBusControl Bus, IServiceProvider Provider)> ConnectBusAsync()
     {
         var host = Environment.GetEnvironmentVariable("RABBITMQ_HOST") ?? "localhost";

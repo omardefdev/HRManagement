@@ -1,0 +1,77 @@
+@model HR.Core.Web.ViewModels.AttendancePeriodCloseViewModel
+@using HR.Core.Domain.Enums
+@{ ViewData["Title"] = "إغلاق فترة حضور"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <h3 class="mb-0">إغلاق فترة حضور</h3>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">عودة إلى فترات الحضور</a>
+    </div>
+    <form asp-action="Close" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            <div class="alert alert-info">
+                يشمل الإغلاق موظفي الوحدة ووحداتها الفرعية، ومن انتهت خدمته خلال الشهر. يُحسب الغياب على أيام العمل فقط.
+                @if (Model.UnrecordedMode == AttendanceUnrecordedDaysMode.RequireComplete)
+                {
+                    <span>يُرفض الإغلاق إذا كان لأي موظف يوم عمل بلا سجل.</span>
+                }
+                else if (Model.UnrecordedMode == AttendanceUnrecordedDaysMode.CountAsAbsent)
+                {
+                    <span>يوم العمل الذي لا سجل له يُحسب غياباً.</span>
+                }
+                else
+                {
+                    <span>يوم العمل الذي لا سجل له يُعرض ولا يدخل أي عدّ.</span>
+                }
+                بعد الإغلاق تُقفل أيام الموظف في الشهر، ولا يتغير يوم إلا بطلب تصحيح معتمد.
+            </div>
+            @if (Model.NoHolidayInPeriod)
+            {
+                <div class="alert alert-warning">لا عطل رسمية مضبوطة لهذه الفترة: كل يوم غير الراحة الأسبوعية يُعدّ يوم عمل.</div>
+            }
+            else if (Model.NoHolidayConfigured)
+            {
+                <div class="alert alert-warning">لم تُضبط أي عطلة رسمية في الإعدادات: كل يوم غير الراحة الأسبوعية يُعدّ يوم عمل.</div>
+            }
+            <div class="mb-3">
+                <label class="form-label" for="closeMonth">الشهر</label>
+                <input id="closeMonth" type="month" name="month" class="form-control" value="@Model.Month" required />
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="closeOrgUnit">الوحدة التنظيمية</label>
+                <select id="closeOrgUnit" name="orgUnitId" class="form-control" asp-items="Model.OrgUnits" required="@(Model.CanCloseWholeAgency ? null : "required")">
+                    @if (Model.CanCloseWholeAgency)
+                    {
+                        <option value="">— الجهة كلها —</option>
+                    }
+                </select>
+            </div>
+            @if (Model.IncompleteTotal > 0)
+            {
+                <h4 class="mt-4">موظفون لهم أيام عمل بلا سجل (@Model.IncompleteTotal)</h4>
+                <table class="table table-sm">
+                    <thead><tr><th>الموظف</th><th>أيام العمل بلا سجل</th></tr></thead>
+                    <tbody>
+                    @foreach (var row in Model.Incomplete)
+                    {
+                        <tr><td>@row.EmployeeName</td><td>@row.UnrecordedWorkingDays</td></tr>
+                    }
+                    @if (!Model.Incomplete.Any())
+                    {
+                        <tr><td colspan="2" class="text-center text-muted">لا يوجد موظفون بأيام عمل ناقصة</td></tr>
+                    }
+                    </tbody>
+                </table>
+                @if (Model.IncompleteTotal > Model.Incomplete.Count)
+                {
+                    <p class="text-muted">تُعرض أول @Model.Incomplete.Count من @Model.IncompleteTotal.</p>
+                }
+            }
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">إغلاق الفترة</button>
+            <a asp-controller="DailyAttendanceRecords" asp-action="BulkEntry" class="btn btn-outline-primary">إدخال حضور جماعي</a>
+        </div>
+    </form>
+</div>

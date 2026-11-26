@@ -1,0 +1,78 @@
+@model HR.Core.Web.ViewModels.AttendanceCorrectionDetailsViewModel
+@using HR.Core.Domain.Enums
+@{
+    ViewData["Title"] = "طلب تصحيح حضور";
+    var c = Model.Correction;
+    var bySystem = c.Source == AttendanceCorrectionSource.LeaveEvent;
+}
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <h3 class="mb-0">طلب تصحيح حضور</h3>
+        <a asp-action="Index" class="btn btn-outline-secondary btn-sm">عودة إلى تصحيحات الحضور</a>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الموظف</dt>
+            <dd class="col-sm-9">@c.Employee?.FullName</dd>
+            <dt class="col-sm-3">اليوم</dt>
+            <dd class="col-sm-9">@Html.HrDate(c.AttendanceDate)</dd>
+            <dt class="col-sm-3">فترة الحضور</dt>
+            <dd class="col-sm-9">@(c.Period is null ? "—" : Html.HrMonthInputValue(c.Period.PeriodStart))</dd>
+            <dt class="col-sm-3">الحالة قبل التصحيح</dt>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(c.OldStatus, "بلا سجل")</dd>
+            <dt class="col-sm-3">الحالة بعد التصحيح</dt>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(c.NewStatus, "حذف السجل")</dd>
+            <dt class="col-sm-3">السبب</dt>
+            <dd class="col-sm-9">@c.Reason</dd>
+            <dt class="col-sm-3">المصدر</dt>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(c.Source)</dd>
+            <dt class="col-sm-3">مقدّم الطلب</dt>
+            <dd class="col-sm-9">@(bySystem ? "النظام (قرار إجازة)" : string.IsNullOrWhiteSpace(c.RequestedByName) ? "مستخدم" : c.RequestedByName)</dd>
+            <dt class="col-sm-3">تاريخ الطلب</dt>
+            <dd class="col-sm-9">@Html.HrDateTime(c.RequestedAt)</dd>
+            <dt class="col-sm-3">حالة الطلب</dt>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(c.Status)</dd>
+            @if (c.Status != AttendanceCorrectionStatus.Pending)
+            {
+                <dt class="col-sm-3">صاحب القرار</dt>
+                <dd class="col-sm-9">@(c.DecidedBy is null ? "النظام" : string.IsNullOrWhiteSpace(c.DecidedByName) ? "مستخدم" : c.DecidedByName)</dd>
+                <dt class="col-sm-3">تاريخ القرار</dt>
+                <dd class="col-sm-9">@Html.HrDateTime(c.DecidedAt)</dd>
+                <dt class="col-sm-3">ملاحظة القرار</dt>
+                <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(c.DecisionNote) ? "—" : c.DecisionNote)</dd>
+            }
+            @if (c.ResultingVersion is { } version)
+            {
+                <dt class="col-sm-3">نسخة ملخص الحضور الناتجة</dt>
+                <dd class="col-sm-9">@version</dd>
+            }
+        </dl>
+    </div>
+    @if (c.Status == AttendanceCorrectionStatus.Pending)
+    {
+        <div class="card-footer">
+            @if (Model.CanDecide)
+            {
+                <form method="post" class="row g-2 align-items-end">
+                    @Html.AntiForgeryToken()
+                    <div class="col-md-6">
+                        <label class="form-label" for="decisionNote">ملاحظة القرار (إلزامية عند الرفض)</label>
+                        <textarea id="decisionNote" name="note" class="form-control" rows="2" maxlength="1000"></textarea>
+                    </div>
+                    <div class="col-md-auto">
+                        <button type="submit" asp-action="Approve" asp-route-id="@c.Id" class="btn btn-success">اعتماد</button>
+                        <button type="submit" asp-action="Reject" asp-route-id="@c.Id" class="btn btn-outline-danger">رفض</button>
+                    </div>
+                </form>
+            }
+            else if (Model.IsOwnRequest)
+            {
+                <span class="text-muted">هذا طلبك: يبتّ فيه مستخدم مركزي آخر.</span>
+            }
+            else
+            {
+                <span class="text-muted">الطلب بانتظار قرار مستخدم مركزي.</span>
+            }
+        </div>
+    }
+</div>

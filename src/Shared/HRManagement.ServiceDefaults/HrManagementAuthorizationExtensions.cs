@@ -81,6 +81,14 @@ public static class HrManagementAuthorizationExtensions
             // (D-51-2), by default hr-admin and hr-core.
             options.RolesPolicy(HrManagementPolicies.HrCoreWrite, HrManagementRoles.Admin, HrManagementRoles.HrCore);
 
+            // PLAN-57 (§6, D-LVA-4): the attendance acts. Entering and closing are roles policies (D-51-2); the scope is the writer's
+            // and the period service's. Deciding a correction is a policy of its own because it leaves the branch out.
+            options.RolesPolicy(HrManagementPolicies.HrCoreAttendanceWrite, HrManagementRoles.Admin, HrManagementRoles.HrCore);
+            options.RolesPolicy(HrManagementPolicies.HrCoreAttendanceClose, HrManagementRoles.Admin, HrManagementRoles.HrCore);
+            options.AddPolicy(HrManagementPolicies.HrCoreAttendanceCorrectionApprove, p => p.RequireAssertion(c =>
+                (c.User.IsInRole(HrManagementRoles.Admin) || c.User.IsInRole(HrManagementRoles.HrCore))
+                && !HrOrgScopeVisibility.IsBranchScoped(c.User)));
+
             // PLAN-47 (D-POL-3): the policy lifecycle; the role lists are read from configuration by PolicyEngineRoleHandler.
             options.AddPolicy(HrManagementPolicies.PolicyAuthor, p => p.AddRequirements(new PolicyEngineRoleRequirement(PolicyEngineRoleKind.Author)));
             options.AddPolicy(HrManagementPolicies.PolicyApprover, p => p.AddRequirements(new PolicyEngineRoleRequirement(PolicyEngineRoleKind.Approver)));

@@ -134,6 +134,61 @@ public class PayrollApiController : ControllerBase
         return readiness is null ? NotFound() : Ok(readiness);
     }
 
+    /// <summary>
+    /// PLAN-57 (§4): what the attendance handover says of a run: the gate's mode, the employees in its scope, those whose attendance
+    /// is not closed for its period, and the carried differences it applied and those still pending. A read: nothing is written.
+    /// </summary>
+    [HttpGet("runs/{id:guid}/attendance-status")]
+    public async Task<IActionResult> GetAttendanceStatus(
+        Guid id, [FromServices] Payroll.Application.Services.PayrollAttendanceGate gate, CancellationToken ct)
+    {
+        var run = await _db.PayrollRuns.AsNoTracking().FirstOrDefaultAsync(r => r.Id == id, ct);
+        if (run is null) return NotFound();
+
+        var status = await gate.StatusAsync(run, ct);
+        return Ok(new
+        {
+            runId = run.Id,
+            gateMode = status.GateMode.ToString(),
+            applies = status.Applies,
+            employeesInScope = status.EmployeesInScope,
+            missingAttendance = status.MissingAttendance,
+            carryForwardApplied = status.CarryForwardApplied,
+            carryForwardPending = status.CarryForwardPending
+        });
+    }
+
+    /// <summary>
+    /// PLAN-57 (§4): the attendance summaries payroll received for the period that starts on <paramref name="periodStart"/>, each with
+    /// its latest version (the acceptance tests and PLAN-59 wait on it after a close).
+    /// </summary>
+    [HttpGet("attendance/receipts")]
+    public async Task<IActionResult> GetAttendanceReceipts([FromQuery] DateOnly? periodStart, CancellationToken ct)
+    {
+        if (periodStart is not DateOnly start)
+            return BadRequest(new { error = "حدّد بداية الفترة: periodStart=yyyy-MM-dd." });
+
+        var receipts = await _db.AttendanceSummaryReceipts
+            .AsNoTracking()
+            .Where(r => r.PeriodStart == start)
+            .OrderBy(r => r.EmployeeId)
+            .Select(r => new
+            {
+                summaryId = r.SummaryId,
+                attendancePeriodId = r.AttendancePeriodId,
+                employeeId = r.EmployeeId,
+                periodStart = r.PeriodStart,
+                periodEnd = r.PeriodEnd,
+                latestVersion = r.LatestVersion,
+                latestAbsentDays = r.LatestAbsentDays,
+                recordedAbsentDays = r.RecordedAbsentDays,
+                receivedAt = r.ReceivedAt,
+                updatedAt = r.UpdatedAt
+            })
+            .ToListAsync(ct);
+        return Ok(new { periodStart = start, count = receipts.Count, receipts });
+    }
+
     [HttpGet("runs/{id:guid}/freeze-status")]
     public async Task<IActionResult> GetFreezeStatus(Guid id, CancellationToken ct)
     {

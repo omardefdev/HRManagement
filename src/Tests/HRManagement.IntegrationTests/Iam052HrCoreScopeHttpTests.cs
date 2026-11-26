@@ -158,6 +158,13 @@ public sealed class Iam052HrCoreScopeHost : IIam052ScopeHost, IAsyncLifetime
         var roster = new ShiftRoster { TenantId = Tenant, Title = $"RO {suffix}", OrgUnitId = unit, PeriodStart = new DateOnly(2026, 1, 1), PeriodEnd = new DateOnly(2026, 1, 31) };
         var workforcePlan = new WorkforcePlan { TenantId = Tenant, Title = $"WP {suffix}", FiscalYear = 2026, OrgUnitId = unit, Status = "Draft" };
         var vacancy = new InternalVacancy { TenantId = Tenant, Title = $"IV {suffix}", OrgUnitId = unit, IsOpen = true };
+        var attendancePeriod = await db.Set<AttendancePeriod>().FirstOrDefaultAsync(p => p.PeriodStart == new DateOnly(2025, 12, 1));
+        if (attendancePeriod is null)
+        {
+            attendancePeriod = new AttendancePeriod { TenantId = Tenant, PeriodStart = new DateOnly(2025, 12, 1), PeriodEnd = new DateOnly(2025, 12, 31) };
+            db.Add(attendancePeriod);
+        }
+
         var records = new List<object>
         {
             cv,
@@ -170,6 +177,13 @@ public sealed class Iam052HrCoreScopeHost : IIam052ScopeHost, IAsyncLifetime
             workforcePlan,
             vacancy,
             new DailyAttendanceRecord { TenantId = Tenant, EmployeeId = employee.Id, AttendanceDate = new DateOnly(2026, 1, 5), Status = DailyAttendanceStatus.Present },
+            // PLAN-57: a correction of a locked attendance day is keyed by its employee (the period is the agency's, shared by both branches).
+            new AttendanceCorrection
+            {
+                TenantId = Tenant, AttendancePeriodId = attendancePeriod.Id, EmployeeId = employee.Id, AttendanceDate = new DateOnly(2025, 12, 2),
+                OldStatus = DailyAttendanceStatus.Absent, NewStatus = DailyAttendanceStatus.Present, Reason = "تصحيح يوم ضمن فترة مغلقة",
+                RequestedBy = Guid.NewGuid(), RequestedAt = DateTime.UtcNow
+            },
             new ContactInfo { TenantId = Tenant, EmployeeId = employee.Id, Type = HRManagement.SharedKernel.Enums.ContactType.Phone, Value = "0900000000" },
             new EmployeeDocument { TenantId = Tenant, EmployeeId = employee.Id, DocTitle = $"D {suffix}" },
             new EmployeeCorrection

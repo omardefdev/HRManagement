@@ -46,6 +46,8 @@ public static class HrCoreOrgScopeKeys
             .Key<HRCoreDbContext, Employee>(_ => e => e.PrimaryOrgUnitId)
             .Key<HRCoreDbContext, OrgUnit>(_ => u => (Guid?)u.Id)
             .Key(ByEmployee<DailyAttendanceRecord>(r => r.EmployeeId))
+            // PLAN-57: a correction of a locked attendance day is its employee's.
+            .Key(ByEmployee<AttendanceCorrection>(r => r.EmployeeId))
             .Key(ByEmployee<ContactInfo>(r => r.EmployeeId))
             .Key(ByEmployee<EmployeeDocument>(r => r.EmployeeId))
             .Key(ByEmployee<EmployeeCorrection>(r => r.EmployeeId))

@@ -1,0 +1,40 @@
+@model HR.Core.Web.ViewModels.AttendancePeriodsIndexViewModel
+@using HR.Core.Domain.Enums
+@{ ViewData["Title"] = "فترات الحضور"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <h3 class="mb-0">فترات الحضور</h3>
+        <div class="d-flex gap-2">
+            <a asp-action="Close" class="btn btn-primary btn-sm">إغلاق فترة</a>
+            <a asp-controller="AttendanceCorrections" asp-action="Index" class="btn btn-outline-secondary btn-sm">تصحيحات الحضور</a>
+            <a asp-controller="DailyAttendanceRecords" asp-action="Index" class="btn btn-outline-secondary btn-sm">الحضور اليومي</a>
+        </div>
+    </div>
+    <div class="card-body border-bottom">
+        <p class="mb-0 text-muted">
+            إغلاق الفترة يكتب ملخصاً لكل موظف ويقفل أيامه في الشهر، ويرسل الملخص إلى الرواتب. لا تُعاد فتح فترة مغلقة: أي تغيير بعد الإغلاق يكون بطلب تصحيح.
+        </p>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead><tr><th>الشهر</th><th>من</th><th>إلى</th><th>الحالة</th><th>الموظفون المغلقون في نطاقك</th><th>المتبقون في نطاقك</th></tr></thead>
+            <tbody>
+            @foreach (var p in Model.Periods)
+            {
+                <tr>
+                    <td>@Html.HrMonthInputValue(p.PeriodStart)</td>
+                    <td>@Html.HrDate(p.PeriodStart)</td>
+                    <td>@Html.HrDate(p.PeriodEnd)</td>
+                    <td>@Html.HrEnumDisplay(p.Status)</td>
+                    <td>@p.ClosedEmployees</td>
+                    <td>@p.RemainingEmployees</td>
+                </tr>
+            }
+            @if (!Model.Periods.Any())
+            {
+                <tr><td colspan="6" class="text-center text-muted">لا توجد فترات حضور مغلقة بعد</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

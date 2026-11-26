@@ -326,34 +326,37 @@ public class MedicalRecommendationIssuedConsumer(IMediator mediator) : IConsumer
     }
 }
 
-public class AttendancePeriodClosedConsumer(PayrollDbContext db) : IConsumer<IAttendancePeriodClosed>
+/// <summary>
+/// PLAN-57 (§4, §5): payroll's consumer of the attendance handover (it replaces <c>AttendancePeriodClosedConsumer</c>, which took
+/// the first close only, ignored a zero absence and any later version, and had no inbox). Idempotent in two layers: the inbox
+/// receipt, staged in the transaction that writes the rows, and the unique <c>SourceReference</c> of each version's difference row.
+/// </summary>
+public class AttendanceSummaryPublishedConsumer(PayrollDbContext db) : IConsumer<IAttendanceSummaryPublished>
 {
-    public async Task Consume(ConsumeContext<IAttendancePeriodClosed> context)
+    public async Task Consume(ConsumeContext<IAttendanceSummaryPublished> context)
     {
-        var m = context.Message;
-        if (m.AbsentDays <= 0)
+        if (await db.ShouldSkipAsync(context, nameof(AttendanceSummaryPublishedConsumer), context.CancellationToken))
             return;
 
-        var exists = await db.AbsenceDeductions.AnyAsync(x =>
-            x.EmployeeId == m.EmployeeId
-            && x.PeriodStart == m.PeriodStart
-            && x.PeriodEnd == m.PeriodEnd
-            && x.Reason != null
-            && x.Reason.Contains("AttendancePeriodClosed"),
-            context.CancellationToken);
-
-        if (!exists)
-        {
-            db.AbsenceDeductions.Add(new Payroll.Domain.Entities.AbsenceDeduction
+        var messageId = context.MessageId?.ToString();
+        await new AttendanceSummaryHandoff(db).ApplyAsync(
+            context.Message,
+            () =>
             {
-                EmployeeId = m.EmployeeId,
-                PeriodStart = m.PeriodStart,
-                PeriodEnd = m.PeriodEnd,
-                AbsentDays = m.AbsentDays,
-                Amount = 0,
-                Reason = $"AttendancePeriodClosed:{m.TransactionId}"
-            });
-            await db.SaveChangesAsync(context.CancellationToken);
-        }
+                if (string.IsNullOrEmpty(messageId))
+                    return;
+                Guid tenantId;
+                try
+                {
+                    tenantId = IntegrationMessageInboxExtensions.ResolveInboxTenantId();
+                }
+                catch (InvalidOperationException)
+                {
+                    tenantId = context.Message.TenantId ?? Guid.Empty;
+                }
+
+                db.StageReceipt(messageId, nameof(AttendanceSummaryPublishedConsumer), tenantId);
+            },
+            context.CancellationToken);
     }
 }

@@ -58,6 +58,28 @@ public sealed class AbsenceRule : IPayrollRule
     {
         foreach (var absence in context.AbsenceDeductions)
         {
+            // PLAN-57 (§5): every row the rule reads is consumed, whatever it amounts to. A row with no amount used to be skipped
+            // without being consumed, and stayed free for ever.
+            result.ConsumedAbsenceIds.Add(absence.Id);
+
+            // PLAN-57 (§4 rule 5): a negative difference (an absence corrected to presence) is a refund: a deduction component with
+            // a positive amount, which lowers the total deductions. Its day is paid at this run's wage (D-LVA-14).
+            if (absence.AbsentDays < 0)
+            {
+                var refund = ComputeAbsenceAmount(context, -absence.AbsentDays);
+                if (refund <= 0) continue;
+
+                result.Components.Add(new SalaryLineComponent
+                {
+                    ComponentType = SalaryComponentType.Deduction,
+                    ComponentName = RefundName(absence),
+                    Amount = refund,
+                    ReferenceId = absence.Id
+                });
+                result.TotalDeductions -= refund;
+                continue;
+            }
+
             var amount = absence.Amount;
             if (amount <= 0 && absence.AbsentDays > 0)
             {
@@ -69,12 +91,11 @@ public sealed class AbsenceRule : IPayrollRule
             result.Components.Add(new SalaryLineComponent
             {
                 ComponentType = SalaryComponentType.Deduction,
-                ComponentName = absence.Reason ?? "خصم غياب",
+                ComponentName = DeductionName(context, absence),
                 Amount = -amount,
                 ReferenceId = absence.Id
             });
             result.TotalDeductions += amount;
-            result.ConsumedAbsenceIds.Add(absence.Id);
         }
 
         // "UnpaidLeave" is deliberately absent: unpaid leave is carried by AbsenceDeduction above.
@@ -93,6 +114,24 @@ public sealed class AbsenceRule : IPayrollRule
             result.TotalDeductions += d.Amount;
             result.ConsumedDeductionIds.Add(d.Id);
         }
+    }
+
+    /// <summary>«yyyy-MM» of an attendance row's original period.</summary>
+    private static string OriginalMonth(AbsenceDeduction absence) =>
+        (absence.OriginalPeriodStart ?? absence.PeriodStart).ToString("yyyy-MM", System.Globalization.CultureInfo.InvariantCulture);
+
+    /// <summary>The refund's item: it names the period the absence was deducted for.</summary>
+    internal static string RefundName(AbsenceDeduction absence) => $"استرداد خصم غياب — فترة {OriginalMonth(absence)}";
+
+    /// <summary>
+    /// The deduction's item. An attendance difference applied by a run of a later period names its original period (PLAN-57, §4 rule
+    /// 4); every other row keeps its reason, as before.
+    /// </summary>
+    internal static string DeductionName(PayrollCalculationContext context, AbsenceDeduction absence)
+    {
+        if (absence.IsAttendanceDifference && absence.OriginalPeriodEnd < context.PeriodStart)
+            return $"فرق غياب عن فترة {OriginalMonth(absence)}";
+        return absence.Reason ?? "خصم غياب";
     }
 
     internal static decimal ComputeAbsenceAmount(PayrollCalculationContext context, int absentDays)
