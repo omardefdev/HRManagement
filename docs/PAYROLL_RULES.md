@@ -232,6 +232,46 @@ reference and status inside the version.
 - Line `GrossPay`, `TotalDeductions`, `TotalAdjustments`, `NetPay`: single final pass in `RoundingRule`; the net is `PayrollNet`'s under the pinned framework's rounding  
 - Policy: `MidpointRounding.AwayFromZero`, scale 2 — **LD-ROUNDING**
 
+## Attendance: the receipt, the difference, the carry, the refund and the gate (PLAN-57)
+
+HR.Core publishes each version of an employee's attendance summary for a period (`IAttendanceSummaryPublished`: absolute counts,
+version 1 at the close, +1 per approved correction — [HCM_002_ATTENDANCE.md](./HCM_002_ATTENDANCE.md)). Payroll's side:
+
+- **The receipt** (`AttendanceSummaryReceipt`, one per summary): the latest version seen, its absent days, and the absent days
+  payroll has recorded for it. The consumer (`AttendanceSummaryPublishedConsumer`, through `AttendanceSummaryHandoff`) inserts it
+  if new, locks it (`FOR UPDATE`), and works in one transaction with its inbox receipt.
+- **A version is recorded once.** A version not newer than the receipt's is ignored (a redelivery, or an older version arriving
+  late). The tenant of the receipt and of the row is the message's.
+- **The difference:** `AbsentDays(version) − RecordedAbsentDays`. Zero writes no row (the receipt alone says the employee is
+  closed). Otherwise one `AbsenceDeduction` with `SourceReference = ATT:{SummaryId}:v{Version}` (unique), `SourceVersion`,
+  `OriginalPeriodStart/End` = the attendance period, and the difference in `AbsentDays` — negative for a refund. The amount is
+  computed by the run that applies it, from that run's daily rate (the historical wage of a carried difference is PAY-H's).
+- **The freeze** (`PayrollAttendanceFreeze`, the one reader of PLAN-56's guards for this): the period's regular run is calculated
+  and validated, under review, approved or posted. A difference recorded then is marked `CarryForward`.
+- **Who applies a row:** a row that is not carried belongs to its own period's regular run. A carried row is taken by the first
+  regular run calculated after it, whatever its period, as «فرق غياب عن فترة yyyy-MM»; the frozen run never changes. A row the
+  consumer left unmarked an instant before its period's run froze is taken the same way. A cancellation, a rejection or a
+  reversal frees what the run applied (PLAN-56's release), and the next calculation takes it again. The row carries a row version
+  (`xmin`): of two runs that calculate at once, one marks it.
+- **The refund:** `AbsenceRule` consumes every row it reads. Negative days give a deduction component with a positive amount,
+  «استرداد خصم غياب — فترة yyyy-MM».
+- **The gate** (`Payroll:Attendance:Gate`; `PayrollAttendanceGate`), at the start of a regular run's calculation, before the run
+  moves. «Not closed» is an employee the run gives a line to (an active pay profile) with no receipt whose period overlaps the
+  run's.
+
+  | Mode | A calculation while someone is not closed |
+  |---|---|
+  | `Warn` (default, D-LVA-10) | runs; one **open** audit record of the run carries the count and the employees. It is not a review: it has no auditor, the screens do not close it, and a closed one would not let the run be posted. A recalculation refreshes it, and removes it once everyone is closed |
+  | `Block` | is refused with the count; the run stays as it was (no job row, no pinned framework, no audit record) |
+  | `Off` | no check |
+
+  A correction run and a final settlement are exempt. Under `Block`, an employee payroll pays whom HR.Core will never close for
+  that month (HR.Core holds him as hired later, or as having left earlier) holds the run back until his pay profile says the
+  same as HR.Core.
+- **Reads:** `GET api/payroll/runs/{id}/attendance-status` (`gateMode`, `employeesInScope`, `missingAttendance`,
+  `carryForwardApplied`, `carryForwardPending`) and `GET api/payroll/attendance/receipts?periodStart=yyyy-MM-dd`; the run's page
+  shows the same under «الحضور», with names.
+
 ## Event Integration
 
 | Event | Payroll action |
@@ -240,6 +280,7 @@ reference and status inside the version.
 | `ISeparationCompleted` | Deactivate profile; EOS settlement; final deductions |
 | `ITransferExecuted` | Update profile salary; single adjustment if salary change |
 | `ILeaveApproved` | Unpaid leave deduction (configurable daily rate) |
+| `IAttendanceSummaryPublished` | One difference row per summary version, applied once (the section above). It replaces `IAttendancePeriodClosed`, whose consumer is gone |
 | `IAdvanceApproved` | Installment `DeductionRecord` rows |
 | `ISecondmentExecuted` / `IMissionApproved` | Configurable allowance adjustment |
 | `IDisciplinaryActionTaken` | Penalty day deduction |

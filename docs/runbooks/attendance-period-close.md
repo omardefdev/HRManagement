@@ -15,6 +15,10 @@ An attendance period is a calendar month of one agency. Closing it for a unit:
 
 A closed period is **never reopened**. A change after the close is a **correction** (below).
 
+A close and a write of an attendance day never pass each other: both take a lock on the agency's month in the database. A write
+sent while a close runs waits for it, and is then refused with «اليوم ضمن فترة حضور مغلقة؛ قدّم طلب تصحيح» — nothing was written;
+ask for a correction instead.
+
 ## Before the close
 
 1. The month has ended (a period is not closed before its last day: «لا تُغلق فترة الحضور قبل انتهائها»).
@@ -72,12 +76,14 @@ lists what payroll received).
 
 | `Payroll:Attendance:Gate` | A calculation while someone is not closed |
 |---|---|
-| `Warn` (default) | runs, and leaves **one open audit record** on the run («تحذير بوابة الحضور»: the count and the employees) |
+| `Warn` (default) | runs, and leaves **one open audit record** on the run («تحذير بوابة الحضور»: the count and the employees). It is not a review: «مراجعة الرواتب» shows it with no «إغلاق» button, closing it is refused, and it never lets a run be posted. It goes when the run is calculated again after the attendance was closed |
 | `Block` | is refused with the count; nothing is written |
 | `Off` | runs with no check |
 
-A correction run and a final settlement are not checked. An employee whose first pay profile begins after the period is not in
-the scope.
+A correction run and a final settlement are not checked. The scope is who the run gives a line to: every employee with an active
+pay profile. An employee payroll pays whom HR.Core does not hold in service in that month (hired later, or left earlier, by
+HR.Core's dates) is listed too, and no close will ever clear him: under `Warn` that is the warning doing its work; under `Block`
+it holds the run back until his pay profile and his HR.Core record agree. Check the list before raising the gate to `Block`.
 
 ## When something looks wrong
 

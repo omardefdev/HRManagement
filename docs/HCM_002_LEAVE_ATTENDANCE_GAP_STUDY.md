@@ -46,8 +46,8 @@
 | 9 | الأثر في الرواتب | الإجازة بدون أجر ← `AbsenceDeduction` واحد بمرجع الطلب | ⚠️ تسليم → PAY (G-LVA-04، G-LVA-07) |
 | 10 | الإجازة المرضية واللجان الطبية | لا ربط مع HR.Health | ❌ G-LVA-13 |
 | 11 | الرصيد عند انتهاء الخدمة | `ComputeAnnualLeaveRemainingAsync` = استحقاق السنة − المستخدم | ⚠️ → SEP (G-LVA-12) |
-| 12 | الحضور اليومي | `DailyAttendanceRecord` حالة واحدة/يوم؛ إدخال فردي وجماعي وتعديل وحذف | ⚠️ G-LVA-10 |
-| 13 | إغلاق الفترة ← الرواتب | `ClosePeriodAndPublishAsync` ← `AttendancePeriodClosedConsumer` | ❌ G-LVA-03 |
+| 12 | الحضور اليومي | `DailyAttendanceRecord` حالة واحدة/يوم؛ كاتب واحد (`AttendanceDayWriter`) للإدخال الفردي والجماعي والتعديل والحذف | ✅ أُغلقت G-LVA-10 (PLAN-57) |
+| 13 | إغلاق الفترة ← الرواتب | `AttendancePeriodService.CloseAsync` ← `AttendanceSummaryPublishedConsumer` (منذ PLAN-57) | ✅ أُغلقت G-LVA-03 |
 | 14 | الورديات والجداول والإضافي | `Shift`، `ShiftRoster`، `ShiftAssignment.OvertimeHours` | ❌ غير مربوطة بالحضور ولا بالرواتب (G-LVA-14) |
 | 15 | المهمات | `MissionFilesController` ← `IMissionApproved` ← بدل في الرواتب | ⚠️ G-LVA-11 |
 | 16 | العطل الرسمية والتقويم | `OfficialHoliday` في الرواتب، 4 عطل ثابتة | ❌ G-LVA-15 |
@@ -162,6 +162,7 @@
   - إدخال جماعي على أيام العمل فقط حسب التقويم، وشمول الوحدات الفرعية.
   - تحذير في تشغيل الرواتب عن الفترات غير المغلقة.
   - **الخطة:** [PLAN-57](acceptance-plans/PLAN-57-lva-attendance-period-payroll-handoff.md)
+- **الحالة:** أُغلقت — [PLAN-57](acceptance-plans/PLAN-57-lva-attendance-period-payroll-handoff.md). لفترة الحضور كيان (`AttendancePeriod`، شهر تقويمي للجهة) وإغلاق حقيقي (`AttendancePeriodService.CloseAsync`): ملخص بنسخة لكل موظف في شجرة الوحدة — ومن انتهت خدمته داخل الشهر — يُكتب مع صف الإغلاق وحدث `IAttendanceSummaryPublished` لكل ملخص في حفظ واحد، وأيام الموظف المغلق مقفلة على كل كاتب (الشاشات، الإدخال الجماعي، الـAPI، مستهلكا الإجازة). الغياب يُعدّ على أيام العمل وحدها (العطلة الأسبوعية والعطل من الإعداد)، واليوم بلا سجل قاعدته صريحة (`RequireComplete` افتراضاً: يُرفض الإغلاق بقائمة الناقص). التغيير بعد الإغلاق تصحيح بسبب يعتمده مركزي غير الطالب، وينتج نسخة تالية للملخص تصل الرواتب فرقاً يُطبَّق مرة واحدة: في تشغيل شهره إن لم يُحسب بعد، وإلا مرحَّلاً إلى الدورة التالية. والإغلاق والكتابة يلتقيان على قفل للشهر في PostgreSQL فلا يسبق أحدهما الآخر. الدليل: `Lva057AttendanceCloseTests`، `Lva057AttendanceCloseIntegrationTests` (حفظ واحد وoutbox، إغلاقان متزامنان، قفل الشهر، 2,000 موظف في 2.69 ث)، `Lva057PayrollAttendanceHandoffTests` و`…IntegrationTests`، و**AC-LVA-57a..e** على المكدس الشبيه بالإنتاج. خارج النطاق وباقٍ: الأجر التاريخي للفرق (PAY-H).
 - **التحقق المطلوب:**
   - تعديل يوم في فترة مغلقة مرفوض.
   - تصحيح معتمد بعد الإغلاق ينتج delta واحداً يُطبَّق في التشغيل التالي.
@@ -322,6 +323,7 @@
   - `OnLeave` لا يُكتب إلا من إجازة معتمدة وبمرجعها.
   - `LeaveScheduleReconciler` يقرأ الإجازات المعتمدة لا السجلات.
   - كتابة الحالة والحضور في `SaveChanges` واحد.
+  - **الحالة:** أُغلقت — [PLAN-57](acceptance-plans/PLAN-57-lva-attendance-period-payroll-handoff.md). كل كتابة ليوم حضور تمر بـ`AttendanceDayWriter` وحده (يحرسه `AttendanceSingleWriterArchitectureTests` و`scripts/lva057-validate.ps1`): التعديل يغيّر الحالة والملاحظة فقط ولا يربط الموظف ولا التاريخ (منشور مزوَّر بهما يُتجاهل)، والإنشاء بمنتقي موظفين مقيَّد بالنطاق بدل أول 50، و«في إجازة» لا تُدخل يدوياً ولا جماعياً وتأتي من إجازة معتمدة بمرجعها (`Source = Leave`) ولا يزيل إلغاؤها إلا ما كتبته، وسجل الإجازة لا يُعدَّل ولا يُحذف يدوياً، واليوم المقفل لا يتغير إلا بتصحيح معتمد. `LeaveScheduleReconciler` يقرأ أيام الإجازة المعتمدة وحدها ولا يعيد إلى العمل إلا من نقلته إجازة. مستهلكا الإجازة يكتبان الحالة والأيام (وتصحيحات الأيام المقفلة) في حفظ واحد. الدليل: `Lva057AttendanceDayWriterTests`، `Lva057LeaveAttendanceTests`، `Lva057AttendanceCorrectionRulesTests`، `Lva057AttendanceApiHttpTests`، و**AC-LVA-57f/57g**.
   - **الخطة:** [PLAN-57](acceptance-plans/PLAN-57-lva-attendance-period-payroll-handoff.md) (نطاق `DailyAttendanceRecords.Create` على `vm.EmployeeId` يأتي من PLAN-52)
 - **التحقق المطلوب:**
   - تعديل سجل الموظف رقم 80 يحفظ صاحبه.
