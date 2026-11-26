@@ -254,3 +254,20 @@ Finished (UTC): 2026-11-26T15:00:33Z
 - Not run locally (P-14): the E2E journeys (CI only), so AC-37b (needs the prod-like journey) is not counted.
 - P9: origin/main has not moved (9b069f65): nothing to merge.
 Finished (UTC): 2026-11-26T18:33:10Z
+
+## P10 — The demo server (waiting for the owner)
+- SSH works (`hrm`, host key unchanged). /opt/hrm/current-tag = 0dd3564560b6 (previous d6b6880ead87), both commits of the owner's
+  open PR #58 (`ops/ghcr-release-images`), on no branch of origin but that one: `git branch -r --contains 0dd3564560b6` →
+  origin/ops/ghcr-release-images only. Server disk 61 G free.
+- P-17's «when» fails: the running tag is not on origin/main. Deploying PLAN-58 (built from main) would replace the owner's GHCR
+  release (its deploy path and the hr-rabbitmq package fix are not on main), and main documents no GHCR path yet. Nothing was
+  changed on the server.
+- BLOCKED: 2026-11-26T18:34:41Z — the owner decides: merge PR #58 first (then P9 merges main here and P10 follows the
+  documented GHCR path), or another way for the server step.
+- Owner's answer «ادمجه واكمل» (2026-11-26T18:37Z): PR #58 had all 15 checks green and was CLEAN; merged by me with
+  `gh pr merge 58 --merge` at 2026-11-26T18:38:30Z (merge commit 34001753d409). P9 then merged origin/main into the branch
+  (f4afd0aa; one conflict in OPS_VPS_SINGLE_HOST.md, two appended sections, both kept; Ops036 unit tests 85/85 after it).
+- main now documents the GHCR path and says nothing is built on the server any more (the loopback registry is gone), so P10
+  builds the images on GitHub Actions from the pushed release branch: the push comes before the server checks (deviation recorded).
+- AcPay58VpsChecks written (5 checks: migration and picture, removed paths 404, hradmin's conflict refusal audited, an arrears
+  request rejected by the approver with nothing changed, the screens under the CSP); the report written before the local gates.
