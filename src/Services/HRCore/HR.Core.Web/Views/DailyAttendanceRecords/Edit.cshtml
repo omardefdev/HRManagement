@@ -1,25 +1,43 @@
 @model HR.Core.Web.ViewModels.DailyAttendanceRecordEditViewModel
+@using HR.Core.Domain.Entities
+@using HR.Core.Domain.Enums
 @{
     ViewData["Title"] = "تعديل الحضور";
+    var record = (DailyAttendanceRecord)ViewBag.Record;
 }
-<form asp-action="Edit" method="post">
+<div class="card">
+<form asp-action="Edit" asp-route-id="@record.Id" method="post">
     @Html.AntiForgeryToken()
-    <input type="hidden" asp-for="Id" />
-    <div class="mb-3">
-        <label asp-for="EmployeeId" class="form-label"></label>
-        <select asp-for="EmployeeId" class="form-control" asp-items="ViewBag.Employees"></select>
+    <div class="card-body">
+        <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+        <dl class="row mb-3">
+            <dt class="col-sm-3">الموظف</dt>
+            <dd class="col-sm-9">@record.Employee?.FullName</dd>
+            <dt class="col-sm-3">اليوم</dt>
+            <dd class="col-sm-9">@Html.HrDate(record.AttendanceDate)</dd>
+            <dt class="col-sm-3">الحالة الحالية</dt>
+            <dd class="col-sm-9">@Html.HrEnumDisplay(record.Status)</dd>
+        </dl>
+        <div class="form-text mb-3">الموظف واليوم لا يتغيران بعد إنشاء السجل. لتسجيل اليوم لموظف آخر: احذف هذا السجل ثم أنشئ سجلاً جديداً.</div>
+        <div class="mb-3">
+            <label asp-for="Status" class="form-label"></label>
+            <select asp-for="Status" class="form-control">
+                @foreach (var s in Enum.GetValues<DailyAttendanceStatus>().Where(s => s != DailyAttendanceStatus.OnLeave))
+                {
+                    if (Model.Status == s) { <option value="@((int)s)" selected="selected">@Html.HrEnumDisplay(s)</option> }
+                    else { <option value="@((int)s)">@Html.HrEnumDisplay(s)</option> }
+                }
+            </select>
+            <span asp-validation-for="Status" class="text-danger"></span>
+        </div>
+        <div class="mb-3">
+            <label asp-for="Notes" class="form-label"></label>
+            <textarea asp-for="Notes" class="form-control" rows="2"></textarea>
+        </div>
     </div>
-    <div class="mb-3">
-        <label asp-for="AttendanceDate" class="form-label"></label>
-        <input asp-for="AttendanceDate" class="form-control" type="date" />
+    <div class="card-footer">
+        <button type="submit" class="btn btn-primary">حفظ</button>
+        <a asp-action="Details" asp-route-id="@record.Id" class="btn btn-secondary">إلغاء</a>
     </div>
-    <div class="mb-3">
-        <label asp-for="Status" class="form-label"></label>
-        <select asp-for="Status" class="form-control" asp-items="Html.GetEnumSelectList<HR.Core.Domain.Enums.DailyAttendanceStatus>()"></select>
-    </div>
-    <div class="mb-3">
-        <label asp-for="Notes" class="form-label"></label>
-        <textarea asp-for="Notes" class="form-control"></textarea>
-    </div>
-    <button type="submit" class="btn btn-primary">حفظ</button>
 </form>
+</div>

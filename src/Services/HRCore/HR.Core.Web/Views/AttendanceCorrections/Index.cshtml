@@ -1,0 +1,64 @@
+@model HR.Core.Web.ViewModels.AttendanceCorrectionsIndexViewModel
+@using HR.Core.Domain.Enums
+@{ ViewData["Title"] = "تصحيحات الحضور"; }
+<div class="card">
+    <div class="card-header d-flex justify-content-between">
+        <h3 class="mb-0">تصحيحات الحضور</h3>
+        <div class="d-flex gap-2">
+            <a asp-controller="AttendancePeriods" asp-action="Index" class="btn btn-outline-secondary btn-sm">فترات الحضور</a>
+            <a asp-controller="DailyAttendanceRecords" asp-action="Index" class="btn btn-outline-secondary btn-sm">الحضور اليومي</a>
+        </div>
+    </div>
+    <div class="card-body border-bottom">
+        <p class="text-muted">
+            يوم الحضور ضمن فترة مغلقة لا يتغير إلا بطلب تصحيح له سبب، يعتمده مستخدم مركزي غير مقدّمه. يبدأ الطلب من اليوم المقفل في قائمة الحضور اليومي.
+        </p>
+        <form method="get" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label" for="correctionStatus">حالة الطلب</label>
+                <select id="correctionStatus" name="status" class="form-select">
+                    <option value="">— الكل —</option>
+                    @foreach (AttendanceCorrectionStatus s in Enum.GetValues<AttendanceCorrectionStatus>())
+                    {
+                        if (Model.Status == s) { <option value="@((int)s)" selected="selected">@Html.HrEnumDisplay(s)</option> }
+                        else { <option value="@((int)s)">@Html.HrEnumDisplay(s)</option> }
+                    }
+                </select>
+            </div>
+            <div class="col-md-3">
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" id="correctionMine" name="mine" value="true" checked="@Model.Mine" />
+                    <label class="form-check-label" for="correctionMine">طلباتي فقط</label>
+                </div>
+            </div>
+            <div class="col-md-auto">
+                <button type="submit" class="btn btn-primary">تصفية</button>
+                <a asp-action="Index" class="btn btn-outline-secondary">بانتظار القرار</a>
+            </div>
+        </form>
+    </div>
+    <div class="card-body p-0">
+        <table class="table mb-0">
+            <thead><tr><th>الموظف</th><th>اليوم</th><th>من</th><th>إلى</th><th>المصدر</th><th>حالة الطلب</th><th>تاريخ الطلب</th><th>الإجراءات</th></tr></thead>
+            <tbody>
+            @foreach (var c in Model.Items)
+            {
+                <tr>
+                    <td>@c.Employee?.FullName</td>
+                    <td>@Html.HrDate(c.AttendanceDate)</td>
+                    <td>@Html.HrEnumDisplay(c.OldStatus, "بلا سجل")</td>
+                    <td>@Html.HrEnumDisplay(c.NewStatus, "حذف السجل")</td>
+                    <td>@Html.HrEnumDisplay(c.Source)</td>
+                    <td>@Html.HrEnumDisplay(c.Status)</td>
+                    <td>@Html.HrDateTime(c.RequestedAt)</td>
+                    <td><a asp-action="Details" asp-route-id="@c.Id" class="btn btn-outline-primary btn-sm">@(Model.CanDecide && c.Status == AttendanceCorrectionStatus.Pending && c.RequestedBy != Model.CurrentUserId ? "عرض وقرار" : "عرض")</a></td>
+                </tr>
+            }
+            @if (!Model.Items.Any())
+            {
+                <tr><td colspan="8" class="text-center text-muted">لا توجد طلبات تصحيح</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

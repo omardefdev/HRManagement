@@ -43,14 +43,17 @@ public class LeaveApprovedConsumer(HRCoreDbContext db, AttendanceIntegrationServ
                 ? $"{marker} Source={m.SourceSystem}"
                 : $"{marker} Source={m.SourceSystem} Scheduled={m.StartDate:yyyy-MM-dd}"
         });
-        await db.SaveChangesAsync();
 
+        // PLAN-57 (§2): the status history and the attendance days are written by one save (they were two, so a failure between
+        // them left the marker with no days, and the redelivery then skipped the days for ever).
         await attendance.UpsertLeaveAttendanceAsync(
             m.EmployeeId,
             m.StartDate,
             m.EndDate,
+            m.LeaveRequestId,
             $"إجازة معتمدة: {m.LeaveType}",
             context.CancellationToken);
+        await db.SaveChangesAsync(context.CancellationToken);
     }
 }
 
@@ -85,13 +88,15 @@ public class LeaveCancelledConsumer(HRCoreDbContext db, AttendanceIntegrationSer
             ChangedAt = m.OccurredAt,
             Reason = $"{marker} Source={m.SourceSystem}"
         });
-        await db.SaveChangesAsync();
 
+        // PLAN-57 (§2): one save, and only the days that carry this leave's reference are given back.
         await attendance.RemoveLeaveAttendanceAsync(
             m.EmployeeId,
             m.StartDate,
             m.EndDate,
+            m.LeaveRequestId,
             context.CancellationToken);
+        await db.SaveChangesAsync(context.CancellationToken);
     }
 }
 

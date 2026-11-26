@@ -1,5 +1,6 @@
 using FluentValidation;
 using MediatR;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using HRManagement.SharedKernel.SeparationOfDuties;
@@ -24,6 +25,12 @@ public static class DependencyInjection
         services.AddSingleton<IFrdAnomalyRulesProvider, FrdAnomalyRulesProvider>();
         services.AddScoped<PartialDisbursementService>();
         services.AddScoped<ArrearsSettlementService>();
+
+        // PLAN-57: the attendance gate before a regular run's calculation (Payroll:Attendance:Gate, Warn by default).
+        services.AddOptions<Options.PayrollAttendanceOptions>()
+            .Configure<IServiceProvider>((o, sp) =>
+                sp.GetService<Microsoft.Extensions.Configuration.IConfiguration>()?.GetSection(Options.PayrollAttendanceOptions.SectionName).Bind(o));
+        services.AddScoped<PayrollAttendanceGate>();
 
         services.AddScoped<FraudAnomalyEngine>();
         services.AddScoped<PaymentHoldService>();

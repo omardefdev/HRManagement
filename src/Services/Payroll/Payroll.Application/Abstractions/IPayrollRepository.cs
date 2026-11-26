@@ -21,6 +21,8 @@ public interface IPayrollRepository
     IQueryable<PayrollConfiguration> PayrollConfigurations { get; }
     IQueryable<OfficialHoliday> OfficialHolidays { get; }
     IQueryable<AbsenceDeduction> AbsenceDeductions { get; }
+    /// <summary>PLAN-57: what payroll received of each attendance summary (the gate, and the base of each difference).</summary>
+    IQueryable<AttendanceSummaryReceipt> AttendanceSummaryReceipts { get; }
     IQueryable<SalaryLine> SalaryLines { get; }
     IQueryable<SalaryLineComponent> SalaryLineComponents { get; }
     IQueryable<EndOfServiceSettlement> EndOfServiceSettlements { get; }

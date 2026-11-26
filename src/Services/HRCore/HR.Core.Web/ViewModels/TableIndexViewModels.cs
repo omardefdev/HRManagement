@@ -25,6 +25,8 @@ public sealed class HrStatisticReportsIndexViewModel
 public sealed class DailyAttendanceRecordsIndexViewModel
 {
     public IReadOnlyList<DailyAttendanceRecord> Items { get; init; } = [];
+    /// <summary>PLAN-57: the listed records whose day is in a closed attendance period of their employee.</summary>
+    public IReadOnlySet<Guid> LockedIds { get; init; } = new HashSet<Guid>();
     public Guid? EmployeeId { get; init; }
     public string? FilterEmployeeName { get; init; }
     public DateOnly? DateFrom { get; init; }

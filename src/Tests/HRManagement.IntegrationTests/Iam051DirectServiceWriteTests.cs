@@ -17,12 +17,13 @@ namespace HRManagement.IntegrationTests;
 [Collection(SharedHrCoreHost.Name)]
 public sealed class Iam051DirectServiceWriteTests(Hcm025ScopeAndPolicyTestHost host)
 {
-    /// <summary>The 42 rows of the deleted <c>tests/architecture/hrcore-post-policy-allowlist.txt</c> (PLAN-25), as they stood at P0.</summary>
+    /// <summary>The rows of the deleted <c>tests/architecture/hrcore-post-policy-allowlist.txt</c> (PLAN-25), as they stood at P0.</summary>
     public static readonly string[] FormerActions =
     [
         "ApprovedCVs.Create", "ApprovedCVs.Delete", "ApprovedCVs.Edit", "ApprovedCVs.FinalizeApproval", "CareerPaths.AddStep",
         "CareerPaths.Create", "CareerPaths.Delete", "CareerPaths.RemoveStep", "Contacts.Create", "Contacts.Delete", "Contacts.Edit",
-        "DailyAttendanceRecords.BulkEntry", "DailyAttendanceRecords.ClosePeriod", "DailyAttendanceRecords.Create",
+        // PLAN-57: DailyAttendanceRecords.ClosePeriod (the 42nd row) is gone with the old close; AttendancePeriods.Close replaces it.
+        "DailyAttendanceRecords.BulkEntry", "DailyAttendanceRecords.Create",
         "DailyAttendanceRecords.Delete", "DailyAttendanceRecords.Edit", "DiwanCorrespondences.Create", "Documents.Create",
         "Documents.Delete", "Documents.Edit", "EmployeeProfiles.Save", "ExportJobs.Cancel", "FieldInspectionVisits.Create",
         "HrStatisticReports.Create", "KeyPositions.Create", "KeyPositions.Delete", "KeyPositions.Edit", "Qualifications.Create",
@@ -30,6 +31,18 @@ public sealed class Iam051DirectServiceWriteTests(Hcm025ScopeAndPolicyTestHost h
         "Rosters.RemoveAssignment", "Shifts.Create", "Shifts.Delete", "Shifts.Edit", "Signatures.Verify", "SuccessionPlans.AddCandidate",
         "SuccessionPlans.Create", "SuccessionPlans.Delete", "SuccessionPlans.RemoveCandidate",
     ];
+
+    /// <summary>
+    /// PLAN-57 (§6): the attendance writes name their own policies instead of <c>HrCore.Write</c>. Both admit the same roles
+    /// (hr-admin and hr-core), so what this test proves of them is unchanged: a supervisory employee gets 403, hr-core passes.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> AttendancePolicies = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["DailyAttendanceRecords.Create"] = HrManagementPolicies.HrCoreAttendanceWrite,
+        ["DailyAttendanceRecords.Edit"] = HrManagementPolicies.HrCoreAttendanceWrite,
+        ["DailyAttendanceRecords.Delete"] = HrManagementPolicies.HrCoreAttendanceWrite,
+        ["DailyAttendanceRecords.BulkEntry"] = HrManagementPolicies.HrCoreAttendanceWrite,
+    };
 
     /// <summary>The two that are reads (plan §4): the signature check and cancelling one's own export, under <c>HrCore.ReadOnly</c>.</summary>
     public static readonly string[] ReadActions = ["Signatures.Verify", "ExportJobs.Cancel"];
@@ -84,8 +97,9 @@ public sealed class Iam051DirectServiceWriteTests(Hcm025ScopeAndPolicyTestHost h
                 continue;
             }
 
-            if (!target.Policies.Contains(HrManagementPolicies.HrCoreWrite))
-                failures.Add($"{target.Key}: names no HrCore.Write ({string.Join(", ", target.Policies)})");
+            var writePolicy = AttendancePolicies.GetValueOrDefault(target.Key, HrManagementPolicies.HrCoreWrite);
+            if (!target.Policies.Contains(writePolicy))
+                failures.Add($"{target.Key}: names no {writePolicy} ({string.Join(", ", target.Policies)})");
 
             using var refused = await reader.SendAsync(new HttpRequestMessage(new HttpMethod(target.Method), target.Path));
             if (refused.StatusCode != HttpStatusCode.Forbidden)

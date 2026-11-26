@@ -161,6 +161,11 @@ public static class PayrollPartitionInputLoader
 
 
 
+        // PLAN-57 (§4 rule 4): a regular run also takes an attendance difference of an earlier period that was carried (it arrived
+        // after its own period's run was calculated) and that no run has applied. A carried row is taken by its own period's
+        // recalculation if that comes first (the overlap below), otherwise by the first later regular run (this clause).
+        var takesCarried = run.RunType == PayrollRunType.Regular;
+
         var absencesByEmployee = await LoadKeyedGroupedAsync(
 
             repository.AbsenceDeductions
@@ -171,11 +176,14 @@ public static class PayrollPartitionInputLoader
 
                             && (a.AppliedInRunId == null || a.AppliedInRunId == run.Id)
 
-                            && a.PeriodStart <= periodEnd
+                            && ((a.PeriodStart <= periodEnd && a.PeriodEnd >= periodStart)
 
-                            && a.PeriodEnd >= periodStart),
+                                || (takesCarried && a.CarryForward && a.OriginalPeriodEnd != null && a.OriginalPeriodEnd < periodStart))),
 
             cancellationToken);
+
+        if (takesCarried)
+            await AddStrandedAttendanceDifferencesAsync(repository, idSet, run, periodStart, absencesByEmployee, cancellationToken);
 
 
 
@@ -306,6 +314,52 @@ public static class PayrollPartitionInputLoader
     }
 
 
+
+    /// <summary>
+    /// PLAN-57: an attendance difference whose «carried» mark was decided an instant before its own period's run was calculated (the
+    /// consumer saw no calculated run; the run then calculated without the row). Such a row is not marked, its period's run will not
+    /// take it once frozen, and nothing else would: so a later regular run takes a free, unmarked attendance difference of an earlier
+    /// period when that period has a calculated regular run. A period with no run keeps its rows for its own run.
+    /// </summary>
+    private static async Task AddStrandedAttendanceDifferencesAsync(
+        IPayrollRepository repository,
+        HashSet<Guid> idSet,
+        PayrollRun run,
+        DateOnly periodStart,
+        Dictionary<Guid, List<AbsenceDeduction>> absencesByEmployee,
+        CancellationToken cancellationToken)
+    {
+        var candidates = await repository.AbsenceDeductions
+            .AsNoTracking()
+            .Where(a => idSet.Contains(a.EmployeeId)
+                        && (a.AppliedInRunId == null || a.AppliedInRunId == run.Id)
+                        && !a.CarryForward
+                        && a.OriginalPeriodStart != null
+                        && a.OriginalPeriodEnd != null
+                        && a.OriginalPeriodEnd < periodStart)
+            .OrderBy(a => a.EmployeeId).ThenBy(a => a.Id)
+            .ToListAsync(cancellationToken);
+        if (candidates.Count == 0)
+            return;
+
+        var calculated = new Dictionary<(DateOnly, DateOnly), bool>();
+        foreach (var row in candidates)
+        {
+            var key = (row.OriginalPeriodStart!.Value, row.OriginalPeriodEnd!.Value);
+            if (!calculated.TryGetValue(key, out var hasRun))
+            {
+                hasRun = await PayrollAttendanceFreeze.HasCalculatedRunAsync(repository, key.Item1, key.Item2, cancellationToken);
+                calculated[key] = hasRun;
+            }
+
+            if (!hasRun)
+                continue;
+            if (!absencesByEmployee.TryGetValue(row.EmployeeId, out var list))
+                absencesByEmployee[row.EmployeeId] = list = [];
+            if (!list.Exists(existing => existing.Id == row.Id))
+                list.Add(row);
+        }
+    }
 
     private static async Task<Dictionary<Guid, List<T>>> LoadKeyedGroupedAsync<T>(
 

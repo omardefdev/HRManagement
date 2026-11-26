@@ -577,6 +577,55 @@
     </div>
 }
 
+@{ var attendance = ViewBag.Attendance as Payroll.Application.Services.PayrollAttendanceStatus; }
+@if (attendance is not null)
+{
+    <div class="card mb-3" data-testid="run-attendance">
+        <div class="card-header"><h3 class="card-title"><i class="fas fa-calendar-check me-2"></i>الحضور</h3></div>
+        <div class="card-body">
+            @if (!attendance.Applies)
+            {
+                <p class="mb-0 text-muted">بوابة الحضور للتشغيلات الاعتيادية فقط؛ لا تُطبَّق على هذا النوع من التشغيلات.</p>
+            }
+            else
+            {
+                <dl class="row mb-0">
+                    <dt class="col-sm-5">وضع بوابة الحضور قبل الحساب</dt>
+                    <dd class="col-sm-7" data-testid="run-attendance-mode">@Html.HrEnumDisplay(attendance.GateMode)</dd>
+                    <dt class="col-sm-5">الموظفون في نطاق التشغيل</dt>
+                    <dd class="col-sm-7">@attendance.EmployeesInScope</dd>
+                    <dt class="col-sm-5">لم يُغلق حضورهم لفترة التشغيل</dt>
+                    <dd class="col-sm-7" data-testid="run-attendance-missing-count">@attendance.MissingAttendance.Count</dd>
+                    <dt class="col-sm-5">فروق غياب محمولة من فترات سابقة طُبّقت في هذا التشغيل</dt>
+                    <dd class="col-sm-7" data-testid="run-attendance-carried-applied">@attendance.CarryForwardApplied</dd>
+                    <dt class="col-sm-5">فروق غياب محمولة بانتظار دورة لاحقة</dt>
+                    <dd class="col-sm-7" data-testid="run-attendance-carried-pending">@attendance.CarryForwardPending</dd>
+                </dl>
+                @if (attendance.MissingAttendance.Count > 0)
+                {
+                    <div class="alert alert-warning mt-3 mb-0" role="alert">
+                        هؤلاء في نطاق التشغيل ولم يصل إغلاق حضورهم لفترته: يُحسب راتبهم بلا خصم غياب عن هذه الفترة، وأي غياب يصل لاحقاً يُطبَّق فرقاً.
+                        <ul class="mb-0" data-testid="run-attendance-missing-names">
+                            @foreach (var employeeId in attendance.MissingAttendance.Take(Payroll.Web.Controllers.PayrollRunsController.AttendanceNamesShown))
+                            {
+                                <li>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(employeeId, employeeNames.GetValueOrDefault(employeeId)))</li>
+                            }
+                        </ul>
+                        @if (attendance.MissingAttendance.Count > Payroll.Web.Controllers.PayrollRunsController.AttendanceNamesShown)
+                        {
+                            <span>تُعرض أول @Payroll.Web.Controllers.PayrollRunsController.AttendanceNamesShown من @attendance.MissingAttendance.Count.</span>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <p class="mt-3 mb-0 text-muted">لا يوجد موظف في نطاق التشغيل بلا إغلاق حضور لفترته.</p>
+                }
+            }
+        </div>
+    </div>
+}
+
 <div class="card">
 
     <div class="card-header d-flex justify-content-between">

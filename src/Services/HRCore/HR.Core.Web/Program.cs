@@ -163,6 +163,8 @@ builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.Recruitme
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.Recruitment.HirePersonMatchService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Integration.RecruitmentIntegrationService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Integration.DiwanIntegrationService>();
+// PLAN-57: the attendance period, its single writer and its settings (section Attendance; D-LVA-9, 11, 12, 13).
+builder.Services.AddHrAttendance(builder.Configuration);
 builder.Services.AddScoped<HR.Core.Infrastructure.Integration.AttendanceIntegrationService>();
 builder.Services.AddScoped<HR.Core.Infrastructure.Services.LeaveScheduleReconciler>();
 if (builder.Configuration.GetValue("LeaveScheduleReconciler:Enabled", true))

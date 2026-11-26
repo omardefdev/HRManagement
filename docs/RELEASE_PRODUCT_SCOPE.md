@@ -16,6 +16,7 @@ This document records explicit product acceptance of what v1 delivers versus wha
 | Contracts & service (HR.Contracts) | Contract activation, leave/advance approval with policy checks, separation wizard and publish |
 | Movements & training | Transfer/secondment/training completion events to downstream services |
 | Payroll operations | Payroll run lifecycle (draft → calculate → review → approve → post), period proration rules, inbound event adjustments |
+| Attendance, minimal (D-LVA-3, PLAN-57) | One status per employee and day; a monthly period that closes with a versioned summary per employee and locks its days; a change after the close as an approved correction; the handover of each summary version to payroll as a difference applied once; payroll's gate before a calculation (`Payroll:Attendance:Gate`, `Warn` by default, so an agency that does not use attendance is not stopped) — [HCM_002_ATTENDANCE.md](./HCM_002_ATTENDANCE.md) |
 | Cross-service integration | MassTransit workflow events wired per [MESSAGE_EVENT_MATRIX.md](./MESSAGE_EVENT_MATRIX.md) |
 | Identity | Keycloak via gateway; Auth.Directory provisioning when DirectorySync enabled |
 | Operations | Health checks, migrations policy, CI/CD, Docker production overlays |
@@ -25,7 +26,7 @@ This document records explicit product acceptance of what v1 delivers versus wha
 | Item | Rationale | Target |
 |------|-----------|--------|
 | **Statutory / legal payroll engine** | v1 provides operational payroll runs and adjustments, not full tax/social/insurance tables or legal sign-off | v2 or external finance system integration |
-| **Attendance integration** | Daily attendance is local CRUD only; no events to leave or payroll | v2 when attendance policy is defined |
+| **Attendance beyond the daily status** | Shifts, timing, lateness, devices and overtime are not built; the calendar is two settings (weekly rest days and a list of holidays), not a dated central calendar | Wave 2 (LVA-G, LVA-H, PAY-H) |
 | **Employee self-service portals** | External integration seams (`ILeaveRequested`, etc.) have consumers only | External project |
 | **Dead-end audit events** | `ICardIssued`, `IComplaintResolved`, four HR.Contracts internals | v2 consumers or audit-only |
 | **Full peripheral UI depth** | All modules have functional screens; not every Domain entity has a Web UI | Incremental UX releases |

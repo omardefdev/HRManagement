@@ -92,8 +92,12 @@ public class Pay056ReversalTests
         var reversed = Assert.Single(scope.Events.Reversed);
         Assert.Equal((runId, posted.TotalNetPay, request.Id), (reversed.RunId, reversed.ReversedNetPay, reversed.RequestId));
         Assert.Equal(scope.Events.Processed.Single(p => p.RunId == runId).TotalNetPay, reversed.ReversedNetPay);
-        // No closed audit record «by nobody» is written by a reversal any more: the only one is the posting's precondition.
-        Assert.Single(await scope.Db.PayrollAuditRecords.AsNoTracking().Where(a => a.PayrollRunId == runId).ToListAsync());
+        // No closed audit record «by nobody» is written by a reversal any more: the only closed one is the posting's precondition.
+        // (PLAN-57: the calculation's open attendance warning is another record of the run, and is counted by what it is.)
+        var auditRecords = await scope.Db.PayrollAuditRecords.AsNoTracking().Where(a => a.PayrollRunId == runId).ToListAsync();
+        Assert.Single(auditRecords, a => a.Status == AuditStatus.Closed);
+        Assert.All(auditRecords.Where(a => a.Status != AuditStatus.Closed),
+            a => Assert.StartsWith(PayrollAttendanceGate.WarningPrefix, a.Findings));
         Assert.Single(await scope.Db.AuditLogs.AsNoTracking().Where(a => a.EntityId == runId && a.Action == PayrollInputRelease.AuditAction).ToListAsync());
         // The lines stay: a reversed run keeps its record.
         Assert.Single(await scope.LinesAsync(runId));

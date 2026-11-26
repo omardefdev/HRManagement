@@ -101,6 +101,10 @@ services:
       # PLAN-42: the server derives the mode, so the custody decisions of AC-10 and AC-11 need it here. admin-logistics-web stays
       # Off in this stack and never calls; the prod-like s2s42 overlay sets both sides.
       PolicyEngine__Assets.Custody: "Enforce"
+      # PLAN-57 (D-LVA-13, P-10): the holidays of the months AC-LVA-57 reserves (testdata/acceptance/lva057-periods.json), set in the
+      # acceptance layer only. Production and Staging configure none, and no holiday lives in code.
+      Attendance__Calendar__Holidays__0: "2025-02-17"
+      Attendance__Calendar__Holidays__1: "2025-02-18"
       # PLAN-30 (COM-030): candidate messages go to FileDrop files that acceptance tests read on the host
       # (artifacts/acceptance/candidate-notifications/{sha256(idempotencyKey)}.json; format in docs/COM_001_NOTIFICATIONS.md).
       Notifications__Candidate__Provider: FileDrop
