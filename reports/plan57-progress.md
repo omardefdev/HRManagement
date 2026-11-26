@@ -272,6 +272,30 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
   filter 1,565 passed; architecture 414; integration (SQLite) 231 passed, 124 skipped (Testcontainers); the `Lva057` PostgreSQL
   classes **22 of 22** (1 min 35 s); `Lva057AttendanceApiHttpTests` 8 of 8; format clean; gitleaks on the changed files: none.
 
+- **Acceptance on this machine, on the images of `b92ed935`** (all with `-NoBuild`; UTC of 2026-11-26):
+
+  | Step | Start | End | Result |
+  |---|---|---|---|
+  | Prod-like stack 2 (`acceptance-up.ps1 -Profile ProdLike -UseLocalBaseImages -NoBuild`) | 00:28:09 | 00:42:56 | ready on the first try, 14 min 47 s |
+  | `AcLva57AttendancePeriodTests` alone | 00:42:59 | 00:45:43 | **8 of 8** |
+  | `AcUx67ReadableInterfaceTests` by hand (Chromium is installed for the user; the job's install needs sudo) | 00:45:50 | 00:49:28 | **7 of 7**; six of the seven attendance pages opened, the edit form had no unlocked record to open (57h reset July) — 57h now leaves one (below) |
+  | Acceptance job, prod-like, fresh stack: `-Profile ProdLike -NoBuild -Stage prodLike:journey,prodLike:main,prodLike:isolated -Classes <17>` | 00:52:08 | 01:31:46 | stack 885 s; journey **1 of 1**; main **54 of 55** in the order AcPay54, AcIam53, AcPay55, **AcLva57 (8 of 8)**, AcPay56, AcIam52, AcHcm25, AcIam51, AcIam50 — the one failure is AC-IAM-52a's expectation (below), so the guard said FAIL (2); isolated: AcInt37 8, AcMsg40 8, AcWf44 5, AcWf45 8, AcWf46 9, AcPol47 1, AcOps39 8, **all passed** |
+  | Prod-like stack 3 | 01:33:28 | 01:47:55 | ready on the first try, 14 min 27 s |
+  | `AcLva57AttendancePeriodTests` + `AcIam52BranchScopeTests` in one run | 01:47:58 | 01:51:28 | **13 of 13** (AC-IAM-52a..e first, then AC-LVA-57a..h) |
+  | `AcLva57AttendancePeriodTests` **again on the same stack** + `AcUx67ReadableInterfaceTests` | 01:51:40 | 01:57:19 | **15 of 15**: the class gives the same numbers on a second run; all seven attendance pages opened in Chromium with one policy and no violation |
+
+- **AC-IAM-52a, an existing scenario whose expectation changed (its meaning kept).** Its step «his own attendance record edited
+  with the ALEP employee's id» expected 404: before this plan the edit bound the employee and refused a foreign one. The edit now
+  binds the status and the note only (the plan's fix of «an edit can move a record»), so the post is an edit of his own record
+  that moves nothing: 200, and the record is still his employee's on its own day (read by psql before and after: its employee, day,
+  status and note), while ALEP's employee gets no row. AC-LVA-57f proves the same with a forged date too. Commit `a876899d`.
+- **AC-LVA-57h gained a step** (`361e20c2`): after the sub-unit's close, the branch still writes by hand a July day of an employee
+  of another directorate, while the same day of a closed employee is refused — the lock is the closed employees' only. It also
+  leaves an unlocked record for `AcUx67`'s edit page.
+- **AC-LVA-57e on the fixed images** (the gate's scope is every active pay profile again): 1,102 in scope and missing before
+  the close; 1,189 summaries and receipts after it; 20 still missing, none in service in June 2025 by HR.Core's rule; one open
+  warning record that lists exactly those 20.
+
 ## Decisions (with reasons)
 
 - **D-P57-1, the reserved months:** 2025-01 … 2025-07 (see the baseline). 57a January, 57b February (and the current month for «no
