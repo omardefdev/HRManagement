@@ -30,10 +30,17 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
     private static readonly Guid Tenant = TenantDefaults.DefaultTenantId;
     private static readonly Guid SomeoneElse = Guid.Parse("55000000-0000-4000-8000-0000000000c9");
 
-    private static readonly string CentralRoles =
-        $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollProcessor},{HrManagementRoles.PayrollApprover}";
+    /// <summary>
+    /// The host's users hold the processor's role (register); each verifies, rejects and retires with an approver's token of his own
+    /// (PLAN-58, D-PAY-20: no token carries two conflicting payroll roles, so the same person acts with two tokens).
+    /// </summary>
+    private static readonly string CentralRoles = $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollProcessor}";
+
+    private static readonly string ApproverRoles = $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollApprover}";
 
     private static readonly string RestrictedRoles = $"{HrManagementRoles.BranchManager},{CentralRoles}";
+
+    private static readonly string RestrictedApproverRoles = $"{HrManagementRoles.BranchManager},{ApproverRoles}";
 
     /// <summary>A test IBAN whose check digits are computed: never a real account.</summary>
     private static string Iban(string bban) => "SY" + BankAccountNumberValidator.ComputeIbanCheckDigits("SY", bban) + bban;
@@ -114,7 +121,9 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
         var audit = new RecordingAudit();
         await using var host = await StartAsync(audit);
         using var restricted = await WithApiTokenAsync(host.Restricted());
+        using var restrictedApprover = await WithApiTokenAsync(host.RestrictedAs(RestrictedApproverRoles));
         using var central = await WithApiTokenAsync(host.Central());
+        using var centralApprover = await WithApiTokenAsync(host.CentralAs(ApproverRoles));
         var (employee, _) = host.Records[typeof(EmployeePayProfile)];
 
         // The processor registers: 201, pending, and the answer carries no number.
@@ -138,16 +147,16 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
         }
 
         // The registrar verifying his own registration: 400, and the account still waits.
-        var self = await restricted.PostAsJsonAsync($"{Accounts(employee)}/{accountId}/verify", new { verificationReference = "كتاب المصرف 118" });
+        var self = await restrictedApprover.PostAsJsonAsync($"{Accounts(employee)}/{accountId}/verify", new { verificationReference = "كتاب المصرف 118" });
         Assert.Equal(HttpStatusCode.BadRequest, self.StatusCode);
         Assert.Equal(BankAccountMessages.SelfVerification, (await JsonAsync(self)).GetProperty("error").GetString());
         // A verification without the bank's reference: 400.
-        var noReference = await central.PostAsJsonAsync($"{Accounts(employee)}/{accountId}/verify", new { verificationReference = " " });
+        var noReference = await centralApprover.PostAsJsonAsync($"{Accounts(employee)}/{accountId}/verify", new { verificationReference = " " });
         Assert.Equal(HttpStatusCode.BadRequest, noReference.StatusCode);
         Assert.Equal(BankAccountStatus.PendingVerification, (await StoredAsync(host, employee)).Single().Status);
 
         // Another person verifies it against the bank's confirmation: in force.
-        var verified = await central.PostAsJsonAsync($"{Accounts(employee)}/{accountId}/verify", new { verificationReference = "كتاب المصرف 118" });
+        var verified = await centralApprover.PostAsJsonAsync($"{Accounts(employee)}/{accountId}/verify", new { verificationReference = "كتاب المصرف 118" });
         Assert.Equal(HttpStatusCode.OK, verified.StatusCode);
         Assert.Equal("Active", (await JsonAsync(verified)).GetProperty("status").GetString());
         stored = (await StoredAsync(host, employee)).Single();
@@ -161,7 +170,7 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
         Assert.Equal(BankAccountStatus.Active, (await StoredAsync(host, employee)).Single(a => a.Id == accountId).Status);
         var second = await central.PostAsJsonAsync(Accounts(employee), Registration(Number3));
         Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);                       // a second pending account
-        var replaced = await restricted.PostAsJsonAsync($"{Accounts(employee)}/{replacementId}/verify", new { verificationReference = "كتاب المصرف 131" });
+        var replaced = await restrictedApprover.PostAsJsonAsync($"{Accounts(employee)}/{replacementId}/verify", new { verificationReference = "كتاب المصرف 131" });
         Assert.Equal(HttpStatusCode.OK, replaced.StatusCode);
         Assert.Equal(accountId, (await JsonAsync(replaced)).GetProperty("retiredAccountId").GetGuid());
         var both = await StoredAsync(host, employee);
@@ -169,13 +178,13 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
         Assert.Equal(BankAccountStatus.Active, both.Single(a => a.Id == replacementId).Status);
 
         // Retiring needs a reason; then the employee has no account in force. A third registration is rejected with a reason.
-        Assert.Equal(HttpStatusCode.BadRequest, (await central.PostAsJsonAsync($"{Accounts(employee)}/{replacementId}/retire", new { reason = "" })).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await central.PostAsJsonAsync($"{Accounts(employee)}/{replacementId}/retire", new { reason = "أغلق الموظف حسابه" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await centralApprover.PostAsJsonAsync($"{Accounts(employee)}/{replacementId}/retire", new { reason = "" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await centralApprover.PostAsJsonAsync($"{Accounts(employee)}/{replacementId}/retire", new { reason = "أغلق الموظف حسابه" })).StatusCode);
         var third = await restricted.PostAsJsonAsync(Accounts(employee), Registration(Number3));
         var thirdId = (await JsonAsync(third)).GetProperty("accountId").GetGuid();
-        Assert.Equal(HttpStatusCode.BadRequest, (await central.PostAsJsonAsync($"{Accounts(employee)}/{thirdId}/reject", new { reason = (string?)null })).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await central.PostAsJsonAsync($"{Accounts(employee)}/{thirdId}/reject", new { reason = "الرقم لا يطابق كتاب المصرف" })).StatusCode);
-        Assert.Equal(HttpStatusCode.Conflict, (await central.PostAsJsonAsync($"{Accounts(employee)}/{thirdId}/verify", new { verificationReference = "كتاب" })).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await centralApprover.PostAsJsonAsync($"{Accounts(employee)}/{thirdId}/reject", new { reason = (string?)null })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await centralApprover.PostAsJsonAsync($"{Accounts(employee)}/{thirdId}/reject", new { reason = "الرقم لا يطابق كتاب المصرف" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, (await centralApprover.PostAsJsonAsync($"{Accounts(employee)}/{thirdId}/verify", new { verificationReference = "كتاب" })).StatusCode);
         Assert.DoesNotContain(await StoredAsync(host, employee), a => a.Status is BankAccountStatus.Active or BankAccountStatus.PendingVerification);
 
         // The entity audit log has every act of the three accounts, and never a number or a holder's name.
@@ -215,13 +224,14 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
         Skip.IfNot(RealInfra.IsEnabled);
         await using var host = await StartAsync();
         using var noToken = host.Central();
+        using var noTokenApprover = host.CentralAs(ApproverRoles);
         using var central = await WithApiTokenAsync(host.Central());
         var (employee, _) = host.Records[typeof(EmployeePayProfile)];
 
         // No antiforgery token: every write of the API is refused before it runs, and nothing is written.
         Assert.Equal(HttpStatusCode.BadRequest, (await noToken.PostAsJsonAsync(Accounts(employee), Registration(Number1))).StatusCode);
         foreach (var act in new[] { "verify", "reject", "retire" })
-            Assert.Equal(HttpStatusCode.BadRequest, (await noToken.PostAsJsonAsync($"{Accounts(employee)}/{Guid.NewGuid()}/{act}", new { reason = "سبب" })).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await noTokenApprover.PostAsJsonAsync($"{Accounts(employee)}/{Guid.NewGuid()}/{act}", new { reason = "سبب" })).StatusCode);
         Assert.Empty(await StoredAsync(host, employee));
 
         // A wrong check digit: 400, an Arabic message that does not repeat the number, and no row.
@@ -253,6 +263,7 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
         Skip.IfNot(RealInfra.IsEnabled);
         await using var host = await StartAsync();
         using var restricted = await WithApiTokenAsync(host.Restricted());
+        using var restrictedApprover = await WithApiTokenAsync(host.RestrictedAs(RestrictedApproverRoles));
         using var central = await WithApiTokenAsync(host.Central());
         var (own, foreign) = host.Records[typeof(EmployeePayProfile)];
 
@@ -270,8 +281,8 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
                  })
         {
             // By the foreign employee's route, and by his own employee's route with the foreign account's id.
-            Assert.Equal(HttpStatusCode.NotFound, (await restricted.PostAsJsonAsync($"{Accounts(foreign)}/{foreignAccount}/{act}", body)).StatusCode);
-            Assert.Equal(HttpStatusCode.NotFound, (await restricted.PostAsJsonAsync($"{Accounts(own)}/{foreignAccount}/{act}", body)).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await restrictedApprover.PostAsJsonAsync($"{Accounts(foreign)}/{foreignAccount}/{act}", body)).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await restrictedApprover.PostAsJsonAsync($"{Accounts(own)}/{foreignAccount}/{act}", body)).StatusCode);
         }
 
         var untouched = (await StoredAsync(host, foreign)).Single();
@@ -280,7 +291,7 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
         Assert.Equal(HttpStatusCode.OK, (await restricted.GetAsync($"/EmployeeBankAccounts?employeeId={own}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await restricted.GetAsync($"/EmployeeBankAccounts?employeeId={foreign}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await restricted.GetAsync($"/EmployeeBankAccounts/Create?employeeId={foreign}")).StatusCode);
-        Assert.Equal(HttpStatusCode.NotFound, (await restricted.GetAsync($"/EmployeeBankAccounts/Verify/{foreignAccount}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await restrictedApprover.GetAsync($"/EmployeeBankAccounts/Verify/{foreignAccount}")).StatusCode);
 
         // The list of accounts that wait: his unit's only; a central user sees both units.
         var pending = await restricted.GetStringAsync("/EmployeeBankAccounts/Pending");
@@ -298,7 +309,7 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
             Assert.DoesNotContain(Number2, page, StringComparison.OrdinalIgnoreCase);
         }
 
-        using var verification = await restricted.GetAsync($"/EmployeeBankAccounts/Verify/{ownAccount}");
+        using var verification = await restrictedApprover.GetAsync($"/EmployeeBankAccounts/Verify/{ownAccount}");
         Assert.Equal(HttpStatusCode.OK, verification.StatusCode);
         Assert.Contains(Number1, await verification.Content.ReadAsStringAsync(), StringComparison.Ordinal);
         Assert.True(verification.Headers.CacheControl?.NoStore, "The verification page must not be stored");
@@ -337,6 +348,7 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
         await using var host = await StartAsync();
         using var restricted = await WithApiTokenAsync(host.Restricted());
         using var central = await WithApiTokenAsync(host.Central());
+        using var centralApprover = await WithApiTokenAsync(host.CentralAs(ApproverRoles));
         var (own, foreign) = host.Records[typeof(EmployeePayProfile)];
         // The seed's profiles carry a unit; give both a regime too, so the copy is proved on a value.
         await host.WithDbAsync(db => db.Set<EmployeePayProfile>().ExecuteUpdateAsync(s => s.SetProperty(p => p.RegimeCode, "law50")));
@@ -369,7 +381,7 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
         });
         Assert.Equal(HttpStatusCode.Created, submitted.StatusCode);
         var requestId = (await JsonAsync(submitted)).GetProperty("requestId").GetGuid();
-        var approved = await central.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{requestId}/approve", new { note = "موافق" });
+        var approved = await centralApprover.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{requestId}/approve", new { note = "موافق" });
         Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
         Assert.Equal("Applied", (await JsonAsync(approved)).GetProperty("state").GetString());
 
@@ -492,12 +504,12 @@ public sealed class Pay055BankAccountHttpTests(PostgreSqlFixture postgres, ITest
         {
             ["Authorization:Policies:Payroll.Repair:Roles:0"] = HrManagementRoles.PayrollApprover,
         });
-        using var restricted = host.Restricted();
+        using var restricted = host.RestrictedAs(RestrictedApproverRoles);
         Assert.Equal(HttpStatusCode.Forbidden, (await restricted.GetAsync("/api/payroll/admin/antiforgery")).StatusCode);
         Assert.False((await restricted.PostAsync($"{Repair}?dryRun=false", null)).IsSuccessStatusCode);
 
         // A central approver passes both: the roles of the policy are the configured ones (and an administrator is no longer one of them).
-        using var central = await WithApiTokenAsync(host.Central(), "/api/payroll/admin/antiforgery");
+        using var central = await WithApiTokenAsync(host.CentralAs(ApproverRoles), "/api/payroll/admin/antiforgery");
         var dry = await central.PostAsync(Repair, null);
         Assert.Equal(HttpStatusCode.OK, dry.StatusCode);
         Assert.True((await JsonAsync(dry)).GetProperty("dryRun").GetBoolean());

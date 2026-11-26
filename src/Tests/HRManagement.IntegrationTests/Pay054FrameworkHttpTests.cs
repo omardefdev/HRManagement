@@ -437,9 +437,11 @@ public sealed class Pay054FrameworkCycleHttpTests(PostgreSqlFixture postgres)
         using var processor = await Pay054FrameworkHttpTests.WithApiTokenAsync(host.Central());
         using var approver = await Pay054FrameworkHttpTests.WithApiTokenAsync(host.Restricted());
         using var attestor = await Pay054FrameworkHttpTests.WithApiTokenAsync(Pay054FrameworkHttpTests.Person(host, AttestorUser, approverRoles));
-        // A person who holds both roles: once he edits the draft he is an editor, whatever his policies allow.
+        // A person who holds both roles: once he edits the draft he is an editor, whatever his policies allow. (PLAN-58: no token carries
+        // both conflicting roles, so he edits with a processor's token and acts with an approver's, the same person.)
         using var both = await Pay054FrameworkHttpTests.WithApiTokenAsync(Pay054FrameworkHttpTests.Person(
-            host, BothUser, $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollProcessor},{HrManagementRoles.PayrollApprover}"));
+            host, BothUser, $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollProcessor}"));
+        using var bothApprover = await Pay054FrameworkHttpTests.WithApiTokenAsync(Pay054FrameworkHttpTests.Person(host, BothUser, approverRoles));
 
         var imported = await processor.PostAsync("/api/payroll/frameworks/import",
             Pay054FrameworkHttpTests.ImportBody(Pay054FrameworkHttpTests.InterimPackJson(), code: "LAW_50_2004_CYC", effectiveFrom: "2031-01-01"));
@@ -462,8 +464,8 @@ public sealed class Pay054FrameworkCycleHttpTests(PostgreSqlFixture postgres)
         await AssertFormRefusalAsync(host, approver, id, "Activate", "التفعيل للنسخ المنشورة فقط");
 
         // An editor does not approve, though his role would let him.
-        await AssertApiRefusalAsync(host, both, id, "approve", "لا يعتمد النسخة من أنشأها أو استوردها أو عدّلها: يعتمدها شخص آخر");
-        await AssertFormRefusalAsync(host, both, id, "Approve", "لا يعتمد النسخة من أنشأها أو استوردها أو عدّلها");
+        await AssertApiRefusalAsync(host, bothApprover, id, "approve", "لا يعتمد النسخة من أنشأها أو استوردها أو عدّلها: يعتمدها شخص آخر");
+        await AssertFormRefusalAsync(host, bothApprover, id, "Approve", "لا يعتمد النسخة من أنشأها أو استوردها أو عدّلها");
 
         // B approves on the form. The page then offers the attestation and the publication, no longer the approval.
         var approved = await PostActAsync(approver, id, "Approve");
@@ -480,7 +482,7 @@ public sealed class Pay054FrameworkCycleHttpTests(PostgreSqlFixture postgres)
         // The approver does not attest; an editor neither; nothing is published without an attestation; an approved version is not edited in place.
         await AssertFormRefusalAsync(host, approver, id, "LegalAttest", "لا يصادق قانونياً على النسخة من اعتمدها: يصادق عليها شخص ثالث");
         await AssertApiRefusalAsync(host, approver, id, "legal-attest", "لا يصادق قانونياً على النسخة من اعتمدها: يصادق عليها شخص ثالث");
-        await AssertApiRefusalAsync(host, both, id, "legal-attest", "لا يصادق قانونياً على النسخة من أنشأها أو استوردها أو عدّلها");
+        await AssertApiRefusalAsync(host, bothApprover, id, "legal-attest", "لا يصادق قانونياً على النسخة من أنشأها أو استوردها أو عدّلها");
         await AssertApiRefusalAsync(host, approver, id, "publish", "يلزم تصديق قانوني إلكتروني (LegalAttest) قبل النشر.");
         var moved = await processor.PutAsJsonAsync($"/api/payroll/frameworks/{id:D}/effective-from", new { effectiveFrom = "2032-01-01" });
         Assert.Equal(HttpStatusCode.Conflict, moved.StatusCode);
@@ -493,7 +495,7 @@ public sealed class Pay054FrameworkCycleHttpTests(PostgreSqlFixture postgres)
         Assert.Contains("EX-STR2-TAX-INTERIM", attestation.InterimExceptionIdsJson, StringComparison.Ordinal);
 
         // An editor does not publish. B publishes on the form.
-        await AssertFormRefusalAsync(host, both, id, "Publish", "لا ينشر النسخة من أنشأها أو استوردها أو عدّلها");
+        await AssertFormRefusalAsync(host, bothApprover, id, "Publish", "لا ينشر النسخة من أنشأها أو استوردها أو عدّلها");
         var published = await PostActAsync(approver, id, "Publish");
         Assert.Equal(HttpStatusCode.Redirect, published.StatusCode);
         version = await VersionAsync(host, id);
@@ -691,8 +693,9 @@ public sealed class Pay054ManualInputHttpTests(PostgreSqlFixture postgres)
         await using var host = await Pay054FrameworkHttpTests.StartAsync(postgres);
         using var processor = host.Central();
         using var approver = host.Restricted();
-        using var both = Pay054FrameworkHttpTests.Person(
-            host, BothUser, $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollProcessor},{HrManagementRoles.PayrollApprover}");
+        // PLAN-58: the person who holds both roles enters with a processor's token and decides with an approver's (no token carries both).
+        using var both = Pay054FrameworkHttpTests.Person(host, BothUser, $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollProcessor}");
+        using var bothApprover = Pay054FrameworkHttpTests.Person(host, BothUser, $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollApprover}");
         var tenant = HRManagement.SharedKernel.Tenancy.TenantDefaults.DefaultTenantId;
         var (employee, type, postedRun) = await host.WithDbAsync(async db =>
         {
@@ -801,10 +804,10 @@ public sealed class Pay054ManualInputHttpTests(PostgreSqlFixture postgres)
             ["AdjustmentReason"] = "تسوية أدخلها صاحب الدورين",
         })).StatusCode);
         var ownId = await host.WithDbAsync(db => db.Set<PayrollAdjustment>().AsNoTracking().Where(a => a.CreatedBy == BothUser).Select(a => a.Id).SingleAsync());
-        var bothList = await Pay054FrameworkHttpTests.PageAsync(both, "/PayrollAdjustments");
+        var bothList = await Pay054FrameworkHttpTests.PageAsync(bothApprover, "/PayrollAdjustments");
         Assert.DoesNotContain($"/PayrollAdjustments/Approve/{ownId}", bothList, StringComparison.Ordinal);     // no form for his own
         Assert.Contains($"/PayrollAdjustments/Approve/{adjustment.Id}", bothList, StringComparison.Ordinal);   // a form for another's
-        var own = await both.PostAsync($"/PayrollAdjustments/Approve/{ownId}", new FormUrlEncodedContent(new Dictionary<string, string>
+        var own = await bothApprover.PostAsync($"/PayrollAdjustments/Approve/{ownId}", new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["__RequestVerificationToken"] = Token.Match(bothList).Groups[1].Value,
         }));

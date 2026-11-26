@@ -178,3 +178,30 @@ Finished (UTC): 2026-11-26T13:47:51Z
   inputs raising FR-01/05/07). Syr007RegimeGovernanceTests ported to DecideAsync (both modes). Unit filter 1048, architecture 444,
   integration (SQLite) 211 passed.
 Finished (UTC): 2026-11-26T14:11:51Z
+
+## P7 — The PostgreSQL proofs
+- Pay058DisbursementPostgreSqlTests (5, app role under forced row security, tenant wiring): two concurrent process calls of one
+  batch (a save barrier makes both read Pending) -> one sends, the other 409, one Initial file; two concurrent decisions of one
+  hold-release request -> one decides (the request's xmin), the hold released once; a failure planted in the posting's save that
+  writes the orders -> no batch, no order, run still Approved, and the same posting then makes one batch; one employee blocked by
+  FakeHrCoreServiceRegimeClient -> calculated, his order Held REGIME-BLOCKER with HR.Core's reason code, the others sent, his
+  release refused (RegimeStillBlocked) until HR.Core lifts it, then sent alone by a HeldRelease file; P-11: two runs of two months
+  calculating at once over one free deduction -> one takes it, the other stops with PayrollInputTakenException.TakenMessage and
+  writes no line.
+- Pay058MigrationPostgreSqlTests (2): PAY058 on LVA057's schema owned by a NOSUPERUSER NOBYPASSRLS role with FORCE on every tenant
+  table, two agencies: old approvals at Revision 1, old batches Source 0 and ArrearsAmount 0, old orders without hold reason or file,
+  amounts' checksum unchanged; PaymentBatchFiles and PayrollDualControlRequests under forced row security with tenant_isolation
+  (USING and WITH CHECK), cross-agency write refused, one pending request per target and one file per sequence (named indexes);
+  down to LVA057 and up again.
+- PostgreSQL HTTP classes that gave one token two conflicting payroll roles (refused since P5) now give the same person two tokens,
+  meaning kept: Pay055BankAccountHttpTests, Iam053PayrollScopeHttpTests (the generated scope sweep runs once per role, a controller
+  counts as exercised if either pass reached it), Iam053ReferenceChangeHttpTests (the own-request rule with an approver's token of
+  the requester; hr-admin's decision now 403), Pay056RunLifecycleHttpTests (foreign-agency acts by the role each policy asks for;
+  the poster's own approver token still gets DeciderIsPoster, the conflicting token 403), Pay054FrameworkHttpTests (BothUser edits
+  as processor and is refused as approver by the editor rules). Iam052PgServiceHost gained RestrictedAs/CentralAs(roles)/WithRoles.
+- Pay055TestAccounts.Iban: derived from a hash of the whole id. **Finding:** the old derivation took the GUID's first 22 hex digits,
+  so the sequential ids b0000001-...-000000000001/2/3 shared one IBAN; FR-04 (a hold since P6) held all three and the ported
+  Pay055BankAccountPostgreSqlTests sent nothing. Test data fixed, meaning kept.
+- Full Testcontainers step (CI's filter Category=Testcontainers&Category!=ObjectStorage, Debug): 332 passed, 2 failed (the two
+  PLAN-54 HTTP classes above, fixed and rerun green), 1 skipped; 18 min.
+Finished (UTC): 2026-11-26T15:00:33Z

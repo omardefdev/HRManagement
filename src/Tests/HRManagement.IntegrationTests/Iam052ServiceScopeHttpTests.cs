@@ -173,6 +173,44 @@ public sealed class Iam052PgServiceHost<TEntry, TContext> : IIam052ScopeHost, IA
     /// <summary>PLAN-58: an unrestricted caller of his own identity with the given roles (two people of a four-eyes act, a conflicting holder).</summary>
     public HttpClient CentralAs(Guid user, string roles) => Client(user, roles, null);
 
+    /// <summary>
+    /// PLAN-58 (D-PAY-20): the restricted user with other roles than the host's — the same person with another token, since no token may
+    /// carry two conflicting payroll roles (a processor's token to register or submit, an approver's to verify or decide).
+    /// </summary>
+    public HttpClient RestrictedAs(string roles) => Client(RestrictedUser, roles, OwnUnit);
+
+    /// <summary>PLAN-58: the central user with other roles than the host's (see <see cref="RestrictedAs"/>).</summary>
+    public HttpClient CentralAs(string roles) => Client(CentralUser, roles, null);
+
+    /// <summary>
+    /// PLAN-58: the same host and records seen by the generated scope test with other roles (one pass per role), and a page those roles
+    /// open to read the antiforgery token (by default the host's).
+    /// </summary>
+    public IIam052ScopeHost WithRoles(string restrictedRoles, string centralRoles, string? tokenPage = null) =>
+        new RoleView(this, restrictedRoles, centralRoles, tokenPage ?? TokenPage);
+
+    private sealed class RoleView(Iam052PgServiceHost<TEntry, TContext> host, string restrictedRoles, string centralRoles, string tokenPage)
+        : IIam052ScopeHost
+    {
+        public Assembly WebAssembly => host.WebAssembly;
+
+        public OrgScopeKeyRegistry Registry => host.Registry;
+
+        public Guid OwnUnit => host.OwnUnit;
+
+        public Guid ForeignUnit => host.ForeignUnit;
+
+        public IReadOnlyDictionary<Type, (Guid Own, Guid Foreign)> Records => host.Records;
+
+        public string TokenPage => tokenPage;
+
+        public HttpClient Restricted() => host.RestrictedAs(restrictedRoles);
+
+        public HttpClient Central() => host.CentralAs(centralRoles);
+
+        public Task<T> WithDbAsync<T>(Func<DbContext, Task<T>> work) => host.WithDbAsync(work);
+    }
+
     public async ValueTask DisposeAsync() => await Host.DisposeAsync();
 }
 

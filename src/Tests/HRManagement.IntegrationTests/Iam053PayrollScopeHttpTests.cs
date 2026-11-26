@@ -26,11 +26,19 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
     private static readonly Guid Tenant = TenantDefaults.DefaultTenantId;
     private static readonly Guid SomeoneElse = Guid.Parse("53000000-0000-4000-8000-0000000000c9");
 
-    private static readonly string CentralRoles =
-        $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollProcessor},{HrManagementRoles.PayrollApprover}";
+    /// <summary>
+    /// The host's users hold the processor's role (submit, cancel); each decides with an approver's token of his own (PLAN-58, D-PAY-20: no
+    /// token carries two conflicting payroll roles, so the same person acts with two tokens).
+    /// </summary>
+    private static readonly string CentralRoles = $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollProcessor}";
 
-    /// <summary>A payroll processor and approver restricted to a branch: no such persona exists yet (wave 2), the scope must hold anyway.</summary>
+    private static readonly string ApproverRoles = $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollApprover}";
+
+    /// <summary>A payroll processor restricted to a branch: no such persona exists yet (wave 2), the scope must hold anyway.</summary>
     private static readonly string RestrictedRoles = $"{HrManagementRoles.BranchManager},{CentralRoles}";
+
+    /// <summary>The same restricted person with an approver's token.</summary>
+    private static readonly string RestrictedApproverRoles = $"{HrManagementRoles.BranchManager},{ApproverRoles}";
 
     /// <summary>Per branch: an employee with an active profile (his profile's id is his employee id, so the generated test finds the row)
     /// and a pending request another user made for the first day of next month.</summary>
@@ -154,7 +162,24 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
         Skip.IfNot(RealInfra.IsEnabled);
         await using var host = await StartAsync();
 
-        var outcome = await Iam052ScopeHttp.RunAsync(host);
+        // PLAN-58: once with the processor's token and once with the approver's, so that every act is reached by the role it asks for.
+        var asProcessor = await Iam052ScopeHttp.RunAsync(host);
+        // The approver opens no request form; his token is read from his own unit's request, whose page carries the decision's forms.
+        var asApprover = await Iam052ScopeHttp.RunAsync(host.WithRoles(
+            RestrictedApproverRoles, ApproverRoles, $"/PayProfileChanges/Details/{host.Records[typeof(PayProfileChangeRequest)].Own}"));
+        // A controller one role cannot reach is exercised by the other: «no action» counts only when neither pass reached it.
+        const string NoAction = "no action could be exercised (a seed or a route the generator lacks)";
+        var outcome = new Iam052ScopeHttp.Outcome(
+            [.. asProcessor.Offenders.Concat(asApprover.Offenders).Where(o => !o.EndsWith(NoAction, StringComparison.Ordinal))],
+            [.. asProcessor.Exercised, .. asApprover.Exercised],
+            [.. asProcessor.Skipped, .. asApprover.Skipped]);
+        foreach (var controller in asProcessor.Offenders.Concat(asApprover.Offenders)
+                     .Where(o => o.EndsWith(NoAction, StringComparison.Ordinal))
+                     .Select(o => o[..o.IndexOf(':', StringComparison.Ordinal)])
+                     .Distinct())
+        {
+            Assert.True(outcome.Exercised.Any(line => line.StartsWith(controller + ".", StringComparison.Ordinal)), $"{controller}: no action exercised by either role");
+        }
 
         foreach (var line in outcome.Exercised)
             output.WriteLine("ok   " + line);
@@ -180,6 +205,8 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
         await using var host = await StartAsync();
         using var restricted = await WithApiTokenAsync(host.Restricted());
         using var central = await WithApiTokenAsync(host.Central());
+        using var restrictedApprover = await WithApiTokenAsync(host.RestrictedAs(RestrictedApproverRoles));
+        using var centralApprover = await WithApiTokenAsync(host.CentralAs(ApproverRoles));
         var (ownRequest, foreignRequest) = host.Records[typeof(PayProfileChangeRequest)];
         var (ownEmployee, foreignEmployee) = host.Records[typeof(EmployeePayProfile)];
 
@@ -205,14 +232,14 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
         Assert.Equal(HttpStatusCode.OK, (await central.GetAsync($"/api/payroll/pay-profile-changes/{foreignRequest}")).StatusCode);
 
         // Deciding: the other unit's request is 404 for every action and stays pending; his own is approved (scheduled: next month).
-        foreach (var action in new[] { "approve", "reject", "cancel" })
+        foreach (var (by, action) in new[] { (restrictedApprover, "approve"), (restrictedApprover, "reject"), (restricted, "cancel") })
         {
-            var refused = await restricted.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{foreignRequest}/{action}", new { note = "ملاحظة", reason = "سبب" });
+            var refused = await by.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{foreignRequest}/{action}", new { note = "ملاحظة", reason = "سبب" });
             Assert.Equal(HttpStatusCode.NotFound, refused.StatusCode);
         }
 
         Assert.Equal(PayProfileChangeState.PendingApproval, await StateAsync(host, foreignRequest));
-        var approved = await restricted.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{ownRequest}/approve", new { note = "موافق" });
+        var approved = await restrictedApprover.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{ownRequest}/approve", new { note = "موافق" });
         Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
         Assert.Equal("Scheduled", JsonDocument.Parse(await approved.Content.ReadAsStringAsync()).RootElement.GetProperty("state").GetString());
         Assert.Equal(PayProfileChangeState.Scheduled, await StateAsync(host, ownRequest));
@@ -229,8 +256,8 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
         Assert.Equal(1, PendingTile(await central.GetStringAsync("/Dashboard")));
 
         // Applying every due request of the agency is a central user's action.
-        Assert.Equal(HttpStatusCode.Forbidden, (await restricted.PostAsync("/api/payroll/pay-profile-changes/activate-due", null)).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await central.PostAsync("/api/payroll/pay-profile-changes/activate-due", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await restrictedApprover.PostAsync("/api/payroll/pay-profile-changes/activate-due", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await centralApprover.PostAsync("/api/payroll/pay-profile-changes/activate-due", null)).StatusCode);
     }
 
     private static int PendingTile(string html)
@@ -248,6 +275,8 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
         await using var host = await StartAsync();
         using var restricted = await WithApiTokenAsync(host.Restricted());
         using var central = await WithApiTokenAsync(host.Central());
+        using var restrictedApprover = await WithApiTokenAsync(host.RestrictedAs(RestrictedApproverRoles));
+        using var centralApprover = await WithApiTokenAsync(host.CentralAs(ApproverRoles));
         var mine = await AddEmployeeAsync(host, host.OwnUnit);
         var alsoMine = await AddEmployeeAsync(host, host.OwnUnit);
         var theirs = await AddEmployeeAsync(host, host.ForeignUnit);
@@ -294,13 +323,13 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
         });
         Assert.Equal(HttpStatusCode.BadRequest, midMonth.StatusCode);
         Assert.Matches(@"\p{IsArabic}", JsonDocument.Parse(await midMonth.Content.ReadAsStringAsync()).RootElement.GetProperty("error").GetString()!);
-        var own = await restricted.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{createdId}/approve", new { note = "" });
+        var own = await restrictedApprover.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{createdId}/approve", new { note = "" });
         Assert.Equal(HttpStatusCode.Forbidden, own.StatusCode);
         Assert.Equal("لا يجوز اعتماد الطلب من طالبه", JsonDocument.Parse(await own.Content.ReadAsStringAsync()).RootElement.GetProperty("error").GetString());
         Assert.Equal(PayProfileChangeState.PendingApproval, await StateAsync(host, createdId));
 
         // The central user, another person, approves it; then the requester cancels his scheduled request.
-        Assert.Equal(HttpStatusCode.OK, (await central.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{createdId}/approve", new { note = "موافق" })).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await centralApprover.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{createdId}/approve", new { note = "موافق" })).StatusCode);
         Assert.Equal(HttpStatusCode.BadRequest, (await restricted.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{createdId}/cancel", new { reason = "" })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await restricted.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{createdId}/cancel", new { reason = "أُلغي القرار" })).StatusCode);
         Assert.Equal(PayProfileChangeState.Cancelled, await StateAsync(host, createdId));
@@ -393,21 +422,22 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
         Skip.IfNot(RealInfra.IsEnabled);
         await using var host = await StartAsync();
         using var central = host.Central();
+        using var centralApprover = host.CentralAs(ApproverRoles);
         using var other = await WithApiTokenAsync(host.Restricted());
         var (ownRequest, _) = host.Records[typeof(PayProfileChangeRequest)];
         var employee = await AddEmployeeAsync(host, host.OwnUnit);
         var before = await RequestCountAsync(host);
 
-        // No token: every POST is refused (400) before it reaches its handler, for a user who holds every payroll role.
+        // No token: every POST is refused (400) before it reaches its handler, for a user who holds the act's role.
         var submit = await central.PostAsJsonAsync("/api/payroll/pay-profile-changes", Body(employee));
         Assert.Equal(HttpStatusCode.BadRequest, submit.StatusCode);
-        foreach (var action in new[] { "approve", "reject", "cancel" })
+        foreach (var (by, action) in new[] { (centralApprover, "approve"), (centralApprover, "reject"), (central, "cancel") })
         {
-            var refused = await central.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{ownRequest}/{action}", new { note = "ملاحظة", reason = "سبب" });
+            var refused = await by.PostAsJsonAsync($"/api/payroll/pay-profile-changes/{ownRequest}/{action}", new { note = "ملاحظة", reason = "سبب" });
             Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
         }
 
-        Assert.Equal(HttpStatusCode.BadRequest, (await central.PostAsync("/api/payroll/pay-profile-changes/activate-due", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.BadRequest, (await centralApprover.PostAsync("/api/payroll/pay-profile-changes/activate-due", null)).StatusCode);
         Assert.Equal(before, await RequestCountAsync(host));
         Assert.Equal(PayProfileChangeState.PendingApproval, await StateAsync(host, ownRequest));
 
@@ -424,7 +454,7 @@ public sealed class Iam053PayrollScopeHttpTests(PostgreSqlFixture postgres, ITes
         {
             forged.Headers.Add(header, foreignToken);
             forged.Content = JsonContent.Create(new { note = "ملاحظة" });
-            Assert.Equal(HttpStatusCode.BadRequest, (await central.SendAsync(forged)).StatusCode);
+            Assert.Equal(HttpStatusCode.BadRequest, (await centralApprover.SendAsync(forged)).StatusCode);
         }
 
         Assert.Equal(PayProfileChangeState.PendingApproval, await StateAsync(host, ownRequest));
