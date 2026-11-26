@@ -889,6 +889,12 @@ namespace Payroll.Infrastructure.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("AppliedInRunId");
@@ -1799,6 +1805,10 @@ namespace Payroll.Infrastructure.Migrations
                     b.Property<DateTime?>("AckedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<decimal>("ArrearsAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<string>("BankTransferReference")
                         .HasColumnType("text");
 
@@ -1840,6 +1850,9 @@ namespace Payroll.Infrastructure.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<int>("Source")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1875,6 +1888,77 @@ namespace Payroll.Infrastructure.Migrations
                         .HasFilter("\"BankTransferReference\" IS NOT NULL");
 
                     b.ToTable("PaymentBatches");
+                });
+
+            modelBuilder.Entity("Payroll.Domain.Entities.PaymentBatchFile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<int>("ControlCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("ControlTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("GeneratedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("PaymentBatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReissueApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReissueReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("SupersededById")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentBatchId", "Sequence")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PaymentBatchFiles_Batch_Sequence");
+
+                    b.ToTable("PaymentBatchFiles");
                 });
 
             modelBuilder.Entity("Payroll.Domain.Entities.PaymentHold", b =>
@@ -1995,10 +2079,17 @@ namespace Payroll.Infrastructure.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<string>("HoldReason")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<string>("IdempotencyKey")
                         .IsRequired()
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
+
+                    b.Property<Guid?>("PaymentBatchFileId")
+                        .HasColumnType("uuid");
 
                     b.Property<Guid>("PaymentBatchId")
                         .HasColumnType("uuid");
@@ -2044,6 +2135,8 @@ namespace Payroll.Infrastructure.Migrations
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PaymentBatchFileId");
 
                     b.HasIndex("PaymentBatchId");
 
@@ -2112,6 +2205,12 @@ namespace Payroll.Infrastructure.Migrations
 
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
 
                     b.HasKey("Id");
 
@@ -2468,6 +2567,72 @@ namespace Payroll.Infrastructure.Migrations
                     b.ToTable("PayrollConfigurationFieldSources");
                 });
 
+            modelBuilder.Entity("Payroll.Domain.Entities.PayrollDualControlRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DecidedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DecisionNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Kind", "TargetId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PayrollDualControlRequests_OnePending")
+                        .HasFilter("\"Status\" = 0");
+
+                    b.HasIndex("TenantId", "Status", "Kind");
+
+                    b.ToTable("PayrollDualControlRequests");
+                });
+
             modelBuilder.Entity("Payroll.Domain.Entities.PayrollReferenceChangeRequest", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2775,6 +2940,9 @@ namespace Payroll.Infrastructure.Migrations
 
                     b.Property<Guid>("PayrollRunId")
                         .HasColumnType("uuid");
+
+                    b.Property<int>("Revision")
+                        .HasColumnType("integer");
 
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
@@ -3529,6 +3697,15 @@ namespace Payroll.Infrastructure.Migrations
                     b.Navigation("FundingDecision");
 
                     b.Navigation("PayrollRun");
+                });
+
+            modelBuilder.Entity("Payroll.Domain.Entities.PaymentBatchFile", b =>
+                {
+                    b.HasOne("Payroll.Domain.Entities.PaymentBatch", null)
+                        .WithMany()
+                        .HasForeignKey("PaymentBatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Payroll.Domain.Entities.PayrollAdjustment", b =>

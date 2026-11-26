@@ -78,8 +78,21 @@ dotnet test src/Tests/HRManagement.ArchitectureTests/HRManagement.ArchitectureTe
   `TotalAdjustments`، رمز منع التزوير على كل كتابة في متحكمات التشغيل وعلى إلغاء المهمة القديم (`POST api/payroll/jobs/{id}/cancel`)، صف `IPayrollReversed` في جرد الناشرين، و
   `AcPay56RunStateMachineTests` مطلوبة في prod-like (مجموعة `main`). صنف القبول يأخذ أشهر كانون الثاني–حزيران 2028 للجهة A
   (تحكمها نسخة البذرة v1 ولا يأخذها صنف آخر): إعادة تشغيله على المكدس نفسه تتوقف عند شرط 56a، ولا يترك مدخلاً حراً بمبلغ
-  في الجهة A (شرط AC-PAY-55c باقٍ بسبب العزل بين الأصناف). ترحيل تشغيلاته يحتاج سجل مراجعة مغلقاً يصنعه
-  `scripts/acceptance-payroll-audit-fixture.ps1` شرطاً مسبقاً للاختبار وحده (G-PAY-05، PLAN-58).
+  في الجهة A (شرط AC-PAY-55c باقٍ بسبب العزل بين الأصناف). ترحيل تشغيلاته يمر منذ PLAN-58 بالمراجعة المستقلة عبر API: يفتحها
+  `acc-auditor` ويغلقها `acc-a-auditor-2` (`AcceptancePayrollReview`)، وحُذف `scripts/acceptance-payroll-audit-fixture.ps1`.
+- منذ PLAN-58 (حوكمة الصرف): `Pay058SinglePaymentPathArchitectureTests` يفشل عند إنشاء `PaymentBatch` خارج المُصدِر (والبذرة
+  المسمّاة) وعند إرسال أوامر خارج `process` و`submit-held` وعند عودة مسار أُزيل (`partial-disburse`، تصدير الخزينة).
+  `PayrollWriteActionsTests` يثبّت سياسة كل كتابة جديدة ومن يبلغها، و`GatewayAuditorReachTests` ما يبلغه المدقق عبر البوابة.
+  اختبارات التكامل على SQLite: `Pay058PaymentPathTests`، `Pay058BankFileTests`، `Pay058DualControlTests`،
+  `Pay058ApprovalReviewTests`، `Pay058RoleConflictTests`، `Pay058HeldEmployeeTests`. وعلى PostgreSQL (Testcontainers):
+  `Pay058DisbursementPostgreSqlTests` (معالجتان متزامنتان → ملف واحد، قراران متزامنان → واحد، فشل بعد أوامر الترحيل لا يترك دفعة،
+  حاجز نظام الخدمة لموظف واحد، وسباق مدخل حر بين تشغيلين) و`Pay058MigrationPostgreSqlTests` (الهجرة بدور غير مميز تحت أمان صفوف
+  مفروض). صنف HTTP على PostgreSQL أعطى رمزاً واحداً دورين متعارضين صار يعطي الشخص نفسه رمزين (المعنى محفوظ). صنف القبول
+  `AcPay58DisbursementGovernanceTests` (AC-PAY-58a..h) مطلوب في prod-like (مجموعة `main`)، يأخذ أشهر 2030 للجهة A، ويمنح موظفيه
+  حسابات محققة أولاً (لا تعطي البذرة أحداً حساباً، والأمر بلا حساب يُحجز `NO-ACCOUNT`)، ولا يترك حجزاً نشطاً ولا تنبيهاً حرجاً
+  مفتوحاً ولا حساباً مشتركاً أو غير محقق ولا طلباً معلقاً ولا مدخلاً حراً بمبلغ أكثر مما وجد. أُعيدت كتابة AC-24 (تمويل جزئي
+  بعد الترحيل على الدفعة) وAC-25 (حجز احتيال FR-04 لموظفين يحجز أمريهما فقط، وإفراج بأربع عيون ثم ملف تكميلي) على المختبر،
+  ودليلهما المعتمد مُخرَج تشغيل الـPR. `scripts/pay058-validate.ps1` (ومعه `-SelfTest`) يجمع ثوابت الخطة.
 - منذ PLAN-57 (فترة حضور مغلقة وتسليم للرواتب): `AttendanceSingleWriterArchitectureTests` يفشل عند أي كتابة ليوم حضور خارج
   `AttendanceDayWriter` (والبذرة التجريبية وحدها مستثناة). اختبارات الوحدة `Lva057*` (المحسبة، الكاتب، مسارا الإجازة، الإغلاق،
   قواعد التصحيح، استرداد قاعدة الغياب، وما وجدته المراجعة المستقلة في `Lva057ReviewFixTests`). اختبارات التكامل على SQLite:

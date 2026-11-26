@@ -55,6 +55,48 @@ public class PaymentBatch : BaseEntity
     /// <summary>PAY-004: amount actually disbursed (may be less than TotalAmount).</summary>
     public decimal DisbursedAmount { get; set; }
 
+    /// <summary>
+    /// PLAN-58 (§1 rule 2): the part of the run's net that the funding decision left as arrears (zero without a decision). The batch's
+    /// orders that are not cancelled plus this amount are the run's payable net at every transition of the batch
+    /// (<c>PaymentBatchLedger</c>). A snapshot taken by the decision: a later adjustment of an arrears row does not move it.
+    /// </summary>
+    [Display(Name = "المتأخرات")]
+    public decimal ArrearsAmount { get; set; }
+
+    /// <summary>PLAN-58 (P-5): where the batch came from. <see cref="PaymentBatchSource.Legacy"/> for a batch older than this plan.</summary>
+    [Display(Name = "مصدر الدفعة")]
+    public PaymentBatchSource Source { get; set; } = PaymentBatchSource.Legacy;
+
+    /// <summary>
+    /// PLAN-58 (P-5): the one named way a seed makes a batch at construction (the demo and acceptance seeds). Product code makes a batch
+    /// only through <c>PaymentBatchIssuer</c>; <c>Pay058SinglePaymentPathArchitectureTests</c> allows this call in the seeder alone.
+    /// </summary>
+    public static PaymentBatch Seeded(
+        Guid id,
+        Guid tenantId,
+        Guid payrollRunId,
+        string bankTransferReference,
+        decimal totalAmount,
+        decimal disbursedAmount,
+        DateTime? processedAt,
+        PaymentBatchStatus status,
+        DateTime createdAt) =>
+        new()
+        {
+            Id = id,
+            TenantId = tenantId,
+            PayrollRunId = payrollRunId,
+            BankTransferReference = bankTransferReference,
+            TotalAmount = totalAmount,
+            DisbursedAmount = disbursedAmount,
+            ProcessedAt = processedAt,
+            Status = status,
+            BatchKind = PaymentBatchKind.Disbursement,
+            Source = PaymentBatchSource.Seeded,
+            CreatedAt = createdAt,
+            UpdatedAt = createdAt,
+        };
+
     public PayrollRun PayrollRun { get; set; } = null!;
     public FundingDecision? FundingDecision { get; set; }
 }

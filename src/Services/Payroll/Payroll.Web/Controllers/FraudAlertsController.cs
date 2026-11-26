@@ -15,7 +15,6 @@ namespace Payroll.Web.Controllers;
 
 public class FraudAlertsController(
     PayrollDbContext db,
-    PaymentHoldService holdService,
     IEmployeeLookup employeeLookup) : Controller
 {
     private Guid RequireUserId()
@@ -96,49 +95,50 @@ public class FraudAlertsController(
         return RedirectToAction(nameof(Details), new { id });
     }
 
+    /// <summary>
+    /// PLAN-58 (§3 rule 1): an alert that is not critical is resolved by one act of its resolver (who is not recorded as its approver, and
+    /// releases no hold: a hold is released by four eyes). A critical alert is a request another approver decides from «طلبات بانتظار
+    /// قرارك»; its decision resolves the alert and releases its hold. No approver comes from the form.
+    /// </summary>
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
     public async Task<IActionResult> Resolve(
         Guid id,
         string resolutionReason,
         string targetStatus,
-        Guid? approvedBy,
-        bool releaseHold = false)
+        [FromServices] PayrollDualControlService dualControl)
     {
         var alert = await db.FraudAlerts.FirstOrDefaultAsync(a => a.Id == id);
         if (alert is null) return NotFound();
+        var status = string.IsNullOrWhiteSpace(targetStatus) ? FraudAlertStatus.Resolved : targetStatus;
 
-        var resolvedBy = RequireUserId();
-        var approver = approvedBy ?? Guid.Empty;
-        if (approver == Guid.Empty)
+        if (alert.Severity == FraudAlertSeverity.Critical)
         {
-            var formApprover = Request.Form["ApprovedBy"].ToString();
-            _ = Guid.TryParse(formApprover, out approver);
-        }
-
-        PaymentHold? hold = null;
-        if (releaseHold && alert.PaymentHoldId.HasValue)
-        {
-            hold = await db.PaymentHolds.FirstOrDefaultAsync(h => h.Id == alert.PaymentHoldId.Value);
-        }
-
-        try
-        {
-            holdService.ResolveAlert(
-                alert,
-                hold,
-                resolvedBy,
-                approver == Guid.Empty ? resolvedBy : approver,
-                resolutionReason ?? "",
-                string.IsNullOrWhiteSpace(targetStatus) ? FraudAlertStatus.Resolved : targetStatus,
-                releaseHold);
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
-        {
-            TempData["Error"] = ex.Message;
+            var requested = await dualControl.RequestAsync(
+                Payroll.Domain.Enums.PayrollDualControlKind.CriticalAlertResolve, id,
+                new PayrollDualControlPayload(resolutionReason ?? string.Empty, TargetStatus: status), RequireUserId(), HttpContext.RequestAborted);
+            TempData[requested.Success ? "Success" : "Error"] = requested.Success
+                ? "التنبيه حرج: سُجّل طلب حله، ويقرّره معتمد آخر من «طلبات بانتظار قرارك»"
+                : requested.Error;
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        if (alert.Status is not (FraudAlertStatus.Open or FraudAlertStatus.UnderReview))
+        {
+            TempData["Error"] = PayrollDualControlMessages.AlertNotOpen;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (string.IsNullOrWhiteSpace(resolutionReason) || status is not (FraudAlertStatus.Resolved or FraudAlertStatus.Dismissed))
+        {
+            TempData["Error"] = string.IsNullOrWhiteSpace(resolutionReason) ? PayrollDualControlMessages.ReasonRequired : PayrollDualControlMessages.AlertTargetStatus;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        alert.Status = status;
+        alert.ResolvedBy = RequireUserId();
+        alert.ResolutionReason = resolutionReason.Trim();
+        alert.UpdatedAt = DateTime.UtcNow;
         await db.SaveChangesAsync();
         TempData["Success"] = "تم حل التنبيه";
         return RedirectToAction(nameof(Details), new { id });

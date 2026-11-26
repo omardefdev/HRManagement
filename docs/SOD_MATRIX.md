@@ -143,3 +143,23 @@ instance with the people to exclude; the engine bars them from every step, and t
 The committee and the appeal keep their own rules: the session's creator, and the assigned reviewer.
 
 The legacy path of `ApprovedCV` checks the step's role, and only the requester or `hr-admin` cancels.
+
+## Payroll disbursement (PLAN-58, D-PAY-3, D-PAY-5, D-PAY-19, D-PAY-20)
+
+| Act | Who | Not who |
+|---|---|---|
+| Calculate, submit a run | `payroll-processor` (`Payroll.Process`) | — |
+| Approve a run | `payroll-approver` (`Payroll.Approve`); **above `Payroll:Approval:DualApprovalThreshold` (50,000,000) two different approvers** of the run's present version («اعتماد 1 من 2») | the run's creator; an approver already counted |
+| Review a run before its posting | `auditor` (`Payroll.AuditReview`, roles from `Payroll:Audit:ReviewerRoles`): one opens the record, **another** closes it | whoever made, approved or posts the run; the opener closing |
+| Post a run | `payroll-poster` (`Payroll.Post`) | any approver of the run; a reviewer |
+| Fund a posted batch | `payroll-approver` | — |
+| Send a batch (`process`, `submit-held`) | `payroll-poster` | the run's creator, its approvers, the funding decider |
+| Release a hold, resolve a critical alert, adjust arrears, reissue a file, record a settlement or rejection | a request by one person, decided by **another** holder of `Payroll.Approve` | the requester |
+
+**Conflicting holders.** The pairs of `SodMatrixDefaults` (processor/approver, approver/poster, processor/poster) are refused at the
+policy: a token that carries a conflicting pair passes none of Payroll's five financial policies (`Payroll.Process`, `.Approve`, `.Post`,
+`.Reverse`, `.AuditReview`; `PayrollRoleConflictRequirement`), 403 with the pair named and a `RoleConflict` line in the security audit.
+`hr-admin` counts as processor and approver everywhere, and as poster where `Payroll.Post` keeps him (demo, lab), so he is refused every
+financial act. `Payroll:Sod:RejectConflictingRoleHolders=false` lets a holder pass, still audited. The realm import refuses a persona
+with a conflicting pair unless it is marked `sodConflictFixture` (`scripts/keycloak/persona-role-conflicts.ps1`); the acceptance
+personas hold one such fixture, `acc-a-payroll-multirole`.

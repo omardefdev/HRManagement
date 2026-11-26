@@ -30,6 +30,12 @@ public static class PaymentHoldType
     public const string Fraud = "Fraud";
     public const string ProofOfLife = "ProofOfLife";
     public const string Manual = "Manual";
+
+    /// <summary>
+    /// PLAN-58 (D-PAY-4): HR.Core reports the employee blocked by his service regime. His line is calculated and his order held; the
+    /// release is four eyes, and HR.Core must answer «not blocked» at the moment of the decision.
+    /// </summary>
+    public const string RegimeBlocker = "REGIME-BLOCKER";
 }
 
 /// <summary>FRD-001 proof-of-life record statuses.</summary>

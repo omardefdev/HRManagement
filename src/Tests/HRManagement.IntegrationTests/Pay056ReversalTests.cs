@@ -181,7 +181,7 @@ public class Pay056ReversalTests
         Assert.Equal(PayrollReversalMessages.MoneyHasLeft, decided.Error);
         Assert.Equal(PayrollRunStatus.Posted, (await scope.RunAsync(runId)).Status);
         Assert.Equal(PaymentBatchStatus.Pending, (await BatchAsync(scope, runId)).Status);
-        Assert.Equal(status, (await scope.Db.PaymentOrders.AsNoTracking().SingleAsync()).Status);
+        Assert.Equal(status, (await scope.Db.PaymentOrders.AsNoTracking().SingleAsync(o => o.IdempotencyKey == "left")).Status);
     }
 
     [Fact]

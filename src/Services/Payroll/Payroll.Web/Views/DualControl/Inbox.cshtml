@@ -1,0 +1,67 @@
+@model IReadOnlyList<Payroll.Web.ViewModels.DualControlInboxRowViewModel>
+@using Payroll.Domain.Enums
+@{
+    ViewData["Title"] = "طلبات بانتظار قرارك";
+}
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title mb-0">طلبات بانتظار قرارك</h3>
+    </div>
+    <div class="card-body">
+        @if (TempData["Error"] != null) { <div class="alert alert-danger">@TempData["Error"]</div> }
+        @if (TempData["Success"] != null) { <div class="alert alert-success">@TempData["Success"]</div> }
+        <p class="text-muted small">
+            كل «أربع عيون» فعلان من شخصين: طلبٌ بسببه، وقرارٌ من شخص آخر يملك صلاحية النوع. لا تظهر هنا طلباتك أنت.
+            اعتماد الطلب ينفّذ أثره فوراً (الإفراج، حل التنبيه، تعديل القيد، إعادة إصدار الملف، تسجيل التسوية أو الرفض)، والرفض يحتاج ملاحظة ولا يغيّر شيئاً.
+            الطلب الذي لا يُقرَّر قبل انتهاء مهلته يُغلق بلا أثر.
+        </p>
+        <table class="table table-striped align-middle">
+            <thead>
+                <tr><th>النوع</th><th>المعني</th><th>السبب</th><th>المبلغ</th><th>الطالب</th><th>تاريخ الطلب</th><th>تنتهي مهلته</th><th>القرار</th></tr>
+            </thead>
+            <tbody>
+            @foreach (var row in Model)
+            {
+                <tr>
+                    <td>@Html.HrEnumDisplay(row.Kind)</td>
+                    <td>
+                        @if (row.Target?.EmployeeName is { } employeeName)
+                        {
+                            <span>@employeeName</span>
+                        }
+                        @if (row.Target?.PaymentBatchId is Guid batchId)
+                        {
+                            <a asp-controller="PaymentBatches" asp-action="Details" asp-route-id="@batchId">صفحة الدفعة</a>
+                        }
+                        @if (row.Target is null || (row.Target.EmployeeName is null && row.Target.PaymentBatchId is null))
+                        {
+                            <span class="text-muted">—</span>
+                        }
+                    </td>
+                    <td>@row.Reason @(row.Reference is { Length: > 0 } reference ? $"— مرجع الكشف {reference}" : "")</td>
+                    <td>
+                        @if (row.Amount is decimal amount) { <span>@amount.ToString("N2")</span> }
+                        else if (row.OriginalAmount is decimal original) { <span>المستحق @original.ToString("N2") — المدفوع @(row.PaidAmount?.ToString("N2") ?? "—")</span> }
+                        else { <span>—</span> }
+                    </td>
+                    <td>@Html.HrUserName(row.RequestedBy)</td>
+                    <td>@Html.HrDateTime(row.RequestedAt)</td>
+                    <td>@Html.HrDateTime(row.ExpiresAt)</td>
+                    <td>
+                        <form asp-action="Decide" asp-route-id="@row.Id" method="post" class="d-flex flex-wrap gap-1 align-items-center">
+                            @Html.AntiForgeryToken()
+                            <input name="notes" class="form-control form-control-sm" placeholder="ملاحظة القرار (مطلوبة للرفض)" aria-label="ملاحظة القرار" />
+                            <button type="submit" name="approve" value="true" class="btn btn-success btn-sm" data-hr-confirm="اعتماد الطلب وتنفيذ أثره الآن؟">اعتماد</button>
+                            <button type="submit" name="approve" value="false" class="btn btn-outline-danger btn-sm">رفض</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            @if (Model.Count == 0)
+            {
+                <tr><td colspan="8" class="text-center text-muted py-3">لا توجد طلبات بانتظار قرارك</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

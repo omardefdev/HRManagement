@@ -173,7 +173,7 @@ public class PayrollEnginePipelineTests
         run.SubmitForReview();
         Assert.Equal(PayrollRunStatus.UnderReview, run.Status);
 
-        run.Approve(Guid.NewGuid());
+        run.Approve(Guid.NewGuid(), requiredApprovals: 1);
         Assert.Equal(PayrollRunStatus.Approved, run.Status);
 
         // PLAN-56: the posting keeps the total the validation froze; it writes no amount.

@@ -6,6 +6,7 @@ using HR.Core.Infrastructure.Services.Recruitment;
 using HRManagement.SharedKernel.Legal;
 using Microsoft.EntityFrameworkCore;
 using Moq;
+using Payroll.Application.Options;
 using Payroll.Application.Services;
 using Payroll.Domain.Enums;
 
@@ -136,14 +137,28 @@ public class Syr007RegimeGovernanceTests
         client.Setup(c => c.GetPayrollBlockersAsync(It.IsAny<IReadOnlyList<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync([new HrCorePayrollBlockerDto(employeeId, true, ServiceRegimePayrollBlockService.OpenExceptionReason)]);
 
-        var error = await PayrollRegimeGovernance.ValidateEmployeesAsync(
+        // An agency that keeps Payroll:Blockers:Mode=BlockRun: the calculation is refused, as before PLAN-58.
+        var blockRun = await PayrollRegimeGovernance.DecideAsync(
             PayrollRunType.Regular,
             [employeeId],
             client.Object,
-            blocksFinalPayroll: true);
+            blocksFinalPayroll: true,
+            PayrollBlockerMode.BlockRun);
 
-        Assert.NotNull(error);
-        Assert.Contains("استثناء نظام خدمة", error);
+        Assert.NotNull(blockRun.Refusal);
+        Assert.Contains("استثناء نظام خدمة", blockRun.Refusal);
+
+        // PLAN-58 (D-PAY-4) default HoldEmployee: no refusal; the blocked employee is named, to be held alone.
+        var holdEmployee = await PayrollRegimeGovernance.DecideAsync(
+            PayrollRunType.Regular,
+            [employeeId],
+            client.Object,
+            blocksFinalPayroll: true,
+            PayrollBlockerMode.HoldEmployee);
+
+        Assert.Null(holdEmployee.Refusal);
+        Assert.Equal(employeeId, Assert.Single(holdEmployee.Blocked).EmployeeId);
+        Assert.Contains(ServiceRegimePayrollBlockService.OpenExceptionReason, PayrollRegimeGovernance.HoldReason(holdEmployee.Blocked[0].ReasonCode), StringComparison.Ordinal);
     }
 
     private static async Task<Employee> SeedEmployeeWithRegimeAsync(HRCoreDbContext db, string regimeId)

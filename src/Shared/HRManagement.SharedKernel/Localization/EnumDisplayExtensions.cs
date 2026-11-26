@@ -76,6 +76,8 @@ public static class EnumDisplayExtensions
             ["fraud"] = "احتيال",
             ["proofoflife"] = "إثبات حياة",
             ["manual"] = "يدوي",
+            // PLAN-58 (D-PAY-4): a service-regime blocker's hold.
+            ["regime-blocker"] = "حاجز نظام الخدمة",
             // PLAN-67 (G-UX-03): codes stored as text that the interface prints.
             ["planned"] = "مخطط لها",
             ["ended"] = "منتهٍ",

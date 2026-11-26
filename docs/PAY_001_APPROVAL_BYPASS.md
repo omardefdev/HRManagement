@@ -125,3 +125,25 @@ The contract: [PAYROLL_SALARY_CHANGE.md](PAYROLL_SALARY_CHANGE.md). Validation: 
 
 - `scripts/pay001-validate.ps1`
 - `Pay001ApprovalBypassTests`
+
+## PLAN-58: one payment path (D-PAY-2)
+
+Money leaves by one path, and an architecture test (`Pay058SinglePaymentPathArchitectureTests`) and `scripts/pay058-validate.ps1` hold it:
+
+1. **The posting makes the batch.** `PostPayrollRunHandler` calls `PaymentBatchIssuer.IssueAsync` in the posting's transaction: one
+   `Disbursement` batch (`Source = PayrollRunPosted`) and one payment order per line with a positive net, pinned to the line's bank
+   account; a line with no pinned account gets an order held `NO-ACCOUNT`. A failure after the orders leaves no batch
+   (`Pay058DisbursementPostgreSqlTests`). `new PaymentBatch` exists only in the issuer and in the entity's `PaymentBatch.Seeded` (the
+   demo and acceptance seeds).
+2. **A funding decision comes after the posting.** `POST api/payroll/payment-batches/{id}/funding-decisions` (`Payroll.Approve`) on a
+   `Pending` batch of a posted run, once; the approved amount is spread over the orders by the pinned framework's priority rules and the
+   rest is arrears (`PaymentBatch.ArrearsAmount`, arrears ledger rows). The old route on a run is kept as an alias that answers 400 for
+   a run that is not posted.
+3. **Only the poster sends.** `POST .../process` (the batch's first sending) and `POST .../submit-held` (orders released since) are
+   `Payroll.Post`'s; the caller is none of the run's creator, approvers or the funding decider. Each runs the fraud scan and the gate per
+   employee in the same request, submits the orders that are not held, and writes **one bank file per sending**.
+4. **Removed:** `POST api/payroll/runs/{id}/partial-disburse`, the treasury exports (`ExportTreasuryFile`, the bundle) and every path
+   that made a batch outside the posting. A second `process` is 409 and makes no second file.
+
+The invariant after every act on a batch (`PaymentBatchLedger`): the sum of its non-cancelled orders plus `ArrearsAmount` equals the
+sum of the run's positive line nets.

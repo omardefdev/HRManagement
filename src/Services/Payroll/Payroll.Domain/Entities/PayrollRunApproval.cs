@@ -28,5 +28,12 @@ public class PayrollRunApproval : BaseEntity
     [Display(Name = "تاريخ القرار")]
     public DateTime? DecidedAt { get; set; }
 
+    /// <summary>
+    /// PLAN-58 (D-PAY-5): the version of the run's results the decision was taken on (<see cref="PayrollRun.Revision"/>). The approvals
+    /// a run needs are counted on its present version: a rejection reopens the run and its earlier approvals no longer count.
+    /// </summary>
+    [Display(Name = "رقم النسخة")]
+    public int Revision { get; set; } = 1;
+
     public PayrollRun PayrollRun { get; set; } = null!;
 }

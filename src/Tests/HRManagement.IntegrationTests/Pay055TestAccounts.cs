@@ -16,7 +16,10 @@ internal static class Pay055TestAccounts
 
     public static string Iban(Guid employeeId, int variant = 0)
     {
-        var bban = $"{variant:D2}{employeeId:N}".ToUpperInvariant()[..24];
+        // PLAN-58: from a hash of the whole id, so that employees whose ids share a prefix (b0000001-…-000000000001, …02) never share an
+        // account by accident: FR-04 holds every employee of a shared account.
+        var digest = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(employeeId.ToByteArray()));
+        var bban = $"{variant:D2}{digest}"[..24];
         return "SY" + BankAccountNumberValidator.ComputeIbanCheckDigits("SY", bban) + bban;
     }
 

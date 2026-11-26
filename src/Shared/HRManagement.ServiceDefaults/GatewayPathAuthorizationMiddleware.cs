@@ -336,6 +336,12 @@ public sealed class GatewayPathAuthorizationMiddleware(RequestDelegate next)
             return true;
         }
 
+        // PLAN-58 (§4, D-PAY-3): the independent reviewer reaches the review screens, the two review API writes, a run's read and the
+        // module's static files, and no other payroll path (GatewayPayrollReviewPaths); the module's users keep the run's read.
+        if (string.Equals(moduleSegment, "payroll", StringComparison.OrdinalIgnoreCase)
+            && GatewayPayrollReviewPaths.TryGetPolicy(httpMethod, pathValue, out policy))
+            return true;
+
         if (string.Equals(moduleSegment, "payroll", StringComparison.OrdinalIgnoreCase) && IsMutating(httpMethod))
         {
             // Controllers own action-level process/approve/post/reverse authorization. The gateway

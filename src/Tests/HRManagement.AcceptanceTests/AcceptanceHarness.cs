@@ -185,6 +185,13 @@ public static class AcceptanceHarness
         CreateAntiforgeryClientAsync(persona, correlationId, "api/payroll/pay-profile-changes/antiforgery");
 
     /// <summary>
+    /// PLAN-58 (§4): a bearer client for the independent review (the auditor reaches Payroll's review paths only, through the gateway):
+    /// it holds the antiforgery cookie of <c>api/payroll/audit-records/antiforgery</c>.
+    /// </summary>
+    public static Task<HttpClient> CreatePayrollAuditClientAsync(E2ePersona persona, string correlationId) =>
+        CreateAntiforgeryClientAsync(persona, correlationId, "api/payroll/audit-records/antiforgery");
+
+    /// <summary>
     /// PLAN-57: a bearer client for HR.Core's attendance API (the close, and the corrections' request and decisions). It holds the
     /// antiforgery cookie of <c>api/attendance/periods/antiforgery</c> and sends the request token on every call; a token of that
     /// endpoint is accepted by the service's other API writes.

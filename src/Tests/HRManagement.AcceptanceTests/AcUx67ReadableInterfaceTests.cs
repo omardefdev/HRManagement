@@ -240,7 +240,7 @@ public class AcUx67ReadableInterfaceTests
     [SkippableFact]
     public async Task Ac67a_every_key_page_carries_one_policy_and_no_violation_and_a_planted_inline_handler_is_caught()
     {
-        var r = Start("67a", "AC-UX-67a: the key pages carry one CSP policy each and raise no securitypolicyviolation; a planted inline handler is caught", "a-directory-checker, central-a");
+        var r = Start("67a", "AC-UX-67a: the key pages carry one CSP policy each and raise no securitypolicyviolation; a planted inline handler is caught", "a-directory-checker, central-a, auditor");
         await using var chromium = await Chromium.LaunchAsync();
         var admin = await chromium.SignInAsync("a-directory-checker");
         var central = await chromium.SignInAsync("central-a");
@@ -252,8 +252,13 @@ public class AcUx67ReadableInterfaceTests
         var pages = await WithAttendanceRecordsAsync(draftPages);
         try
         {
-            var results = await Ux067PageProbe.ProbeAsync(chromium.Browser, BaseUrl, admin, pages, [(1366, 768)],
+            var adminResults = await Ux067PageProbe.ProbeAsync(chromium.Browser, BaseUrl, admin, pages, [(1366, 768)],
                 Path.Combine(r.Folder, "csp-pages"));
+            // PLAN-58: the review records' pages, as the auditor (the only role the gateway lets reach them).
+            var auditor = await chromium.SignInAsync("auditor");
+            var auditorResults = await Ux067PageProbe.ProbeAsync(chromium.Browser, BaseUrl, auditor, Ux067PageProbe.AuditorPages, [(1366, 768)],
+                Path.Combine(r.Folder, "csp-pages-auditor"));
+            var results = adminResults.Concat(auditorResults).ToList();
             await File.WriteAllTextAsync(Path.Combine(r.Folder, "csp-pages.json"), Ux067PageProbe.ToJson(results));
             r.WriteScenarioSteps(string.Join("\n", results.Select(x => x.Resolved
                 ? $"- {x.Name}: HTTP {x.Status}, {x.CspHeaders} header(s), {x.CspPolicies} policy, {x.ReportOnlyPolicies} report-only, {x.Violations.Count} violation(s){(x.Note is null ? "" : $" ({x.Note})")}"
@@ -264,6 +269,8 @@ public class AcUx67ReadableInterfaceTests
             Assert.True(failures.Count == 0, "Key pages failing the CSP check:\n" + string.Join("\n", failures));
             Assert.All(results.Where(x => x.Resolved), x => Assert.Equal(0, x.ReportOnlyPolicies));
             Assert.Contains(results, x => x.Name == "establishment-change" && x.Resolved);
+            Assert.Contains(results, x => x.Name == "payroll-dual-control-inbox" && x.Resolved);
+            Assert.Contains(results, x => x.Name == "payroll-audit-records" && x.Resolved);
             r.WriteScenarioDbChecks(new { hire = hireNote, policyRules = draftNote });
         }
         finally

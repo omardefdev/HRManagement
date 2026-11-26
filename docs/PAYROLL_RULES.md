@@ -306,3 +306,25 @@ Former confirmation items are bound in [GOV_002_LEGAL_DECISION_REGISTER.md](./GO
 | 12 | Approval levels | IAM/PayrollApprove policy (ops; not LEGAL path) |
 
 *Update the register when legal owners change ApprovedInterim → gazette-backed status (SYR/NAT).*
+
+## Disbursement: the batch, the file, the confirmation (PLAN-58)
+
+- **Batch.** Made by the posting (`PaymentBatchIssuer`), with an order per line with a positive net; `Pending` until a sending. A funding
+  decision may fund part of it (the rest is arrears). `process` sends it (`Submitted`), `submit-held` sends the orders released since.
+  Every act keeps `Σ non-cancelled orders + ArrearsAmount = Σ positive line nets`.
+- **Holds per employee.** The gate holds an employee's order for: an active hold (of the run, or with no run), an open critical alert of
+  his, no pinned account (`NO-ACCOUNT`), a retired pinned account, or a service-regime blocker (`REGIME-BLOCKER`). The held report
+  (`GET api/payroll/payment-batches/{id}/held`, and the batch's page) names each held employee, his reason, his amount and any pending
+  release request.
+- **Service regime (D-PAY-4).** `Payroll:Blockers:Mode=HoldEmployee` (default): everyone is calculated and each employee HR.Core reports
+  blocked gets a `REGIME-BLOCKER` hold of the run (released by four eyes once HR.Core no longer blocks him). `BlockRun` (an agency's
+  choice, the behaviour before PLAN-58) refuses the calculation **before** the run moves to «قيد الحساب».
+- **Account verification (§6 rule 3).** Verifying an employee's new account re-pins his unsent `Draft`/`Held` orders and their lines to it
+  and lifts their account holds, in the verification's transaction, with an `EntityAuditLog` line (`RepinnedOnAccountVerification`, ids
+  only). It is the one exception to D-PAY-15's «a run keeps the account it pinned», for an order that has not left.
+- **Bank file.** One per sending, CSV UTF-8 without a byte order mark, a control row with the count and the total; stored with its
+  SHA-256, read back as stored, reissued only by four eyes.
+- **Confirmation.** The poster records the channel's acknowledgement (`ack`); a settlement (with the bank statement's reference and the
+  sent orders' sum) or a rejection is a request another person decides. The batch then reads `Settled` (paid) or `Rejected`.
+- **P-11.** A deduction or an adjustment taken by two runs calculating at once: the second's save fails on the row's version (`xmin`) and
+  its calculation stops with an Arabic message; nothing of its batch is written.

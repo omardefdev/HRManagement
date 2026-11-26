@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using HRManagement.SharedKernel.SeparationOfDuties;
 using Payroll.Application.Abstractions;
@@ -36,11 +37,30 @@ public class StartPayrollRunJobHandler(
     IPayrollNationalScopeGuard? nationalScopeGuard = null,
     IPayrollLegalControlGuard? legalControlGuard = null,
     IPayrollCalendar? calendar = null,
-    PayrollAttendanceGate? attendanceGate = null)
+    PayrollAttendanceGate? attendanceGate = null,
+    IOptions<PayrollBlockerOptions>? blockerOptions = null)
     : IRequestHandler<StartPayrollRunJobCommand, (bool Success, int LinesGenerated, Guid? JobId, string? Error)>
 {
     /// <summary>«Today» for the interim gate: the payroll calendar's date (Damascus), never the UTC date.</summary>
     private readonly IPayrollCalendar _calendar = calendar ?? new PayrollCalendar(TimeProvider.System);
+
+    /// <summary>PLAN-58 (D-PAY-4): HR.Core's blockers for the employees this calculation takes (the active pay profiles).</summary>
+    private async Task<PayrollRegimeDecision> DecideRegimeAsync(PayrollRun run, CancellationToken cancellationToken)
+    {
+        if (!PayrollRegimeGovernance.RequiresRegimeCheck(run.RunType))
+            return PayrollRegimeDecision.Clear;
+        var employees = await repository.EmployeePayProfiles.AsNoTracking()
+            .Where(p => p.IsActive)
+            .Select(p => p.EmployeeId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var hrCoreClient = scope.ServiceProvider.GetService<HRManagement.SharedKernel.Legal.IHrCoreServiceRegimeClient>();
+        var configuration = scope.ServiceProvider.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
+        var blocksFinalPayroll = configuration?.GetValue("ServiceRegimes:BlocksFinalPayroll", true) ?? true;
+        return await PayrollRegimeGovernance.DecideAsync(
+            run.RunType, employees, hrCoreClient, blocksFinalPayroll, blockerOptions?.Value.Mode ?? PayrollBlockerMode.HoldEmployee, cancellationToken);
+    }
 
     public async Task<(bool Success, int LinesGenerated, Guid? JobId, string? Error)> Handle(
         StartPayrollRunJobCommand request,
@@ -152,6 +172,24 @@ public class StartPayrollRunJobHandler(
                 await repository.AddAsync(attendance.Warning, cancellationToken);
             if (attendance.StaleWarning is not null)
                 repository.Remove(attendance.StaleWarning);
+        }
+
+        // PLAN-58 (D-PAY-4): HR.Core's service-regime blockers, before the run moves. BlockRun refuses and leaves the run as it was (no job
+        // row, no pinned framework); HoldEmployee calculates everyone and holds each blocked employee's order (a REGIME-BLOCKER hold of this
+        // run, written by this calculation's first save). A resumed job does not come here again; a restart does.
+        var regime = await DecideRegimeAsync(run, cancellationToken);
+        if (regime.Refusal is not null)
+            return (false, 0, null, regime.Refusal);
+        if (regime.Blocked.Count > 0)
+        {
+            var alreadyHeld = (await repository.PaymentHolds.AsNoTracking()
+                    .Where(h => h.PayrollRunId == run.Id && h.HoldType == Domain.Constants.PaymentHoldType.RegimeBlocker
+                                && h.Status == Domain.Constants.PaymentHoldStatus.Active)
+                    .Select(h => h.EmployeeId)
+                    .ToListAsync(cancellationToken))
+                .ToHashSet();
+            foreach (var hold in PayrollRegimeGovernance.HoldsFor(run, regime, alreadyHeld))
+                await repository.AddAsync(hold, cancellationToken);
         }
 
         run.PayrollConfigurationId = config.Id;
@@ -472,170 +510,3 @@ public class ValidatePayrollRunHandler(IPayrollRepository repository)
     }
 }
 
-/// <summary>
-/// Hands a posted batch to the disbursement channel. This is the only entry point to the paying
-/// side of a run, so the pre-disbursement controls are enforced here.
-/// </summary>
-public record ProcessPaymentBatchCommand(Guid PaymentBatchId, Guid ActorId) : IRequest<(bool Success, string? Error)>;
-
-public class ProcessPaymentBatchHandler(
-    IPayrollRepository repository,
-    IPaymentDisbursementGate disbursementGate,
-    IPaymentOrderCoordinator paymentOrderCoordinator,
-    SeparationOfDutiesService sod,
-    IMediator mediator)
-    : IRequestHandler<ProcessPaymentBatchCommand, (bool Success, string? Error)>
-{
-    public async Task<(bool Success, string? Error)> Handle(
-        ProcessPaymentBatchCommand request,
-        CancellationToken cancellationToken)
-    {
-        var batch = await repository.PaymentBatches.FirstOrDefaultAsync(b => b.Id == request.PaymentBatchId, cancellationToken);
-        if (batch is null) return (false, "دفعة الصرف غير موجودة.");
-
-        if (!PaymentBatchTransitions.CanTransition(batch.Status, PaymentBatchStatus.Submitted))
-            return (false, $"لا يمكن إرسال دفعة في الحالة {batch.Status}.");
-
-        var run = await repository.GetPayrollRunAsync(batch.PayrollRunId, includeLines: false, cancellationToken);
-        if (run is null || run.Status != PayrollRunStatus.Posted)
-            return (false, "التشغيل يجب أن يكون مرحّلاً قبل الصرف.");
-
-        await mediator.Send(new Fraud.RunPayrollFraudScanCommand(run.Id), cancellationToken);
-
-        var latestApproval = run.Approvals
-            .Where(a => a.Decision == ApprovalDecision.Approved)
-            .OrderByDescending(a => a.DecidedAt)
-            .FirstOrDefault();
-
-        var (allowed, sodError) = PayrollSodGuard.ValidatePaymentBatchDisburse(
-            sod,
-            request.ActorId,
-            batch.Id,
-            batchCreatorId: null,
-            run.CreatedBy,
-            latestApproval?.ApproverId);
-        if (!allowed)
-            return (false, sodError);
-
-        // Active payment holds and unresolved fraud alerts block the whole batch. These controls
-        // existed but sat off the disbursement path, so a held employee was still paid.
-        var block = await disbursementGate.EvaluateAsync(batch, cancellationToken);
-        if (!block.Allowed)
-            return (false, block.Reason);
-
-        // Submitted — not paid. Settlement is recorded only when the channel confirms it via
-        // SettlePaymentBatchCommand; there is no path from here straight to a paid state.
-        batch.Status = PaymentBatchStatus.Submitted;
-        batch.SubmittedAt = DateTime.UtcNow;
-
-        var job = await repository.PayrollRunJobs
-            .Where(j => j.PayrollRunId == run.Id)
-            .OrderByDescending(j => j.CreatedAt)
-            .FirstOrDefaultAsync(cancellationToken);
-        if (job is not null)
-        {
-            job.Phase = PayrollRunJobPhase.Pay;
-            job.LastCheckpointAt = DateTime.UtcNow;
-        }
-
-        await repository.SaveChangesAsync(cancellationToken);
-        await paymentOrderCoordinator.EnsureAndSubmitOrdersAsync(batch.Id, cancellationToken: cancellationToken);
-        return (true, null);
-    }
-}
-
-/// <summary>Records a channel acknowledgement. Money still has not moved.</summary>
-public record AckPaymentBatchCommand(Guid PaymentBatchId, string? ChannelReference)
-    : IRequest<(bool Success, string? Error)>;
-
-public class AckPaymentBatchHandler(
-    IPayrollRepository repository,
-    IPaymentOrderCoordinator paymentOrderCoordinator)
-    : IRequestHandler<AckPaymentBatchCommand, (bool Success, string? Error)>
-{
-    public async Task<(bool Success, string? Error)> Handle(
-        AckPaymentBatchCommand request, CancellationToken cancellationToken)
-    {
-        var batch = await repository.PaymentBatches.FirstOrDefaultAsync(b => b.Id == request.PaymentBatchId, cancellationToken);
-        if (batch is null) return (false, "دفعة الصرف غير موجودة.");
-        if (!PaymentBatchTransitions.CanTransition(batch.Status, PaymentBatchStatus.Acked))
-            return (false, $"لا يمكن تسجيل إشعار لدفعة في الحالة {batch.Status}.");
-
-        batch.Status = PaymentBatchStatus.Acked;
-        batch.AckedAt = DateTime.UtcNow;
-        if (!string.IsNullOrWhiteSpace(request.ChannelReference))
-            batch.BankTransferReference = request.ChannelReference;
-
-        await repository.SaveChangesAsync(cancellationToken);
-        await paymentOrderCoordinator.AcknowledgeOrdersAsync(batch.Id, request.ChannelReference, cancellationToken);
-        return (true, null);
-    }
-}
-
-/// <summary>
-/// Records confirmed settlement. Requires a settlement reference from the channel — without one
-/// there is no evidence money moved, which is exactly the gap that let batches be marked paid.
-/// </summary>
-public record SettlePaymentBatchCommand(Guid PaymentBatchId, string SettlementReference, decimal SettledAmount)
-    : IRequest<(bool Success, string? Error)>;
-
-public class SettlePaymentBatchHandler(
-    IPayrollRepository repository,
-    IPaymentOrderCoordinator paymentOrderCoordinator,
-    IBankReconciliationCoordinator bankReconciliationCoordinator)
-    : IRequestHandler<SettlePaymentBatchCommand, (bool Success, string? Error)>
-{
-    public async Task<(bool Success, string? Error)> Handle(
-        SettlePaymentBatchCommand request, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(request.SettlementReference))
-            return (false, "مرجع التسوية مطلوب لإثبات تنفيذ التحويل.");
-
-        var batch = await repository.PaymentBatches.FirstOrDefaultAsync(b => b.Id == request.PaymentBatchId, cancellationToken);
-        if (batch is null) return (false, "دفعة الصرف غير موجودة.");
-        if (!PaymentBatchTransitions.CanTransition(batch.Status, PaymentBatchStatus.Settled))
-            return (false, $"لا يمكن تسوية دفعة في الحالة {batch.Status}.");
-
-        batch.Status = PaymentBatchStatus.Settled;
-        batch.SettledAt = DateTime.UtcNow;
-        batch.ProcessedAt = DateTime.UtcNow;
-        batch.SettlementReference = request.SettlementReference.Trim();
-        batch.DisbursedAmount = request.SettledAmount;
-        batch.IsPartial = request.SettledAmount < batch.TotalAmount;
-
-        await repository.SaveChangesAsync(cancellationToken);
-        await paymentOrderCoordinator.SettleOrdersAsync(batch.Id, request.SettlementReference.Trim(), cancellationToken);
-        await bankReconciliationCoordinator.ReconcileBatchAsync(batch.Id, cancellationToken);
-        return (true, null);
-    }
-}
-
-/// <summary>Records a channel rejection or a post-settlement return.</summary>
-public record RejectPaymentBatchCommand(Guid PaymentBatchId, string Reason, bool IsReturn = false)
-    : IRequest<(bool Success, string? Error)>;
-
-public class RejectPaymentBatchHandler(IPayrollRepository repository)
-    : IRequestHandler<RejectPaymentBatchCommand, (bool Success, string? Error)>
-{
-    public async Task<(bool Success, string? Error)> Handle(
-        RejectPaymentBatchCommand request, CancellationToken cancellationToken)
-    {
-        if (string.IsNullOrWhiteSpace(request.Reason))
-            return (false, "سبب الرفض مطلوب.");
-
-        var batch = await repository.PaymentBatches.FirstOrDefaultAsync(b => b.Id == request.PaymentBatchId, cancellationToken);
-        if (batch is null) return (false, "دفعة الصرف غير موجودة.");
-
-        var target = request.IsReturn ? PaymentBatchStatus.Returned : PaymentBatchStatus.Rejected;
-        if (!PaymentBatchTransitions.CanTransition(batch.Status, target))
-            return (false, $"لا يمكن الانتقال من {batch.Status} إلى {target}.");
-
-        batch.Status = target;
-        batch.RejectionReason = request.Reason.Trim();
-        if (target == PaymentBatchStatus.Returned)
-            batch.DisbursedAmount = 0;
-
-        await repository.SaveChangesAsync(cancellationToken);
-        return (true, null);
-    }
-}

@@ -27,23 +27,16 @@
 
         @if (Model.Status == PaymentHoldStatus.Active)
         {
+            <p class="text-muted small">الإفراج فعلان من شخصين: تطلبه هنا بسبب، ويقرّره معتمد آخر من جلسته في «طلبات بانتظار قرارك». حجز حاجز نظام الخدمة لا يُفرج عنه ما دام HR.Core يحجب الموظف.</p>
             <form asp-action="Release" asp-route-id="@Model.Id" method="post">
                 @Html.AntiForgeryToken()
                 <div class="row g-2">
-                    <div class="col-md-4">
-                        <label class="form-label">المعتمد (يجب أن يختلف عن المُفرج)</label>
-                        <input name="ReleaseApprovedBy" class="form-control" required placeholder="Guid" />
+                    <div class="col-md-9">
+                        <label class="form-label" for="releaseReason">سبب الإفراج</label>
+                        <input id="releaseReason" name="releaseReason" class="form-control" required />
                     </div>
-                    <div class="col-md-5">
-                        <label class="form-label">سبب الإفراج</label>
-                        <input name="releaseReason" class="form-control" required />
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">سجل الأدلة (اختياري)</label>
-                        <input name="evidenceRecordId" class="form-control" placeholder="Guid" />
-                    </div>
-                    <div class="col-12">
-                        <button type="submit" class="btn btn-warning">إفراج (أربعة عيون)</button>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-warning">طلب الإفراج (أربع عيون)</button>
                     </div>
                 </div>
             </form>

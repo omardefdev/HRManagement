@@ -226,22 +226,35 @@ public sealed class Iam053ReferenceChangeHttpTests(PostgreSqlFixture postgres)
             return (g.Id, g.SalaryScaleId);
         });
 
-        // hr-admin holds Payroll.MasterData and Payroll.Approve: he requests, and cannot approve or reject his own request.
-        using var admin = host.CentralWith(HrManagementRoles.Admin, Guid.NewGuid());
+        // One person requests with Payroll.MasterData (a processor's token), then opens his own request with an approver's token (PLAN-58:
+        // no token carries both roles): he cannot approve or reject it.
+        var person = Guid.NewGuid();
+        using var admin = host.CentralAs(person, $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollProcessor}");
+        using var asApprover = host.CentralAs(person, $"{HrManagementRoles.Payroll},{HrManagementRoles.PayrollApprover}");
         var requestId = RequestIdOf(await PostFormAsync(admin, $"/PayGrades/Edit/{grade}", $"/PayGrades/Edit/{grade}", GradeFields(scale, "7500")));
-        var page = await PageAsync(admin, $"/PayrollReferenceChanges/Details/{requestId}");
-        Assert.Contains("لا يجوز اعتماد الطلب من طالبه", page, StringComparison.Ordinal);
-        Assert.DoesNotContain($"/PayrollReferenceChanges/Approve/{requestId}", page, StringComparison.Ordinal);
+        var approverPage = await PageAsync(asApprover, $"/PayrollReferenceChanges/Details/{requestId}");
+        Assert.Contains("لا يجوز اعتماد الطلب من طالبه", approverPage, StringComparison.Ordinal);
+        Assert.DoesNotContain($"/PayrollReferenceChanges/Approve/{requestId}", approverPage, StringComparison.Ordinal);
         foreach (var action in new[] { "Approve", "Reject" })
         {
-            var own = await admin.PostAsync($"/PayrollReferenceChanges/{action}/{requestId}", new FormUrlEncodedContent(new Dictionary<string, string>
+            var own = await asApprover.PostAsync($"/PayrollReferenceChanges/{action}/{requestId}", new FormUrlEncodedContent(new Dictionary<string, string>
             {
-                ["__RequestVerificationToken"] = Token.Match(page).Groups[1].Value,
+                ["__RequestVerificationToken"] = Token.Match(approverPage).Groups[1].Value,
                 ["note"] = "ملاحظة",
             }));
             Assert.Equal(HttpStatusCode.Forbidden, own.StatusCode);
             Assert.Contains("لا يجوز اعتماد الطلب من طالبه", await own.Content.ReadAsStringAsync(), StringComparison.Ordinal);
         }
+
+        // hr-admin counts as processor and approver (PLAN-58): he is refused the decision outright, whoever asked.
+        using var hrAdmin = host.CentralWith(HrManagementRoles.Admin, Guid.NewGuid());
+        var adminApprove = await hrAdmin.PostAsync($"/PayrollReferenceChanges/Approve/{requestId}", new FormUrlEncodedContent(new Dictionary<string, string>
+        {
+            ["__RequestVerificationToken"] = Token.Match(await PageAsync(hrAdmin, $"/PayrollReferenceChanges/Details/{requestId}")).Groups[1].Value,
+            ["note"] = "ملاحظة",
+        }));
+        Assert.Equal(HttpStatusCode.Forbidden, adminApprove.StatusCode);
+        var page = await PageAsync(admin, $"/PayrollReferenceChanges/Details/{requestId}");
 
         Assert.Equal(PayrollReferenceChangeState.PendingApproval,
             await host.WithDbAsync(db => db.Set<PayrollReferenceChangeRequest>().AsNoTracking().Where(r => r.Id == requestId).Select(r => r.State).SingleAsync()));

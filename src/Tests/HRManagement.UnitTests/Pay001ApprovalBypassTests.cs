@@ -42,18 +42,24 @@ public class Pay001ApprovalBypassTests
     }
 
     [Fact]
-    public void PaymentBatch_only_created_in_PostHandler_and_ReverseHandler()
+    public void PaymentBatch_only_created_by_the_posting_through_the_issuer()
     {
+        // PLAN-58 (P-5): the posting no longer writes «new PaymentBatch» itself; it calls PaymentBatchIssuer, the only maker of a batch
+        // and its orders (Pay058SinglePaymentPathArchitectureTests holds the rule for the whole service). The meaning is kept: the
+        // batch is made by the posting, Pending.
         var handlerFile = RepoPaths.Resolve("src", "Services", "Payroll",
             "Payroll.Application", "Features", "PayrollRuns", "PayrollRunHandlers.cs");
         var content = System.IO.File.ReadAllText(handlerFile);
-
-        var matches = Regex.Matches(content, @"new\s+PaymentBatch");
-        Assert.True(matches.Count >= 1, "PostPayrollRunHandler must create PaymentBatch");
+        Assert.DoesNotMatch(@"new\s+PaymentBatch\b", content);
 
         var postSection = ExtractHandlerSection(content, "PostPayrollRunHandler");
-        Assert.Matches(@"new\s+PaymentBatch", postSection);
-        Assert.Contains("PaymentBatchStatus.Pending", postSection);
+        Assert.Contains("issuer.IssueAsync(", postSection);
+        Assert.Contains("PaymentBatchSource.PayrollRunPosted", postSection);
+
+        var issuer = System.IO.File.ReadAllText(RepoPaths.Resolve("src", "Services", "Payroll",
+            "Payroll.Application", "Services", "PaymentBatchIssuer.cs"));
+        Assert.Matches(@"new\s+PaymentBatch\b", issuer);
+        Assert.Contains("PaymentBatchStatus.Pending", issuer);
     }
 
     [Fact]

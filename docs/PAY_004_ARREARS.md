@@ -66,3 +66,15 @@ PAY-002, PAY-003, EXT-003, EVD-001, SYR-004, SYR-005, SYR-011
 - `SharedKernel/Payroll/ArrearsLedgerEntry.cs`
 - `scripts/pay004-validate.ps1`
 - `Pay004ArrearsTests`
+
+## PLAN-58: holds per employee, and arrears on a reversal
+
+- **A partial disbursement is a funding decision on a posted batch** (`POST api/payroll/payment-batches/{id}/funding-decisions`,
+  `Payroll.Approve`, once per batch). Its approved amount is spread over the orders by the pinned framework's priority rules; the unfunded
+  part becomes arrears rows and `PaymentBatch.ArrearsAmount`. `POST api/payroll/runs/{id}/partial-disburse` is gone.
+- **A held employee holds back nobody.** His order stays `Held` with its reason and keeps its funded amount; the others are sent. After a
+  four-eyes release (or, for `NO-ACCOUNT`, a verified account) `submit-held` sends it alone by a supplementary bank file.
+- **Arrears on a reversal:** the reversal of a run whose funded batch never left voids the batch and its arrears rows
+  (`ArrearsLedgerStatus.Voided`, `ArrearsLedgerEntry.VoidForReversal`); a voided row is neither paid nor adjusted.
+- **An arrears row's manual adjustment is a request** (`POST api/payroll/arrears/{id}/adjustment-requests`, the processor) that an
+  approver decides; never one person's act.

@@ -157,7 +157,11 @@ public class AcceptanceV2CatalogTests
     public void Persona_roles_respect_every_configured_separation_of_duties_conflict()
     {
         var conflicts = SodMatrixDefaults.CreateDefaultConflicts();
+        // PLAN-58 (P-9): one persona is marked sodConflictFixture — the token that proves a conflicting holder is refused (AC-PAY-58e).
+        // The realm import exempts it and nothing else; every other persona keeps to the matrix.
+        Assert.Equal(["acc-a-payroll-multirole"], AcceptancePersonaCatalog.Personas.Where(p => p.Definition.SodConflictFixture).Select(p => p.Username));
         var violations = AcceptancePersonaCatalog.Personas
+            .Where(persona => !persona.Definition.SodConflictFixture)
             .SelectMany(persona => conflicts
                 .Where(conflict =>
                     persona.Roles.Contains(conflict.RoleA, StringComparer.Ordinal)

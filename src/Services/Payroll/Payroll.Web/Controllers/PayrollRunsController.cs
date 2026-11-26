@@ -20,12 +20,18 @@ public class PayrollRunsController : Controller
     private readonly PayrollDbContext _db;
     private readonly IMediator _mediator;
     private readonly IHrCoreLookupClient _hrCoreLookup;
+    private readonly HRManagement.SharedKernel.SeparationOfDuties.SeparationOfDutiesService _sod;
 
-    public PayrollRunsController(PayrollDbContext db, IMediator mediator, IHrCoreLookupClient hrCoreLookup)
+    public PayrollRunsController(
+        PayrollDbContext db,
+        IMediator mediator,
+        IHrCoreLookupClient hrCoreLookup,
+        HRManagement.SharedKernel.SeparationOfDuties.SeparationOfDutiesService sod)
     {
         _db = db;
         _mediator = mediator;
         _hrCoreLookup = hrCoreLookup;
+        _sod = sod;
     }
 
     private Guid RequireUserId()
@@ -153,6 +159,25 @@ public class PayrollRunsController : Controller
         ViewBag.BankReadiness = await _mediator.Send(
             new Payroll.Application.Features.BankAccounts.GetRunBankReadinessQuery(id), HttpContext.RequestAborted);
 
+        // PLAN-58 (D-PAY-5): «اعتماد 1 من 2» — how many approvers the run's net needs, and how many approved its present version.
+        ViewBag.ApprovalsRequired = _sod.GetRequiredApprovalCount(Payroll.Application.Options.PayrollSeparationOfDuties.RunEntityType, run.TotalNetPay);
+        ViewBag.ApprovalsGiven = run.ApprovalsGiven;
+        // PLAN-58 (D-PAY-3): the independent review: a record an auditor opened and another closed (the gate's warning is not one).
+        ViewBag.ReviewClosed = await _db.PayrollAuditRecords.AsNoTracking().AnyAsync(a => a.PayrollRunId == id
+            && a.Status == AuditStatus.Closed && (a.Findings == null || !a.Findings.StartsWith(Payroll.Application.Services.PayrollAttendanceGate.WarningPrefix)));
+        // PLAN-58 (D-PAY-4): the employees held out of the payment, by name: approving the run includes knowing them.
+        var employeeIds = run.SalaryLines.Select(l => l.EmployeeId).ToHashSet();
+        var heldRows = await _db.PaymentHolds.AsNoTracking()
+            .Where(h => h.Status == Payroll.Domain.Constants.PaymentHoldStatus.Active && (h.PayrollRunId == id || h.PayrollRunId == null))
+            .Select(h => new { h.EmployeeId, h.HoldType, h.Reason })
+            .ToListAsync();
+        var held = heldRows.Where(h => employeeIds.Contains(h.EmployeeId)).ToList();
+        var heldNames = await ResolveEmployeeNamesAsync(held.Select(h => h.EmployeeId));
+        ViewBag.HeldEmployees = held
+            .Select(h => (Name: heldNames.GetValueOrDefault(h.EmployeeId, "غير متاح"), h.HoldType, h.Reason))
+            .OrderBy(h => h.Name, StringComparer.Ordinal)
+            .ToList();
+
         return View(run);
     }
 
@@ -274,8 +299,9 @@ public class PayrollRunsController : Controller
     [Authorize(Policy = HrManagementPolicies.PayrollPost)]
     public async Task<IActionResult> ProcessPayment(Guid batchId, Guid runId)
     {
+        // PLAN-58: «sent», not «paid»: the money is paid when two people confirm the bank statement (the batch's page).
         var (success, error) = await _mediator.Send(new ProcessPaymentBatchCommand(batchId, RequireUserId()));
-        TempData[success ? "Success" : "Error"] = success ? "تم صرف الدفعة" : error;
+        TempData[success ? "Success" : "Error"] = success ? "أُرسلت الدفعة إلى القناة مع ملفها المصرفي؛ أوامر المحجوزين خارج الإرسال" : error;
         return RedirectToAction(nameof(Details), new { id = runId });
     }
 
@@ -296,7 +322,17 @@ public class PayrollRunsController : Controller
     {
         var userId = RequireUserId();
         var (success, error) = await _mediator.Send(new ApprovePayrollRunCommand(id, userId, "PayrollApprover", null));
-        TempData[success ? "Success" : "Error"] = success ? "تم اعتماد التشغيل" : error;
+        if (!success)
+        {
+            TempData["Error"] = error;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // PLAN-58 (D-PAY-5): above the threshold the first approval leaves the run under review («اعتماد 1 من 2»).
+        var run = await _db.PayrollRuns.AsNoTracking().Include(r => r.Approvals).FirstAsync(r => r.Id == id);
+        TempData["Success"] = run.Status == PayrollRunStatus.Approved
+            ? "تم اعتماد التشغيل"
+            : $"سُجّل اعتمادك ({PayrollApprovalMessages.Progress(run.ApprovalsGiven, _sod.GetRequiredApprovalCount(Payroll.Application.Options.PayrollSeparationOfDuties.RunEntityType, run.TotalNetPay))})؛ التشغيل بانتظار معتمد آخر";
         return RedirectToAction(nameof(Details), new { id });
     }
 

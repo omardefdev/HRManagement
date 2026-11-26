@@ -1,3 +1,4 @@
+using Payroll.Web.Authorization;
 using MassTransit;
 using Microsoft.EntityFrameworkCore;
 using Payroll.Infrastructure.Consumers;
@@ -126,6 +127,8 @@ builder.Services.AddServiceMassTransit(
     consumerAssembly: typeof(ContractActivatedConsumer).Assembly);
 builder.Services.AddModuleAuthentication(builder.Configuration, builder.Environment);
 builder.Services.AddHrManagementAuthorizationPolicies();
+// PLAN-58 (D-PAY-20): a token with two conflicting payroll roles passes no financial act (Payroll:Sod:RejectConflictingRoleHolders).
+builder.Services.AddPayrollRoleConflictCheck();
 builder.Services.AddHrServiceHealthChecks<PayrollDbContext>(builder.Configuration);
 
 var app = builder.Build();

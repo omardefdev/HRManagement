@@ -112,6 +112,13 @@ services:
       Payroll__Attendance__Gate: "Warn"
       # PLAN-55 (D-PAY-11): no bank is defined for local account numbers, as in Production: only an IBAN is accepted.
       Payroll__Bank__Banks: ""
+      # PLAN-58 (D-PAY-3, D-PAY-4, D-PAY-5, D-PAY-20): disbursement governance, as appsettings.json gives it in every environment.
+      Payroll__Approval__DualApprovalThreshold: "50000000"
+      Payroll__Audit__Required: "true"
+      Payroll__Audit__ReviewerRoles: "auditor"
+      Payroll__Blockers__Mode: "HoldEmployee"
+      Payroll__Sod__RejectConflictingRoleHolders: "true"
+      Payroll__DualControl__ExpiryHours: "72"
 
   idcard-web:
     environment:

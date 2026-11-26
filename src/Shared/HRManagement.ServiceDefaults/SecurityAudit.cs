@@ -15,6 +15,9 @@ public static class SecurityAudit
         public const string PayrollOverride = "PayrollOverride";
         public const string PrivilegedGateway = "PrivilegedGateway";
         public const string AuditPurge = "AuditPurge";
+
+        /// <summary>PLAN-58 (D-PAY-20): a token carrying two conflicting roles met a financial act (refused, or let through by a documented setting).</summary>
+        public const string RoleConflict = "RoleConflict";
     }
 
     public static void Log(
