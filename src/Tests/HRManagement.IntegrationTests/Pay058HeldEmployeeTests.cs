@@ -197,7 +197,7 @@ public sealed class Pay058HeldEmployeeTests
         scope.Db.ChangeTracker.Clear();
         var (created, correctionId, error) = await scope.Mediator.Send(new CreateCorrectionRunCommand(sourceId, source.RunDate));
         Assert.True(created, error);
-        Assert.True((await scope.Mediator.Send(new RunPayrollFraudScanCommand(correctionId.Value))).Success);
+        Assert.True((await scope.Mediator.Send(new RunPayrollFraudScanCommand(correctionId!.Value))).Success);
         var correctionAlerts = await scope.Db.FraudAlerts.AsNoTracking().Where(a => a.PayrollRunId == correctionId && a.EmployeeId == employee).ToListAsync();
         Assert.DoesNotContain(correctionAlerts, a => a.RuleId is FraudRuleIds.GhostEmployee or FraudRuleIds.MissingSourceRecord);
     }
