@@ -97,8 +97,12 @@ public class CreateFundingDecisionHandler(IPayrollRepository repository, Partial
         if (batch.FundingDecisionId is not null)
             return RunActResult.Conflict(FundingDecisionMessages.AlreadyFunded);
 
+        // In a fixed order (the employee, then the order): the allocation pays the claims of a priority in list order, so the same batch
+        // and decision always fund the same employees.
         var orders = await repository.PaymentOrders
             .Where(o => o.PaymentBatchId == batch.Id && o.Status != PaymentOrderStatus.Cancelled)
+            .OrderBy(o => o.EmployeeId)
+            .ThenBy(o => o.Id)
             .ToListAsync(cancellationToken);
         if (orders.Count == 0 && batch.Source != PaymentBatchSource.PayrollRunPosted)
         {

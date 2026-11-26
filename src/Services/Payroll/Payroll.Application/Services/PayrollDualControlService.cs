@@ -69,6 +69,8 @@ public static class PayrollDualControlMessages
     public const string ArrearsAmounts = "المبلغان غير صالحين: المدفوع لا يتجاوز الأصلي، ولا مبلغ سالباً.";
     public const string FileNotFound = "ملف الصرف غير موجود.";
     public const string FileSuperseded = "هذا الملف أُبطل بإعادة إصدار سابقة؛ يُعاد إصدار الملف الساري فقط.";
+    public const string FileOrdersMovedOn =
+        "لا يُعاد إصدار ملف أكّدت القناة أوامره أو سوّتها أو رفضتها: إعادة الإصدار لملف أوامره كلها «مُرسلة» فقط، حتى لا يُطلب صرف ما صُرف.";
     public const string SettlementReferenceRequired = "مرجع كشف المصرف مطلوب.";
     public const string SettlementAmountRequired = "المبلغ المسدَّد مطلوب.";
     public const string RegimeStillBlocked =
@@ -311,9 +313,14 @@ public sealed class PayrollDualControlService(
                     var file = await repository.PaymentBatchFiles.AsNoTracking()
                         .Where(f => f.Id == targetId).Select(f => new { f.TenantId, f.SupersededById }).FirstOrDefaultAsync(ct);
                     if (file is null) return (Guid.Empty, RunActResult.NotFound(PayrollDualControlMessages.FileNotFound));
-                    return file.SupersededById is null
-                        ? (file.TenantId, null)
-                        : (file.TenantId, RunActResult.Invalid(PayrollDualControlMessages.FileSuperseded));
+                    if (file.SupersededById is not null)
+                        return (file.TenantId, RunActResult.Invalid(PayrollDualControlMessages.FileSuperseded));
+                    // A file whose orders went past «sent» (acknowledged, settled, rejected) is not reissued: it would ask to pay again.
+                    var movedOn = await repository.PaymentOrders.AsNoTracking()
+                        .AnyAsync(o => o.PaymentBatchFileId == targetId && o.Status != PaymentOrderStatus.Submitted, ct);
+                    return movedOn
+                        ? (file.TenantId, RunActResult.Invalid(PayrollDualControlMessages.FileOrdersMovedOn))
+                        : (file.TenantId, null);
                 }
 
             case PayrollDualControlKind.BatchSettle:

@@ -15,6 +15,10 @@ namespace Payroll.Infrastructure.Services;
 public sealed class PaymentBatchFileWriter(PayrollDbContext db, IEmployeeLookup? employeeLookup = null) : IPaymentBatchFileWriter
 {
     public const string AlreadySuperseded = "هذا الملف أُبطل بإعادة إصدار سابقة؛ يُعاد إصدار الملف الساري فقط.";
+
+    /// <summary>PLAN-58 (review): a file whose orders the channel has acknowledged, settled or rejected is not handed over again.</summary>
+    public const string OrdersMovedOn =
+        "لا يُعاد إصدار ملف أكّدت القناة أوامره أو سوّتها أو رفضتها: إعادة الإصدار لملف أوامره كلها «مُرسلة» فقط، حتى لا يُطلب صرف ما صُرف.";
     public const string FileNotFound = "ملف الصرف غير موجود.";
 
     public async Task<Guid> WriteAsync(
@@ -45,6 +49,8 @@ public sealed class PaymentBatchFileWriter(PayrollDbContext db, IEmployeeLookup?
             return (null, AlreadySuperseded);
         var batch = await db.PaymentBatches.FirstAsync(b => b.Id == old.PaymentBatchId, cancellationToken);
         var orders = await db.PaymentOrders.Where(o => o.PaymentBatchFileId == old.Id).ToListAsync(cancellationToken);
+        if (orders.Any(o => o.Status != PaymentOrderStatus.Submitted))
+            return (null, OrdersMovedOn);
 
         var file = await BuildAsync(batch, orders, PaymentBatchFileKind.Reissue, requestedBy, cancellationToken);
         file.ReissueReason = reason.Trim().Length <= PaymentBatchFile.ReasonMaxLength ? reason.Trim() : reason.Trim()[..PaymentBatchFile.ReasonMaxLength];

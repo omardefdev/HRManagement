@@ -38,6 +38,32 @@ internal static class PayrollReviewerRules
     }
 }
 
+/// <summary>
+/// PLAN-58 (review): the review records of the run's present version — opened after its last rejection (a rejection reopens the run, its
+/// lines are calculated again, and a review of the earlier figures no longer counts). The attendance gate's warning is not a review.
+/// </summary>
+public static class PayrollReviewRecords
+{
+    public sealed record Reviewer(Guid? OpenedBy, Guid? ClosedBy, AuditStatus Status);
+
+    public static async Task<IReadOnlyList<Reviewer>> OfThisVersionAsync(IPayrollRepository repository, Guid runId, CancellationToken ct)
+    {
+        var reopenedAt = await repository.PayrollRunRevisions.AsNoTracking()
+            .Where(r => r.PayrollRunId == runId)
+            .Select(r => (DateTime?)r.RejectedAt)
+            .MaxAsync(ct);
+        var records = repository.PayrollAuditRecords.AsNoTracking()
+            .Where(a => a.PayrollRunId == runId && (a.Findings == null || !a.Findings.StartsWith(PayrollAttendanceGate.WarningPrefix)));
+        if (reopenedAt is DateTime since)
+            records = records.Where(a => a.CreatedAt > since);
+        return await records.Select(a => new Reviewer(a.AuditorId, a.ClosedBy, a.Status)).ToListAsync(ct);
+    }
+
+    /// <summary>Whether <paramref name="user"/> opened or closed a review of the present version.</summary>
+    public static bool Reviewed(IEnumerable<Reviewer> reviews, Guid user) =>
+        reviews.Any(r => r.OpenedBy == user || r.ClosedBy == user);
+}
+
 /// <summary>An auditor opens the review record of a run under review or approved, with his findings so far.</summary>
 public sealed record OpenPayrollAuditRecordCommand(Guid PayrollRunId, string? Findings, Guid AuditorId) : IRequest<RunActResult>;
 

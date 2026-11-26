@@ -64,7 +64,7 @@ public class ProcessPaymentBatchHandler(
     IPaymentDisbursementGate disbursementGate,
     IPaymentOrderCoordinator paymentOrderCoordinator,
     IMediator mediator,
-    IPaymentBatchFileWriter? fileWriter = null)
+    IPaymentBatchFileWriter fileWriter)
     : IRequestHandler<ProcessPaymentBatchCommand, RunActResult>
 {
     public async Task<RunActResult> Handle(ProcessPaymentBatchCommand request, CancellationToken cancellationToken)
@@ -133,7 +133,7 @@ public class SubmitHeldPaymentOrdersHandler(
     IPaymentDisbursementGate disbursementGate,
     IPaymentOrderCoordinator paymentOrderCoordinator,
     IMediator mediator,
-    IPaymentBatchFileWriter? fileWriter = null)
+    IPaymentBatchFileWriter fileWriter)
     : IRequestHandler<SubmitHeldPaymentOrdersCommand, RunActResult>
 {
     public async Task<RunActResult> Handle(SubmitHeldPaymentOrdersCommand request, CancellationToken cancellationToken)
@@ -182,7 +182,7 @@ internal static class PaymentBatchSave
         IReadOnlyList<PaymentOrder> sent,
         PaymentBatchFileKind kind,
         Guid actorId,
-        IPaymentBatchFileWriter? fileWriter,
+        IPaymentBatchFileWriter fileWriter,
         CancellationToken cancellationToken)
     {
         try
@@ -194,15 +194,12 @@ internal static class PaymentBatchSave
                 return RunActResult.Invalid(broken);
             }
 
-            Guid? fileId = null;
-            if (fileWriter is not null)
-            {
-                fileId = await fileWriter.WriteAsync(batch, sent, kind, actorId, cancellationToken);
-                await repository.SaveChangesAsync(cancellationToken);
-            }
+            // Every sending has its bank file, in the sending's transaction (PLAN-58 review: the writer is required, never optional).
+            var fileId = await fileWriter.WriteAsync(batch, sent, kind, actorId, cancellationToken);
+            await repository.SaveChangesAsync(cancellationToken);
 
             await transaction.CommitAsync(cancellationToken);
-            return RunActResult.Done(fileId ?? batch.Id);
+            return RunActResult.Done(fileId);
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -258,6 +255,8 @@ public class AckPaymentBatchHandler(
             return RunActResult.Invalid($"لا يمكن تسجيل إشعار لدفعة في الحالة {batch.Status}.");
 
         var reference = request.ChannelReference.Trim();
+        // In its own transaction (PLAN-58 review): the sum rule is checked after the save, and a broken ledger undoes the act.
+        await using var transaction = await repository.BeginTransactionAsync(cancellationToken);
         var acknowledged = await paymentOrderCoordinator.AcknowledgeOrdersAsync(batch.Id, reference, cancellationToken);
         if (acknowledged.Count == 0)
         {
@@ -273,7 +272,10 @@ public class AckPaymentBatchHandler(
         }
 
         batch.UpdatedAt = DateTime.UtcNow;
-        return await PaymentBatchSave.CommitAsync(repository, batch, cancellationToken);
+        var result = await PaymentBatchSave.CommitAsync(repository, batch, cancellationToken);
+        if (result.Success)
+            await transaction.CommitAsync(cancellationToken);
+        return result;
     }
 }
 

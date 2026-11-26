@@ -39,7 +39,10 @@ public class AcPay54LegalFrameworkTests
     private const string Processor = "payroll-processor";
     private const string Approver = "payroll-approver";
     private const string Attestor = "a-payroll-approver-2";
-    /// <summary>The agency's hr-admin: he holds Payroll.MasterData and Payroll.Approve, so he can be an editor who also has the cycle's policies.</summary>
+    /// <summary>
+    /// The agency's hr-admin: he holds Payroll.MasterData, so he can be an editor of a version. Since PLAN-58 he counts as processor and
+    /// approver, and a token with both passes no approval or publication (403, the conflict named).
+    /// </summary>
     private const string Admin = "a-directory-checker";
     private const string Payroll = "payroll_db";
     private const string Frameworks = "api/payroll/frameworks";
@@ -150,12 +153,12 @@ public class AcPay54LegalFrameworkTests
     }
 
     /// <summary>A refused act: 400 with an Arabic message that holds <paramref name="expected"/>, and the version as it was.</summary>
-    private static async Task<string> RefusedAsync(Api api, string step, string id, string act, string expected)
+    private static async Task<string> RefusedAsync(Api api, string step, string id, string act, string expected, HttpStatusCode refusal = HttpStatusCode.BadRequest)
     {
         var before = await VersionStateAsync(id);
         var (status, body, text) = await api.PostAsync(step, $"{Frameworks}/{id}/{act}");
         var error = Text(body, "error");
-        Assert.True(status == HttpStatusCode.BadRequest, $"{step}: {act} answered {(int)status}, expected 400: {Snip(text)}");
+        Assert.True(status == refusal, $"{step}: {act} answered {(int)status}, expected {(int)refusal}: {Snip(text)}");
         Assert.Contains(expected, error, StringComparison.Ordinal);
         Assert.Equal(before, await VersionStateAsync(id));
         return error;
@@ -413,20 +416,23 @@ public class AcPay54LegalFrameworkTests
     {
         AcceptanceEnv.RequireEnabled();
         var s = await StartAsync(Ac, "54b",
-            "AC-PAY-54b: a publication from a draft, an approval by an editor, an attestation by the approver and a publication by an editor each answer 400 with an Arabic message and change nothing.",
+            "AC-PAY-54b: a publication from a draft and an attestation by the approver or by an editor answer 400 with an Arabic message; an approval and a publication by the editor (hr-admin, refused every approval since PLAN-58) answer 403 with the conflict named; nothing changes.",
             Processor, Approver, Attestor, Admin);
         s.Steps("""
             1. payroll-processor imports the interim pack under the code LAW_50_2004_AC54B from 2031-01-01 → Draft. The agency's
-               hr-admin (a-directory-checker, who holds Payroll.MasterData and Payroll.Approve) sets its effective date → he is an
+               hr-admin (a-directory-checker, who holds Payroll.MasterData) sets its effective date → he is an
                editor of the version, like the importer.
             2. Negative: payroll-approver publishes the draft → 400 «لا يُنشر إلا إصدار معتمد»; the version is as it was.
-            3. Negative: the editor with the approval policy approves → 400 «لا يعتمد النسخة من أنشأها أو استوردها أو عدّلها».
-               payroll-processor (the importer) posts the approval → 403: he holds no approval policy at all.
+            3. Negative: the editor approves → refused. Since PLAN-58 (D-PAY-20) hr-admin counts as processor and approver, so his token
+               passes no approval at all: 403 with the conflict named (the editor rule «لا يعتمد النسخة من أنشأها أو استوردها أو عدّلها»
+               is proved on the handler by the integration tests). payroll-processor (the importer) posts the approval → 403: he
+               holds no approval policy at all.
             4. payroll-approver approves → Approved.
             5. Negative: payroll-approver attests the version he approved → 400 «لا يصادق قانونياً على النسخة من اعتمدها»; no
-               attestation is written. The editor attests → 400.
+               attestation is written. The editor attests → 403 (PLAN-58: the attestation's policy reads Payroll.Approve, which refuses
+               hr-admin's conflicting roles before the editor rule).
             6. a-payroll-approver-2 attests → an active attestation.
-            7. Negative: the editor publishes → 400 «لا ينشر النسخة من أنشأها أو استوردها أو عدّلها»; the version stays Approved.
+            7. Negative: the editor publishes → 403, the conflict named (PLAN-58); the version stays Approved.
                It is left approved, attested and unpublished: it governs nothing.
             """);
 
@@ -447,18 +453,19 @@ public class AcPay54LegalFrameworkTests
         var editors = await Count($"SELECT count(DISTINCT \"UserId\") FROM \"PayrollConfigurationEditors\" WHERE \"PayrollConfigurationId\"='{id}';");
 
         var publishFromDraft = await RefusedAsync(approver, "publish-from-draft", id, "publish", "لا يُنشر إلا إصدار معتمد");
-        var editorApproves = await RefusedAsync(editor, "editor-approves", id, "approve", "لا يعتمد النسخة من أنشأها أو استوردها أو عدّلها");
+        var editorApproves = await RefusedAsync(editor, "editor-approves", id, "approve", HrManagementRoles.PayrollApprover, HttpStatusCode.Forbidden);
         var stateBeforeImporter = await VersionStateAsync(id);
         var (importerApproves, _, _) = await processor.PostAsync("importer-approves", $"{Frameworks}/{id}/approve");
         var stateAfterImporter = await VersionStateAsync(id);
 
         await ActAsync(approver, "approve", id, "approve");
         var approverAttests = await RefusedAsync(approver, "approver-attests", id, "legal-attest", "لا يصادق قانونياً على النسخة من اعتمدها");
-        var editorAttests = await RefusedAsync(editor, "editor-attests", id, "legal-attest", "لا يصادق قانونياً على النسخة من أنشأها أو استوردها أو عدّلها");
+        // PLAN-58: the attestation's policy reads Payroll.Approve, which refuses hr-admin's conflicting roles (403, before the editor rule).
+        var editorAttests = await RefusedAsync(editor, "editor-attests", id, "legal-attest", "", HttpStatusCode.Forbidden);
         var attestationsAfterRefusals = await Count($"SELECT count(*) FROM \"LegalAttestations\" WHERE \"PayrollConfigurationId\"='{id}';");
 
         await ActAsync(attestor, "legal-attest", id, "legal-attest");
-        var editorPublishes = await RefusedAsync(editor, "editor-publishes", id, "publish", "لا ينشر النسخة من أنشأها أو استوردها أو عدّلها");
+        var editorPublishes = await RefusedAsync(editor, "editor-publishes", id, "publish", HrManagementRoles.PayrollApprover, HttpStatusCode.Forbidden);
         var final = await VersionStateAsync(id);
 
         await AuditAsync(s, id);

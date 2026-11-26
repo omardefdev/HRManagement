@@ -149,7 +149,8 @@ public class ArrearsSettlementService
 
     public static EmployeeArrearsBalance GetBalance(Guid employeeId, IEnumerable<ArrearsLedgerEntry> entries)
     {
-        var list = entries.Where(e => e.EmployeeId == employeeId).ToList();
+        // PLAN-58 (review): a row voided by its run's reversal is owed to nobody.
+        var list = entries.Where(e => e.EmployeeId == employeeId && e.Status != ArrearsLedgerStatus.Voided).ToList();
         return new EmployeeArrearsBalance(
             employeeId,
             list.Sum(e => e.OriginalAmount),

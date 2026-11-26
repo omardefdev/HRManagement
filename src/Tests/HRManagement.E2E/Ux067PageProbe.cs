@@ -48,6 +48,17 @@ public static class Ux067PageProbe
         "sample: (e.sample || '').substring(0, 120), source: (e.sourceFile || '') + ':' + (e.lineNumber || 0) }); }, true); })();";
 
     /// <summary>The PLAN-67 key pages (P-12) on the gateway; ids are found by following list links.</summary>
+    /// <summary>
+    /// PLAN-58 (§4): the independent review's pages, which only the reviewer (<c>auditor</c>) reaches: the records' list, the new record's
+    /// form, and a run's summary for the review (optional: reached from a record of the list).
+    /// </summary>
+    public static IReadOnlyList<Ux067KeyPage> AuditorPages { get; } =
+    [
+        new("payroll-audit-records", "/ui/payroll/PayrollAuditRecords"),
+        new("payroll-audit-record-form", "/ui/payroll/PayrollAuditRecords/Create"),
+        new("payroll-audit-run-summary", "/ui/payroll/PayrollAuditRecords", @"/PayrollAuditRecords/RunSummary/[0-9a-fA-F-]{36}", Optional: true),
+    ];
+
     public static IReadOnlyList<Ux067KeyPage> KeyPages { get; } =
     [
         new("careers-index", "/careers", Anonymous: true),
@@ -93,6 +104,11 @@ public static class Ux067PageProbe
         // PLAN-56: the run's page above carries the run's new acts (reject with a note, cancel with a reason, restart, ask for a
         // reversal) and its revisions; the reversal requests' list is where an approver decides (the list may be empty).
         new("payroll-reversal-requests", "/ui/payroll/PayrollReversalRequests"),
+        // PLAN-58: the four-eyes inbox («طلبات بانتظار قرارك»; it may be empty) and a batch's page with its files, its held card and its
+        // confirmation acts (optional: a prod-like stack holds a batch only once a class has posted a run). The run's page above carries
+        // «اعتماد 1 من 2» on a run above the threshold. The review records' pages are the auditor's: AuditorPages.
+        new("payroll-dual-control-inbox", "/ui/payroll/DualControl/Inbox"),
+        new("payroll-batch-details", "/ui/payroll/PaymentBatches", @"/PaymentBatches/Details/[0-9a-fA-F-]{36}", Optional: true),
         // PLAN-57: the attendance periods and their close form, the corrections' list, and — where the stack holds such a record — a
         // correction's form (opened from a locked day), a correction's page with its decision form, and an attendance record's page
         // and edit form. The run's page above carries the attendance panel. The four record pages are optional: the prod-like seed

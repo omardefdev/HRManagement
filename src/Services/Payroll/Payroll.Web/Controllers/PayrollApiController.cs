@@ -62,6 +62,7 @@ public class PayrollApiController : ControllerBase
     /// the first leaves it under review («اعتماد 1 من 2»), the second approves it. 400 for the creator, or an approver approving again.
     /// </summary>
     [HttpPost("runs/{id:guid}/approve")]
+    [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
     public async Task<IActionResult> ApproveRun(Guid id, [FromServices] HRManagement.SharedKernel.SeparationOfDuties.SeparationOfDutiesService sod, CancellationToken ct)
     {
@@ -81,6 +82,7 @@ public class PayrollApiController : ControllerBase
     }
 
     [HttpPost("runs/{id:guid}/post")]
+    [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollPost)]
     public async Task<IActionResult> PostRun(Guid id, CancellationToken ct)
     {
@@ -230,6 +232,7 @@ public class PayrollApiController : ControllerBase
             request.Notes), ct));
 
     [HttpPost("runs/{id:guid}/fraud-scan")]
+    [ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
     public async Task<IActionResult> FraudScan(Guid id, CancellationToken ct)
     {

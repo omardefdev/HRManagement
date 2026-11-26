@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Payroll.Application.Services;
 using Payroll.Domain.Entities;
-using Payroll.Domain.Enums;
 using Payroll.Infrastructure.Data;
 
 namespace Payroll.Infrastructure.Services;
@@ -36,49 +35,4 @@ public sealed class PaymentOrderService(PayrollDbContext db)
 
     public static string BuildIdempotencyKey(Guid payrollRunId, Guid salaryLineId) =>
         PaymentOrder.IdempotencyKeyFor(payrollRunId, salaryLineId);
-
-    public async Task<bool> TryAdvanceStatusAsync(
-        Guid orderId,
-        PaymentOrderStatus target,
-        string? externalReference = null,
-        string? rejectionReason = null,
-        CancellationToken cancellationToken = default)
-    {
-        var order = await db.PaymentOrders.FindAsync([orderId], cancellationToken);
-        if (order is null)
-            return false;
-
-        if (!PaymentOrderTransitions.CanTransition(order.Status, target))
-            return false;
-
-        order.Status = target;
-        order.ExternalReference = externalReference ?? order.ExternalReference;
-        order.RejectionReason = rejectionReason ?? order.RejectionReason;
-        var now = DateTime.UtcNow;
-        switch (target)
-        {
-            case PaymentOrderStatus.Submitted:
-                order.SubmittedAt ??= now;
-                break;
-            case PaymentOrderStatus.Acknowledged:
-                order.AcknowledgedAt ??= now;
-                break;
-            case PaymentOrderStatus.Settled:
-            case PaymentOrderStatus.PartiallySettled:
-                order.SettledAt ??= now;
-                order.SettlementReference = externalReference ?? order.SettlementReference;
-                break;
-            case PaymentOrderStatus.Rejected:
-                order.RejectedAt ??= now;
-                break;
-            case PaymentOrderStatus.Cancelled:
-            case PaymentOrderStatus.Held:
-            case PaymentOrderStatus.Draft:
-                // PLAN-56/58: nothing was sent and nothing was paid; the order keeps no date of its own (its audit row has it).
-                break;
-        }
-
-        await db.SaveChangesAsync(cancellationToken);
-        return true;
-    }
 }

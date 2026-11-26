@@ -124,11 +124,12 @@ public class RunPayrollFraudScanHandler(
             if (releasedForRun.Contains(alert.EmployeeId))
                 continue;
 
+            // PLAN-58 (review): one alert per run, employee and rule, whatever its status: what two people resolved or dismissed is not
+            // raised again by the next sending's scan (the employee may have had another hold, so no fraud hold of his was released).
             var duplicate = await repository.FraudAlerts.AnyAsync(
                 a => a.PayrollRunId == run.Id
                      && a.EmployeeId == alert.EmployeeId
-                     && a.RuleId == alert.RuleId
-                     && a.Status == FraudAlertStatus.Open,
+                     && a.RuleId == alert.RuleId,
                 cancellationToken);
             if (duplicate)
                 continue;

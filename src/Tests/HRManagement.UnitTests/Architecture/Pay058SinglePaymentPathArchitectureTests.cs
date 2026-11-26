@@ -27,6 +27,7 @@ public sealed partial class Pay058SinglePaymentPathArchitectureTests
     public const string BatchHandlers = "Services/Payroll/Payroll.Application/Features/PayrollRuns/PaymentBatchHandlers.cs";
     public const string RunHandlers = "Services/Payroll/Payroll.Application/Features/PayrollRuns/PayrollRunHandlers.cs";
     public const string DualControl = "Services/Payroll/Payroll.Application/Services/PayrollDualControlService.cs";
+    public const string Coordinator = "Services/Payroll/Payroll.Infrastructure/Services/PaymentOrderCoordinator.cs";
 
     /// <summary>The declarations of the sending method (its interface and its one implementation), not calls.</summary>
     public static readonly IReadOnlySet<string> SendingDeclarations = new HashSet<string>(StringComparer.Ordinal)
@@ -46,6 +47,10 @@ public sealed partial class Pay058SinglePaymentPathArchitectureTests
 
     [GeneratedRegex(@"\bEnsureAndSubmitOrdersAsync\s*\(")]
     private static partial Regex Sending();
+
+    /// <summary>An order made «sent» by a write of its status (an assignment, the coordinator's Move, a bulk update).</summary>
+    [GeneratedRegex(@"(\bStatus\s*=\s*PaymentOrderStatus\.Submitted\b|\bMove\s*\(\s*\w+\s*,\s*PaymentOrderStatus\.Submitted\s*\)|SetProperty\([^)]*PaymentOrderStatus\.Submitted)")]
+    private static partial Regex SubmittedWrite();
 
     [GeneratedRegex(@"\bnew\s+(SettlePaymentBatchCommand|RejectPaymentBatchCommand)\s*\(")]
     private static partial Regex ConfirmationCommand();
@@ -100,7 +105,7 @@ public sealed partial class Pay058SinglePaymentPathArchitectureTests
     public static string? EnclosingType(string code, int index) =>
         TopLevelType().Matches(code[..index]).LastOrDefault()?.Groups["name"].Value;
 
-    /// <summary>Every violation of the five rules in <paramref name="sources"/>.</summary>
+    /// <summary>Every violation of the rules in <paramref name="sources"/>.</summary>
     public static IReadOnlyList<string> Violations(IEnumerable<Source> sources)
     {
         var violations = new List<string>();
@@ -136,6 +141,13 @@ public sealed partial class Pay058SinglePaymentPathArchitectureTests
                     violations.Add($"{source.Relative}:{Line(code, m.Index)}: orders sent outside process and submit-held ({type})");
             }
 
+            // PLAN-58 (review): an order becomes Submitted only inside the sending (the coordinator, called by the two senders above).
+            foreach (Match m in SubmittedWrite().Matches(code))
+            {
+                if (source.Relative != Coordinator)
+                    violations.Add($"{source.Relative}:{Line(code, m.Index)}: an order made Submitted outside the sending");
+            }
+
             foreach (Match m in ConfirmationCommand().Matches(code))
             {
                 if (source.Relative != DualControl)
@@ -169,6 +181,7 @@ public sealed partial class Pay058SinglePaymentPathArchitectureTests
         var handlers = sources[BatchHandlers];
         Assert.Contains(Sending().Matches(handlers), m => EnclosingType(handlers, m.Index) == "ProcessPaymentBatchHandler");
         Assert.Contains(Sending().Matches(handlers), m => EnclosingType(handlers, m.Index) == "SubmitHeldPaymentOrdersHandler");
+        Assert.Matches(SubmittedWrite(), sources[Coordinator]);
     }
 
     [Fact]
@@ -199,6 +212,12 @@ public sealed partial class Pay058SinglePaymentPathArchitectureTests
         Assert.Single(violations);
         Assert.Contains("SneakyDisbursementHandler", violations[0], StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Planted_an_order_made_submitted_outside_the_sending_is_caught() =>
+        Assert.Contains(Violations([new Source("Services/Payroll/Payroll.Infrastructure/Services/PaymentOrderService.cs",
+            "public class PaymentOrderService\n{\n    void Advance(PaymentOrder order) { order.Status = PaymentOrderStatus.Submitted; }\n}\n")]),
+            v => v.Contains("an order made Submitted outside the sending", StringComparison.Ordinal));
 
     [Fact]
     public void Planted_a_settlement_by_one_person_is_caught() =>

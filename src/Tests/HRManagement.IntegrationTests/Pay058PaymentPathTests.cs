@@ -153,6 +153,33 @@ public sealed class Pay058PaymentPathTests
     }
 
     [Fact]
+    public async Task A_partial_funding_pays_the_orders_in_the_order_of_their_employees_so_the_same_decision_funds_the_same_people()
+    {
+        await using var scope = await Pay056RunScope.CreateAsync();
+        var employees = new List<Guid>();
+        for (var i = 0; i < 3; i++)
+        {
+            var employee = await scope.EmployeeAsync();
+            await AccountAsync(scope, employee);
+            employees.Add(employee);
+        }
+
+        await RulesAsync(scope);
+        var runId = await scope.PostedRunAsync();
+        var batch = await BatchAsync(scope, runId);
+
+        var funded = await scope.Mediator.Send(new CreateFundingDecisionCommand(batch.Id, null, 0.5m, null, Decider));
+
+        Assert.True(funded.Success, funded.Error);
+        var orders = await OrdersAsync(scope, batch.Id);
+        var nets = (await scope.LinesAsync(runId)).ToDictionary(l => l.EmployeeId, l => l.NetPay);
+        // Equal claims of one priority: the lowest employee id is paid in full, the highest gets nothing (its order is cancelled).
+        Assert.Equal(nets[orders[0].EmployeeId], orders[0].Amount);
+        Assert.Equal(PaymentOrderStatus.Cancelled, orders[2].Status);
+        Assert.InRange(orders.Where(o => o.Status != PaymentOrderStatus.Cancelled).Sum(o => o.Amount), batch.TotalAmount * 0.5m - 0.01m, batch.TotalAmount * 0.5m + 0.01m);
+    }
+
+    [Fact]
     public async Task A_reversal_of_a_run_whose_funded_batch_never_left_voids_it_and_closes_its_arrears()
     {
         await using var scope = await Pay056RunScope.CreateAsync();

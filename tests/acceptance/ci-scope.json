@@ -153,6 +153,7 @@
     { "class": "AcPay54LegalFrameworkTests", "required": true, "group": "main" },
     { "class": "AcPay55BankAccountTests", "required": true, "group": "main" },
     { "class": "AcPay56RunStateMachineTests", "required": true, "group": "main" },
+    { "class": "AcPay58DisbursementGovernanceTests", "required": true, "group": "main" },
     { "class": "AcLva57AttendancePeriodTests", "required": true, "group": "main" },
     { "class": "AcUx67ReadableInterfaceTests", "required": true, "group": "main", "browser": true },
     { "class": "AcInt37ProductionWiringTests", "required": true, "group": "isolated" },

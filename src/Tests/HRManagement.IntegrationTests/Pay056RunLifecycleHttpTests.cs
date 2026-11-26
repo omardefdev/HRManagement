@@ -623,7 +623,8 @@ public sealed class Pay056RunLifecycleHttpTests(PostgreSqlFixture postgres)
             });
             return await db.SaveChangesAsync();
         });
-        using var poster = As(host, Poster, PosterRoles);
+        // PLAN-58: the posting validates an antiforgery token (it makes the batch and its orders).
+        using var poster = await WithTokenAsync(As(host, Poster, PosterRoles));
 
         using var posted = await poster.PostAsync($"/api/payroll/runs/{runId}/post", null);
 

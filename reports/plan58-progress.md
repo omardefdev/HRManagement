@@ -205,3 +205,52 @@ Finished (UTC): 2026-11-26T14:11:51Z
 - Full Testcontainers step (CI's filter Category=Testcontainers&Category!=ObjectStorage, Debug): 332 passed, 2 failed (the two
   PLAN-54 HTTP classes above, fixed and rerun green), 1 skipped; 18 min.
 Finished (UTC): 2026-11-26T15:00:33Z
+
+## P8 — Acceptance, then the independent review
+- Pieces: AcPay58DisbursementGovernanceTests (58a..h, prodLike main, required); AcceptancePayrollReview (review by API: acc-auditor
+  opens, acc-a-auditor-2 closes; the second approval by acc-a-payroll-approver-2 when approvalsRequired is 2) and
+  AcceptancePayrollAccounts (no acceptance seed gives an employee a bank account, so a class that sends first gives a few of its own
+  employees a verified account by PLAN-55's two people; partial funding pays in employee-id order, so 58a and AC-24 pick the lowest
+  ids). AC-24 rewritten (funding decision on the posted batch, poster sends, file = sent orders, funded + arrears = total; 400 before
+  the posting, 404 partial-disburse, 403 processor, 409 second sending). AC-25 rewritten (FR-04: two employees paid into one account
+  held, a third sent; four-eyes release; HeldRelease file; no shared account left), month August 2027 (June is AC-12's). AC-PAY-56
+  and AC-12 meet the second approval and the review; AC-PAY-55a and AC-PAY-54b: hr-admin's acts now 403 with the conflict named (the
+  editor/self-verification rules stay proved by the HTTP integration tests with one person, two tokens). AC-UX-67 probes the inbox,
+  a batch's page and, as the auditor, the review records' list, form and run summary. AcceptanceV2Catalog: the one marked fixture is
+  exempt from the SoD persona check. scripts/acceptance-payroll-audit-fixture.ps1 deleted. ci-scope (AcPay58 required, prodLike main),
+  ac-ownership (AC-PAY-58 owned by PLAN-58, AC-24/25/55 reasons). scripts/pay058-validate.ps1 (+ -SelfTest, 22 planted defects).
+- A read-only reference check of the new tests before the first stack (my PLAN-57 lesson) found 5 test defects (file counts that
+  ignored other classes' accounts, the funding order, 54b's attest answer, absolute leftovers, 'Critical' vs 'critical') and one
+  product issue: the funding decision read the orders with no ORDER BY, so who was funded first was not deterministic. Fixed
+  (OrderBy EmployeeId, Id) with a test.
+- Images: all 16 service images built one at a time in 25 min (payroll-web rebuilt twice after fixes, ~2 min each).
+- Prod-like stack (fresh, 16 min to ready): AcPay58 8/8 on the first run (58a: total 276,124,665, 60% funded, approvals 2 of 2);
+  then AC-PAY-54/55/56, AC-IAM-50..53, AC-LVA-57, AC-HCM-25: 55/55; AC-UX-67 7/7 (the new pages 200, one policy, no violation);
+  isolated group 46/47 — AC-37b needs the prod-like journey (an E2E class, CI-only per P-14), recorded, not chased.
+- Independent review (fresh agent; no high finding). Fixed with tests (Pay058ReviewFixTests, architecture rule):
+  M1 a bank file whose orders were acknowledged/settled/rejected is not reissued (request and writer); M2 only the reviews of the
+  run's present version count (opened after its last rejection); M3 a reviewer of the present version does not approve, and a review
+  closed by an approver does not count at the posting; L1 the run's approve, post and fraud-scan API validate the antiforgery token
+  (approve's signature changed; clients updated: AC-12, Pay056RunLifecycleHttpTests); L2 one alert per run, employee and rule
+  whatever its status (a two-person resolution is not undone by the next scan); L3 voided arrears are owed to nobody; L4 the ack runs
+  in its own transaction; L6 the bank-file writer is required; L8 PaymentOrderService.TryAdvanceStatusAsync (no caller, a latent
+  second way to submit) removed, and an architecture rule: an order becomes Submitted only in the coordinator. M4 the rollback note
+  (Held is written at the first posting; Voided arrears) is in OPS_VPS_SINGLE_HOST.md. Not changed, recorded: L5 Payroll.RunCancel
+  is not one of the five financial policies (P-9 names five); L7 the gate is read before the sending's transaction (a hold created
+  in that window is caught by the next sending); L9 old partial batches (none on the demo: 0 orders); L10 BlockRun is checked at the
+  calculation's start, a resumed job continues the checked snapshot; L11 by design.
+- After the fixes: unit filter 1052, architecture 444, payroll integration (SQLite) 209 + 5 new, full Testcontainers step 334 passed
+  / 1 skipped (one HTTP class needed the poster's token, fixed).
+- Lab stack (fresh): AC-21, 23, 24, 25, AcceptanceV2Catalog (9), AC-HCM-29 (3) pass; AC-12 Blocked («the run could not be submitted
+  for review»), the PLAN-59 block recorded on main, not chased. A first lab run found my own collision (AC-25 had taken June 2027,
+  AC-12's month: moved to August), AC-24 writing an empty answer as a default JsonElement, and the catalog's SoD check not exempting
+  the one marked fixture; fixed and rerun on a fresh stack.
+- Prod-like rerun after the review fixes (fresh stack): AC-PAY-54, 55, 56, 58 — 25/25. Seeded counts by acceptance-verify: 64/64
+  (DATA-AUTH 70, DATA-DIRECTORY 61, DATA-PAYPROFILE 1,489, SEED-03).
+- Least privilege (migrator image rebuilt with PAY058, 21 min): AC-OPS-38 8/8 (first run: 38a «admin-logistics-web is not ready»,
+  passed on the rerun); AC-TEN-48's one test answered 502 twice: it ran first, at the stack's start, 13 s before HR.Core logged the
+  end of its start-up (the gateway: «an error was encountered before receiving a response»). The readiness race recorded in PLAN-56's
+  lessons; nothing of this plan touches HR.Core or the national settings. Left to the PR run (required there).
+- Not run locally (P-14): the E2E journeys (CI only), so AC-37b (needs the prod-like journey) is not counted.
+- P9: origin/main has not moved (9b069f65): nothing to merge.
+Finished (UTC): 2026-11-26T18:33:10Z

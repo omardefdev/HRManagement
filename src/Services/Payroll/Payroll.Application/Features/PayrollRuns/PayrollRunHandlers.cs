@@ -128,6 +128,7 @@ public record ApprovePayrollRunCommand(Guid PayrollRunId, Guid ApproverId, strin
 public static class PayrollApprovalMessages
 {
     public const string CreatorCannotApprove = "لا يمكن لمنشئ التشغيل اعتماد نفس التشغيل.";
+    public const string ReviewerCannotApprove = "لا يعتمد التشغيلَ من راجعه: المراجع المستقل ليس من معتمديه.";
 
     /// <summary>«اعتماد 1 من 2»: the run waits for its next approver.</summary>
     public static string Progress(int given, int required) =>
@@ -153,6 +154,10 @@ public class ApprovePayrollRunHandler(IPayrollRepository repository, SeparationO
 
         if (run.CreatedBy is Guid creatorId && creatorId == request.ApproverId)
             return RunActResult.Invalid(PayrollApprovalMessages.CreatorCannotApprove);
+        // PLAN-58 (D-PAY-3, review): a reviewer of the run's present version is none of its approvers, whichever came first.
+        if (Review.PayrollReviewRecords.Reviewed(
+                await Review.PayrollReviewRecords.OfThisVersionAsync(repository, run.Id, cancellationToken), request.ApproverId))
+            return RunActResult.Invalid(PayrollApprovalMessages.ReviewerCannotApprove);
 
         var required = sod.GetRequiredApprovalCount(Options.PayrollSeparationOfDuties.RunEntityType, run.TotalNetPay);
         try
@@ -179,6 +184,7 @@ public static class PayrollPostingMessages
 {
     public const string PosterIsApprover = "لا يمكن لنفس المستخدم اعتماد التشغيل ثم ترحيله.";
     public const string PosterIsReviewer = "لا يرحّل التشغيلَ من راجعه.";
+    public const string ReviewerIsApprover = "راجع التشغيلَ أحدُ معتمديه: المراجعة المستقلة لا تُحسب، ويلزم مراجعة من مدققَين ليسا من معتمديه.";
     public const string ReviewRequired = "يجب أن يفتح مدقق سجل مراجعة للتشغيل ويغلقه مدقق آخر قبل الترحيل.";
 
     /// <summary>The run's log line when an agency turned the review off (<c>Payroll:Audit:Required=false</c>).</summary>
@@ -219,13 +225,15 @@ public class PostPayrollRunHandler(
         // PLAN-57: the attendance gate's warning is not a review. PLAN-58 (D-PAY-3): the review is a record an auditor opened and another
         // auditor closed; neither of them posts. An agency may turn the review off by its own decision: the run's log then says so.
         var reviewRequired = auditOptions?.Value.Required ?? true;
-        var reviews = await repository.PayrollAuditRecords.AsNoTracking()
-            .Where(a => a.PayrollRunId == run.Id && a.Status == AuditStatus.Closed
-                        && (a.Findings == null || !a.Findings.StartsWith(PayrollAttendanceGate.WarningPrefix)))
-            .Select(a => new { a.AuditorId, a.ClosedBy })
-            .ToListAsync(cancellationToken);
-        if (reviews.Any(r => r.AuditorId == request.PosterId || r.ClosedBy == request.PosterId))
+        // Only the reviews of the run's present version count (PLAN-58 review: a rejection reopens the run and its figures change).
+        var reviews = (await Review.PayrollReviewRecords.OfThisVersionAsync(repository, run.Id, cancellationToken))
+            .Where(r => r.Status == AuditStatus.Closed)
+            .ToList();
+        if (Review.PayrollReviewRecords.Reviewed(reviews, request.PosterId))
             return (false, PayrollPostingMessages.PosterIsReviewer);
+        var approvers = run.ApprovalsOfThisVersion.Where(a => a.ApproverId is not null).Select(a => a.ApproverId!.Value).ToHashSet();
+        if (approvers.Any(approver => Review.PayrollReviewRecords.Reviewed(reviews, approver)))
+            return (false, PayrollPostingMessages.ReviewerIsApprover);
         if (reviewRequired && reviews.Count == 0)
             return (false, PayrollPostingMessages.ReviewRequired);
 
