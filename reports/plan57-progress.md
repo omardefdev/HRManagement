@@ -360,4 +360,14 @@ older suites add cancelled runs), detached and never under `timeout`; then the P
 (5) P10: `OPS_VPS_SINGLE_HOST.md`, the report's sections 1, 2, 11, 12 and 15 (`reports/plan57-final-report.md` is drafted, with
 `@@…@@` marks where they go), the local gates in a fresh clone, `release/plan-57`, the PR, the merge.
 
-Meanwhile, with nothing on the server: the full unit suite and the local CI steps on this HEAD, as a first pass.
+**First pass of the local gates, with nothing on the server** (so that the one server build carries code the gates have
+already seen): gitleaks over the branch's 24 commits, no leak (03:15Z); the local CI steps in a fresh clone of `938bffd5`
+(`run-steps.sh --all`, the compiler servers off; 03:16:09Z → 03:59:30Z, 2,601 s): **87 passed, 0 failed, 5 not run and named**
+(`Integration tests (Testcontainers)`: run natively, 325 passed; `Coverage gate`, `Install ReportGenerator`, `Generate coverage
+report`: they follow that step; `Verify Docker builds`: the images were built here one at a time). Unit 7,235 passed,
+architecture 414, integration (in-memory) 598 passed and 4 skipped. The gates run again on the final HEAD in P10.
+
+**BLOCKED (UTC): 2026-11-26T04:00:14Z.** Cause: P-16's line — the server has 26 GB free after its removals, under 28 GB, and the Seq retention
+the owner allowed frees nothing. The demo runs the previous release (`e64a0f7e65be`), untouched and answering. Nothing is left
+half-done on it: the backup is verified, the retention policy is in place, the older release's local images are in the loopback
+registry. The keep-awake (PID 1314307) stays for the continuation.
