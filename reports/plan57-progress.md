@@ -19,9 +19,9 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
 | P4 correction | done | 2026-11-25T22:01:57Z |
 | P5 payroll's side | done | 2026-11-25T22:22:14Z |
 | P6 PostgreSQL proofs | done | 2026-11-25T23:05:16Z |
-| P7 acceptance and review | in progress | |
-| P8 main | | |
-| P9 demo server | | |
+| P7 acceptance and review | done | 2026-11-26T03:14:58Z |
+| P8 main | done (nothing to merge) | 2026-11-26T03:14:58Z |
+| P9 demo server | in progress: the disk is under the line (see «Server changes») | |
 | P10 docs, gates, report, merge | | |
 
 ## P0 — baseline (finished 2026-11-25T20:49:10Z)
@@ -218,7 +218,7 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
 - Build `-warnaserror`: 0 warnings, 0 errors (4 min 33 s). Format check on the changed files: clean.
 - Commits: `4adfe897` (tests), `73f397e5` (gate scope).
 
-## P7 — acceptance and review (in progress; written as it goes)
+## P7 — acceptance and review (finished 2026-11-26T03:14:58Z)
 
 - **The class and its pieces** (commit `cdcb541c`): `AcLva57AttendancePeriodTests` (AC-LVA-57a..h, required, ordered),
   `testdata/acceptance/lva057-periods.json`, three publishers in `AcceptanceMessagingHelper` (the leave's approval and
@@ -283,6 +283,12 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
   | Prod-like stack 3 | 01:33:28 | 01:47:55 | ready on the first try, 14 min 27 s |
   | `AcLva57AttendancePeriodTests` + `AcIam52BranchScopeTests` in one run | 01:47:58 | 01:51:28 | **13 of 13** (AC-IAM-52a..e first, then AC-LVA-57a..h) |
   | `AcLva57AttendancePeriodTests` **again on the same stack** + `AcUx67ReadableInterfaceTests` | 01:51:40 | 01:57:19 | **15 of 15**: the class gives the same numbers on a second run; all seven attendance pages opened in Chromium with one policy and no violation |
+  | Acceptance job, lab: `-Profile Lab -NoBuild -Stage lab:main,lab:journey -Classes <8>` (AC-16, AC-21, AC-23, AC-24, AC-25, the catalog, AC-HCM-29, the lab journey) | 01:57:41 | 02:18:55 | **PASS**: stack 897 s; main **17 of 17** (269 s); journey 1 of 1; `acceptance-guard: PASS (8 classes in 2 trx files)` |
+  | Seeded counts by psql on the fresh lab stack, before its tests (`artifacts/plan57/p7-seeded-counts.txt`) | 02:17 | 02:17 | the 32 tables of `acceptance-verify.ps1` have their expected counts |
+  | Migrator image (`hr-migrate:local`) through `docker compose build` from a one-service file (`artifacts/plan57/migrator-compose.yml`; no buildx here) | 02:19:08 | 02:39:33 | 1,225 s, 5.13 GB; disk 39 GB before, 30 GB after (34 GB once the build-stage cache was pruned) |
+  | Acceptance job, leastpriv (`-Stage prodLike:leastpriv -NoBuild`), first run | 02:39:41 | 02:48:38 | **1 of 9 failed, from the environment** (PLAN-56 met the same): the first test asked HR-core for its antiforgery token seconds after the stack came up under load and got 502; the other 8 passed |
+  | Acceptance job, leastpriv, again once the load had fallen (3.6) | 02:49:40 | 02:58:46 | **PASS, 9 of 9** (stack 169 s, tests 353 s): both LVA057 migrations are applied by the migrator's role from empty volumes, and HR.Core and Payroll start on them as their own roles; `acceptance-guard: PASS (2 classes in 1 trx files)` |
+  | **Full Testcontainers step** on the host with CI's filter (`Category=Testcontainers&Category!=ObjectStorage`), after the review fixes | 02:59:17 | 03:14:18 | **325 passed, 1 skipped**, 14 min 56 s |
 
 - **AC-IAM-52a, an existing scenario whose expectation changed (its meaning kept).** Its step «his own attendance record edited
   with the ALEP employee's id» expected 404: before this plan the edit bound the employee and refused a foreign one. The edit now
@@ -296,6 +302,10 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
   the close; 1,189 summaries and receipts after it; 20 still missing, none in service in June 2025 by HR.Core's rule; one open
   warning record that lists exactly those 20.
 
+## P8 — `main`
+
+`git fetch origin` at 00:53Z and again before this line: `origin/main` is `01a8c3f9`, an ancestor of the branch. Nothing to merge.
+
 ## Decisions (with reasons)
 
 - **D-P57-1, the reserved months:** 2025-01 … 2025-07 (see the baseline). 57a January, 57b February (and the current month for «no
@@ -305,7 +315,27 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
 
 ## Server changes and their undo commands
 
-None yet (P0 was read-only).
+P0 was read-only. P9 (UTC of 2026-11-26):
+
+1. **02:59:30Z, the backup.** `/opt/hrm/backups/pre-plan57-20261126T025930Z` (700): `pg_dumpall.sql` (44,611,604 bytes),
+   `env.backup`, `SHA256SUMS` (each 600). Verified: both sums OK; 17 `CREATE DATABASE` lines; the dump ends with «PostgreSQL
+   database cluster dump complete». Before it: the running tag `e64a0f7e65be` is on `origin/main`; the host key is the expected
+   one (`SHA256:qWIfQls8…`); 21 GB free of 145 GB; `hrm_seq_data` 47.27 GB; no Seq retention policy.
+   **Undo:** delete the folder when it is no longer needed.
+2. **03:08:20Z, Seq's retention, exactly what the owner allowed in this session's first message** («أسمح بتقليص سجلات Seq على
+   الخادم إلى آخر 30 يوماً»): one retention policy through Seq's own API (`POST /api/retentionpolicies`, from its template:
+   `RetentionTime = 30.00:00:00`, no signal filter; id `retentionpolicy-34`). There was none before.
+   **Sizes: before — 20,727 MiB free, `hrm_seq_data` 47.4 GB; after — 20,726 MiB free, 47.4 GB. It freed nothing:** Seq's store
+   begins on 2026-10-31T18:56Z (26 days; `api/diagnostics/storage`: 44.4 GB indexed), and a query finds no event before the
+   30-day line. From 2026-11-30 on, Seq deletes what is older than 30 days. **A deletion by retention cannot be undone;** the
+   policy itself is removed with `curl -X DELETE http://127.0.0.1:5380/api/retentionpolicies/retentionpolicy-34` on the server.
+3. **03:09:23Z, the local images of the older release `69570ea4e1f6`** (17 images; none in use; each checked in the loopback
+   registry first: 17 of 17 manifests answer 200) removed with `docker rmi`: **20,724 MiB → 26,521 MiB free** (`df -h`: 26G of
+   145G). No dangling image and no build cache were there to remove. **Undo:**
+   `docker pull 127.0.0.1:5050/hrmanagement/<image>:69570ea4e1f6` for the image wanted back (a rollback to it pulls them itself).
+   **The disk after P-16's removals is 26 GB: under the 28 GB line.** What else holds the disk (read-only look): the loopback
+   registry `/opt/hrm/registry` 53.7 GB (the images of every release pushed since PLAN-36), `hrm_seq_data` 47.4 GB (26 days of
+   logs, about 1.7 GB a day), the running release's 24 images 8.9 GB, PostgreSQL 0.3 GB.
 
 ## Open issues
 
@@ -313,9 +343,21 @@ None yet (P0 was read-only).
 
 ## The exact next step
 
-P7, on prod-like stack 2 (started 2026-11-26T00:28:09Z, images of `b92ed935`): `AcLva57AttendancePeriodTests` then
-`AcUx67ReadableInterfaceTests` by hand (`artifacts/plan57/run-classes.ps1`), stack down; then
-`scripts/ci/acceptance-job.ps1 -Stage prodLike:journey,prodLike:main,prodLike:isolated -NoBuild`; the lab stage
-(`-Stage lab:main,lab:journey`) with the seeded counts; the migrator image (`artifacts/plan57/migrator-compose.yml`) and
-`-Stage prodLike:leastpriv -NoBuild`; the full Testcontainers step again (the review fixes changed what it tests); the P7 commit.
-Then P8 (`git fetch`, merge `origin/main` only if it moved) and P9 (the demo server; `AcLva57VpsChecks` is written).
+**P9 waits on the owner's word about the server's disk.** After P-16's removals the server has 26 GB free; the build needs
+about 26 GB at its peak, and P-16 forbids a build under 28 GB. The Seq retention the owner allowed (30 days) is applied and
+freed nothing (Seq's store is 26 days old). Done so far in P9: the backup (verified), the retention policy, the older release's
+local images removed. Not done: the build, the deploy, `AcLva57VpsChecks` (written, compiled), the older plans' server checks,
+the smoke, the rollback note in `OPS_VPS_SINGLE_HOST.md`.
+
+When the owner answers, continue here: (1) free what he allows and record sizes before and after; (2) upload the archive of
+HEAD and `deploy/vps/build-on-host.sh` as `scripts/vps/build-on-host.ps1` does, and start
+`artifacts/plan57/p9-build-wrapper.sh <sha12> 3000` on the server with `setsid nohup` (it logs `df`, stops the build by its PID
+under 3,000 MiB and writes `/opt/hrm/build-<sha12>.done`); (3) check the old queue is empty; `scripts/vps/deploy.ps1 -Tag <sha12>`
+(again at once if it stops at `keycloak-reconcile`); (4) `artifacts/plan57/run-vps.ps1 -Filter "FullyQualifiedName~AC_LVA_57_vps"`
+with `LVA057_VPS_ATTENDANCE_MD5=28881f6782468450cb579f55f8f18f23`, `LVA057_VPS_RUNS_MD5=5e260f8e21306a47887bf48e59d6c63f`,
+`LVA057_VPS_LINES_MD5=a258ad243f723c99eedbfc7386fce196`, `LVA057_VPS_LEAVE_MADE=0` (the migration check first, before the
+older suites add cancelled runs), detached and never under `timeout`; then the PLAN-36..56 server suites and the smoke;
+(5) P10: `OPS_VPS_SINGLE_HOST.md`, the report's sections 1, 2, 11, 12 and 15 (`reports/plan57-final-report.md` is drafted, with
+`@@…@@` marks where they go), the local gates in a fresh clone, `release/plan-57`, the PR, the merge.
+
+Meanwhile, with nothing on the server: the full unit suite and the local CI steps on this HEAD, as a first pass.
