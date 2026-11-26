@@ -365,7 +365,15 @@ public class PayrollAdjustmentsController(PayrollDbContext db, IEmployeeLookup e
     }
 }
 
-public class PayrollAuditRecordsController(PayrollDbContext db) : Controller
+/// <summary>
+/// PLAN-58 (§4, D-PAY-3): the independent review before a posting. The reviewer (<c>Payroll.AuditReview</c>: <c>auditor</c> by default)
+/// reaches these screens, and through the gateway no other payroll screen: the list, a run's summary for the review, and the review
+/// record's opening and closing. One auditor opens, another closes; neither made, approved or posts the run. The attendance gate's warning
+/// is not a review and is never closed here. The override replaces the module's policy for the controller; each write names its own.
+/// </summary>
+[ModulePolicyOverride(HrManagementPolicies.PayrollAuditReview)]
+[OrgScopeCentralOnly("a payroll run's review belongs to the whole agency, not to a unit")]
+public class PayrollAuditRecordsController(PayrollDbContext db, IMediator mediator) : Controller
 {
     private Guid RequireUserId()
     {
@@ -391,81 +399,64 @@ public class PayrollAuditRecordsController(PayrollDbContext db) : Controller
         ViewBag.PayrollRuns = new SelectList(
             await db.PayrollRuns.AsNoTracking().OrderByDescending(r => r.RunDate).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(),
             "Id", "RunDate", payrollRunId);
+        ViewBag.UserId = RequireUserId();
         return View(items);
+    }
+
+    /// <summary>What the reviewer reads of a run: its period, state, totals, approvals and review records (no line, no account).</summary>
+    public async Task<IActionResult> RunSummary(Guid id)
+    {
+        var run = await db.PayrollRuns.AsNoTracking().Include(r => r.Approvals).FirstOrDefaultAsync(r => r.Id == id);
+        if (run is null) return NotFound();
+        ViewBag.LineCount = await db.SalaryLines.AsNoTracking().CountAsync(l => l.PayrollRunId == id);
+        ViewBag.Records = await db.PayrollAuditRecords.AsNoTracking().Where(a => a.PayrollRunId == id).OrderBy(a => a.CreatedAt).ToListAsync();
+        ViewBag.ActiveHolds = await db.PaymentHolds.AsNoTracking()
+            .CountAsync(h => h.Status == Payroll.Domain.Constants.PaymentHoldStatus.Active && h.PayrollRunId == id);
+        return View(run);
     }
 
     public async Task<IActionResult> Create()
     {
-        ViewBag.Runs = new SelectList(await db.PayrollRuns.AsNoTracking().OrderByDescending(r => r.RunDate).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "RunDate");
+        ViewBag.Runs = await ReviewableRunsAsync();
         return View(new PayrollAuditRecord { Status = AuditStatus.Open });
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
+    [Authorize(Policy = HrManagementPolicies.PayrollAuditReview)]
     public async Task<IActionResult> Create([Bind("PayrollRunId,Findings")] PayrollAuditRecord model)
     {
-        if (!ModelState.IsValid)
+        var result = await mediator.Send(new Payroll.Application.Features.PayrollRuns.Review.OpenPayrollAuditRecordCommand(
+            model.PayrollRunId, model.Findings, RequireUserId()));
+        if (!result.Success)
         {
-            ViewBag.Runs = new SelectList(await db.PayrollRuns.AsNoTracking().Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "RunDate");
+            ModelState.AddModelError(nameof(model.PayrollRunId), result.Error ?? "تعذر فتح سجل المراجعة.");
+            ViewBag.Runs = await ReviewableRunsAsync();
             return View(model);
         }
 
-        var run = await db.PayrollRuns.FirstOrDefaultAsync(r => r.Id == model.PayrollRunId);
-        if (run == null)
-        {
-            ModelState.AddModelError(nameof(model.PayrollRunId), "تشغيل الرواتب غير موجود.");
-            ViewBag.Runs = new SelectList(await db.PayrollRuns.AsNoTracking().Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "RunDate");
-            return View(model);
-        }
-
-        if (run.Status != PayrollRunStatus.UnderReview && run.Status != PayrollRunStatus.Approved)
-        {
-            ModelState.AddModelError(nameof(model.PayrollRunId), "يمكن فتح سجل المراجعة فقط لتشغيل قيد المراجعة أو معتمد.");
-            ViewBag.Runs = new SelectList(await db.PayrollRuns.AsNoTracking().Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(), "Id", "RunDate");
-            return View(model);
-        }
-
-        model.Status = AuditStatus.Open;
-        model.AuditorId = RequireUserId();
-        db.PayrollAuditRecords.Add(model);
-        await db.SaveChangesAsync();
-        TempData["Success"] = "تم فتح سجل المراجعة";
+        TempData["Success"] = "تم فتح سجل المراجعة؛ يغلقه مدقق آخر";
         return RedirectToAction(nameof(Index));
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
+    [Authorize(Policy = HrManagementPolicies.PayrollAuditReview)]
     public async Task<IActionResult> CloseAudit(Guid id)
     {
-        var audit = await db.PayrollAuditRecords.FirstOrDefaultAsync(a => a.Id == id);
-        if (audit == null) return NotFound();
-        if (audit.Status != AuditStatus.Open)
-        {
-            TempData["Warning"] = "سجل المراجعة مغلق بالفعل.";
-            return RedirectToAction(nameof(Index));
-        }
-
-        // PLAN-57: the attendance gate's warning has no auditor and is not a review. Closing it would look like one.
-        if (PayrollAttendanceGate.IsWarning(audit))
-        {
-            TempData["Error"] = "تحذير بوابة الحضور ليس سجل مراجعة ولا يُغلق يدوياً: يزول عند إعادة الحساب بعد إغلاق حضور الفترة.";
-            return RedirectToAction(nameof(Index));
-        }
-
-        var currentUserId = RequireUserId();
-        if (audit.AuditorId.HasValue && audit.AuditorId.Value == currentUserId)
-        {
-            TempData["Error"] = "لا يمكن لنفس المدقق إغلاق سجل المراجعة.";
-            return RedirectToAction(nameof(Index));
-        }
-
-        audit.Status = AuditStatus.Closed;
-        audit.ClosedAt = DateTime.UtcNow;
-        audit.ClosedBy = currentUserId;
-        await db.SaveChangesAsync();
-        TempData["Success"] = "تم إغلاق سجل المراجعة.";
+        var result = await mediator.Send(new Payroll.Application.Features.PayrollRuns.Review.ClosePayrollAuditRecordCommand(id, RequireUserId()));
+        if (result.Outcome == Payroll.Application.Features.PayrollRuns.Lifecycle.RunActOutcome.NotFound)
+            return NotFound();
+        TempData[result.Success ? "Success" : "Error"] = result.Success ? "تم إغلاق سجل المراجعة." : result.Error;
         return RedirectToAction(nameof(Index));
     }
+
+    private async Task<SelectList> ReviewableRunsAsync() =>
+        new(await db.PayrollRuns.AsNoTracking()
+                .Where(r => r.Status == PayrollRunStatus.UnderReview || r.Status == PayrollRunStatus.Approved)
+                .OrderByDescending(r => r.RunDate)
+                .Take(SearchFilterBase.LookupMaxPageSize)
+                .Select(r => new { r.Id, Label = r.PeriodStart.ToString("yyyy-MM") })
+                .ToListAsync(),
+            "Id", "Label");
 }

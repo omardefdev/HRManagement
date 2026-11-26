@@ -45,7 +45,7 @@ public class PayrollApiController : ControllerBase
         var (success, id, error) = await _mediator.Send(new CreatePayrollRunCommand(
             request.PeriodStart, request.PeriodEnd, request.RunDate, request.RunType, request.SourceRunId), ct);
         if (!success) return BadRequest(new { error });
-        return CreatedAtAction(nameof(GetRun), new { id }, new { id });
+        return CreatedAtAction(nameof(PayrollRunReadApiController.GetRun), "PayrollRunReadApi", new { id }, new { id });
     }
 
     [HttpPost("runs/{id:guid}/submit-for-review")]
@@ -87,52 +87,6 @@ public class PayrollApiController : ControllerBase
         var (success, error) = await _mediator.Send(new PostPayrollRunCommand(id, RequireUserId()), ct);
         if (!success) return BadRequest(new { error });
         return Ok();
-    }
-
-    [HttpGet("runs/{id:guid}")]
-    public async Task<IActionResult> GetRun(Guid id, CancellationToken ct)
-    {
-        var run = await _db.PayrollRuns
-            .AsNoTracking()
-            .Where(r => r.Id == id)
-            .Select(r => new PayrollRunDetailsDto(
-                r.Id,
-                r.TenantId,
-                r.CreatedAt,
-                r.UpdatedAt,
-                r.CreatedBy,
-                r.UpdatedBy,
-                r.PeriodStart,
-                r.PeriodEnd,
-                r.RunDate,
-                r.Status,
-                r.RunType,
-                r.SourceRunId,
-                r.PayrollConfigurationId,
-                r.ConfigContentHash,
-                r.TotalNetPay,
-                r.ResultsFrozen,
-                r.ValidatedAtCalculate,
-                r.SalaryLines
-                    .OrderBy(line => line.EmployeeId)
-                    .Select(line => new SalaryLineDetailsDto(
-                        line.Id,
-                        line.TenantId,
-                        line.CreatedAt,
-                        line.UpdatedAt,
-                        line.CreatedBy,
-                        line.UpdatedBy,
-                        line.PayrollRunId,
-                        line.EmployeeId,
-                        line.GrossPay,
-                        line.TotalDeductions,
-                        line.NetPay,
-                        line.PayComponents,
-                        line.TotalAdjustments))
-                    .ToList()))
-            .FirstOrDefaultAsync(ct);
-        if (run is null) return NotFound();
-        return Ok(run);
     }
 
     /// <summary>

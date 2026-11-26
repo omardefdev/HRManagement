@@ -1,0 +1,66 @@
+@model Payroll.Domain.Entities.PayrollRun
+@using Payroll.Application.Services
+@using Payroll.Domain.Enums
+@{
+    ViewData["Title"] = "ملخص التشغيل للمراجعة";
+    var records = ViewBag.Records as IReadOnlyList<Payroll.Domain.Entities.PayrollAuditRecord> ?? [];
+    var approvals = Model.Approvals.Where(a => a.Decision == ApprovalDecision.Approved).OrderBy(a => a.DecidedAt).ToList();
+}
+<div class="card mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0">ملخص التشغيل للمراجعة — @Html.HrDate(Model.PeriodStart) إلى @Html.HrDate(Model.PeriodEnd)</h3>
+        <a asp-action="Index" class="btn btn-secondary btn-sm">سجلات المراجعة</a>
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">الحالة</dt><dd class="col-sm-9">@Html.HrEnumDisplay(Model.Status)</dd>
+            <dt class="col-sm-3">نوع التشغيل</dt><dd class="col-sm-9">@Html.HrEnumDisplay(Model.RunType)</dd>
+            <dt class="col-sm-3">إجمالي الصافي</dt><dd class="col-sm-9">@Model.TotalNetPay.ToString("N2")</dd>
+            <dt class="col-sm-3">عدد البنود</dt><dd class="col-sm-9">@ViewBag.LineCount</dd>
+            <dt class="col-sm-3">رقم النسخة</dt><dd class="col-sm-9">@Model.Revision</dd>
+            <dt class="col-sm-3">أنشأه</dt><dd class="col-sm-9">@Html.HrUserName(Model.CreatedBy)</dd>
+            <dt class="col-sm-3">حجوزات صرف نشطة</dt><dd class="col-sm-9">@ViewBag.ActiveHolds</dd>
+        </dl>
+    </div>
+</div>
+<div class="card mb-3">
+    <div class="card-header"><h5 class="mb-0">الاعتمادات</h5></div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>المعتمد</th><th>النسخة</th><th>التاريخ</th></tr></thead>
+            <tbody>
+            @foreach (var approval in approvals)
+            {
+                <tr><td>@Html.HrUserName(approval.ApproverId)</td><td>@approval.Revision</td><td>@Html.HrDateTime(approval.DecidedAt)</td></tr>
+            }
+            @if (approvals.Count == 0)
+            {
+                <tr><td colspan="3" class="text-center text-muted py-3">لا توجد اعتمادات بعد</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>
+<div class="card">
+    <div class="card-header"><h5 class="mb-0">سجلات المراجعة لهذا التشغيل</h5></div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>الحالة</th><th>فتحه</th><th>أغلقه</th><th>ملاحظات</th></tr></thead>
+            <tbody>
+            @foreach (var record in records)
+            {
+                <tr>
+                    <td>@Html.HrEnumDisplay(record.Status)</td>
+                    <td>@Html.HrUserName(record.AuditorId)</td>
+                    <td>@Html.HrUserName(record.ClosedBy)</td>
+                    <td>@(PayrollAttendanceGate.IsWarning(record) ? PayrollAttendanceGate.Headline(record.Findings) : record.Findings ?? "—")</td>
+                </tr>
+            }
+            @if (records.Count == 0)
+            {
+                <tr><td colspan="4" class="text-center text-muted py-3">لا توجد سجلات مراجعة بعد</td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</div>

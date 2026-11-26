@@ -217,7 +217,7 @@ public class PayrollRunLifecycleIntegrationTests
     [Fact]
     public async Task PayrollAuditClose_WhenCloserIsAuditor_ReturnsError()
     {
-        var (root, scope, db, _) = await CreatePayrollScopeAsync();
+        var (root, scope, db, mediator) = await CreatePayrollScopeAsync();
         await using var _ = scope;
         await using var __ = root;
 
@@ -241,7 +241,7 @@ public class PayrollRunLifecycleIntegrationTests
         db.PayrollAuditRecords.Add(audit);
         await db.SaveChangesAsync();
 
-        var controller = new PayrollAuditRecordsController(db)
+        var controller = new PayrollAuditRecordsController(db, mediator)
         {
             ControllerContext = new ControllerContext
             {
@@ -262,7 +262,7 @@ public class PayrollRunLifecycleIntegrationTests
     }
 
     [Fact]
-    public async Task ExportTreasury_WhenRunNotPosted_Throws()
+    public async Task ExportInsurance_WhenRunNotPosted_Throws()
     {
         var (root, scope, db, _) = await CreatePayrollScopeAsync();
         await using var _ = scope;

@@ -258,6 +258,16 @@ public static class HrManagementPolicies
     /// </summary>
     public const string PayrollRunCancel = "Payroll.RunCancel";
 
+    /// <summary>
+    /// PLAN-58 (D-PAY-3): the independent review before a posting: opening and closing a run's review record. Roles from
+    /// <c>Payroll:Audit:ReviewerRoles</c> (comma-separated; <c>auditor</c> by default). The reviewer reaches the review screens, a run's
+    /// read and the two review API writes, and nothing else; he is never the run's creator, approver or poster (the handler's rule).
+    /// </summary>
+    public const string PayrollAuditReview = "Payroll.AuditReview";
+
+    /// <summary>PLAN-58 (D-PAY-3): reading a payroll run: the module's users, and the reviewer (<see cref="PayrollAuditReview"/>).</summary>
+    public const string PayrollRunRead = "Payroll.RunRead";
+
     public const string HrManagementApprove = "HrManagement.Approve";
 
     /// <summary>

@@ -110,3 +110,22 @@ Finished (UTC): 2026-11-26T13:07:51Z
   settle by two, rejection, reissue), Pay058DisbursementHttpTests + approver id in the body ignored (PostgreSQL, P7). Frd001 and
   Pay055 PG tests moved to the service. Integration filter 210 passed; architecture 440; unit filter 1183.
 Finished (UTC): 2026-11-26T13:22:58Z
+
+## P4 — The double approval, the independent review, the gateway
+- Double approval (from P1): PayrollRun.Approve counts distinct approvers of the present version against
+  sod.GetRequiredApprovalCount("PayrollRun", TotalNetPay) with Payroll:Approval:DualApprovalThreshold; the API answers status,
+  approvalsGiven, approvalsRequired, progress («اعتماد 1 من 2»); the run page shows it with the review's state and the held employees by
+  name. A lost race on the run's row version reaches the conflict middleware (409), as PLAN-56's test expects.
+- Policies (ServiceDefaults): Payroll.AuditReview (PayrollReviewerRequirement: roles from Payroll:Audit:ReviewerRoles, auditor by default)
+  and Payroll.RunRead (the module's users or the reviewer).
+- Review: Open/ClosePayrollAuditRecordCommand (opener and closer differ; neither is the run's creator, any approver, or its poster; the
+  gate's warning never closes). PayrollAuditRecordsController [ModulePolicyOverride(Payroll.AuditReview)], writes name AuditReview,
+  RunSummary page for the reviewer; PayrollAuditRecordsApiController (POST runs/{id}/audit-records, POST audit-records/{id}/close,
+  GET audit-records/antiforgery); GET runs/{id} moved to PayrollRunReadApiController (override Payroll.RunRead). Two org-scope allowlist
+  rows removed (PaymentBatches in P2, PayrollAuditRecords here: the list shrank).
+- Gateway: GatewayPayrollReviewPaths (review screens, review API, run read, static files); every other payroll path keeps Module.Payroll.
+- Posting: poster is none of the approvers (every approval) and none of the reviewers; Payroll:Audit:Required=false posts without a review
+  and writes a line in the run's log.
+- Tests: GatewayAuditorReachTests (4, architecture project: reach, limits, setting, real actions), Pay058ApprovalReviewTests (6, SQLite).
+  Integration filter 184 passed; unit filter 1760; architecture 440 + 4.
+Finished (UTC): 2026-11-26T13:36:18Z

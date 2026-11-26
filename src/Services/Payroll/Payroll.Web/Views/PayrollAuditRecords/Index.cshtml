@@ -7,6 +7,7 @@
     var selectedStatus = ViewBag.Status as AuditStatus?;
     DateTime? createdFrom = ViewBag.CreatedFrom;
     DateTime? createdTo = ViewBag.CreatedTo;
+    var userId = ViewBag.UserId as Guid?;
 }
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -52,13 +53,13 @@
             @foreach (var x in Model)
             {
                 <tr>
-                    <td><a asp-controller="PayrollRuns" asp-action="Details" asp-route-id="@x.PayrollRunId">عرض المسير</a></td>
+                    <td><a asp-action="RunSummary" asp-route-id="@x.PayrollRunId">ملخص التشغيل للمراجعة</a></td>
                     <td>@Html.HrEnumDisplay(x.Status)</td>
                     <td>@Html.HrUserName(x.AuditorId)</td>
                     <td>@Html.HrUserName(x.ClosedBy)</td>
                     <td>@(PayrollAttendanceGate.IsWarning(x) ? PayrollAttendanceGate.Headline(x.Findings) + " الأسماء في صفحة المسير." : x.Findings ?? "—")</td>
                     <td class="text-end">
-                        @if (x.Status == AuditStatus.Open && !PayrollAttendanceGate.IsWarning(x))
+                        @if (x.Status == AuditStatus.Open && !PayrollAttendanceGate.IsWarning(x) && x.AuditorId != userId)
                         {
                             <form asp-action="CloseAudit" asp-route-id="@x.Id" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()

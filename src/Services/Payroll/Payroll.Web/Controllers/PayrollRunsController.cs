@@ -159,6 +159,25 @@ public class PayrollRunsController : Controller
         ViewBag.BankReadiness = await _mediator.Send(
             new Payroll.Application.Features.BankAccounts.GetRunBankReadinessQuery(id), HttpContext.RequestAborted);
 
+        // PLAN-58 (D-PAY-5): «اعتماد 1 من 2» — how many approvers the run's net needs, and how many approved its present version.
+        ViewBag.ApprovalsRequired = _sod.GetRequiredApprovalCount(Payroll.Application.Options.PayrollSeparationOfDuties.RunEntityType, run.TotalNetPay);
+        ViewBag.ApprovalsGiven = run.ApprovalsGiven;
+        // PLAN-58 (D-PAY-3): the independent review: a record an auditor opened and another closed (the gate's warning is not one).
+        ViewBag.ReviewClosed = await _db.PayrollAuditRecords.AsNoTracking().AnyAsync(a => a.PayrollRunId == id
+            && a.Status == AuditStatus.Closed && (a.Findings == null || !a.Findings.StartsWith(Payroll.Application.Services.PayrollAttendanceGate.WarningPrefix)));
+        // PLAN-58 (D-PAY-4): the employees held out of the payment, by name: approving the run includes knowing them.
+        var employeeIds = run.SalaryLines.Select(l => l.EmployeeId).ToHashSet();
+        var heldRows = await _db.PaymentHolds.AsNoTracking()
+            .Where(h => h.Status == Payroll.Domain.Constants.PaymentHoldStatus.Active && (h.PayrollRunId == id || h.PayrollRunId == null))
+            .Select(h => new { h.EmployeeId, h.HoldType, h.Reason })
+            .ToListAsync();
+        var held = heldRows.Where(h => employeeIds.Contains(h.EmployeeId)).ToList();
+        var heldNames = await ResolveEmployeeNamesAsync(held.Select(h => h.EmployeeId));
+        ViewBag.HeldEmployees = held
+            .Select(h => (Name: heldNames.GetValueOrDefault(h.EmployeeId, "غير متاح"), h.HoldType, h.Reason))
+            .OrderBy(h => h.Name, StringComparer.Ordinal)
+            .ToList();
+
         return View(run);
     }
 

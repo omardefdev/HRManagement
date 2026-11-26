@@ -228,6 +228,41 @@
 
         }
 
+        @{
+            var approvalsRequired = ViewBag.ApprovalsRequired as int? ?? 1;
+            var approvalsGiven = ViewBag.ApprovalsGiven as int? ?? 0;
+            var heldEmployees = ViewBag.HeldEmployees as List<(string Name, string HoldType, string Reason)> ?? [];
+        }
+        @if (Model.Status == PayrollRunStatus.UnderReview)
+        {
+            <div class="alert alert-light border mb-2">
+                <strong>@Payroll.Application.Features.PayrollRuns.PayrollApprovalMessages.Progress(approvalsGiven, approvalsRequired)</strong>
+                @if (approvalsRequired > 1)
+                {
+                    <span class="text-muted">— صافي التشغيل فوق عتبة الاعتماد المزدوج: يعتمده معتمدان مختلفان، والثاني ليس الأول ولا منشئ التشغيل.</span>
+                }
+                <div class="small mt-1">@((ViewBag.ReviewClosed as bool? ?? false) ? "المراجعة المستقلة مغلقة." : "المراجعة المستقلة لم تُغلق بعد: يفتح مدقق سجل المراجعة ويغلقه مدقق آخر قبل الترحيل.")</div>
+            </div>
+            <div class="card mb-2">
+                <div class="card-header py-1"><strong>المحجوزون عن الصرف في هذا التشغيل</strong></div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>الموظف</th><th>نوع الحجز</th><th>السبب</th></tr></thead>
+                        <tbody>
+                        @foreach (var h in heldEmployees)
+                        {
+                            <tr><td>@h.Name</td><td>@Html.HrStoredEnumDisplay("PaymentHoldType", h.HoldType)</td><td>@h.Reason</td></tr>
+                        }
+                        @if (heldEmployees.Count == 0)
+                        {
+                            <tr><td colspan="3" class="text-center text-muted py-2">لا يوجد محجوزون: اعتماد التشغيل يشمل صرف الجميع</td></tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+
         @if (canApprove && Model.Status == PayrollRunStatus.UnderReview)
 
         {
