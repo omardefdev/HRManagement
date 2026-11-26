@@ -5,6 +5,12 @@
 # reports/plan38-progress.md); a different file fails the build.
 FROM rabbitmq:3.13-management-alpine@sha256:606d8c0d6b3c18d1da9afc53bc7cdb2a8d5486df91b5a9830e9e07626c9ae281
 
+# 2026-11-26: the pinned base is the last 3.13-management-alpine there is (pushed 2025-12-02), and the Trivy gate of
+# .github/workflows/deploy.yml found 78 fixed HIGH/CRITICAL findings in its Alpine packages (openssl, expat, musl,
+# python). They are upgraded here, within the base's own Alpine release; RabbitMQ and Erlang are not apk packages and
+# stay exactly those of the pinned digest.
+RUN apk upgrade --no-cache
+
 ARG DELAYED_PLUGIN_VERSION=3.13.0
 ARG DELAYED_PLUGIN_SHA256=3479180df03fa830fd59ccf638a60eee8f0e8261524a8616685522d7b8d9a9ee
 

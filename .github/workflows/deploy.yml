@@ -1,18 +1,29 @@
 name: deploy
 
+# Release images and deploys.
+#   action=build     builds the 17 release images of the dispatched ref's head commit and pushes them to
+#                    ghcr.io/<owner>/hrmanagement/<image>:<sha12>. Nothing is deployed and no environment is touched.
+#                    This is how the single demo server (docs/OPS_VPS_SINGLE_HOST.md section 4) gets its images since
+#                    2026-11-26: the server only pulls, scripts/vps/deploy.ps1 -Tag <sha12> deploys.
+#                      gh workflow run deploy.yml --ref <branch> -f action=build
+#                    With source_sha=<full commit SHA> it builds that older commit instead (a rollback target that is
+#                    not on GHCR), with this ref's workflow and matrix; the tag is that commit's first 12 characters.
+#   action=deploy    the same build, then the deploy job on the chosen environment (also on a v* tag push).
+#   action=rollback  redeploys rollback_tag on the chosen environment; nothing is built.
 on:
   workflow_dispatch:
     inputs:
       action:
-        description: Deploy new release or rollback to a previous tag
+        description: build = images to GHCR only, nothing deployed; deploy = build then deploy; rollback = redeploy rollback_tag
         required: true
-        default: deploy
+        default: build
         type: choice
         options:
+          - build
           - deploy
           - rollback
       environment:
-        description: Deployment target
+        description: Deployment target (ignored when action=build)
         required: true
         default: staging
         type: choice
@@ -21,6 +32,10 @@ on:
           - production
       rollback_tag:
         description: Image tag to rollback to (required when action=rollback)
+        required: false
+        type: string
+      source_sha:
+        description: action=build only, optional. Full SHA of an older commit to build instead of the ref's head
         required: false
         type: string
   push:
@@ -32,9 +47,11 @@ env:
   IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/hrmanagement
 
 jobs:
-  # ── Build & push (deploy path only) ─────────────────────────────────────────
+  # ── Build & push (action=build and the deploy path) ─────────────────────────
+  # The matrix is docker/service-build-matrix.json (15 services) plus hr-migrate and hr-rabbitmq: the same 17 images,
+  # Dockerfiles and build args as deploy/vps/build-on-host.sh (Ops036ComposeLintTests compares them).
   build-and-push:
-    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'deploy')
+    if: github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && github.event.inputs.action != 'rollback')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -168,7 +185,20 @@ jobs:
             needs_krb5: "false"
             gateway_audit_dir: "false"
     steps:
+      - name: Check source_sha
+        env:
+          SOURCE_SHA: ${{ github.event.inputs.source_sha }}
+          ACTION: ${{ github.event.inputs.action }}
+        run: |
+          set -euo pipefail
+          [ -n "$SOURCE_SHA" ] || exit 0
+          # The deploy job tags by GITHUB_SHA, so another commit is for the build-only path.
+          [ "$ACTION" = "build" ] || { echo "::error::source_sha is for action=build only"; exit 1; }
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::source_sha must be a full 40-character commit SHA"; exit 1; }
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.source_sha || github.sha }}
 
       - uses: docker/login-action@v3
         with:
@@ -176,23 +206,36 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # The tag is the commit that was checked out: GITHUB_SHA, unless source_sha names an older one.
       - id: meta
-        run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+        run: echo "tag=$(git rev-parse HEAD | cut -c1-12)" >> "$GITHUB_OUTPUT"
 
       - name: Generate Docker build manifest
         run: pwsh -NoProfile -File scripts/docker-generate-build-manifest.ps1
+
+      # A docker-container builder: the push, the digest output and the Dockerfile frontend do not depend on the
+      # runner's Docker Engine version.
+      - uses: docker/setup-buildx-action@v3
 
       - id: build
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context || '.' }}
           file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
           push: true
+          # hr-migrate: COPY --exclude needs Dockerfile frontend 1.19 (as scripts/ci/acceptance-images.ps1 passes it).
           build-args: |
             PROJECT_CSPROJ=${{ matrix.project_csproj }}
             ASSEMBLY_NAME=${{ matrix.assembly_name }}
             NEEDS_KRB5=${{ matrix.needs_krb5 }}
             GATEWAY_AUDIT_DIR=${{ matrix.gateway_audit_dir }}
+            ${{ matrix.image == 'hr-migrate' && 'BUILDKIT_SYNTAX=docker/dockerfile:1.19' || '' }}
+          # The commit the image was built from, as deploy/vps/build-on-host.sh labels it (the tag); the source label
+          # links the GHCR package to this repository.
+          labels: |
+            org.opencontainers.image.revision=${{ steps.meta.outputs.tag }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
           # DEP-001: never push :latest for releases — only immutable SHA tag
           tags: |
             ${{ env.IMAGE_PREFIX }}/${{ matrix.image }}:${{ steps.meta.outputs.tag }}
