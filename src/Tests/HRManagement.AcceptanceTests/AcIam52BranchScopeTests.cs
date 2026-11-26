@@ -163,7 +163,10 @@ public class AcIam52BranchScopeTests
             ["statistic"] = await RowsAsync(Core, "HrStatisticReports", $"t.\"Id\"='{alep.Statistic}'"),
             ["inspection"] = await RowsAsync(Core, "FieldInspectionVisits", $"t.\"Id\"='{alep.Inspection}'"),
             ["attendance"] = await RowsAsync(Core, "DailyAttendanceRecords", $"t.\"EmployeeId\"='{AlepEmployee}'"),
-            ["ownAttendance"] = await RowsAsync(Core, "DailyAttendanceRecords", $"t.\"Id\"='{rif.Attendance}'"),
+            // His own record: whose it is, its day, its status and its note (an edit that cannot move it changes none of them here).
+            ["ownAttendance"] = await Db(Core,
+                "SELECT \"EmployeeId\"::text || '|' || \"AttendanceDate\"::text || '|' || \"Status\" || '|' || COALESCE(\"Notes\", '') " +
+                $"FROM \"DailyAttendanceRecords\" WHERE \"Id\"='{rif.Attendance}';"),
             ["roster"] = await RowsAsync(Core, "ShiftRosters", $"t.\"Id\"='{alep.Roster}'"),
             ["assignments"] = await RowsAsync(Core, "ShiftAssignments", $"t.\"ShiftRosterId\" IN ('{alep.Roster}','{rif.Roster}')"),
             ["keyPosition"] = await RowsAsync(Core, "KeyPositions", $"t.\"Id\"='{alep.KeyPosition}'"),
@@ -195,13 +198,14 @@ public class AcIam52BranchScopeTests
             3. Positive: br1-mgr's lists of the six screens show RIF's records; his employee export (Reports/ExportEmployeesCsv, the export
                a branch manager reaches here: the six screens have none) holds the RIF employee.
             4. Negative: the same lists show ALEP's records to central-a and not to br1-mgr; his export has no ALEP employee.
-            5. Negative: br1-mgr, on ALEP's records — attendance details, edit (GET and POST), delete, create for the ALEP employee, and his
-               own record moved to the ALEP employee; roster details, add and remove an assignment, delete; key position edit (GET and POST)
+            5. Negative: br1-mgr, on ALEP's records — attendance details, edit (GET and POST), delete, create for the ALEP employee; roster details, add and remove an assignment, delete; key position edit (GET and POST)
                and delete; succession plan details, add and remove a candidate, delete, a plan on ALEP's key position; Diwan,
                statistics, inspection, roster and key position created in ALEP's unit, Diwan for the ALEP employee; and an ALEP employee
-               assigned on his own RIF roster → 404 each. The shift catalogue refuses his write (403).
-            6. The rows of ALEP's records (count and md5 of every column), his own attendance row, and the rows a refused write would add are
-               read by psql before and after: identical, and no refused row exists.
+               assigned on his own RIF roster → 404 each. The shift catalogue refuses his write (403). An edit of his own attendance
+               record posted with the ALEP employee and another date answers as an edit (200) and moves nothing: the form binds the
+               status and the note only (PLAN-57).
+            6. The rows of ALEP's records (count and md5 of every column), his own attendance record (its employee, day, status and
+               note), and the rows a refused write would add are read by psql before and after: identical, and no refused row exists.
             7. negative-invalid-scope (branch-manager with a scope that names no unit) → 403 on the attendance details and the roster list.
             """);
 
@@ -263,8 +267,11 @@ public class AcIam52BranchScopeTests
         await PostAsync(answers, br1, "attendance-delete", $"ui/hr-core/DailyAttendanceRecords/Delete/{alep.Attendance}", attendancePage, 404, []);
         await PostAsync(answers, br1, "attendance-create-foreign-employee", "ui/hr-core/DailyAttendanceRecords/Create", attendancePage, 404,
             F(("EmployeeId", AlepEmployee), ("AttendanceDate", await FreeAttendanceDayAsync(AlepEmployee)), ("Status", "Present"), ("Notes", refused)));
-        await PostAsync(answers, br1, "attendance-edit-own-to-foreign-employee", $"ui/hr-core/DailyAttendanceRecords/Edit/{rif.Attendance}", attendancePage, 404,
-            F(("Id", rif.Attendance), ("EmployeeId", AlepEmployee), ("AttendanceDate", rif.AttendanceDate), ("Status", "Present"), ("Notes", refused)));
+        // PLAN-57: an edit binds the status and the note only, so a posted employee is not read at all. The post that used to be
+        // refused for its foreign employee (404) is now an edit of his own record that cannot move it: it answers as an edit, and the
+        // record is still his employee's on its own day (the rows read before and after), while ALEP's employee gets no row.
+        await PostAsync(answers, br1, "attendance-edit-own-to-foreign-employee", $"ui/hr-core/DailyAttendanceRecords/Edit/{rif.Attendance}", attendancePage, 200,
+            F(("Id", rif.Attendance), ("EmployeeId", AlepEmployee), ("AttendanceDate", Day(Today.AddDays(-1))), ("Status", "Present"), ("Notes", rif.Marker)));
 
         const string rostersPage = "ui/hr-core/Rosters";
         await GetAsync(answers, br1, "roster-details", $"ui/hr-core/Rosters/Details/{alep.Roster}", 404);
