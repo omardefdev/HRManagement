@@ -6,6 +6,8 @@ name: deploy
 #                    This is how the single demo server (docs/OPS_VPS_SINGLE_HOST.md section 4) gets its images since
 #                    2026-11-26: the server only pulls, scripts/vps/deploy.ps1 -Tag <sha12> deploys.
 #                      gh workflow run deploy.yml --ref <branch> -f action=build
+#                    With source_sha=<full commit SHA> it builds that older commit instead (a rollback target that is
+#                    not on GHCR), with this ref's workflow and matrix; the tag is that commit's first 12 characters.
 #   action=deploy    the same build, then the deploy job on the chosen environment (also on a v* tag push).
 #   action=rollback  redeploys rollback_tag on the chosen environment; nothing is built.
 on:
@@ -30,6 +32,10 @@ on:
           - production
       rollback_tag:
         description: Image tag to rollback to (required when action=rollback)
+        required: false
+        type: string
+      source_sha:
+        description: action=build only, optional. Full SHA of an older commit to build instead of the ref's head
         required: false
         type: string
   push:
@@ -179,7 +185,20 @@ jobs:
             needs_krb5: "false"
             gateway_audit_dir: "false"
     steps:
+      - name: Check source_sha
+        env:
+          SOURCE_SHA: ${{ github.event.inputs.source_sha }}
+          ACTION: ${{ github.event.inputs.action }}
+        run: |
+          set -euo pipefail
+          [ -n "$SOURCE_SHA" ] || exit 0
+          # The deploy job tags by GITHUB_SHA, so another commit is for the build-only path.
+          [ "$ACTION" = "build" ] || { echo "::error::source_sha is for action=build only"; exit 1; }
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "::error::source_sha must be a full 40-character commit SHA"; exit 1; }
+
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.source_sha || github.sha }}
 
       - uses: docker/login-action@v3
         with:
@@ -187,8 +206,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # The tag is the commit that was checked out: GITHUB_SHA, unless source_sha names an older one.
       - id: meta
-        run: echo "tag=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+        run: echo "tag=$(git rev-parse HEAD | cut -c1-12)" >> "$GITHUB_OUTPUT"
 
       - name: Generate Docker build manifest
         run: pwsh -NoProfile -File scripts/docker-generate-build-manifest.ps1

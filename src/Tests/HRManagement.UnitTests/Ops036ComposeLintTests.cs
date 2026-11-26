@@ -350,7 +350,11 @@ public class Ops036ComposeLintTests
         // The build-on-host.sh arguments, the 12-character tag as the only tag, and the revision label.
         foreach (var arg in new[] { "PROJECT_CSPROJ", "ASSEMBLY_NAME", "NEEDS_KRB5", "GATEWAY_AUDIT_DIR" })
             Assert.Contains($"{arg}=${{{{ matrix.{arg.ToLowerInvariant()} }}}}", buildJob);
-        Assert.Contains("echo \"tag=${GITHUB_SHA::12}\"", buildJob);
+        // The tag is the first 12 characters of the commit that was checked out (an older one only with action=build).
+        Assert.Contains("echo \"tag=$(git rev-parse HEAD | cut -c1-12)\"", buildJob);
+        Assert.Contains("ref: ${{ github.event.inputs.source_sha || github.sha }}", buildJob);
+        Assert.Contains("[ \"$ACTION\" = \"build\" ] || { echo \"::error::source_sha is for action=build only\"; exit 1; }", buildJob);
+        Assert.Contains("[[ \"$SOURCE_SHA\" =~ ^[0-9a-f]{40}$ ]]", buildJob);
         Assert.Matches(@"tags: \|\n\s+\$\{\{ env\.IMAGE_PREFIX \}\}/\$\{\{ matrix\.image \}\}:\$\{\{ steps\.meta\.outputs\.tag \}\}\n\n", buildJob);
         Assert.Contains("org.opencontainers.image.revision=${{ steps.meta.outputs.tag }}", buildJob);
         Assert.Contains("platforms: linux/amd64", buildJob);
