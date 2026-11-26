@@ -21,8 +21,8 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
 | P6 PostgreSQL proofs | done | 2026-11-25T23:05:16Z |
 | P7 acceptance and review | done | 2026-11-26T03:14:58Z |
 | P8 main | done (nothing to merge) | 2026-11-26T03:14:58Z |
-| P9 demo server | in progress: deployed and checked; the older plans' checks run | |
-| P10 docs, gates, report, merge | | |
+| P9 demo server | done | 2026-11-26T07:43:26Z |
+| P10 docs, gates, report, merge | in progress | |
 
 ## P0 — baseline (finished 2026-11-25T20:49:10Z)
 
@@ -379,6 +379,24 @@ P0 was read-only. P9 (UTC of 2026-11-26):
      identifier; the edit form posts neither the employee nor the date and offers no «في إجازة»; the run's page has its
      attendance panel.
    **Undo:** none (records of the checks; no demo run, line or older attendance record changed).
+9. **05:13:29Z → 07:31:48Z, the older plans' checks** (PLAN-36..56: `AcOps36VpsBootTests` with its partial classes and
+   `AcInt37VpsServerTests`, 36j excepted, this plan's five left out; nothing heavy beside them; 138 min from this notebook):
+   **71 of 73 in the run, 72 of 73 after one rerun.**
+   - `AC_WF_46_vps_the_sweeps_run…` failed in the run (no sweep cycle in the last 5,000 log lines); passed alone at 07:37:47Z,
+     started 9 s after a cycle (the sweeps run at xx:x7:06 since this deploy). The cause PLAN-55 recorded.
+   - `AC_POL_47_vps_the_migration_the_trigger…`: **not passed, the local cause PLAN-53 recorded** (it reads
+     `artifacts/plan47/vps/fingerprint-before.json`, a file of the formatted Windows machine).
+   - `AC_UX_67_vps_every_key_page…` passed in the run, with this plan's attendance pages among its key pages; the PLAN-56
+     checks (their own runs of September 2028 cancelled, their requests rejected) passed.
+   - `scripts/vps/smoke.ps1 -RequireIntegrationWiring` (07:38:38Z): **50 passed, 0 failed, 1 warning** (the client-side port
+     check).
+   - This plan's close check again (07:42:40Z): it finds the month closed for the 17 and proves the same; nothing written.
+   - The suites rewrote files under the committed `acceptance-evidence/*/vps/` (restored with `git checkout`, their new
+     `summary.md` files removed) and wrote `reports/msg040-replay-server-20261126T053358Z.json` (moved to
+     `artifacts/plan57/vps/`).
+   **Undo:** none (records of the checks, as in every run of them).
+   **The server at the end of P9:** tag `4eccb1f269a0`, 21 containers, 70,538 MiB free, registry 3,649 MiB (two releases), Seq
+   47.84 GB with its 30-day policy.
 
 ## Open issues
 
@@ -386,12 +404,12 @@ P0 was read-only. P9 (UTC of 2026-11-26):
 
 ## The exact next step
 
-P9 goes on: the older plans' server checks (started 2026-11-26T05:13:29Z, `artifacts/plan57/p9-older.log`, detached, never
-under `timeout`), then the flickering ones alone, then `scripts/vps/smoke.ps1 -RequireIntegrationWiring`; restore
-`acceptance-evidence/*/vps/` with `git checkout` and move today's `reports/msg040-replay-server-*.json` out. Then P10:
-`OPS_VPS_SINGLE_HOST.md`, the report's sections 1, 12 and 15 (`reports/plan57-final-report.md` is drafted, with `@@…@@` marks
-where they go), the Testcontainers step and the local CI steps on the final HEAD, `plan035-prepush.ps1`, `release/plan-57`,
-the PR, the wait, the merge, the merge note. After the merge, as its own change: the move to GHCR the owner asked about.
+P10: commit the documents and `reports/plan57-final-report.md` with `reports/plan57-pr.md`; then, on that HEAD, the full
+Testcontainers step, the local CI steps in a fresh clone (`run-steps.sh --all`, the compiler servers off, the five named steps
+skipped) and `scripts/plan035-prepush.ps1`; then `release/plan-57` from `main` (`--no-ff`), one push, `gh pr create`, the wait
+(`gh pr checks <n> --watch --interval 60` in calls of at most five minutes), `gh pr merge <n> --merge` only when every check is
+green; `git switch main; git pull --ff-only`; the merge note on the local branch `docs/plan-57-merge-note`; stop the keep-awake
+by its PID (1314307). After the merge, as its own change: the move to GHCR.
 
 **First pass of the local gates, with nothing on the server** (so that the one server build carries code the gates have
 already seen): gitleaks over the branch's 24 commits, no leak (03:15Z); the local CI steps in a fresh clone of `938bffd5`
