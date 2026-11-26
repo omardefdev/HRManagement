@@ -82,6 +82,31 @@ namespace Payroll.Infrastructure.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "PayrollDualControlRequests",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    Kind = table.Column<int>(type: "integer", nullable: false),
+                    TargetId = table.Column<Guid>(type: "uuid", nullable: false),
+                    PayloadJson = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: false),
+                    RequestedBy = table.Column<Guid>(type: "uuid", nullable: false),
+                    RequestedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    Status = table.Column<int>(type: "integer", nullable: false),
+                    DecidedBy = table.Column<Guid>(type: "uuid", nullable: true),
+                    DecidedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    DecisionNotes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
+                    xmin = table.Column<uint>(type: "xid", rowVersion: true, nullable: false),
+                    TenantId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PayrollDualControlRequests", x => x.Id);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_PaymentOrders_PaymentBatchFileId",
                 table: "PaymentOrders",
@@ -93,11 +118,23 @@ namespace Payroll.Infrastructure.Migrations
                 columns: new[] { "PaymentBatchId", "Sequence" },
                 unique: true);
 
+            migrationBuilder.CreateIndex(
+                name: "IX_PayrollDualControlRequests_OnePending",
+                table: "PayrollDualControlRequests",
+                columns: new[] { "TenantId", "Kind", "TargetId" },
+                unique: true,
+                filter: "\"Status\" = 0");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PayrollDualControlRequests_TenantId_Status_Kind",
+                table: "PayrollDualControlRequests",
+                columns: new[] { "TenantId", "Status", "Kind" });
+
             if (migrationBuilder.ActiveProvider == "Npgsql.EntityFrameworkCore.PostgreSQL")
             {
                 // PLAN-58: the new tables are tenant tables: forced row security with the tenant policy (USING and WITH CHECK), as PAY055.
                 // No data moves in this migration.
-                TenantRlsMigrationHelper.EnableRls(migrationBuilder, "PaymentBatchFiles");
+                TenantRlsMigrationHelper.EnableRls(migrationBuilder, "PaymentBatchFiles", "PayrollDualControlRequests");
             }
         }
 
@@ -106,6 +143,9 @@ namespace Payroll.Infrastructure.Migrations
         {
             migrationBuilder.DropTable(
                 name: "PaymentBatchFiles");
+
+            migrationBuilder.DropTable(
+                name: "PayrollDualControlRequests");
 
             migrationBuilder.DropIndex(
                 name: "IX_PaymentOrders_PaymentBatchFileId",

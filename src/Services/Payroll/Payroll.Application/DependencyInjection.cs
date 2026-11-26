@@ -50,6 +50,7 @@ public static class DependencyInjection
         services.AddSingleton(sp => Options.PayrollSeparationOfDuties.Create(
             sp.GetRequiredService<Microsoft.Extensions.Options.IOptions<Options.PayrollApprovalOptions>>().Value.DualApprovalThreshold));
         services.AddScoped<PaymentBatchIssuer>();
+        services.AddScoped<PayrollDualControlService>();
 
         // PLAN-53: the salary change transaction. The clock is injected so the month rules are testable (P-6).
         services.TryAddSingleton(TimeProvider.System);

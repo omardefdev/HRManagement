@@ -171,11 +171,15 @@ public sealed partial class Pay055BankAccountPostgreSqlTests(PostgreSqlFixture f
 
         // Two people release each hold (the hold's existing four-eyes release): a person's decision to pay the pinned account.
         db.ChangeTracker.Clear();
+        var dualControl = scope.ServiceProvider.GetRequiredService<Payroll.Application.Services.PayrollDualControlService>();
         foreach (var hold in holds)
         {
-            var (released, releaseError) = await mediator.Send(new Payroll.Application.Features.Fraud.ReleasePaymentHoldCommand(
-                hold.Id, Approver, OtherApprover, "راجع المعتمدان الحساب المثبَّت مع الموظف"));
-            Assert.True(released, releaseError);
+            // PLAN-58 (§3): a request by one approver, decided by another from his own session.
+            var asked = await dualControl.RequestAsync(PayrollDualControlKind.HoldRelease, hold.Id,
+                new Payroll.Application.Services.PayrollDualControlPayload("راجع المعتمدان الحساب المثبَّت مع الموظف"), Approver, CancellationToken.None);
+            Assert.True(asked.Success, asked.Error);
+            var decided = await dualControl.DecideAsync(asked.Id!.Value, true, "موافق", OtherApprover, _ => Task.FromResult(true), CancellationToken.None);
+            Assert.True(decided.Success, decided.Error);
         }
 
         db.ChangeTracker.Clear();

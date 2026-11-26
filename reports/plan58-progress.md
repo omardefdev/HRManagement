@@ -84,3 +84,29 @@ Finished (UTC): 2026-11-26T12:48:35Z
   P7), Pay055BankAccountPostgreSqlTests ported to the bank files (PostgreSQL: P7). Unit filter 628 passed, arch 421 passed, integration
   (SQLite payroll filter) 28 passed.
 Finished (UTC): 2026-11-26T13:07:51Z
+
+## P3 — Four eyes, and the channel's confirmation
+- PayrollDualControlRequest (new table; Kind/Status as int; unique pending (tenant, kind, target) IX_PayrollDualControlRequests_OnePending;
+  xmin; ExpiresAt stored at the request, Payroll:DualControl:ExpiryHours default 72) and PayrollDualControlService (RequestAsync,
+  DecideAsync with the act inside the decision's transaction, InboxAsync, ExpireDueAsync; lazy expiry on read and on decision).
+- Kinds and policies: HoldRelease and CriticalAlertResolve asked by Payroll.Approve; ArrearsAdjust asked by Payroll.Process; reissue,
+  settlement and rejection asked by Payroll.Post; every decision Payroll.Approve by a person who is not the requester (400 otherwise,
+  403 without the kind's policy, 409 decided meanwhile, 400 expired). A rejection needs a note and changes nothing.
+- Decision taken: requests are made on their target's route under the kind's policy (payment-holds/{id}/release,
+  fraud-alerts/{id}/resolution-requests, arrears/{id}/adjustment-requests, payment-batches/{id}/settlement-requests,
+  /rejection-requests, /files/{fileId}/reissue-requests); api/payroll/dual-control is the inbox (GET), one request (GET {id}) and the
+  decision (POST {id}/decide). A generic POST of any kind would need a policy admitting every requester; not added.
+- Removed from the client: ReleasePaymentHoldCommand (with ApproverUserId), the hold form's approver field, the alert form's approver
+  field, the arrears' approverId (Arrears.Update is now a request under Payroll.Process). A non-critical alert is resolved by one act
+  and releases no hold; a critical one is a request whose decision resolves it and releases its hold.
+- REGIME-BLOCKER release: HR.Core's client must answer «not blocked» at the decision (no client: refused).
+- §7: ack is one act of Payroll.Post with the channel's reference (required); settlement and rejection are requests; the settled amount
+  must equal the acknowledged orders' sum (400 at request and at decision, nothing changed); Settle/Reject handlers are reached from
+  DecideAsync only (path test rule).
+- Screens: DualControl/Inbox «طلبات بانتظار قرارك» (+ menu link), batch page confirmation forms and reissue request per file, hold,
+  alert and arrears pages without an approver field.
+- Migration regenerated (two tables, RLS on both).
+- Tests: Pay058DualControlTests (8, SQLite: every kind, requester refused, expiry with a clock, regime blocker, settlement mismatch and
+  settle by two, rejection, reissue), Pay058DisbursementHttpTests + approver id in the body ignored (PostgreSQL, P7). Frd001 and
+  Pay055 PG tests moved to the service. Integration filter 210 passed; architecture 440; unit filter 1183.
+Finished (UTC): 2026-11-26T13:22:58Z

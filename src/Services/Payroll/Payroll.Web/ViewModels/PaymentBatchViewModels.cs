@@ -31,3 +31,20 @@ public sealed record PaymentBatchDetailsViewModel(
     IReadOnlyList<HeldOrderViewModel> Held,
     bool MayPost,
     bool MayApprove);
+
+/// <summary>PLAN-58 (§3): what a request acts on, as the inbox names it (never an id on the screen).</summary>
+public sealed record DualControlTargetViewModel(string? EmployeeName, Guid? PaymentBatchId);
+
+/// <summary>PLAN-58 (§3): a row of «طلبات بانتظار قرارك».</summary>
+public sealed record DualControlInboxRowViewModel(
+    Guid Id,
+    PayrollDualControlKind Kind,
+    string Reason,
+    decimal? Amount,
+    string? Reference,
+    decimal? OriginalAmount,
+    decimal? PaidAmount,
+    Guid RequestedBy,
+    DateTime RequestedAt,
+    DateTime ExpiresAt,
+    DualControlTargetViewModel? Target);

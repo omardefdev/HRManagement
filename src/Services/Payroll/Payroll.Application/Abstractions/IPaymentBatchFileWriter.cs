@@ -16,4 +16,11 @@ public interface IPaymentBatchFileWriter
         PaymentBatchFileKind kind,
         Guid generatedBy,
         CancellationToken cancellationToken);
+
+    /// <summary>
+    /// D-PAY-19: the reissue a four-eyes decision executes — the orders of <paramref name="fileId"/> in a new file of the next sequence, the
+    /// old one superseded. Returns the new file's id, or the refusal. The caller saves.
+    /// </summary>
+    Task<(Guid? FileId, string? Error)> ReissueAsync(
+        Guid fileId, string reason, Guid requestedBy, Guid approvedBy, CancellationToken cancellationToken);
 }

@@ -21,6 +21,7 @@ public class PayrollDbContext : TenantAwareDbContext
     public DbSet<PaymentBatch> PaymentBatches => Set<PaymentBatch>();
     public DbSet<PaymentOrder> PaymentOrders => Set<PaymentOrder>();
     public DbSet<PaymentBatchFile> PaymentBatchFiles => Set<PaymentBatchFile>();
+    public DbSet<PayrollDualControlRequest> PayrollDualControlRequests => Set<PayrollDualControlRequest>();
     public DbSet<BankStatementLine> BankStatementLines => Set<BankStatementLine>();
     public DbSet<FundingDecision> FundingDecisions => Set<FundingDecision>();
     public DbSet<DisbursementPriorityRule> DisbursementPriorityRules => Set<DisbursementPriorityRule>();
@@ -193,6 +194,19 @@ public class PayrollDbContext : TenantAwareDbContext
             entity.Property(e => e.ReissueReason).HasMaxLength(PaymentBatchFile.ReasonMaxLength);
             entity.Property(e => e.ControlTotal).HasPrecision(18, 2);
             entity.Ignore(e => e.FileName);
+            entity.ConfigureOptimisticConcurrency(this);
+        });
+
+        // PLAN-58 (§3): one pending four-eyes request per kind and target; the decision is taken once (xmin). Enums as integers.
+        modelBuilder.Entity<PayrollDualControlRequest>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.Kind, e.TargetId })
+                .IsUnique()
+                .HasDatabaseName(PayrollDisbursementIndexNames.OnePendingDualControlRequest)
+                .HasFilter("\"Status\" = 0");
+            entity.HasIndex(e => new { e.TenantId, e.Status, e.Kind });
+            entity.Property(e => e.PayloadJson).HasMaxLength(PayrollDualControlRequest.PayloadMaxLength);
+            entity.Property(e => e.DecisionNotes).HasMaxLength(PayrollDualControlRequest.ReasonMaxLength);
             entity.ConfigureOptimisticConcurrency(this);
         });
 

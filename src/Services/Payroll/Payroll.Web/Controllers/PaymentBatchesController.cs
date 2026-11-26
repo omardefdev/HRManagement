@@ -122,6 +122,57 @@ public class PaymentBatchesController(PayrollDbContext db, IMediator mediator, I
             : result.Error;
         return RedirectToAction(nameof(Details), new { id });
     }
+
+    /// <summary>§7: the channel's acknowledgement, one act of the poster's role with the channel's reference.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollPost)]
+    public async Task<IActionResult> Ack(Guid id, string? channelReference)
+    {
+        var result = await mediator.Send(new AckPaymentBatchCommand(id, channelReference));
+        TempData[result.Success ? "Success" : "Error"] = result.Success ? "سُجّل إشعار القناة" : result.Error;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    /// <summary>§7: asks to record the settlement (the statement's reference and the settled amount); an approver decides it.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollPost)]
+    public async Task<IActionResult> RequestSettlement(
+        Guid id, string? statementReference, decimal? settledAmount, [FromServices] Payroll.Application.Services.PayrollDualControlService dualControl)
+    {
+        var result = await dualControl.RequestAsync(PayrollDualControlKind.BatchSettle, id,
+            new Payroll.Application.Services.PayrollDualControlPayload("تسوية الدفعة بكشف المصرف", Amount: settledAmount, Reference: statementReference),
+            PayProfileChangeHttp.RequireUserId(User), HttpContext.RequestAborted);
+        TempData[result.Success ? "Success" : "Error"] = result.Success ? "سُجّل طلب التسوية؛ يقرّره معتمد آخر" : result.Error;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    /// <summary>§7: asks to record the channel's rejection, with its reason; an approver decides it.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollPost)]
+    public async Task<IActionResult> RequestRejection(Guid id, string? reason, [FromServices] Payroll.Application.Services.PayrollDualControlService dualControl)
+    {
+        var result = await dualControl.RequestAsync(PayrollDualControlKind.BatchReject, id,
+            new Payroll.Application.Services.PayrollDualControlPayload(reason ?? string.Empty), PayProfileChangeHttp.RequireUserId(User), HttpContext.RequestAborted);
+        TempData[result.Success ? "Success" : "Error"] = result.Success ? "سُجّل طلب تسجيل الرفض؛ يقرّره معتمد آخر" : result.Error;
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    /// <summary>D-PAY-19: asks to reissue a bank file, with a reason; an approver who is not the requester decides it.</summary>
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollPost)]
+    public async Task<IActionResult> RequestReissue(Guid id, Guid fileId, string? reason, [FromServices] Payroll.Application.Services.PayrollDualControlService dualControl)
+    {
+        if (!await db.PaymentBatchFiles.AsNoTracking().AnyAsync(f => f.Id == fileId && f.PaymentBatchId == id))
+            return NotFound();
+        var result = await dualControl.RequestAsync(PayrollDualControlKind.BankFileReissue, fileId,
+            new Payroll.Application.Services.PayrollDualControlPayload(reason ?? string.Empty), PayProfileChangeHttp.RequireUserId(User), HttpContext.RequestAborted);
+        TempData[result.Success ? "Success" : "Error"] = result.Success ? "سُجّل طلب إعادة الإصدار؛ يقرّره معتمد آخر" : result.Error;
+        return RedirectToAction(nameof(Details), new { id });
+    }
 }
 
 /// <summary>PLAN-58 (§2): a download of a stored bank file is a bulk export in the security audit; it names the file, never an account.</summary>

@@ -41,6 +41,7 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
     public IQueryable<PaymentBatch> PaymentBatches => db.PaymentBatches;
     public IQueryable<PaymentOrder> PaymentOrders => db.PaymentOrders;
     public IQueryable<PaymentBatchFile> PaymentBatchFiles => db.PaymentBatchFiles;
+    public IQueryable<PayrollDualControlRequest> PayrollDualControlRequests => db.PayrollDualControlRequests;
     public IQueryable<FundingDecision> FundingDecisions => db.FundingDecisions;
     public IQueryable<DisbursementPriorityRule> DisbursementPriorityRules => db.DisbursementPriorityRules;
     public IQueryable<FraudAlert> FraudAlerts => db.FraudAlerts;

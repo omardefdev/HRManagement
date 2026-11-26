@@ -63,6 +63,49 @@ public sealed class PaymentBatchesApiController(IMediator mediator, PayrollDbCon
         });
     }
 
+    /// <summary>§7: the channel acknowledged the sent orders — one act by the poster's role, with the channel's reference (400 without).</summary>
+    [HttpPost("{id:guid}/ack")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollPost)]
+    public async Task<IActionResult> Ack(Guid id, [FromBody] AckPaymentBatchApiRequest? request, CancellationToken ct) =>
+        PayrollRunActHttp.Answer(await mediator.Send(new AckPaymentBatchCommand(id, request?.ChannelReference), ct));
+
+    /// <summary>
+    /// §7: asks to record the settlement the bank statement confirms (its reference and the settled amount, which must be the sum of the
+    /// acknowledged orders: 400 otherwise, nothing changed). An approver decides it; the decision settles the batch and its orders.
+    /// </summary>
+    [HttpPost("{id:guid}/settlement-requests")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollPost)]
+    public async Task<IActionResult> RequestSettlement(
+        Guid id, [FromBody] SettlementRequestApiRequest? request, [FromServices] Payroll.Application.Services.PayrollDualControlService dualControl, CancellationToken ct) =>
+        DualControlApiController.Asked(await dualControl.RequestAsync(PayrollDualControlKind.BatchSettle, id,
+            new Payroll.Application.Services.PayrollDualControlPayload(
+                request?.Reason ?? "تسوية الدفعة بكشف المصرف", Amount: request?.SettledAmount, Reference: request?.StatementReference),
+            PayProfileChangeHttp.RequireUserId(User), ct));
+
+    /// <summary>§7: asks to record the channel's rejection of the sent orders, with its reason; an approver decides it.</summary>
+    [HttpPost("{id:guid}/rejection-requests")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollPost)]
+    public async Task<IActionResult> RequestRejection(
+        Guid id, [FromBody] DualControlReasonApiRequest? request, [FromServices] Payroll.Application.Services.PayrollDualControlService dualControl, CancellationToken ct) =>
+        DualControlApiController.Asked(await dualControl.RequestAsync(PayrollDualControlKind.BatchReject, id,
+            new Payroll.Application.Services.PayrollDualControlPayload(request?.Reason ?? string.Empty), PayProfileChangeHttp.RequireUserId(User), ct));
+
+    /// <summary>D-PAY-19: asks to reissue a bank file, with a reason; an approver who is not the requester decides it.</summary>
+    [HttpPost("{id:guid}/files/{fileId:guid}/reissue-requests")]
+    [ValidateAntiForgeryToken]
+    [Authorize(Policy = HrManagementPolicies.PayrollPost)]
+    public async Task<IActionResult> RequestReissue(
+        Guid id, Guid fileId, [FromBody] DualControlReasonApiRequest? request, [FromServices] Payroll.Application.Services.PayrollDualControlService dualControl, CancellationToken ct)
+    {
+        if (!await db.PaymentBatchFiles.AsNoTracking().AnyAsync(f => f.Id == fileId && f.PaymentBatchId == id, ct))
+            return NotFound(new { error = Payroll.Application.Services.PayrollDualControlMessages.FileNotFound });
+        return DualControlApiController.Asked(await dualControl.RequestAsync(PayrollDualControlKind.BankFileReissue, fileId,
+            new Payroll.Application.Services.PayrollDualControlPayload(request?.Reason ?? string.Empty), PayProfileChangeHttp.RequireUserId(User), ct));
+    }
+
     /// <summary>PLAN-58 (§2): the batch's bank files, one per sending (and each reissue): their controls and fingerprints, not their content.</summary>
     [HttpGet("{id:guid}/files")]
     public async Task<IActionResult> Files(Guid id, CancellationToken ct) =>
@@ -140,3 +183,9 @@ public sealed class PaymentBatchesApiController(IMediator mediator, PayrollDbCon
         return PayrollRunActHttp.Answer(result, result.Success ? new { batchId = id, fileId = result.Id } : null);
     }
 }
+
+/// <summary>PLAN-58 (§7): the channel's acknowledgement reference.</summary>
+public sealed record AckPaymentBatchApiRequest(string? ChannelReference);
+
+/// <summary>PLAN-58 (§7): the bank statement's reference and the settled amount (the sum of the acknowledged orders).</summary>
+public sealed record SettlementRequestApiRequest(string? StatementReference, decimal? SettledAmount, string? Reason = null);

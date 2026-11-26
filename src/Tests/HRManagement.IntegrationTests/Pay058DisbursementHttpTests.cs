@@ -132,4 +132,57 @@ public sealed class Pay058DisbursementHttpTests(PostgreSqlFixture postgres, ITes
         Assert.Equal(1, await host.WithDbAsync(db => db.Set<PaymentBatchFile>().CountAsync(f => f.PaymentBatchId == batchId)));
         output.WriteLine($"downloads audited: {exports.Count}");
     }
+
+    private static async Task<HttpClient> WithTokenAsync(HttpClient client, string path)
+    {
+        using var issued = await client.GetAsync(path);
+        Assert.Equal(HttpStatusCode.OK, issued.StatusCode);
+        using var token = JsonDocument.Parse(await issued.Content.ReadAsStringAsync());
+        client.DefaultRequestHeaders.Add(token.RootElement.GetProperty("headerName").GetString()!, token.RootElement.GetProperty("requestToken").GetString());
+        return client;
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task A_release_asked_with_an_approver_id_in_the_body_is_a_request_by_the_caller_and_releases_nothing()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        await using var host = await StartAsync(new RecordingAudit());
+        var (employee, _) = host.Records[typeof(EmployeePayProfile)];
+        var holdId = await host.WithDbAsync(async db =>
+        {
+            var hold = new PaymentHold { TenantId = Tenant, EmployeeId = employee, HoldType = "Manual", Reason = "مراجعة", Status = "Active" };
+            db.Add(hold);
+            await db.SaveChangesAsync();
+            return hold.Id;
+        });
+        var (asker, accomplice) = (Guid.NewGuid(), Guid.NewGuid());
+        using var client = await WithTokenAsync(host.CentralAs(asker, Approver), "/api/payroll/payment-holds/antiforgery");
+
+        // A body that names an approver: the field is not read; the caller asked, nobody approved.
+        using var asked = await client.PostAsync($"/api/payroll/payment-holds/{holdId}/release", new StringContent(
+            JsonSerializer.Serialize(new { approverUserId = accomplice, releaseReason = "تحقق من الأدلة" }), System.Text.Encoding.UTF8, "application/json"));
+        Assert.Equal(HttpStatusCode.Accepted, asked.StatusCode);
+        var requestId = JsonDocument.Parse(await asked.Content.ReadAsStringAsync()).RootElement.GetProperty("requestId").GetGuid();
+
+        var (holdStatus, requestedBy, status) = await host.WithDbAsync(async db =>
+        {
+            var hold = await db.Set<PaymentHold>().AsNoTracking().SingleAsync(h => h.Id == holdId);
+            var request = await db.Set<PayrollDualControlRequest>().AsNoTracking().SingleAsync(r => r.Id == requestId);
+            return (hold.Status, request.RequestedBy, request.Status);
+        });
+        Assert.Equal(("Active", asker, PayrollDualControlStatus.Pending), (holdStatus, requestedBy, status));
+
+        // The requester deciding his own request: 400, nothing changed. Another approver decides it: the hold is released.
+        using var own = await client.PostAsync($"/api/payroll/dual-control/{requestId}/decide", JsonContent(new { approve = true }));
+        Assert.Equal(HttpStatusCode.BadRequest, own.StatusCode);
+        using var other = await WithTokenAsync(host.CentralAs(accomplice, Approver), "/api/payroll/dual-control/antiforgery");
+        using var decided = await other.PostAsync($"/api/payroll/dual-control/{requestId}/decide", JsonContent(new { approve = true, notes = "موافق" }));
+        Assert.Equal(HttpStatusCode.OK, decided.StatusCode);
+        var released = await host.WithDbAsync(db => db.Set<PaymentHold>().AsNoTracking().SingleAsync(h => h.Id == holdId));
+        Assert.Equal(("Released", (Guid?)asker, (Guid?)accomplice), (released.Status, released.ReleasedBy, released.ReleaseApprovedBy));
+    }
+
+    private static StringContent JsonContent(object body) =>
+        new(JsonSerializer.Serialize(body), System.Text.Encoding.UTF8, "application/json");
 }

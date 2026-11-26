@@ -96,6 +96,15 @@
                         {
                             <a asp-action="DownloadFile" asp-route-id="@batch.Id" asp-route-fileId="@file.Id" class="btn btn-outline-primary btn-sm">تنزيل</a>
                         }
+                        @if (Model.MayPost && file.SupersededById is null)
+                        {
+                            <form asp-action="RequestReissue" asp-route-id="@batch.Id" method="post" class="d-inline-flex gap-1 ms-1">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="fileId" value="@file.Id" />
+                                <input name="reason" class="form-control form-control-sm" placeholder="سبب إعادة الإصدار" aria-label="سبب إعادة الإصدار" required />
+                                <button type="submit" class="btn btn-outline-secondary btn-sm">طلب إعادة الإصدار</button>
+                            </form>
+                        }
                     </td>
                 </tr>
             }
@@ -162,6 +171,44 @@
                     <button type="submit" class="btn btn-outline-primary btn-sm">إرسال المُفرَج عنهم</button>
                 </form>
             }
+        </div>
+    </div>
+}
+
+@if (Model.MayPost && sent)
+{
+    <div class="card mb-3">
+        <div class="card-header"><h5 class="mb-0">تأكيد القناة</h5></div>
+        <div class="card-body">
+            <p class="text-muted small">إشعار القناة فعل واحد بمرجعها. تسجيل التسوية أو الرفض طلبٌ بمرجع كشف المصرف يقرّره معتمد آخر؛ والمبلغ المسدَّد يساوي مجموع الأوامر المُقرّة، وإلا رُفض الطلب والدفعة كما هي.</p>
+            <form asp-action="Ack" asp-route-id="@batch.Id" method="post" class="row g-2 mb-3">
+                @Html.AntiForgeryToken()
+                <div class="col-md-6">
+                    <label class="form-label" for="channelReference">مرجع القناة</label>
+                    <input id="channelReference" name="channelReference" class="form-control form-control-sm" required />
+                </div>
+                <div class="col-md-3 d-flex align-items-end"><button type="submit" class="btn btn-outline-primary btn-sm">تسجيل إشعار القناة</button></div>
+            </form>
+            <form asp-action="RequestSettlement" asp-route-id="@batch.Id" method="post" class="row g-2 mb-3">
+                @Html.AntiForgeryToken()
+                <div class="col-md-4">
+                    <label class="form-label" for="statementReference">مرجع كشف المصرف</label>
+                    <input id="statementReference" name="statementReference" class="form-control form-control-sm" required />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="settledAmount">المبلغ المسدَّد</label>
+                    <input id="settledAmount" name="settledAmount" type="number" step="0.01" min="0" class="form-control form-control-sm" required />
+                </div>
+                <div class="col-md-3 d-flex align-items-end"><button type="submit" class="btn btn-outline-success btn-sm">طلب تسجيل التسوية</button></div>
+            </form>
+            <form asp-action="RequestRejection" asp-route-id="@batch.Id" method="post" class="row g-2">
+                @Html.AntiForgeryToken()
+                <div class="col-md-7">
+                    <label class="form-label" for="rejectionReason">سبب رفض القناة</label>
+                    <input id="rejectionReason" name="reason" class="form-control form-control-sm" required />
+                </div>
+                <div class="col-md-3 d-flex align-items-end"><button type="submit" class="btn btn-outline-danger btn-sm">طلب تسجيل الرفض</button></div>
+            </form>
         </div>
     </div>
 }

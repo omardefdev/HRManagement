@@ -12,7 +12,7 @@ using Payroll.Infrastructure.Data;
 namespace Payroll.Infrastructure.Migrations
 {
     [DbContext(typeof(PayrollDbContext))]
-    [Migration("20261126130313_PAY058_DisbursementGovernance")]
+    [Migration("20261126131831_PAY058_DisbursementGovernance")]
     partial class PAY058_DisbursementGovernance
     {
         /// <inheritdoc />
@@ -2556,6 +2556,72 @@ namespace Payroll.Infrastructure.Migrations
                         .HasDatabaseName("IX_PayrollConfigurationFieldSources_Configuration_Field");
 
                     b.ToTable("PayrollConfigurationFieldSources");
+                });
+
+            modelBuilder.Entity("Payroll.Domain.Entities.PayrollDualControlRequest", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DecidedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("DecisionNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PayloadJson")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("RequestedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TargetId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "Kind", "TargetId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PayrollDualControlRequests_OnePending")
+                        .HasFilter("\"Status\" = 0");
+
+                    b.HasIndex("TenantId", "Status", "Kind");
+
+                    b.ToTable("PayrollDualControlRequests");
                 });
 
             modelBuilder.Entity("Payroll.Domain.Entities.PayrollReferenceChangeRequest", b =>

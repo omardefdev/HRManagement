@@ -69,6 +69,7 @@ public class OutboxAtomicityIntegrationTests
         public IQueryable<FraudAlert> FraudAlerts => _inner.FraudAlerts;
         public IQueryable<PaymentHold> PaymentHolds => _inner.PaymentHolds;
         public IQueryable<PaymentBatchFile> PaymentBatchFiles => _inner.PaymentBatchFiles;
+        public IQueryable<PayrollDualControlRequest> PayrollDualControlRequests => _inner.PayrollDualControlRequests;
         public IQueryable<ArrearsLedgerEntry> ArrearsLedgerEntries => _inner.ArrearsLedgerEntries;
         public IQueryable<LegalDecisionRecord> LegalDecisionRecords => _inner.LegalDecisionRecords;
         public IQueryable<CompensationType> CompensationTypes => _inner.CompensationTypes;

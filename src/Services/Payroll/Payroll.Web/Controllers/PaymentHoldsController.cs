@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Payroll.Application.Services;
 using Payroll.Domain.Constants;
+using Payroll.Domain.Enums;
 using Payroll.Infrastructure.Data;
 using Payroll.Web.Services;
 
@@ -14,7 +15,6 @@ namespace Payroll.Web.Controllers;
 
 public class PaymentHoldsController(
     PayrollDbContext db,
-    PaymentHoldService holdService,
     IEmployeeLookup employeeLookup) : Controller
 {
     private Guid RequireUserId()
@@ -70,46 +70,22 @@ public class PaymentHoldsController(
         return View(hold);
     }
 
+    /// <summary>
+    /// PLAN-58 (§3): asks for the hold's release, with a reason. Another approver decides it from «طلبات بانتظار قرارك»; the form has no
+    /// approver field, and none is read.
+    /// </summary>
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
-    public async Task<IActionResult> Release(Guid id, Guid? releaseApprovedBy, string releaseReason, Guid? evidenceRecordId)
+    public async Task<IActionResult> Release(Guid id, string? releaseReason, [FromServices] PayrollDualControlService dualControl)
     {
-        var hold = await db.PaymentHolds.FirstOrDefaultAsync(h => h.Id == id);
-        if (hold is null) return NotFound();
-
-        var releasedBy = RequireUserId();
-        var approvedBy = releaseApprovedBy ?? Guid.Empty;
-        if (approvedBy == Guid.Empty)
-        {
-            var formApprover = Request.Form["ReleaseApprovedBy"].ToString();
-            _ = Guid.TryParse(formApprover, out approvedBy);
-        }
-
-        try
-        {
-            holdService.ReleaseHold(hold, releasedBy, approvedBy, releaseReason ?? "", evidenceRecordId);
-        }
-        catch (Exception ex) when (ex is InvalidOperationException or ArgumentException)
-        {
-            TempData["Error"] = ex.Message;
-            return RedirectToAction(nameof(Details), new { id });
-        }
-
-        if (hold.FraudAlertId.HasValue)
-        {
-            var alert = await db.FraudAlerts.FirstOrDefaultAsync(a => a.Id == hold.FraudAlertId.Value);
-            if (alert is not null && alert.Status is FraudAlertStatus.Open or FraudAlertStatus.UnderReview)
-            {
-                alert.Status = FraudAlertStatus.Resolved;
-                alert.ResolvedBy = releasedBy;
-                alert.ApprovedBy = approvedBy;
-                alert.ResolutionReason = releaseReason;
-                alert.UpdatedAt = DateTime.UtcNow;
-            }
-        }
-
-        await db.SaveChangesAsync();
-        TempData["Success"] = "تم إفراج حجز الصرف (أربعة عيون)";
+        var result = await dualControl.RequestAsync(
+            PayrollDualControlKind.HoldRelease, id, new PayrollDualControlPayload(releaseReason ?? string.Empty), RequireUserId(),
+            HttpContext.RequestAborted);
+        if (result.Outcome == Payroll.Application.Features.PayrollRuns.Lifecycle.RunActOutcome.NotFound)
+            return NotFound();
+        TempData[result.Success ? "Success" : "Error"] = result.Success
+            ? "سُجّل طلب الإفراج؛ يقرّره معتمد آخر من «طلبات بانتظار قرارك»"
+            : result.Error;
         return RedirectToAction(nameof(Details), new { id });
     }
 }

@@ -179,10 +179,29 @@ public sealed class PayrollWriteActionsTests
         ["PaymentBatches.Fund"] = HrManagementPolicies.PayrollApprove,
         ["PaymentBatches.Process"] = HrManagementPolicies.PayrollPost,
         ["PaymentBatches.SubmitHeld"] = HrManagementPolicies.PayrollPost,
+        // §3, §7: four eyes. A request under its kind's policy (an approver asks to release a hold or resolve a critical alert; the
+        // processor to adjust an arrears row; the poster to reissue a file and record the channel's settlement or rejection); the
+        // decision with Payroll.Approve, by another person (the service's rule). The channel's acknowledgement is one act of the poster.
+        ["DualControlApi.Decide"] = HrManagementPolicies.PayrollApprove,
+        ["DualControl.Decide"] = HrManagementPolicies.PayrollApprove,
+        ["DualControlApi.RequestAlertResolution"] = HrManagementPolicies.PayrollApprove,
+        ["DualControlApi.RequestArrearsAdjustment"] = HrManagementPolicies.PayrollProcess,
+        ["PaymentHoldsApi.Release"] = HrManagementPolicies.PayrollApprove,
+        ["PaymentHolds.Release"] = HrManagementPolicies.PayrollApprove,
+        ["FraudAlerts.Resolve"] = HrManagementPolicies.PayrollApprove,
+        ["Arrears.Update"] = HrManagementPolicies.PayrollProcess,
+        ["PaymentBatchesApi.Ack"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatchesApi.RequestSettlement"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatchesApi.RequestRejection"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatchesApi.RequestReissue"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatches.Ack"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatches.RequestSettlement"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatches.RequestRejection"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatches.RequestReissue"] = HrManagementPolicies.PayrollPost,
     };
 
     /// <summary>The controllers PLAN-58 adds: every write of theirs has a row in <see cref="Pay058"/>.</summary>
-    private static readonly string[] Pay058Controllers = ["PaymentBatchesApi", "PaymentBatches"];
+    private static readonly string[] Pay058Controllers = ["PaymentBatchesApi", "PaymentBatches", "DualControlApi", "DualControl", "PaymentHoldsApi"];
 
     /// <summary>The controllers PLAN-56 adds: every write of theirs has a row in <see cref="Pay056"/>.</summary>
     private static readonly string[] Pay056Controllers = ["PayrollRunLifecycleApi", "PayrollReversalRequests"];
@@ -621,7 +640,8 @@ public sealed class PayrollWriteActionsTests
         // D-PAY-2: the funding decision is the approver's; the sending is the poster's; the processor reaches neither (403).
         Assert.Equal(Rows(HrManagementPolicies.PayrollApprove), await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollApprover));
         Assert.Equal(Rows(HrManagementPolicies.PayrollPost), await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollPoster));
-        Assert.Empty(await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollProcessor));
+        // The processor reaches only the arrears adjustment's request; never a sending, a funding decision or a decision of four eyes.
+        Assert.Equal(Rows(HrManagementPolicies.PayrollProcess), await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollProcessor));
         Assert.Empty(await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollReverser));
         Assert.Empty(await ReachedByAsync(HrManagementRoles.Payroll));
     }
