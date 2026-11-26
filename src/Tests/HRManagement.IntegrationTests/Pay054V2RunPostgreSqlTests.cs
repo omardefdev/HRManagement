@@ -134,13 +134,11 @@ public sealed class Pay054V2RunPostgreSqlTests(PostgreSqlFixture fixture)
         reporter.Setup(r => r.SubmitAsync(It.IsAny<SocialInsuranceReportRequest>(), It.IsAny<CancellationToken>()))
             .Callback<SocialInsuranceReportRequest, CancellationToken>((request, _) => captured = request)
             .ReturnsAsync(new IntegrationResult(true));
-        var gateway = new Mock<IPayrollDisbursementGateway>();
-        gateway.Setup(g => g.SubmitAsync(It.IsAny<PayrollDisbursementRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(new IntegrationResult(true));
         var lookup = new Mock<IEmployeeLookup>();
         lookup.Setup(l => l.GetEmployeeDisplayNamesAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(new Dictionary<Guid, string>());
 
-        await new PayrollExternalExportService(db, lookup.Object, gateway.Object, reporter.Object).ExportRunAsync(runId);
+        await new PayrollExternalExportService(db, lookup.Object, reporter.Object).ExportInsuranceAsync(runId);
         db.ChangeTracker.Clear();
         await db.PayrollRuns.Where(r => r.Id == runId).ExecuteUpdateAsync(s => s.SetProperty(r => r.Status, status));
         return captured!;

@@ -13,7 +13,9 @@ namespace HRManagement.UnitTests.Architecture;
 /// <item>no <c>EnsureAndSubmitOrdersAsync</c> outside <c>ProcessPaymentBatchHandler</c> and <c>SubmitHeldPaymentOrdersHandler</c>;</item>
 /// <item>no settlement or rejection of a batch (<c>SettlePaymentBatchCommand</c>, <c>RejectPaymentBatchCommand</c>) but from the four-eyes
 /// decision (<c>PayrollDualControlService</c>);</item>
-/// <item>no partial disbursement left (<c>ExecutePartialDisbursementCommand</c>, <c>partial-disburse</c>).</item>
+/// <item>no partial disbursement and no treasury export left (<c>ExecutePartialDisbursementCommand</c>, <c>partial-disburse</c>,
+/// <c>ExportTreasuryFile</c>, the treasury half of the integration bundle, the disbursement gateway): the only payment file is the bank file
+/// a sending writes.</item>
 /// </list>
 /// Each rule has a planted defect that the scan must catch.
 /// </summary>
@@ -48,7 +50,7 @@ public sealed partial class Pay058SinglePaymentPathArchitectureTests
     [GeneratedRegex(@"\bnew\s+(SettlePaymentBatchCommand|RejectPaymentBatchCommand)\s*\(")]
     private static partial Regex ConfirmationCommand();
 
-    [GeneratedRegex(@"\b(ExecutePartialDisbursementCommand|partial-disburse)\b")]
+    [GeneratedRegex(@"\b(ExportTreasuryFile|ExportExternalIntegrationBundle|FilePayrollDisbursementGateway|IPayrollDisbursementGateway|ExecutePartialDisbursementCommand|partial-disburse)\b")]
     private static partial Regex RemovedPath();
 
     [GeneratedRegex(@"^\s*(public|internal|file)\s+(sealed\s+|static\s+|abstract\s+|partial\s+)*(class|record|interface)\s+(?<name>\w+)", RegexOptions.Multiline)]
@@ -208,6 +210,12 @@ public sealed partial class Pay058SinglePaymentPathArchitectureTests
     public void Planted_a_partial_disbursement_is_caught() =>
         Assert.Contains(Violations([new Source("Services/Payroll/Payroll.Web/Controllers/Fake.cs",
             "public class FakeController\n{\n    [HttpPost(\"runs/{id}/partial-disburse\")] public IActionResult A() => Ok();\n}\n")]),
+            v => v.Contains("a payment path PLAN-58 removed", StringComparison.Ordinal));
+
+    [Fact]
+    public void Planted_a_treasury_export_is_caught() =>
+        Assert.Contains(Violations([new Source("Services/Payroll/Payroll.Web/Controllers/Fake.cs",
+            "public class FakeController\n{\n    public IActionResult ExportTreasuryFile(Guid id) => Ok();\n}\n")]),
             v => v.Contains("a payment path PLAN-58 removed", StringComparison.Ordinal));
 
     [Fact]

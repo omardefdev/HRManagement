@@ -1,6 +1,5 @@
 using HRManagement.Integration.Abstractions;
 using HRManagement.Integration.Abstractions.Insurance;
-using HRManagement.Integration.Abstractions.Payroll;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -65,30 +64,34 @@ public sealed partial class Pay055BankAccountPostgreSqlTests(PostgreSqlFixture f
             .Where(s => s.Job.PayrollRunId == runId)
             .ToDictionaryAsync(s => s.EmployeeId, s => s.BankAccountId);
 
-    /// <summary>The treasury file of a run, as the gateway receives it. The export takes a posted run: the test posts it directly.</summary>
-    private static async Task<PayrollDisbursementRequest> ExportTreasuryAsync(PayrollDbContext db, Guid runId, IReadOnlyDictionary<Guid, string> names)
+    /// <summary>
+    /// PLAN-58 (§2): the bank file of a sending, as stored: each data row's employee and account (the file's own CSV; the closing control
+    /// line is left out). The export of the whole run's file is gone; a file carries the orders of one sending only.
+    /// </summary>
+    private static async Task<Dictionary<Guid, string>> FileAccountsAsync(PayrollDbContext db, Guid fileId)
+    {
+        db.ChangeTracker.Clear();
+        var file = await db.PaymentBatchFiles.AsNoTracking().SingleAsync(f => f.Id == fileId);
+        var rows = System.Text.Encoding.UTF8.GetString(file.Content).Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Skip(1).Where(r => !r.StartsWith(PaymentBatchFileBuilder.ControlTag + ",", StringComparison.Ordinal));
+        return rows.Select(r => r.Split(',')).ToDictionary(c => Guid.Parse(c[4]), c => c[10]);
+    }
+
+    /// <summary>Sends what the gate lets through: the run is posted directly (the run's own cycle is not what is measured here).</summary>
+    private static async Task<Payroll.Application.Features.PayrollRuns.Lifecycle.RunActResult> SendAsync(
+        IServiceProvider services, PayrollDbContext db, Guid runId, Guid batchId, bool heldOnly = false)
     {
         await db.PayrollRuns.Where(r => r.Id == runId).ExecuteUpdateAsync(s => s.SetProperty(r => r.Status, PayrollRunStatus.Posted));
         db.ChangeTracker.Clear();
-
-        PayrollDisbursementRequest? captured = null;
-        var gateway = new Mock<IPayrollDisbursementGateway>();
-        gateway.Setup(g => g.SubmitAsync(It.IsAny<PayrollDisbursementRequest>(), It.IsAny<CancellationToken>()))
-            .Callback<PayrollDisbursementRequest, CancellationToken>((request, _) => captured = request)
-            .ReturnsAsync(new IntegrationResult(true));
-        var reporter = new Mock<ISocialInsuranceReporter>();
-        reporter.Setup(r => r.SubmitAsync(It.IsAny<SocialInsuranceReportRequest>(), It.IsAny<CancellationToken>())).ReturnsAsync(new IntegrationResult(true));
-        var lookup = new Mock<IEmployeeLookup>();
-        lookup.Setup(l => l.GetEmployeeDisplayNamesAsync(It.IsAny<IEnumerable<Guid>>(), It.IsAny<CancellationToken>())).ReturnsAsync(names);
-
-        await new PayrollExternalExportService(db, lookup.Object, gateway.Object, reporter.Object).ExportRunAsync(runId);
-        db.ChangeTracker.Clear();
-        return captured!;
+        var mediator = services.GetRequiredService<IMediator>();
+        return heldOnly
+            ? await mediator.Send(new SubmitHeldPaymentOrdersCommand(batchId, Guid.NewGuid()))
+            : await mediator.Send(new ProcessPaymentBatchCommand(batchId, Guid.NewGuid()));
     }
 
     [Trait("Category", "Testcontainers")]
     [SkippableFact]
-    public async Task A_run_pins_each_account_at_its_snapshot_and_its_orders_and_treasury_file_carry_the_pinned_account_not_the_current_one()
+    public async Task A_run_pins_each_account_at_its_snapshot_and_its_orders_and_bank_files_carry_the_pinned_account_not_the_current_one()
     {
         Skip.IfNot(PostgreSqlFixture.IsEnabled, "Set RUN_TESTCONTAINERS=true and start Docker.");
         var (root, scope, db, mediator) = await PayrollPostgresTestSupport.CreateScopeAsync(fixture);
@@ -97,7 +100,6 @@ public sealed partial class Pay055BankAccountPostgreSqlTests(PostgreSqlFixture f
         await PayrollPostgresTestSupport.SeedPublishedConfigAsync(db);
         await PayrollPostgresTestSupport.SeedEmployeesAsync(db, 3);
         var (e1, e2, e3) = (Employee(1), Employee(2), Employee(3));
-        var names = new Dictionary<Guid, string> { [e1] = "أحمد الخطيب", [e2] = "سلمى الحسن", [e3] = "خالد العلي" };
 
         // Every employee has an account two people left in force.
         var a1 = await RegisterAndVerifyAsync(mediator, e1, 0);
@@ -162,12 +164,10 @@ public sealed partial class Pay055BankAccountPostgreSqlTests(PostgreSqlFixture f
         Assert.False(blocked.Stopped);
         Assert.Equal(new[] { e1, e2 }, blocked.ByEmployee.Keys.Order().ToArray());
         Assert.All(blocked.ByEmployee.Values, h => Assert.Equal(PaymentOrderHoldReasons.AccountRetired, h.Reason));
-        var heldFile = await Assert.ThrowsAsync<RetiredPinnedBankAccountsException>(() => ExportTreasuryAsync(db, october, names));
-        Assert.Equal(new[] { e1, e2 }, heldFile.EmployeeIds);
-        Assert.Contains("أحمد الخطيب", heldFile.Message, StringComparison.Ordinal);
-        Assert.Contains("سلمى الحسن", heldFile.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain("SY", heldFile.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain(e1.ToString("D"), heldFile.Message, StringComparison.OrdinalIgnoreCase);
+        // PLAN-58: the sending goes on for the others: e3 is sent alone, and its bank file names no retired account.
+        var first = await SendAsync(scope.ServiceProvider, db, october, batch.Id);
+        Assert.True(first.Success, first.Error);
+        Assert.Equal(new Dictionary<Guid, string> { [e3] = Pay055TestAccounts.Iban(e3, 0) }, await FileAccountsAsync(db, first.Id!.Value));
 
         // Two people release each hold (the hold's existing four-eyes release): a person's decision to pay the pinned account.
         db.ChangeTracker.Clear();
@@ -184,12 +184,13 @@ public sealed partial class Pay055BankAccountPostgreSqlTests(PostgreSqlFixture f
         Assert.Equal(new[] { e1, e2 }, afterRelease.EmployeesWithRetiredAccount);
         Assert.Empty(afterRelease.EmployeesHeldForRetiredAccount);
 
-        // The treasury file of the posted run then carries the pinned accounts: e1's first account, not the one in force now.
-        var file = await ExportTreasuryAsync(db, october, names);
-        Assert.Equal(
-            new Dictionary<Guid, string?> { [e1] = Pay055TestAccounts.Iban(e1, 0), [e2] = Pay055TestAccounts.Iban(e2, 0), [e3] = Pay055TestAccounts.Iban(e3, 0) },
-            file.Lines.ToDictionary(l => l.EmployeeId, l => l.BankAccount));
-        Assert.DoesNotContain(file.Lines, l => l.BankAccount == Pay055TestAccounts.Iban(e1, 1));
+        // The released orders are sent by a supplementary file, which carries the pinned accounts: e1's first account, not the one in
+        // force now.
+        var supplementary = await SendAsync(scope.ServiceProvider, db, october, batch.Id, heldOnly: true);
+        Assert.True(supplementary.Success, supplementary.Error);
+        var file = await FileAccountsAsync(db, supplementary.Id!.Value);
+        Assert.Equal(new Dictionary<Guid, string> { [e1] = Pay055TestAccounts.Iban(e1, 0), [e2] = Pay055TestAccounts.Iban(e2, 0) }, file);
+        Assert.DoesNotContain(file.Values, v => v == Pay055TestAccounts.Iban(e1, 1));
 
         // November: a new employee with no account joins. The run takes e1's new account; e2 and the new employee have none.
         var e4 = Guid.Parse("b0000001-0000-4000-8000-000000000004");
@@ -203,16 +204,22 @@ public sealed partial class Pay055BankAccountPostgreSqlTests(PostgreSqlFixture f
         Assert.Equal(new[] { e2, e4 }.Order(), next.EmployeesWithoutAccount);
         Assert.Empty(next.EmployeesWithRetiredAccount);
 
-        // A line without an account blocked neither the calculation nor the report; the treasury file is refused, and the refusal
-        // lists the employees: their ids for an API, their names (never an id, never a number) for a screen.
-        var refusal = await Assert.ThrowsAsync<MissingPinnedBankAccountsException>(() => ExportTreasuryAsync(db, november, names));
-        Assert.Equal(new[] { e2, e4 }.Order(), refusal.EmployeeIds.Order());
-        Assert.Contains("سلمى الحسن", refusal.Message, StringComparison.Ordinal);        // e2 has a name in the directory
-        Assert.Contains("و1 آخرون", refusal.Message, StringComparison.Ordinal);          // e4 has none: counted, not shown by an id
-        Assert.DoesNotContain(e4.ToString("D"), refusal.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain(e2.ToString("D"), refusal.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("SY", refusal.Message, StringComparison.Ordinal);
-        output.WriteLine(refusal.Message);
+        // A line without an account blocked neither the calculation nor the report. PLAN-58 (§1): the posting's batch holds those two
+        // orders NO-ACCOUNT, and the sending pays the others; the file carries only the accounts the lines pinned.
+        var novemberRun = await db.PayrollRuns.Include(r => r.SalaryLines).SingleAsync(r => r.Id == november);
+        await db.PayrollRuns.Where(r => r.Id == november).ExecuteUpdateAsync(s => s.SetProperty(r => r.Status, PayrollRunStatus.Posted));
+        db.ChangeTracker.Clear();
+        novemberRun = await db.PayrollRuns.Include(r => r.SalaryLines).SingleAsync(r => r.Id == november);
+        var novemberBatch = await scope.ServiceProvider.GetRequiredService<Payroll.Application.Services.PaymentBatchIssuer>()
+            .IssueAsync(novemberRun, novemberRun.SalaryLines.ToList(), PaymentBatchSource.PayrollRunPosted, CancellationToken.None);
+        await db.SaveChangesAsync();
+        var heldOrders = await db.PaymentOrders.AsNoTracking()
+            .Where(o => o.PaymentBatchId == novemberBatch.Id && o.Status == PaymentOrderStatus.Held).ToListAsync();
+        Assert.Equal(new[] { e2, e4 }.Order(), heldOrders.Select(o => o.EmployeeId).Order());
+        Assert.All(heldOrders, o => Assert.Equal((PaymentOrderHoldReasons.NoAccount, (string?)null), (o.HoldReason, o.BeneficiaryIban)));
+        var novemberSent = await SendAsync(scope.ServiceProvider, db, november, novemberBatch.Id);
+        Assert.True(novemberSent.Success, novemberSent.Error);
+        Assert.Equal(new[] { e1, e3 }.Order(), (await FileAccountsAsync(db, novemberSent.Id!.Value)).Keys.Order());
     }
 
     private static async Task<(bool Present, bool Verified)> DsarAsync(PayrollDbContext db, Guid employee)

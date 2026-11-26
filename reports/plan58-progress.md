@@ -63,3 +63,24 @@ PayrollApiController without partial-disburse, MVC messages), tests (Pay058Singl
 Pay058PaymentPathTests 6, PartialDisbursementOrchestratorTests ported, PayrollWriteActionsTests Pay058 rows + reach, others adapted).
 Tests: unit full 7244 passed (8 min 7 s); integration payroll filter (no containers) 175 passed + Pay058 6; architecture 414 + 108 passed.
 Finished (UTC): 2026-11-26T12:48:35Z
+
+## P2 — The bank file
+- PaymentBatchFile (new table, Kind as int, unique (batch, sequence) IX_PaymentBatchFiles_Batch_Sequence, xmin), PaymentBatchFileBuilder
+  (today's CSV columns + PaymentOrderId, Amount; closing line CONTROL,count,total,batch,sequence,kind; UTF-8 without BOM; SHA-256),
+  PaymentBatchFileWriter (next sequence; orders keep the file id; ReissueAsync: new sequence, the old file SupersededById, refuses a
+  superseded file). process/submit-held write the file in their transaction (the handler's answer carries the file id).
+- Download: GET api/payroll/payment-batches/{id}/files/{fileId} and the batch page's button; Payroll.Post or Payroll.Approve (403
+  otherwise); SecurityAudit BulkExport with resource payment-batch-file:<id> and controls in the detail (no account).
+- Removed: ExportTreasuryFile and ExportExternalIntegrationBundle (the bundle's other half is ExportSocialInsuranceFile, kept);
+  PayrollExternalExportService is insurance-only and no longer takes the disbursement gateway; the treasury refusals
+  (Missing/RetiredPinnedBankAccountsException) went with the file; PLAN-55's naming rule kept as PayrollEmployeeNames.Listed.
+  The shared adapters (IPayrollDisbursementGateway, FilePayrollDisbursementGateway, the INT-004 live connector) stay in Shared: Payroll
+  no longer calls them (the path test refuses them in src/Services/Payroll).
+- Batch screens: PaymentBatchesController (own file, [OrgScopeCentralOnly]; its org-scope allowlist row removed - the list shrank),
+  Views/PaymentBatches/Details.cshtml (orders by state, held card by name, files with download, funding form, sending buttons).
+- Migration PAY058_DisbursementGovernance regenerated (adds PaymentBatchFiles + RLS) with artifacts/plan58/tools/regen-migration.sh
+  (snapshot from 9b069f65, Revision default 1, EnableRls block, no BOM on the migration files).
+- Tests: Pay058BankFileBuilderTests (3, unit), Pay058BankFileTests (2, SQLite), Pay058DisbursementHttpTests (download, PostgreSQL: runs in
+  P7), Pay055BankAccountPostgreSqlTests ported to the bank files (PostgreSQL: P7). Unit filter 628 passed, arch 421 passed, integration
+  (SQLite payroll filter) 28 passed.
+Finished (UTC): 2026-11-26T13:07:51Z

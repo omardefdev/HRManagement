@@ -469,28 +469,3 @@ public class PayrollAuditRecordsController(PayrollDbContext db) : Controller
         return RedirectToAction(nameof(Index));
     }
 }
-
-public class PaymentBatchesController(PayrollDbContext db) : Controller
-{
-    public async Task<IActionResult> Index(Guid? payrollRunId, PaymentBatchStatus? status, DateTime? processedFrom, DateTime? processedTo, bool? hasBankReference)
-    {
-        var query = db.PaymentBatches.AsNoTracking().Include(p => p.PayrollRun).AsQueryable();
-        if (payrollRunId.HasValue) query = query.Where(x => x.PayrollRunId == payrollRunId.Value);
-        if (status.HasValue) query = query.Where(x => x.Status == status.Value);
-        if (processedFrom.HasValue) query = query.Where(x => x.ProcessedAt >= processedFrom.Value);
-        if (processedTo.HasValue) query = query.Where(x => x.ProcessedAt <= processedTo.Value);
-        if (hasBankReference == true) query = query.Where(x => x.BankTransferReference != null && x.BankTransferReference != "");
-        if (hasBankReference == false) query = query.Where(x => x.BankTransferReference == null || x.BankTransferReference == "");
-
-        var items = await query.OrderByDescending(x => x.ProcessedAt ?? DateTime.MinValue).Take(SearchFilterBase.MaxPageSize).ToListAsync();
-        ViewBag.PayrollRunId = payrollRunId;
-        ViewBag.Status = status;
-        ViewBag.ProcessedFrom = processedFrom;
-        ViewBag.ProcessedTo = processedTo;
-        ViewBag.HasBankReference = hasBankReference;
-        ViewBag.PayrollRuns = new SelectList(
-            await db.PayrollRuns.AsNoTracking().OrderByDescending(r => r.RunDate).Take(SearchFilterBase.LookupMaxPageSize).ToListAsync(),
-            "Id", "RunDate", payrollRunId);
-        return View(items);
-    }
-}

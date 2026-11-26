@@ -161,7 +161,4 @@ public static class BankAccountMessages
     public static string RetiredHoldReason(string reason) =>
         $"{EmployeeBankAccount.RetiredHoldRule}: أُحيل الحساب المصرفي المثبَّت للموظف في هذا التشغيل قبل صرفه — {reason}. "
         + "الإفراج عن هذا الحجز يعني الصرف إلى الحساب المحال نفسه؛ وإن لم يُجمَّد التشغيل فإعادة حسابه تثبّت الحساب النافذ.";
-
-    public const string RetiredPinnedAccountBlocksBatch =
-        "في هذه الدفعة موظفون أُحيل حسابهم المصرفي المثبَّت في التشغيل ولم يُفرج شخص عن حجزهم: لا يُصرف إلى حساب سُحب";
 }

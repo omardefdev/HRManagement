@@ -290,10 +290,9 @@ public class PayrollRunLifecycleIntegrationTests
         var service = new PayrollExternalExportService(
             db,
             Mock.Of<IEmployeeLookup>(),
-            Mock.Of<IPayrollDisbursementGateway>(),
             Mock.Of<ISocialInsuranceReporter>());
 
-        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ExportRunAsync(run.Id));
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ExportInsuranceAsync(run.Id));
         Assert.Equal("يجب ترحيل التشغيل قبل التصدير.", ex.Message);
     }
 

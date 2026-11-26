@@ -166,12 +166,8 @@ public class ApprovePayrollRunHandler(IPayrollRepository repository, SeparationO
         }
         catch (InvalidOperationException ex)
         {
+            // A lost race on the run's row version is not caught here: it reaches the conflict middleware, which answers 409.
             return RunActResult.Invalid(ex.Message);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            repository.ClearChangeTracker();
-            return RunActResult.Conflict(PaymentBatchMessages.ChangedMeanwhile);
         }
     }
 }

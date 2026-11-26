@@ -59,8 +59,52 @@ public sealed class PaymentBatchesApiController(IMediator mediator, PayrollDbCon
             batch.SettledAt,
             batch.SettlementReference,
             orders = orders.Select(o => new { status = o.status.ToString(), o.count, o.amount }),
+            files = await FilesOf(id).ToListAsync(ct),
         });
     }
+
+    /// <summary>PLAN-58 (§2): the batch's bank files, one per sending (and each reissue): their controls and fingerprints, not their content.</summary>
+    [HttpGet("{id:guid}/files")]
+    public async Task<IActionResult> Files(Guid id, CancellationToken ct) =>
+        await db.PaymentBatches.AsNoTracking().AnyAsync(b => b.Id == id, ct)
+            ? Ok(await FilesOf(id).ToListAsync(ct))
+            : NotFound(new { error = PaymentBatchMessages.BatchNotFound });
+
+    /// <summary>
+    /// A stored bank file, as it was handed over: read, never built again. A holder of <c>Payroll.Post</c> or <c>Payroll.Approve</c>
+    /// (403 otherwise); audited as a bulk export (the file's id and controls; never an account).
+    /// </summary>
+    [HttpGet("{id:guid}/files/{fileId:guid}")]
+    public async Task<IActionResult> DownloadFile(Guid id, Guid fileId, [FromServices] IAuthorizationService authorization, CancellationToken ct)
+    {
+        if (!(await authorization.AuthorizeAsync(User, HrManagementPolicies.PayrollPost)).Succeeded
+            && !(await authorization.AuthorizeAsync(User, HrManagementPolicies.PayrollApprove)).Succeeded)
+            return Forbid();
+        var file = await db.PaymentBatchFiles.AsNoTracking().FirstOrDefaultAsync(f => f.Id == fileId && f.PaymentBatchId == id, ct);
+        if (file is null)
+            return NotFound(new { error = Payroll.Infrastructure.Services.PaymentBatchFileWriter.FileNotFound });
+        PaymentBatchFileAudit.Record(HttpContext, file);
+        return File(file.Content, "text/csv", file.FileName);
+    }
+
+    private IQueryable<object> FilesOf(Guid batchId) =>
+        db.PaymentBatchFiles.AsNoTracking()
+            .Where(f => f.PaymentBatchId == batchId)
+            .OrderBy(f => f.Sequence)
+            .Select(f => new
+            {
+                f.Id,
+                f.Sequence,
+                kind = f.Kind.ToString(),
+                f.ControlCount,
+                f.ControlTotal,
+                f.Sha256,
+                f.GeneratedBy,
+                f.GeneratedAt,
+                f.SupersededById,
+                f.ReissueReason,
+                f.ReissueApprovedBy,
+            });
 
     /// <summary>
     /// D-PAY-2: the treasury's funding of the batch, by a holder of <c>Payroll.Approve</c>, on a <c>Pending</c> batch of a posted run,

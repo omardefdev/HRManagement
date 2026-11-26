@@ -170,6 +170,9 @@ public sealed class Iam052PgServiceHost<TEntry, TContext> : IIam052ScopeHost, IA
     /// <summary>An unrestricted caller with the given roles and employee (a delegate with no scope of his own).</summary>
     public HttpClient CentralWith(string roles, Guid employee) => Client(CentralUser, roles, null, employee);
 
+    /// <summary>PLAN-58: an unrestricted caller of his own identity with the given roles (two people of a four-eyes act, a conflicting holder).</summary>
+    public HttpClient CentralAs(Guid user, string roles) => Client(user, roles, null);
+
     public async ValueTask DisposeAsync() => await Host.DisposeAsync();
 }
 

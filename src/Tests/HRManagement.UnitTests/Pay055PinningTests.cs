@@ -335,43 +335,23 @@ public sealed class Pay055PinningTests
         Assert.Empty(await BlockedAsync(h, run));                                   // a later batch of the same run is not stopped by him
     }
 
-    [Fact]
-    public void The_refusal_for_retired_pinned_accounts_lists_names_and_carries_the_ids()
-    {
-        var (named, unnamed) = (Guid.NewGuid(), Guid.NewGuid());
-
-        var refusal = new RetiredPinnedBankAccountsException([named, unnamed], new Dictionary<Guid, string> { [named] = "سلمى الحسن" });
-
-        Assert.Equal(new[] { named, unnamed }, refusal.EmployeeIds);
-        Assert.Contains("سلمى الحسن", refusal.Message, StringComparison.Ordinal);
-        Assert.Contains("و1 آخرون", refusal.Message, StringComparison.Ordinal);
-        Assert.Contains("الحساب المحال نفسه", refusal.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain(unnamed.ToString("D"), refusal.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.IsAssignableFrom<InvalidOperationException>(refusal);
-    }
-
-    // --- the treasury file's refusal ---
+    // --- naming the held employees (PLAN-55's rule; the treasury file's refusals that used it are gone with the file, PLAN-58) ---
 
     [Fact]
-    public void The_treasury_refusal_lists_names_and_counts_the_rest_and_carries_the_ids()
+    public void A_list_of_people_shows_names_counts_the_rest_and_never_an_id()
     {
-        var named = Enumerable.Range(1, MissingPinnedBankAccountsException.NamesShown + 5).Select(i => (Id: Guid.NewGuid(), Name: $"موظف {i:D2}")).ToList();
+        var named = Enumerable.Range(1, PayrollEmployeeNames.NamesShown + 5).Select(i => (Id: Guid.NewGuid(), Name: $"موظف {i:D2}")).ToList();
         var unnamed = new[] { Guid.NewGuid(), Guid.NewGuid() };
         var ids = named.Select(n => n.Id).Concat(unnamed).ToList();
         var names = named.ToDictionary(n => n.Id, n => n.Name);
 
-        var refusal = new MissingPinnedBankAccountsException(ids, names);
+        var listed = PayrollEmployeeNames.Listed(ids, names);
 
-        Assert.Equal(ids, refusal.EmployeeIds);
-        Assert.StartsWith("لا يمكن تصدير ملف الصرف", refusal.Message);
-        Assert.Contains("موظف 01", refusal.Message, StringComparison.Ordinal);
-        Assert.Contains($"موظف {MissingPinnedBankAccountsException.NamesShown:D2}", refusal.Message, StringComparison.Ordinal);
-        Assert.DoesNotContain($"موظف {MissingPinnedBankAccountsException.NamesShown + 1:D2}", refusal.Message, StringComparison.Ordinal);
-        Assert.Contains("و7 آخرون", refusal.Message, StringComparison.Ordinal);            // 5 named beyond the cap and 2 without a name
-        Assert.All(ids, id => Assert.DoesNotContain(id.ToString("D"), refusal.Message, StringComparison.OrdinalIgnoreCase));
-
-        var nobodyNamed = new MissingPinnedBankAccountsException(unnamed, new Dictionary<Guid, string>());
-        Assert.Contains("(عددهم 2)", nobodyNamed.Message, StringComparison.Ordinal);
-        Assert.IsAssignableFrom<InvalidOperationException>(refusal);                       // the screens' existing catch still shows it
+        Assert.Contains("موظف 01", listed, StringComparison.Ordinal);
+        Assert.Contains($"موظف {PayrollEmployeeNames.NamesShown:D2}", listed, StringComparison.Ordinal);
+        Assert.DoesNotContain($"موظف {PayrollEmployeeNames.NamesShown + 1:D2}", listed, StringComparison.Ordinal);
+        Assert.Contains("و7 آخرون", listed, StringComparison.Ordinal);            // 5 named beyond the cap and 2 without a name
+        Assert.All(ids, id => Assert.DoesNotContain(id.ToString("D"), listed, StringComparison.OrdinalIgnoreCase));
+        Assert.Contains("(عددهم 2)", PayrollEmployeeNames.Listed(unnamed, new Dictionary<Guid, string>()), StringComparison.Ordinal);
     }
 }

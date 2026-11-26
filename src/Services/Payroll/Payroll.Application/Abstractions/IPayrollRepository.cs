@@ -34,6 +34,7 @@ public interface IPayrollRepository
     IQueryable<PayrollRunInputSnapshot> PayrollRunInputSnapshots { get; }
     IQueryable<PaymentBatch> PaymentBatches { get; }
     IQueryable<PaymentOrder> PaymentOrders { get; }
+    IQueryable<PaymentBatchFile> PaymentBatchFiles { get; }
     IQueryable<FundingDecision> FundingDecisions { get; }
     IQueryable<DisbursementPriorityRule> DisbursementPriorityRules { get; }
     IQueryable<FraudAlert> FraudAlerts { get; }

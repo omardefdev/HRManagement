@@ -12,7 +12,7 @@ using Payroll.Infrastructure.Data;
 namespace Payroll.Infrastructure.Migrations
 {
     [DbContext(typeof(PayrollDbContext))]
-    [Migration("20261126125055_PAY058_DisbursementGovernance")]
+    [Migration("20261126130313_PAY058_DisbursementGovernance")]
     partial class PAY058_DisbursementGovernance
     {
         /// <inheritdoc />
@@ -1887,6 +1887,77 @@ namespace Payroll.Infrastructure.Migrations
                     b.ToTable("PaymentBatches");
                 });
 
+            modelBuilder.Entity("Payroll.Domain.Entities.PaymentBatchFile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<byte[]>("Content")
+                        .IsRequired()
+                        .HasColumnType("bytea");
+
+                    b.Property<int>("ControlCount")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("ControlTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("GeneratedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("PaymentBatchId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ReissueApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ReissueReason")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int>("Sequence")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("SupersededById")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentBatchId", "Sequence")
+                        .IsUnique()
+                        .HasDatabaseName("IX_PaymentBatchFiles_Batch_Sequence");
+
+                    b.ToTable("PaymentBatchFiles");
+                });
+
             modelBuilder.Entity("Payroll.Domain.Entities.PaymentHold", b =>
                 {
                     b.Property<Guid>("Id")
@@ -2061,6 +2132,8 @@ namespace Payroll.Infrastructure.Migrations
                         .HasColumnName("xmin");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PaymentBatchFileId");
 
                     b.HasIndex("PaymentBatchId");
 
@@ -3549,6 +3622,15 @@ namespace Payroll.Infrastructure.Migrations
                     b.Navigation("FundingDecision");
 
                     b.Navigation("PayrollRun");
+                });
+
+            modelBuilder.Entity("Payroll.Domain.Entities.PaymentBatchFile", b =>
+                {
+                    b.HasOne("Payroll.Domain.Entities.PaymentBatch", null)
+                        .WithMany()
+                        .HasForeignKey("PaymentBatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Payroll.Domain.Entities.PayrollAdjustment", b =>

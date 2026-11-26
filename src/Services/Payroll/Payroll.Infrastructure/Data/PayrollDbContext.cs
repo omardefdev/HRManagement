@@ -20,6 +20,7 @@ public class PayrollDbContext : TenantAwareDbContext
     public DbSet<PayrollAuditRecord> PayrollAuditRecords => Set<PayrollAuditRecord>();
     public DbSet<PaymentBatch> PaymentBatches => Set<PaymentBatch>();
     public DbSet<PaymentOrder> PaymentOrders => Set<PaymentOrder>();
+    public DbSet<PaymentBatchFile> PaymentBatchFiles => Set<PaymentBatchFile>();
     public DbSet<BankStatementLine> BankStatementLines => Set<BankStatementLine>();
     public DbSet<FundingDecision> FundingDecisions => Set<FundingDecision>();
     public DbSet<DisbursementPriorityRule> DisbursementPriorityRules => Set<DisbursementPriorityRule>();
@@ -169,9 +170,29 @@ public class PayrollDbContext : TenantAwareDbContext
         modelBuilder.Entity<PaymentOrder>(entity =>
         {
             entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.HoldReason).HasMaxLength(PaymentOrderHoldReasons.MaxLength);
+            entity.HasIndex(e => e.PaymentBatchFileId);
             entity.HasIndex(e => new { e.TenantId, e.IdempotencyKey }).IsUnique();
             entity.HasIndex(e => new { e.PayrollRunId, e.EmployeeId });
             entity.HasIndex(e => e.PaymentBatchId);
+            entity.ConfigureOptimisticConcurrency(this);
+        });
+
+        // PLAN-58 (§2): one file per sending of a batch, stored and never regenerated. The unique sequence lets one of two concurrent
+        // sendings in; a new table's enum is stored as an integer (PLAN-57's rule).
+        modelBuilder.Entity<PaymentBatchFile>(entity =>
+        {
+            entity.HasIndex(e => new { e.PaymentBatchId, e.Sequence })
+                .IsUnique()
+                .HasDatabaseName(PayrollDisbursementIndexNames.OneFilePerSequence);
+            entity.HasOne<PaymentBatch>()
+                .WithMany()
+                .HasForeignKey(e => e.PaymentBatchId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(e => e.Sha256).HasMaxLength(64);
+            entity.Property(e => e.ReissueReason).HasMaxLength(PaymentBatchFile.ReasonMaxLength);
+            entity.Property(e => e.ControlTotal).HasPrecision(18, 2);
+            entity.Ignore(e => e.FileName);
             entity.ConfigureOptimisticConcurrency(this);
         });
 

@@ -175,10 +175,14 @@ public sealed class PayrollWriteActionsTests
         ["PaymentBatchesApi.Process"] = HrManagementPolicies.PayrollPost,
         ["PaymentBatchesApi.SubmitHeld"] = HrManagementPolicies.PayrollPost,
         ["PayrollRuns.ProcessPayment"] = HrManagementPolicies.PayrollPost,
+        // The batch's page (§2): the same acts on the screens.
+        ["PaymentBatches.Fund"] = HrManagementPolicies.PayrollApprove,
+        ["PaymentBatches.Process"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatches.SubmitHeld"] = HrManagementPolicies.PayrollPost,
     };
 
     /// <summary>The controllers PLAN-58 adds: every write of theirs has a row in <see cref="Pay058"/>.</summary>
-    private static readonly string[] Pay058Controllers = ["PaymentBatchesApi"];
+    private static readonly string[] Pay058Controllers = ["PaymentBatchesApi", "PaymentBatches"];
 
     /// <summary>The controllers PLAN-56 adds: every write of theirs has a row in <see cref="Pay056"/>.</summary>
     private static readonly string[] Pay056Controllers = ["PayrollRunLifecycleApi", "PayrollReversalRequests"];
