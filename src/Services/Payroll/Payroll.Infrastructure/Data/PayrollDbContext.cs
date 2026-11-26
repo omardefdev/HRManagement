@@ -334,6 +334,8 @@ public class PayrollDbContext : TenantAwareDbContext
             entity.Property(e => e.Origin).HasConversion<string>().HasMaxLength(20);
             entity.HasIndex(e => new { e.TenantId, e.ApprovalStatus })
                   .HasDatabaseName("IX_DeductionRecords_Tenant_ApprovalStatus");
+            // PLAN-58 (P-11): a free deduction is taken by one run only: the second of two runs calculating at once is refused.
+            entity.ConfigureOptimisticConcurrency(this);
         });
 
         modelBuilder.Entity<AbsenceDeduction>(entity =>
@@ -376,6 +378,8 @@ public class PayrollDbContext : TenantAwareDbContext
                   .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(e => e.TargetSourceRunId)
                   .HasDatabaseName("IX_PayrollAdjustments_TargetSourceRunId");
+            // PLAN-58 (P-11): a free adjustment is taken by one run only, as a deduction and an absence row are.
+            entity.ConfigureOptimisticConcurrency(this);
         });
 
         modelBuilder.Entity<SalaryScale>(entity =>

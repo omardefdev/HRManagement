@@ -59,3 +59,26 @@ public static class PayrollInputRelease
         return released;
     }
 }
+
+/// <summary>
+/// PLAN-58 (P-11, PLAN-57's handover): two regular runs of one agency calculating at once both saw a free deduction, adjustment or
+/// absence row; the second to save finds it taken by the first. The save is refused (a concurrency failure, as the row version also
+/// refuses a race between the read and the save), the partition fails, and the run's calculation is restarted with a new snapshot (PLAN-56),
+/// as an input-fingerprint conflict is. An input is never marked by two runs.
+/// </summary>
+public sealed class PayrollInputTakenException : Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException
+{
+    public const string TakenMessage =
+        "مدخل راتب (خصم أو تسوية أو غياب) أخذه تشغيل آخر يُحسب في الوقت نفسه؛ أُوقف الحساب ولم يُكتب شيء من هذه الدفعة. أعد بدء الحساب ليأخذ لقطة جديدة.";
+
+    public PayrollInputTakenException() : base(TakenMessage)
+    {
+    }
+
+    /// <summary>Throws when the input is marked by another run than <paramref name="payrollRunId"/>.</summary>
+    public static void ThrowIfTaken(Guid? markedBy, Guid payrollRunId)
+    {
+        if (markedBy is Guid other && other != payrollRunId)
+            throw new PayrollInputTakenException();
+    }
+}

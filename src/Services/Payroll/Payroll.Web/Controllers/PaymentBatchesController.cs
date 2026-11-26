@@ -59,8 +59,7 @@ public class PaymentBatchesController(PayrollDbContext db, IMediator mediator, I
         var funding = batch.FundingDecisionId is Guid decisionId
             ? await db.FundingDecisions.AsNoTracking().FirstOrDefaultAsync(d => d.Id == decisionId)
             : null;
-        var held = orders.Where(o => o.Status == PaymentOrderStatus.Held).ToList();
-        var names = await employeeLookup.GetEmployeeDisplayNamesAsync(held.Select(o => o.EmployeeId).Distinct(), HttpContext.RequestAborted);
+        var held = await PaymentBatchHeldReport.BuildAsync(db, batch, employeeLookup, HttpContext.RequestAborted);
 
         var mayPost = (await authorization.AuthorizeAsync(User, HrManagementPolicies.PayrollPost)).Succeeded;
         var mayApprove = (await authorization.AuthorizeAsync(User, HrManagementPolicies.PayrollApprove)).Succeeded;
@@ -69,7 +68,7 @@ public class PaymentBatchesController(PayrollDbContext db, IMediator mediator, I
             orders.GroupBy(o => o.Status).Select(g => new PaymentOrderTally(g.Key, g.Count(), g.Sum(o => o.Amount))).OrderBy(t => t.Status).ToList(),
             files,
             funding,
-            held.Select(o => new HeldOrderViewModel(o.EmployeeId, names.GetValueOrDefault(o.EmployeeId), o.HoldReason, o.Amount)).ToList(),
+            held.Select(h => new HeldOrderViewModel(h.EmployeeId, h.EmployeeName, h.Reason, h.Amount, h.HoldId, h.PendingRequestId)).ToList(),
             mayPost,
             mayApprove));
     }

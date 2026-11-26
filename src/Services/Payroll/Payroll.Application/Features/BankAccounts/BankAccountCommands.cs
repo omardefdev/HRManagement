@@ -296,6 +296,7 @@ public sealed class VerifyBankAccountHandler(IPayrollRepository repository, Bank
 
         var now = calendar.UtcNow;
         var before = account.Status;
+        await using var transaction = await repository.BeginTransactionAsync(cancellationToken);
 
         // The account in force is retired by this verification, and a line that pinned it and is not yet disbursed gets the same hold a
         // person's retirement places.
@@ -314,6 +315,13 @@ public sealed class VerifyBankAccountHandler(IPayrollRepository repository, Bank
 
         if (await rules.SaveAsync(account, before, cancellationToken) is { } conflict)
             return conflict;
+
+        // PLAN-58 (§6 rule 3): the employee's orders held for want of an account (or for a retired one) and not yet sent are pinned to the
+        // account now in force, and their account holds lifted, in this verification's transaction.
+        if (await HeldOrderRepinning.RepinAsync(repository, account, request.ActorId, now, cancellationToken) > 0
+            && await rules.SaveAsync(account, BankAccountStatus.Active, cancellationToken) is { } repinConflict)
+            return repinConflict;
+        await transaction.CommitAsync(cancellationToken);
         return BankAccountResult.Ok(account) with { HoldsPlaced = holds, RetiredAccountId = inForce?.Id };
     }
 }

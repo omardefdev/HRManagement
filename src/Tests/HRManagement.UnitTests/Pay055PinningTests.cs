@@ -192,8 +192,7 @@ public sealed class Pay055PinningTests
         var snapshotEmployees = lines.Select(l => l.EmployeeId).ToHashSet();
 
         var inputs = FraudScanInputBuilder.FromRun(
-            run, lines, new Dictionary<Guid, EmployeePayProfile>(), snapshotEmployees, run.RunDate,
-            pinned.ToDictionary(p => p.Key, p => p.Value.AccountNumber));
+            run, lines, new FraudScanFacts(snapshotEmployees, pinned.ToDictionary(p => p.Key, p => p.Value.AccountNumber)), run.RunDate);
         var scan = FraudEngine().Scan(run.Id, inputs, asOfUtc: run.RunDate);
 
         Assert.Equal(new string?[] { H.Iban1, H.Iban1, null }, inputs.Select(i => i.Iban));
@@ -222,8 +221,7 @@ public sealed class Pay055PinningTests
         await using var db = h.Db();
         var pinned = await BankAccountPinning.PinnedAccountsAsync(db.EmployeeBankAccounts, lines, CancellationToken.None);
         var inputs = FraudScanInputBuilder.FromRun(
-            run, lines, new Dictionary<Guid, EmployeePayProfile>(), lines.Select(l => l.EmployeeId).ToHashSet(), run.RunDate,
-            pinned.ToDictionary(p => p.Key, p => p.Value.AccountNumber));
+            run, lines, new FraudScanFacts(lines.Select(l => l.EmployeeId).ToHashSet(), pinned.ToDictionary(p => p.Key, p => p.Value.AccountNumber)), run.RunDate);
 
         Assert.Equal(new[] { H.Iban1, H.Iban2 }, inputs.Select(i => i.Iban));
         Assert.DoesNotContain(FraudEngine().Scan(run.Id, inputs, asOfUtc: run.RunDate).Alerts, a => a.RuleId == FraudRuleIds.SharedIban);

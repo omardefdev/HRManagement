@@ -34,7 +34,7 @@
       "category": "Shared IBAN/account",
       "description": "Single bank account receiving payments for multiple unrelated beneficiaries",
       "severity": "high",
-      "action": "flag-for-review",
+      "action": "payment-hold",
       "autoDetectable": true,
       "threshold": 2
     },

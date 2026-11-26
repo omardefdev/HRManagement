@@ -20,6 +20,14 @@ namespace Payroll.Infrastructure.Migrations
                 // PLAN-58: every decision older than this plan was taken on its run's first (and only counted) version.
                 defaultValue: 1);
 
+            migrationBuilder.AddColumn<uint>(
+                name: "xmin",
+                table: "PayrollAdjustments",
+                type: "xid",
+                rowVersion: true,
+                nullable: false,
+                defaultValue: 0u);
+
             migrationBuilder.AddColumn<string>(
                 name: "HoldReason",
                 table: "PaymentOrders",
@@ -48,6 +56,14 @@ namespace Payroll.Infrastructure.Migrations
                 type: "integer",
                 nullable: false,
                 defaultValue: 0);
+
+            migrationBuilder.AddColumn<uint>(
+                name: "xmin",
+                table: "DeductionRecords",
+                type: "xid",
+                rowVersion: true,
+                nullable: false,
+                defaultValue: 0u);
 
             migrationBuilder.CreateTable(
                 name: "PaymentBatchFiles",
@@ -156,6 +172,10 @@ namespace Payroll.Infrastructure.Migrations
                 table: "PayrollRunApprovals");
 
             migrationBuilder.DropColumn(
+                name: "xmin",
+                table: "PayrollAdjustments");
+
+            migrationBuilder.DropColumn(
                 name: "HoldReason",
                 table: "PaymentOrders");
 
@@ -170,6 +190,10 @@ namespace Payroll.Infrastructure.Migrations
             migrationBuilder.DropColumn(
                 name: "Source",
                 table: "PaymentBatches");
+
+            migrationBuilder.DropColumn(
+                name: "xmin",
+                table: "DeductionRecords");
         }
     }
 }

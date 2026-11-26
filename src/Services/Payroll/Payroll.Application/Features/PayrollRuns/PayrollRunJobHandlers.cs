@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Options;
 using HRManagement.SharedKernel.SeparationOfDuties;
 using Payroll.Application.Abstractions;
@@ -36,11 +37,30 @@ public class StartPayrollRunJobHandler(
     IPayrollNationalScopeGuard? nationalScopeGuard = null,
     IPayrollLegalControlGuard? legalControlGuard = null,
     IPayrollCalendar? calendar = null,
-    PayrollAttendanceGate? attendanceGate = null)
+    PayrollAttendanceGate? attendanceGate = null,
+    IOptions<PayrollBlockerOptions>? blockerOptions = null)
     : IRequestHandler<StartPayrollRunJobCommand, (bool Success, int LinesGenerated, Guid? JobId, string? Error)>
 {
     /// <summary>«Today» for the interim gate: the payroll calendar's date (Damascus), never the UTC date.</summary>
     private readonly IPayrollCalendar _calendar = calendar ?? new PayrollCalendar(TimeProvider.System);
+
+    /// <summary>PLAN-58 (D-PAY-4): HR.Core's blockers for the employees this calculation takes (the active pay profiles).</summary>
+    private async Task<PayrollRegimeDecision> DecideRegimeAsync(PayrollRun run, CancellationToken cancellationToken)
+    {
+        if (!PayrollRegimeGovernance.RequiresRegimeCheck(run.RunType))
+            return PayrollRegimeDecision.Clear;
+        var employees = await repository.EmployeePayProfiles.AsNoTracking()
+            .Where(p => p.IsActive)
+            .Select(p => p.EmployeeId)
+            .Distinct()
+            .ToListAsync(cancellationToken);
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var hrCoreClient = scope.ServiceProvider.GetService<HRManagement.SharedKernel.Legal.IHrCoreServiceRegimeClient>();
+        var configuration = scope.ServiceProvider.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
+        var blocksFinalPayroll = configuration?.GetValue("ServiceRegimes:BlocksFinalPayroll", true) ?? true;
+        return await PayrollRegimeGovernance.DecideAsync(
+            run.RunType, employees, hrCoreClient, blocksFinalPayroll, blockerOptions?.Value.Mode ?? PayrollBlockerMode.HoldEmployee, cancellationToken);
+    }
 
     public async Task<(bool Success, int LinesGenerated, Guid? JobId, string? Error)> Handle(
         StartPayrollRunJobCommand request,
@@ -152,6 +172,24 @@ public class StartPayrollRunJobHandler(
                 await repository.AddAsync(attendance.Warning, cancellationToken);
             if (attendance.StaleWarning is not null)
                 repository.Remove(attendance.StaleWarning);
+        }
+
+        // PLAN-58 (D-PAY-4): HR.Core's service-regime blockers, before the run moves. BlockRun refuses and leaves the run as it was (no job
+        // row, no pinned framework); HoldEmployee calculates everyone and holds each blocked employee's order (a REGIME-BLOCKER hold of this
+        // run, written by this calculation's first save). A resumed job does not come here again; a restart does.
+        var regime = await DecideRegimeAsync(run, cancellationToken);
+        if (regime.Refusal is not null)
+            return (false, 0, null, regime.Refusal);
+        if (regime.Blocked.Count > 0)
+        {
+            var alreadyHeld = (await repository.PaymentHolds.AsNoTracking()
+                    .Where(h => h.PayrollRunId == run.Id && h.HoldType == Domain.Constants.PaymentHoldType.RegimeBlocker
+                                && h.Status == Domain.Constants.PaymentHoldStatus.Active)
+                    .Select(h => h.EmployeeId)
+                    .ToListAsync(cancellationToken))
+                .ToHashSet();
+            foreach (var hold in PayrollRegimeGovernance.HoldsFor(run, regime, alreadyHeld))
+                await repository.AddAsync(hold, cancellationToken);
         }
 
         run.PayrollConfigurationId = config.Id;

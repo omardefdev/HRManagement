@@ -20,7 +20,8 @@ public sealed record PaymentBatchFileRowViewModel(
     string? ReissueReason);
 
 /// <summary>PLAN-58 (§6): an employee whose order is held, by name (never an id), with the reason.</summary>
-public sealed record HeldOrderViewModel(Guid EmployeeId, string? EmployeeName, string? HoldReason, decimal Amount);
+public sealed record HeldOrderViewModel(
+    Guid EmployeeId, string? EmployeeName, string? HoldReason, decimal Amount, Guid? HoldId = null, Guid? PendingRequestId = null);
 
 /// <summary>PLAN-58: a batch's page.</summary>
 public sealed record PaymentBatchDetailsViewModel(

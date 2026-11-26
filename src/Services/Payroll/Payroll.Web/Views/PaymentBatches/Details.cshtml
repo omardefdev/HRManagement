@@ -60,15 +60,24 @@
     <div class="card-body p-0">
         <p class="text-muted small px-3 pt-2">أمر المحجوز خارج الإرسال والملف، ويُصرف للباقين. حجز الصرف والتنبيه الحرج يُرفعان بطلب وقرار من شخصين؛ وحجز «لا حساب» يُرفع بالتحقق من حساب الموظف.</p>
         <table class="table table-sm mb-0">
-            <thead><tr><th>الموظف</th><th>السبب</th><th>المبلغ</th></tr></thead>
+            <thead><tr><th>الموظف</th><th>السبب</th><th>المبلغ</th><th>الإفراج</th></tr></thead>
             <tbody>
             @foreach (var held in Model.Held)
             {
-                <tr><td>@(held.EmployeeName ?? "موظف غير متاح اسمه")</td><td>@PaymentOrderHoldReasons.Describe(held.HoldReason)</td><td>@held.Amount.ToString("N2")</td></tr>
+                <tr>
+                    <td>@(held.EmployeeName ?? "موظف غير متاح اسمه")</td>
+                    <td>@PaymentOrderHoldReasons.Describe(held.HoldReason)</td>
+                    <td>@held.Amount.ToString("N2")</td>
+                    <td>
+                        @if (held.PendingRequestId is not null) { <span>طلب إفراج بانتظار القرار</span> }
+                        else if (held.HoldId is Guid holdId) { <a asp-controller="PaymentHolds" asp-action="Details" asp-route-id="@holdId">صفحة الحجز وطلب الإفراج</a> }
+                        else { <span class="text-muted">يُرفع بالتحقق من حساب الموظف</span> }
+                    </td>
+                </tr>
             }
             @if (Model.Held.Count == 0)
             {
-                <tr><td colspan="3" class="text-center text-muted py-3">لا يوجد محجوزون في هذه الدفعة</td></tr>
+                <tr><td colspan="4" class="text-center text-muted py-3">لا يوجد محجوزون في هذه الدفعة</td></tr>
             }
             </tbody>
         </table>

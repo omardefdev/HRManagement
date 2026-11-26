@@ -106,6 +106,29 @@ public sealed class PaymentBatchesApiController(IMediator mediator, PayrollDbCon
             new Payroll.Application.Services.PayrollDualControlPayload(request?.Reason ?? string.Empty), PayProfileChangeHttp.RequireUserId(User), ct));
     }
 
+    /// <summary>
+    /// §6: the held report — the employees whose order is held out of the sending, by name, with the reason, the record that holds them
+    /// and the release request that waits on it, if any. (Never an account number.)
+    /// </summary>
+    [HttpGet("{id:guid}/held")]
+    public async Task<IActionResult> Held(Guid id, [FromServices] Payroll.Application.Abstractions.IEmployeeLookup employeeLookup, CancellationToken ct)
+    {
+        var batch = await db.PaymentBatches.AsNoTracking().FirstOrDefaultAsync(b => b.Id == id, ct);
+        if (batch is null)
+            return NotFound(new { error = PaymentBatchMessages.BatchNotFound });
+        var held = await PaymentBatchHeldReport.BuildAsync(db, batch, employeeLookup, ct);
+        return Ok(held.Select(h => new
+        {
+            h.EmployeeId,
+            h.EmployeeName,
+            reason = h.Reason,
+            reasonText = Payroll.Domain.Entities.PaymentOrderHoldReasons.Describe(h.Reason),
+            h.Amount,
+            h.HoldId,
+            h.PendingRequestId,
+        }));
+    }
+
     /// <summary>PLAN-58 (§2): the batch's bank files, one per sending (and each reissue): their controls and fingerprints, not their content.</summary>
     [HttpGet("{id:guid}/files")]
     public async Task<IActionResult> Files(Guid id, CancellationToken ct) =>

@@ -154,3 +154,27 @@ Finished (UTC): 2026-11-26T13:36:18Z
   processor+approver), Iam053PayrollScopeHttpTests, Pay054FrameworkHttpTests (BothUser), and any hr-admin payroll act in
   Pay056RunLifecycleHttpTests / Iam053ReferenceChangeHttpTests / Lva057PayrollAttendanceReadsHttpTests: split the roles, meaning kept.
 Finished (UTC): 2026-11-26T13:47:51Z
+
+## P6 — Holds per employee, real fraud inputs
+- Gate per employee: a hold (of the run, or with no run, in every batch), a critical alert of that employee, a NO-ACCOUNT or a
+  retired account holds that employee's order only (Held with its reason); the agency is stopped only by a critical alert with no
+  employee. process with every order held: 400, nothing changed.
+- Service regime (D-PAY-4): PayrollRegimeGovernance.DecideAsync runs before BeginCalculating. Payroll:Blockers:Mode=HoldEmployee
+  (default) calculates everyone and adds a REGIME-BLOCKER hold of the run per blocked employee with HR.Core's reason code (the order is
+  Held REGIME-BLOCKER, released only by four eyes once HR.Core lifts it); BlockRun refuses before the run moves (Draft, no job, no hold).
+  The check left PayrollRunParallelCalculator.
+- Account verification (§6 rule 3): VerifyBankAccountHandler runs in one transaction; HeldOrderRepinning re-pins the employee's unsent
+  Draft/Held orders and their lines to the account now in force, lifts NO-ACCOUNT/ACCOUNT-RETIRED holds (registrar and verifier are the
+  two people), writes EntityAuditLog RepinnedOnAccountVerification with ids only; a sent batch then sends it by submit-held.
+- Fraud inputs real (FraudScanFacts): FR-01 from PLAN-57 receipts (absent days >= working days of the period), FR-05 from the last
+  posted regular run's net, FR-07 from the earliest pay-profile EffectiveFrom, FR-08 true for a correction (its source run), FR-04
+  from pinned accounts. Released-hold suppression limited to fraud holds. **Deviation:** docs/frd/anomaly-rules.json FR-04 action
+  flag-for-review -> payment-hold, so AC-PAY-58g holds the two employees' orders (Frd001FraudEngineTests updated, meaning: both held).
+- P-11: xmin on DeductionRecord and PayrollAdjustment; a calculation that loses the race fails its partition with
+  PayrollInputTakenException (no double consumption); the package save paths throw it too. Proof on PostgreSQL in P7.
+- Migration regenerated once: 20261126135338_PAY058_DisbursementGovernance (no pending model changes).
+- Tests: Pay058HeldEmployeeTests (7: no-run hold across two batches, REGIME-BLOCKER named, BlockRun untouched, NO-ACCOUNT lifted by
+  verification then submit-held with a HeldRelease file, FR-04 both held, FR-01 from a receipt and a correction without FR-01/FR-08,
+  inputs raising FR-01/05/07). Syr007RegimeGovernanceTests ported to DecideAsync (both modes). Unit filter 1048, architecture 444,
+  integration (SQLite) 211 passed.
+Finished (UTC): 2026-11-26T14:11:51Z

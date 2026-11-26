@@ -203,18 +203,21 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
             {
                 var tracked = db.DeductionRecords.Local.FirstOrDefault(x => x.Id == d.Id)
                               ?? await db.DeductionRecords.FirstAsync(x => x.Id == d.Id, ct);
+                PayrollInputTakenException.ThrowIfTaken(tracked.AppliedInRunId, payrollRunId);
                 tracked.AppliedInRunId = payrollRunId;
             }
             foreach (var a in package.AdjustmentsToApply)
             {
                 var tracked = db.PayrollAdjustments.Local.FirstOrDefault(x => x.Id == a.Id)
                               ?? await db.PayrollAdjustments.FirstAsync(x => x.Id == a.Id, ct);
+                PayrollInputTakenException.ThrowIfTaken(tracked.PayrollRunId, payrollRunId);
                 tracked.PayrollRunId = payrollRunId;
             }
             foreach (var ab in package.AbsencesToApply)
             {
                 var tracked = db.AbsenceDeductions.Local.FirstOrDefault(x => x.Id == ab.Id)
                               ?? await db.AbsenceDeductions.FirstAsync(x => x.Id == ab.Id, ct);
+                PayrollInputTakenException.ThrowIfTaken(tracked.AppliedInRunId, payrollRunId);
                 tracked.AppliedInRunId = payrollRunId;
             }
 
@@ -308,6 +311,7 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
                 {
                     var tracked = db.DeductionRecords.Local.FirstOrDefault(x => x.Id == d.Id)
                                   ?? await db.DeductionRecords.FirstAsync(x => x.Id == d.Id, ct);
+                    PayrollInputTakenException.ThrowIfTaken(tracked.AppliedInRunId, payrollRunId);
                     tracked.AppliedInRunId = payrollRunId;
                 }
 
@@ -315,6 +319,7 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
                 {
                     var tracked = db.PayrollAdjustments.Local.FirstOrDefault(x => x.Id == a.Id)
                                   ?? await db.PayrollAdjustments.FirstAsync(x => x.Id == a.Id, ct);
+                    PayrollInputTakenException.ThrowIfTaken(tracked.PayrollRunId, payrollRunId);
                     tracked.PayrollRunId = payrollRunId;
                 }
 
@@ -322,6 +327,7 @@ public class PayrollRepository(PayrollDbContext db, IPayrollCalendar? calendar =
                 {
                     var tracked = db.AbsenceDeductions.Local.FirstOrDefault(x => x.Id == ab.Id)
                                   ?? await db.AbsenceDeductions.FirstAsync(x => x.Id == ab.Id, ct);
+                    PayrollInputTakenException.ThrowIfTaken(tracked.AppliedInRunId, payrollRunId);
                     tracked.AppliedInRunId = payrollRunId;
                 }
             }
