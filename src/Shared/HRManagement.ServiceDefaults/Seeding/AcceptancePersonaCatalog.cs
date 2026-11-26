@@ -30,6 +30,12 @@ public sealed class AcceptancePersonaDefinition
     public string? Fixture { get; set; }
     public string? Purpose { get; set; }
     public string[] Scenarios { get; set; } = [];
+
+    /// <summary>
+    /// PLAN-58 (D-PAY-20): the one persona allowed to combine a conflicting pair of roles: it proves that such a token passes no
+    /// financial act. Every other persona with a conflicting pair is refused here and by the realm import.
+    /// </summary>
+    public bool SodConflictFixture { get; set; }
 }
 
 public sealed record AcceptancePersona(
@@ -98,7 +104,8 @@ public static class AcceptancePersonaCatalog
         // PLAN-48: platform-central (hr-core in the national tenant).
         [TenantDefaults.DefaultCode] = 5,
         // PLAN-46: a-idcard-2. PLAN-51: a-ess-supervisory, a-ess-approver. PLAN-54: a-payroll-approver-2.
-        ["AGENCY-A"] = 47,
+        // PLAN-58: a-payroll-multirole (the conflict fixture), a-auditor-2.
+        ["AGENCY-A"] = 49,
         ["AGENCY-B"] = 8,
         ["AGENCY-C"] = 4
     };
@@ -142,7 +149,7 @@ public static class AcceptancePersonaCatalog
             if (unknown.Length > 0)
                 throw new InvalidOperationException($"Persona '{definition.Id}' has unknown roles: {string.Join(", ", unknown)}.");
 
-            foreach (var conflict in conflicts)
+            foreach (var conflict in definition.SodConflictFixture ? [] : conflicts)
             {
                 if (definition.Roles.Contains(conflict.RoleA, StringComparer.Ordinal)
                     && definition.Roles.Contains(conflict.RoleB, StringComparer.Ordinal))

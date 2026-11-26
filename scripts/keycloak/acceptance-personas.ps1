@@ -76,6 +76,9 @@ function Get-AcceptancePersonaUsers {
     if ($duplicateIds.Count -gt 0) {
         throw "Acceptance persona ids must be unique: $($duplicateIds -join ', ')."
     }
+    # PLAN-58 (P-9, D-PAY-20): no persona with a conflicting pair of roles, but the one marked sodConflictFixture.
+    . (Join-Path $PSScriptRoot "persona-role-conflicts.ps1")
+    Assert-NoPersonaRoleConflicts -Personas $personaFile.personas
 
     $passwords = [ordered]@{}
     $serviceClientSecret = ""

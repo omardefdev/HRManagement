@@ -129,3 +129,28 @@ Finished (UTC): 2026-11-26T13:22:58Z
 - Tests: GatewayAuditorReachTests (4, architecture project: reach, limits, setting, real actions), Pay058ApprovalReviewTests (6, SQLite).
   Integration filter 184 passed; unit filter 1760; architecture 440 + 4.
 Finished (UTC): 2026-11-26T13:36:18Z
+
+## P5 — Conflicting roles
+- PayrollRoleConflictRequirement + handler (Payroll.Web/Authorization), added by AddPayrollRoleConflictCheck to Payroll.Process,
+  Payroll.Approve, Payroll.Post, Payroll.Reverse and Payroll.AuditReview (in Payroll only). Pairs from SeparationOfDutiesService.
+  hr-admin counts as processor and approver everywhere, and poster where Payroll.Post keeps him (demo, lab). Refusal: 403 with the
+  pair named (IAuthorizationMiddlewareResultHandler: JSON on the API, a short Arabic page on a screen). SecurityAudit RoleConflict
+  (new event type) with policy, pair, endpoint route pattern and rejected; written only for the act's own authorization (the request
+  as the resource), not for a page that asks whether to show a button. Payroll:Sod:RejectConflictingRoleHolders=false lets the holder
+  pass, still audited.
+- Settings (P-15) in Payroll's appsettings.json and mirrored in docker-compose.acceptance-prodlike.yml: Payroll:Approval, :Audit,
+  :Blockers, :Sod, :DualControl.
+- Import guard: scripts/keycloak/persona-role-conflicts.ps1 (dot-sourced by acceptance-personas.ps1; -SelfTest with planted personas);
+  AcceptancePersonaCatalog also exempts SodConflictFixture only.
+- Personas (P-9, P-8): acc-a-payroll-multirole (payroll, processor, approver, poster, sodConflictFixture) and acc-a-auditor-2 (auditor),
+  agency A HQ ordinals 49 and 50; AC-PAY-58 added to the scenarios of the processor, approver, approver-2, poster and auditor.
+  AGENCY-A regular personas 47 -> 49 (70 in all); acceptance-verify DATA-AUTH 68 -> 70, DATA-DIRECTORY 59 -> 61. A persona change needs
+  scripts/acceptance-reset.ps1 before the first stack start (P8).
+- hr-admin tests moved to «reaches the policy, refused by the conflict»: PayrollWriteActionsTests (Pay055 reach, the sixteen, legal
+  attest) evaluate Payroll's conflict check now (conflictCheck: false keeps the policies' role rules).
+- Tests: Pay058RoleConflictTests (8: each pair, the multirole holder, hr-admin by environment, setting off, import guard self-test and
+  pairs). Unit 1277 passed (personas, realm, SoD, payroll); architecture 444.
+- **For P7 (PostgreSQL HTTP tests that give one user conflicting roles, now refused):** Pay055BankAccountHttpTests (CentralRoles
+  processor+approver), Iam053PayrollScopeHttpTests, Pay054FrameworkHttpTests (BothUser), and any hr-admin payroll act in
+  Pay056RunLifecycleHttpTests / Iam053ReferenceChangeHttpTests / Lva057PayrollAttendanceReadsHttpTests: split the roles, meaning kept.
+Finished (UTC): 2026-11-26T13:47:51Z
