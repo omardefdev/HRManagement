@@ -22,7 +22,7 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
 | P7 acceptance and review | done | 2026-11-26T03:14:58Z |
 | P8 main | done (nothing to merge) | 2026-11-26T03:14:58Z |
 | P9 demo server | done | 2026-11-26T07:43:26Z |
-| P10 docs, gates, report, merge | in progress | |
+| P10 docs, gates, report, merge | done | 2026-11-26T09:33:59Z (merged) |
 
 ## P0 — baseline (finished 2026-11-25T20:49:10Z)
 
@@ -402,23 +402,67 @@ P0 was read-only. P9 (UTC of 2026-11-26):
 
 - `scripts/pol049-validate.ps1` is red on `main` (28 findings) before this plan: recorded, not chased.
 
+## P10 — documents, gates, report, merge (merged 2026-11-26T09:33:59Z)
+
+- **Documents:** `docs/HCM_002_ATTENDANCE.md` (the model as built), `docs/runbooks/attendance-period-close.md`,
+  `docs/RELEASE_PRODUCT_SCOPE.md`, `docs/PAYROLL_RULES.md`, the «الحالة» lines of G-LVA-03, G-LVA-10 and G-PAY-19,
+  `docs/CI_AND_TESTING.md`, `docs/OPS_VPS_SINGLE_HOST.md` (what the demo users see, the close the checks made, the backup, the
+  change table, the rollback note, the disk note), the plan's `Status` and «ملاحظات التنفيذ والانحرافات»;
+  `reports/plan57-final-report.md` and `reports/plan57-pr.md` (commit `8c2e0471`, committed before the gates).
+- **The Testcontainers step** was not run a third time: nothing it builds or tests changed after its run of 02:59Z (325 passed,
+  1 skipped) — `git diff 33f7e677..8c2e0471` over `src`, `scripts`, `tests`, `testdata`, `docker` and `deploy` is empty (the
+  later commits are documents, reports and the progress file).
+- **The local CI steps in a fresh clone of `8c2e0471`** (`run-steps.sh --all`, the compiler servers off; 07:44:22Z → 08:27:32Z,
+  2,590 s): **87 passed, 0 failed, 5 not run and named** (`Integration tests (Testcontainers)`: run natively on the same code;
+  `Coverage gate`, `Install ReportGenerator`, `Generate coverage report`: they follow that step; `Verify Docker builds`: the
+  images were built here one at a time and seventeen on the server). Unit 7,235 passed, architecture 414, integration
+  (in-memory) 598 passed and 4 skipped.
+- **`scripts/plan035-prepush.ps1` (08:28Z):** gitleaks (history 598 commits, range 29 commits: no leak), actionlint, cilocal,
+  forbidden, nonprod and signatures **PASS**.
+- **`release/plan-57`** from `origin/main` `01a8c3f9`, the feature branch merged `--no-ff`: `6b9c4537` (its tree is
+  `8c2e0471`'s). **One push**, 08:29:30Z. No force-push, no history rewritten, nothing pushed to `main`.
+- **Pull request [#57](https://github.com/omardefdev/HRManagement/pull/57)**, opened 08:29:35Z. The owner turned Auto-fix on for
+  the session right after (auto-merge stayed off, as it must). The wait was read from the app's PR status every five minutes;
+  no check failed and nothing was rerun.
+
+  | Check | Result | Time |
+  |---|---|---|
+  | CI | pass | 42 min 42 s |
+  | Acceptance images | pass | 22 min 58 s |
+  | Acceptance stage (lab-main) | pass | 24 min 5 s |
+  | Acceptance stage (lab-rest) | pass | 13 min 44 s |
+  | Acceptance stage (meta) | pass | 22 min 50 s |
+  | Acceptance stage (prodlike) — AC-LVA-57a..h run here | pass | 33 min 36 s |
+  | Acceptance stage (prodlike-final) | pass | 34 min 46 s |
+  | Acceptance stage (prodlike-policy) | pass | 10 min 7 s |
+  | Acceptance stage (leastpriv) | pass | 8 min 3 s |
+  | Acceptance | pass | 43 s |
+  | E2E | pass | 20 min 17 s |
+  | CodeQL | pass | 16 min 0 s (no new finding) |
+  | Gitleaks | pass | 47 s |
+  | Reuse check | pass | 26 s |
+  | Dedupe post-merge run | pass | 10 s |
+
+  **15 of 15 green at 09:33:37Z; merge state `CLEAN`.** The wait for CI: **64 min** (08:29:35Z → 09:33:37Z). The jobs' time
+  adds up to about 251 minutes of Actions. **The evidence of record is the PR run's artifact:**
+  <https://github.com/omardefdev/HRManagement/actions/runs/45783618193>. No evidence is committed.
+
+**Merged by agent on owner instruction (UTC): 2026-11-26T09:33:59Z** — `gh pr merge 57 --merge`, merge commit
+`9b069f65e9bf29ac5e6c061d65f740923acd219f`. `git switch main; git pull --ff-only`: `main` = `origin/main` = `9b069f65`.
+The post-merge run on `main`: <https://github.com/omardefdev/HRManagement/actions/runs/45793158456>, **success** at 09:35Z — Gitleaks and «Dedupe post-merge run» ran; the other jobs were skipped as duplicates of the pull request's green run of the same tree.
+
+**The server runs `4eccb1f269a0`, a commit of `main`** (`git branch -r --contains 4eccb1f269a0` → `origin/main`). What `main`
+has after it is documents, reports and this checkpoint only: no product code, no test and no script changed after the build
+(`git diff 4eccb1f269a0..9b069f65 --stat -- src scripts deploy docker` is empty).
+
+**Timing, whole plan:** started 2026-11-25T20:19:57Z, merged 2026-11-26T09:33:59Z: **13 h 14 min** wall-clock, of which
+**14 min stopped** (one `BLOCKED:` on the server's disk line, 04:01Z → 04:15:04Z, answered by the owner) and 64 min waiting for
+the pull request's checks. No turn ended on a wait; no machine restart.
+
+**After the merge, proposed as its own task** (a card in the session, nothing started): the move of the server's images to
+GHCR, so that nothing is built on the server.
+
 ## The exact next step
 
-P10: commit the documents and `reports/plan57-final-report.md` with `reports/plan57-pr.md`; then, on that HEAD, the full
-Testcontainers step, the local CI steps in a fresh clone (`run-steps.sh --all`, the compiler servers off, the five named steps
-skipped) and `scripts/plan035-prepush.ps1`; then `release/plan-57` from `main` (`--no-ff`), one push, `gh pr create`, the wait
-(`gh pr checks <n> --watch --interval 60` in calls of at most five minutes), `gh pr merge <n> --merge` only when every check is
-green; `git switch main; git pull --ff-only`; the merge note on the local branch `docs/plan-57-merge-note`; stop the keep-awake
-by its PID (1314307). After the merge, as its own change: the move to GHCR.
-
-**First pass of the local gates, with nothing on the server** (so that the one server build carries code the gates have
-already seen): gitleaks over the branch's 24 commits, no leak (03:15Z); the local CI steps in a fresh clone of `938bffd5`
-(`run-steps.sh --all`, the compiler servers off; 03:16:09Z → 03:59:30Z, 2,601 s): **87 passed, 0 failed, 5 not run and named**
-(`Integration tests (Testcontainers)`: run natively, 325 passed; `Coverage gate`, `Install ReportGenerator`, `Generate coverage
-report`: they follow that step; `Verify Docker builds`: the images were built here one at a time). Unit 7,235 passed,
-architecture 414, integration (in-memory) 598 passed and 4 skipped. The gates run again on the final HEAD in P10.
-
-**BLOCKED (UTC): 2026-11-26T04:00:14Z.** Cause: P-16's line — the server has 26 GB free after its removals, under 28 GB, and the Seq retention
-the owner allowed frees nothing. The demo runs the previous release (`e64a0f7e65be`), untouched and answering. Nothing is left
-half-done on it: the backup is verified, the retention policy is in place, the older release's local images are in the loopback
-registry. The keep-awake (PID 1314307) stays for the continuation.
+Nothing is left of PLAN-57. This note is committed on the local branch `docs/plan-57-merge-note` (not pushed, no second pull
+request), for the next plan to bring in. The keep-awake (PID 1314307) is stopped.
