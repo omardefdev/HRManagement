@@ -21,7 +21,7 @@ the server may be trimmed to the last 30 days. Applied in P9 only, through Seq's
 | P6 PostgreSQL proofs | done | 2026-11-25T23:05:16Z |
 | P7 acceptance and review | done | 2026-11-26T03:14:58Z |
 | P8 main | done (nothing to merge) | 2026-11-26T03:14:58Z |
-| P9 demo server | in progress: the disk is under the line (see «Server changes») | |
+| P9 demo server | in progress: deployed and checked; the older plans' checks run | |
 | P10 docs, gates, report, merge | | |
 
 ## P0 — baseline (finished 2026-11-25T20:49:10Z)
@@ -347,6 +347,38 @@ P0 was read-only. P9 (UTC of 2026-11-26):
    throughout. **This cannot be undone:** the 33 older tags (every release from PLAN-36 to PLAN-56's first build) are gone
    from the server; a rollback to one of them is a rebuild from git (`scripts/vps/build-on-host.ps1 -Tag <sha12>`). The
    rollback target of this plan's deploy is `e64a0f7e65be`, which is there.
+6. **04:17:08Z → 04:48:52Z, one detached build of `4eccb1f269a0`** (the branch's head: the code of `938bffd5` and two commits
+   of this checkpoint). The archive (33.2 MB) and `deploy/vps/build-on-host.sh` as committed, uploaded in 29 s; the build
+   started with `setsid nohup` under one wrapper on the server (`artifacts/plan57/p9-build-wrapper.sh`: `df` every 30 s, the
+   build stopped by its PID under 3,000 MiB, a `.done` file), and watched by one ssh call every few minutes. Build 1,798 s,
+   push 32 s, **17 of 17 images** in the loopback registry. **Disk: 78,187 MiB at the start, 50,031 MiB at the lowest (a peak of
+   about 28 GB), 70,601 MiB after.** The script removed its source, the build cache and the SDK image; the wrapper was removed.
+   **Undo:** none needed.
+7. **04:49:30Z → 04:53:01Z, the deploy of `4eccb1f269a0`** (previous `e64a0f7e65be`), from the first try. Right before it the
+   old event's queue `payroll-web-attendance-period-closed` held 0 messages. Pull 6 s, up 116 s, bootstrap 54 s (with the two
+   LVA057 migrations), Keycloak reconcile 11 s, all containers healthy after 15 s (healthy at 04:52:18Z); the services were away
+   about two and a half minutes at most. Smoke: **50 passed, 0 failed, 1 warning** (the client-side port check).
+   **Undo:** `scripts/vps/deploy.ps1 -Tag e64a0f7e65be` — read the rollback note in `OPS_VPS_SINGLE_HOST.md` first: no close
+   and no correction while the older release runs.
+8. **04:53:50Z → 05:12:58Z, what this plan's checks left on the demo** (`AcLva57VpsChecks`, all five passed, each alone):
+   - **the close:** the unit `HR-ATT` (17 employees), **August 2026** (past, no demo run, none of the demo's seeded attendance),
+     filled by the bulk entry as present (22 working days each, none on a rest day) and closed: 17 summaries, 17 receipts in
+     payroll; a create on a locked day refused; the same close again wrote nothing. The period is «partially closed» (the other
+     units are open). **It stays closed: a closed period is not reopened, by design.**
+   - **two corrections on 5 August for one employee:** «غائب» asked by `hradmin` (his own approval answered 400, nothing
+     changed) and approved by `e2e-hr-admin` → version 2, a row of +1 in payroll; then the reverse → version 3, a row of −1. The
+     two cancel each other (the summary's free days in payroll: 0 before, 0 after); the day is «حاضر» again.
+   - **the screens check** asked for one more correction to show the decision page and had it rejected with a note.
+   - **the gate, read only:** `attendance-status` of the demo's run of June 2026: `Warn`, 425 in scope, 425 missing (the demo
+     closed none of its run months); the receipts of August 2026: 17.
+   - **the migrations:** both recorded; the four new tables, `DailyAttendanceRecords`, the receipts and `AbsenceDeductions` under
+     forced row security; no leave-made record (as the inventory counted); **the attendance records outside August
+     (17,850, `28881f67…`), the 14 runs (`5e260f8e…`) and the 2,550 lines (`a258ad24…`) are P0's picture**; the old queue has
+     no message and no consumer, the new one is consumed.
+   - **ten screens** in Chromium at two sizes, one enforced CSP policy each, no violation; Arabic, right-to-left, names and no
+     identifier; the edit form posts neither the employee nor the date and offers no «في إجازة»; the run's page has its
+     attendance panel.
+   **Undo:** none (records of the checks; no demo run, line or older attendance record changed).
 
 ## Open issues
 
@@ -354,22 +386,12 @@ P0 was read-only. P9 (UTC of 2026-11-26):
 
 ## The exact next step
 
-**P9 waits on the owner's word about the server's disk.** After P-16's removals the server has 26 GB free; the build needs
-about 26 GB at its peak, and P-16 forbids a build under 28 GB. The Seq retention the owner allowed (30 days) is applied and
-freed nothing (Seq's store is 26 days old). Done so far in P9: the backup (verified), the retention policy, the older release's
-local images removed. Not done: the build, the deploy, `AcLva57VpsChecks` (written, compiled), the older plans' server checks,
-the smoke, the rollback note in `OPS_VPS_SINGLE_HOST.md`.
-
-When the owner answers, continue here: (1) free what he allows and record sizes before and after; (2) upload the archive of
-HEAD and `deploy/vps/build-on-host.sh` as `scripts/vps/build-on-host.ps1` does, and start
-`artifacts/plan57/p9-build-wrapper.sh <sha12> 3000` on the server with `setsid nohup` (it logs `df`, stops the build by its PID
-under 3,000 MiB and writes `/opt/hrm/build-<sha12>.done`); (3) check the old queue is empty; `scripts/vps/deploy.ps1 -Tag <sha12>`
-(again at once if it stops at `keycloak-reconcile`); (4) `artifacts/plan57/run-vps.ps1 -Filter "FullyQualifiedName~AC_LVA_57_vps"`
-with `LVA057_VPS_ATTENDANCE_MD5=28881f6782468450cb579f55f8f18f23`, `LVA057_VPS_RUNS_MD5=5e260f8e21306a47887bf48e59d6c63f`,
-`LVA057_VPS_LINES_MD5=a258ad243f723c99eedbfc7386fce196`, `LVA057_VPS_LEAVE_MADE=0` (the migration check first, before the
-older suites add cancelled runs), detached and never under `timeout`; then the PLAN-36..56 server suites and the smoke;
-(5) P10: `OPS_VPS_SINGLE_HOST.md`, the report's sections 1, 2, 11, 12 and 15 (`reports/plan57-final-report.md` is drafted, with
-`@@…@@` marks where they go), the local gates in a fresh clone, `release/plan-57`, the PR, the merge.
+P9 goes on: the older plans' server checks (started 2026-11-26T05:13:29Z, `artifacts/plan57/p9-older.log`, detached, never
+under `timeout`), then the flickering ones alone, then `scripts/vps/smoke.ps1 -RequireIntegrationWiring`; restore
+`acceptance-evidence/*/vps/` with `git checkout` and move today's `reports/msg040-replay-server-*.json` out. Then P10:
+`OPS_VPS_SINGLE_HOST.md`, the report's sections 1, 12 and 15 (`reports/plan57-final-report.md` is drafted, with `@@…@@` marks
+where they go), the Testcontainers step and the local CI steps on the final HEAD, `plan035-prepush.ps1`, `release/plan-57`,
+the PR, the wait, the merge, the merge note. After the merge, as its own change: the move to GHCR the owner asked about.
 
 **First pass of the local gates, with nothing on the server** (so that the one server build carries code the gates have
 already seen): gitleaks over the branch's 24 commits, no leak (03:15Z); the local CI steps in a fresh clone of `938bffd5`
