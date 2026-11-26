@@ -310,6 +310,63 @@ public class Ops036ComposeLintTests
         Assert.Contains("@('worktree', 'add', '--detach', $src, $Tag)", build);
     }
 
+    /// <summary>
+    /// 2026-11-26: the demo server stopped building its own images (deploy/vps/build-on-host.sh); GitHub Actions builds
+    /// them and the server pulls from GHCR. The workflow's matrix is therefore the same 17 images, Dockerfiles and build
+    /// args as the host build (docker/service-build-matrix.json plus hr-migrate and hr-rabbitmq), tagged with the
+    /// 12-character commit SHA and labelled with it, and <c>action=build</c> stops before any deploy.
+    /// </summary>
+    [Fact]
+    public void Release_images_workflow_builds_the_seventeen_images_of_the_build_matrix_and_can_stop_before_any_deploy()
+    {
+        var deploy = Read(".github/workflows/deploy.yml").Replace("\r\n", "\n");
+        var buildStart = deploy.IndexOf("\n  build-and-push:\n", StringComparison.Ordinal);
+        var deployStart = deploy.IndexOf("\n  deploy:\n", StringComparison.Ordinal);
+        var rollbackStart = deploy.IndexOf("\n  rollback:\n", StringComparison.Ordinal);
+        Assert.True(buildStart > 0 && deployStart > buildStart && rollbackStart > deployStart, "deploy.yml: build-and-push, deploy, rollback in this order");
+        var buildJob = deploy[buildStart..deployStart];
+        var deployJob = deploy[deployStart..rollbackStart];
+
+        using var matrix = JsonDocument.Parse(Read("docker/service-build-matrix.json"));
+        var expected = matrix.RootElement.EnumerateArray().Select(m => string.Join("|",
+            m.GetProperty("service").GetString(), "docker/DotnetService.Dockerfile", "",
+            m.GetProperty("projectCsproj").GetString(), m.GetProperty("assemblyName").GetString(),
+            m.GetProperty("needsKrb5").GetString(), m.GetProperty("gatewayAuditDir").GetString())).ToList();
+        expected.Add("hr-migrate|docker/Migrator.Dockerfile||||false|false");
+        expected.Add("hr-rabbitmq|docker/rabbitmq/Dockerfile|docker/rabbitmq|||false|false");
+
+        var actual = new List<string>();
+        foreach (Match entry in Regex.Matches(buildJob, @"(?m)^          - service: (?<service>\S+)\n(?<body>(?:            \S.*\n)+)"))
+        {
+            var fields = Regex.Matches(entry.Groups["body"].Value, @"(?m)^            (?<key>\w+): (?<value>.*)$")
+                .ToDictionary(f => f.Groups["key"].Value, f => f.Groups["value"].Value.Trim().Trim('"'));
+            Assert.Equal(entry.Groups["service"].Value, fields["image"]);
+            actual.Add(string.Join("|", fields["image"], fields["dockerfile"], fields.GetValueOrDefault("context", ""),
+                fields["project_csproj"], fields["assembly_name"], fields["needs_krb5"], fields["gateway_audit_dir"]));
+        }
+
+        Assert.Equal(17, actual.Count);
+        Assert.Equal(expected.OrderBy(e => e, StringComparer.Ordinal), actual.OrderBy(e => e, StringComparer.Ordinal));
+        // The build-on-host.sh arguments, the 12-character tag as the only tag, and the revision label.
+        foreach (var arg in new[] { "PROJECT_CSPROJ", "ASSEMBLY_NAME", "NEEDS_KRB5", "GATEWAY_AUDIT_DIR" })
+            Assert.Contains($"{arg}=${{{{ matrix.{arg.ToLowerInvariant()} }}}}", buildJob);
+        Assert.Contains("echo \"tag=${GITHUB_SHA::12}\"", buildJob);
+        Assert.Matches(@"tags: \|\n\s+\$\{\{ env\.IMAGE_PREFIX \}\}/\$\{\{ matrix\.image \}\}:\$\{\{ steps\.meta\.outputs\.tag \}\}\n\n", buildJob);
+        Assert.Contains("org.opencontainers.image.revision=${{ steps.meta.outputs.tag }}", buildJob);
+        Assert.Contains("platforms: linux/amd64", buildJob);
+        Assert.Contains("ghcr.io/${{ github.repository_owner }}/hrmanagement", deploy);
+
+        // action=build: the images and nothing else. The build job has no environment, no ssh and no deploy script; the
+        // deploy job runs for action=deploy (or a v* tag) only.
+        Assert.Matches(@"default: build\n\s+type: choice\n\s+options:\n\s+- build\n\s+- deploy\n\s+- rollback\n", deploy);
+        Assert.Contains("github.event.inputs.action != 'rollback'", buildJob);
+        Assert.DoesNotContain("environment:", buildJob);
+        Assert.DoesNotContain("DEPLOY_SSH", buildJob);
+        Assert.DoesNotContain("remote-deploy.sh", buildJob);
+        Assert.Contains("github.event.inputs.action == 'deploy'", deployJob);
+        Assert.DoesNotContain("'build'", deployJob);
+    }
+
     [Fact]
     public void Deploy_bundle_and_scripts_carry_no_secrets_and_stay_ascii()
     {
