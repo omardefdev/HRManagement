@@ -372,6 +372,47 @@ public sealed class Lva057PayrollAttendanceHandoffIntegrationTests(PgRabbitFixtu
 
     [Trait("Category", "Testcontainers")]
     [SkippableFact]
+    public async Task A_carried_difference_is_marked_applied_by_one_run_when_two_save_at_once()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        await using var host = await StartAsync();
+        var employee = await EmployeeAsync(host);
+        var v1 = Close(employee, 1, absentDays: 0);
+        await host.ReceiveAsync(v1);
+        await UnderReviewRunAsync(host, 1);
+        await host.ReceiveAsync(v1.Next(absentDays: 1));
+        Assert.Equal("2:1:true", (await StateAsync(host, v1.SummaryId)).Rows);
+
+        async Task<Guid> DraftAsync(int month)
+        {
+            var start = new DateTime(2028, month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var (created, id, error) = await host.SendAsync(new CreatePayrollRunCommand(start, start.AddMonths(1).AddDays(-1), start.AddMonths(1)));
+            Assert.True(created, error);
+            return id!.Value;
+        }
+
+        var february = await DraftAsync(2);
+        var march = await DraftAsync(3);
+
+        // A carried difference is free for every later regular run. Two that calculate at once both read it free; each marks it as
+        // the calculation's save does. The row version lets the first through and refuses the second, which wrote nothing.
+        await using var first = host.Provider.CreateAsyncScope();
+        await using var second = host.Provider.CreateAsyncScope();
+        var firstDb = first.ServiceProvider.GetRequiredService<PayrollDbContext>();
+        var secondDb = second.ServiceProvider.GetRequiredService<PayrollDbContext>();
+        var readByFirst = await firstDb.AbsenceDeductions.SingleAsync(a => a.CarryForward && a.AppliedInRunId == null);
+        var readBySecond = await secondDb.AbsenceDeductions.SingleAsync(a => a.CarryForward && a.AppliedInRunId == null);
+        readByFirst.AppliedInRunId = february;
+        readBySecond.AppliedInRunId = march;
+
+        await firstDb.SaveChangesAsync();
+        await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => secondDb.SaveChangesAsync());
+
+        Assert.Equal(february, await ScalarAsync<Guid>(host.Admin, $"""SELECT "AppliedInRunId" FROM "AbsenceDeductions" WHERE "SourceReference" = 'ATT:{v1.SummaryId}:v2'"""));
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
     public async Task Block_refuses_the_calculation_and_the_run_and_the_database_stay_as_they_were()
     {
         Skip.IfNot(RealInfra.IsEnabled);

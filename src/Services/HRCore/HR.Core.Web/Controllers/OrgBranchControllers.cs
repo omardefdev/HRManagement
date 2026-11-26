@@ -173,6 +173,12 @@ public class DailyAttendanceRecordsController(
             ModelState.AddModelError(string.Empty, AttendanceMessages.DuplicateDay);
             return await CreateFormAsync(vm);
         }
+        catch (AttendanceDayLockedException locked)
+        {
+            // A close locked the day between the check and the save (AttendanceMonthLock): nothing was written.
+            ModelState.AddModelError(string.Empty, locked.Message);
+            return await CreateFormAsync(vm);
+        }
 
         TempData["Success"] = "تم تسجيل الحضور";
         return RedirectToAction(nameof(Index));
@@ -236,7 +242,17 @@ public class DailyAttendanceRecordsController(
             return View(vm);
         }
 
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (AttendanceDayLockedException locked)
+        {
+            // A close locked the day between the check and the save (AttendanceMonthLock): nothing was written.
+            TempData["Error"] = locked.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         TempData["Success"] = "تم تحديث سجل الحضور";
         return RedirectToAction(nameof(Index));
     }
@@ -256,7 +272,16 @@ public class DailyAttendanceRecordsController(
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (AttendanceDayLockedException locked)
+        {
+            TempData["Error"] = locked.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         TempData["Success"] = "تم حذف سجل الحضور";
         return RedirectToAction(nameof(Index));
     }
@@ -300,7 +325,22 @@ public class DailyAttendanceRecordsController(
             return RedirectToAction(nameof(BulkEntry));
         }
 
-        await db.SaveChangesAsync();
+        try
+        {
+            await db.SaveChangesAsync();
+        }
+        catch (DbUpdateException ex) when (ConcurrencyExtensions.IsUniqueViolation(ex))
+        {
+            // The same fill was sent twice, or a day got its record meanwhile: this fill wrote nothing, and a new one skips what exists.
+            TempData["Error"] = "كُتبت أيام من هذا الشهر أثناء الإدخال. أعد الإدخال الجماعي: يتخطى الأيام التي صار لها سجل.";
+            return RedirectToAction(nameof(BulkEntry));
+        }
+        catch (AttendanceDayLockedException)
+        {
+            TempData["Error"] = "أُغلقت فترة الحضور لبعض هؤلاء الموظفين أثناء الإدخال. أعد الإدخال الجماعي: يتخطى الأيام المقفلة.";
+            return RedirectToAction(nameof(BulkEntry));
+        }
+
         TempData["Success"] =
             $"الإدخال الجماعي: {result.Employees} موظف، كُتب {result.Written} يوم عمل، "
             + $"وتُخطّي {result.SkippedLocked} يوم لأنه ضمن فترة مغلقة و{result.SkippedExisting} يوم لأن له سجلاً.";

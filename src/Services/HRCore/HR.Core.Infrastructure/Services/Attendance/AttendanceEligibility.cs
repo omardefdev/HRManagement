@@ -28,6 +28,23 @@ public sealed class AttendanceEligibility(HRCoreDbContext db)
         EmploymentStatus.Deceased, EmploymentStatus.Merged, EmploymentStatus.Anonymized
     ];
 
+    private static readonly List<string> EndedNames = EndedStatuses.Select(s => s.ToString()).ToList();
+
+    /// <summary>
+    /// When a service ended, from the history rows whose new status ends a service: the last row that <b>moved</b> the employee into
+    /// such a status. A later row that writes an ended status over an ended one (a leftover leave's cancellation or a medical
+    /// decision notes the status it found) is not an end of service: read as one, it would bring a leaver back into the months
+    /// after he left. With no moving row (an old record), the earliest row is the end.
+    /// </summary>
+    public static DateTime? EndOfService(IEnumerable<(string? OldStatus, DateTime ChangedAt)> endedRows)
+    {
+        var rows = endedRows.ToList();
+        if (rows.Count == 0)
+            return null;
+        var moves = rows.Where(r => string.IsNullOrEmpty(r.OldStatus) || !EndedNames.Contains(r.OldStatus)).ToList();
+        return moves.Count > 0 ? moves.Max(r => r.ChangedAt) : rows.Min(r => r.ChangedAt);
+    }
+
     /// <summary>The path prefix of a unit's tree; null when the unit does not exist in the caller's agency.</summary>
     public async Task<string?> UnitTreePathAsync(Guid orgUnitId, CancellationToken ct = default)
     {
@@ -63,18 +80,17 @@ public sealed class AttendanceEligibility(HRCoreDbContext db)
             .ToListAsync(ct);
 
         var endedIds = rows.Where(r => EndedStatuses.Contains(r.CurrentStatus)).Select(r => r.Id).ToList();
-        var endOfService = new Dictionary<Guid, (string Status, DateTime At)>();
+        var endOfService = new Dictionary<Guid, DateTime>();
         if (endedIds.Count > 0)
         {
-            var endedNames = EndedStatuses.Select(s => s.ToString()).ToList();
             var history = await db.EmploymentStatusHistories.AsNoTracking()
-                .Where(h => endedIds.Contains(h.EmployeeId) && endedNames.Contains(h.NewStatus))
-                .Select(h => new { h.EmployeeId, h.NewStatus, h.ChangedAt })
+                .Where(h => endedIds.Contains(h.EmployeeId) && EndedNames.Contains(h.NewStatus))
+                .Select(h => new { h.EmployeeId, h.OldStatus, h.ChangedAt })
                 .ToListAsync(ct);
-            foreach (var h in history)
+            foreach (var employee in history.GroupBy(h => h.EmployeeId))
             {
-                if (!endOfService.TryGetValue(h.EmployeeId, out var last) || h.ChangedAt > last.At)
-                    endOfService[h.EmployeeId] = (h.NewStatus, h.ChangedAt);
+                if (EndOfService(employee.Select(h => (h.OldStatus, h.ChangedAt))) is { } at)
+                    endOfService[employee.Key] = at;
             }
         }
 
@@ -86,7 +102,7 @@ public sealed class AttendanceEligibility(HRCoreDbContext db)
             {
                 if (!endOfService.TryGetValue(row.Id, out var last))
                     continue;
-                ended = AttendanceCalendar.LocalDate(last.At);
+                ended = AttendanceCalendar.LocalDate(last);
                 if (ended < periodStart)
                     continue;
             }
@@ -114,13 +130,11 @@ public sealed class AttendanceEligibility(HRCoreDbContext db)
         DateOnly? ended = null;
         if (EndedStatuses.Contains(row.CurrentStatus))
         {
-            var name = row.CurrentStatus.ToString();
-            var at = await db.EmploymentStatusHistories.AsNoTracking()
-                .Where(h => h.EmployeeId == employeeId && h.NewStatus == name)
-                .OrderByDescending(h => h.ChangedAt)
-                .Select(h => (DateTime?)h.ChangedAt)
-                .FirstOrDefaultAsync(ct);
-            if (at is { } changed)
+            var history = await db.EmploymentStatusHistories.AsNoTracking()
+                .Where(h => h.EmployeeId == employeeId && EndedNames.Contains(h.NewStatus))
+                .Select(h => new { h.OldStatus, h.ChangedAt })
+                .ToListAsync(ct);
+            if (EndOfService(history.Select(h => (h.OldStatus, h.ChangedAt))) is { } changed)
                 ended = AttendanceCalendar.LocalDate(changed);
         }
 

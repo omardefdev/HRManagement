@@ -11,8 +11,8 @@ namespace HRManagement.IntegrationTests;
 /// PLAN-57 (§4 rule 7, §5): the attendance gate before a regular run's calculation, through the real start of a calculation
 /// (SQLite). <c>Warn</c> calculates and leaves one <b>open</b> audit record with the count and the list, never a closed one (a closed
 /// record is what lets a run be posted); <c>Block</c> refuses with the count and leaves the run as it was; <c>Off</c> checks nothing;
-/// a correction run and a final settlement are exempt. «Not closed» is an employee with an active pay profile and no receipt whose
-/// period overlaps the run's.
+/// a correction run and a final settlement are exempt. «Not closed» is an employee with an active pay profile — who the run gives a
+/// line to — and no receipt whose period overlaps the run's. The warning is not a review: closed, it lets nothing be posted.
 /// </summary>
 public sealed class Lva057PayrollAttendanceGateTests
 {
@@ -69,6 +69,28 @@ public sealed class Lva057PayrollAttendanceGateTests
         Assert.NotNull(error);
         Assert.Equal(PayrollRunStatus.Approved, (await scope.RunAsync(run)).Status);
 
+        // Even closed, the warning is not a review (the screens refuse to close it; here it is closed as stored data): the posting
+        // looks for a closed record that is not the gate's.
+        await using (var request = scope.NewRequest())
+        {
+            var db = request.ServiceProvider.GetRequiredService<Payroll.Infrastructure.Data.PayrollDbContext>();
+            var warning = await db.PayrollAuditRecords.SingleAsync(a => a.PayrollRunId == run);
+            Assert.True(PayrollAttendanceGate.IsWarning(warning));
+            (warning.Status, warning.ClosedAt, warning.ClosedBy) = (AuditStatus.Closed, DateTime.UtcNow, Guid.NewGuid());
+            await db.SaveChangesAsync();
+        }
+
+        var (postedOnAClosedWarning, _) = await scope.PostAsync(run);
+        Assert.False(postedOnAClosedWarning);
+        Assert.Equal(PayrollRunStatus.Approved, (await scope.RunAsync(run)).Status);
+        await using (var request = scope.NewRequest())
+        {
+            var db = request.ServiceProvider.GetRequiredService<Payroll.Infrastructure.Data.PayrollDbContext>();
+            var warning = await db.PayrollAuditRecords.SingleAsync(a => a.PayrollRunId == run);
+            (warning.Status, warning.ClosedAt, warning.ClosedBy) = (AuditStatus.Open, null, null);
+            await db.SaveChangesAsync();
+        }
+
         // The auditor's closed review still allows it, beside the warning.
         await scope.CloseAuditAsync(run);
         var (postedAfter, errorAfter) = await scope.PostAsync(run);
@@ -113,49 +135,32 @@ public sealed class Lva057PayrollAttendanceGateTests
     }
 
     [Fact]
-    public async Task An_employee_whose_first_pay_profile_begins_after_the_period_is_not_in_the_gates_scope()
+    public async Task The_gates_scope_is_who_the_run_gives_a_line_to()
     {
-        await using var scope = await Pay056RunScope.CreateAsync(Mode(PayrollAttendanceGateMode.Block));
-        var onPayroll = await scope.EmployeeAsync();
-        // Hired after January 2028: no attendance of that month can ever be closed for him, and he must not hold its run back.
-        var hiredLater = Guid.NewGuid();
+        await using var scope = await Pay056RunScope.CreateAsync();
+        var closed = await scope.EmployeeAsync();
+        // A pay profile that begins after January 2028. The run gives its employee a line all the same (it takes every active
+        // profile), so he is in the gate's scope: an employee payroll pays for a month HR.Core closed no attendance for is what the
+        // warning is there to show, also when HR.Core never will (it holds him as hired later).
+        var startsLater = Guid.NewGuid();
         scope.Db.EmployeePayProfiles.Add(new EmployeePayProfile
         {
-            EmployeeId = hiredLater,
+            EmployeeId = startsLater,
             BaseSalary = 900_000m,
             EffectiveFrom = new DateTime(2028, 3, 1, 0, 0, 0, DateTimeKind.Utc),
             IsActive = true
         });
-        // On the payroll since 2020 with a salary change that began after the period: his older profile keeps him in scope.
-        var changedLater = Guid.NewGuid();
-        scope.Db.EmployeePayProfiles.AddRange(
-            new EmployeePayProfile
-            {
-                EmployeeId = changedLater,
-                BaseSalary = 800_000m,
-                EffectiveFrom = new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc),
-                EffectiveTo = new DateTime(2028, 2, 29, 0, 0, 0, DateTimeKind.Utc),
-                IsActive = false
-            },
-            new EmployeePayProfile
-            {
-                EmployeeId = changedLater,
-                BaseSalary = 900_000m,
-                EffectiveFrom = new DateTime(2028, 3, 1, 0, 0, 0, DateTimeKind.Utc),
-                IsActive = true
-            });
         await scope.Db.SaveChangesAsync();
-        await Lva057Payroll.ReceiveAsync(scope.Db, Lva057Summary.Close(onPayroll, 2028, 1, absentDays: 0));
-        var run = await scope.CreateRunAsync(2028, 1);
-        var gate = scope.Services.GetRequiredService<PayrollAttendanceGate>();
+        await Lva057Payroll.ReceiveAsync(scope.Db, Lva057Summary.Close(closed, 2028, 1, absentDays: 0));
 
-        var (inScope, missing) = await gate.MissingAsync(await scope.Db.PayrollRuns.SingleAsync(r => r.Id == run));
+        var run = await scope.CalculatedRunAsync(2028, 1);
 
-        Assert.Equal(2, inScope);
-        Assert.Equal([changedLater], missing);
-        // March's run has all three in scope.
-        var march = await scope.CreateRunAsync(2028, 3);
-        Assert.Equal(3, (await gate.MissingAsync(await scope.Db.PayrollRuns.SingleAsync(r => r.Id == march))).InScope);
+        var lines = (await scope.LinesAsync(run)).Select(l => l.EmployeeId).Order().ToList();
+        var status = await scope.Services.GetRequiredService<PayrollAttendanceGate>().StatusAsync(await scope.RunAsync(run));
+        Assert.Equal(new[] { closed, startsLater }.Order(), lines);
+        Assert.Equal(lines.Count, status.EmployeesInScope);
+        Assert.Equal([startsLater], status.MissingAttendance);
+        Assert.Equal([startsLater], PayrollAttendanceGate.ParseFindings(Assert.Single(await AuditAsync(scope, run)).Findings));
     }
 
     [Fact]
@@ -178,6 +183,16 @@ public sealed class Lva057PayrollAttendanceGateTests
         var refreshed = Assert.Single(await AuditAsync(scope, run));
         Assert.Equal([second], PayrollAttendanceGate.ParseFindings(refreshed.Findings));
         Assert.Equal(AuditStatus.Open, refreshed.Status);
+
+        // The other's attendance is closed too: the next evaluation has nobody to list, and hands the old record back to be removed
+        // (the start of a calculation removes it with its first save), not closed.
+        await Lva057Payroll.ReceiveAsync(scope.Db, Lva057Summary.Close(second, 2028, 1, absentDays: 0));
+        scope.Db.ChangeTracker.Clear();
+        var none = await gate.EvaluateAsync(await scope.Db.PayrollRuns.SingleAsync(r => r.Id == run));
+        Assert.Equal((0, null as PayrollAuditRecord), (none.Missing, none.Warning));
+        Assert.Equal(refreshed.Id, none.StaleWarning?.Id);
+        Assert.Equal("تحذير بوابة الحضور: 1 موظف في نطاق التشغيل لم يُغلق حضورهم لفترة 2028-01. حُسب التشغيل بلا خصم غياب لهم (الإعداد Payroll:Attendance:Gate=Warn).",
+            PayrollAttendanceGate.Headline(refreshed.Findings));
     }
 
     [Fact]

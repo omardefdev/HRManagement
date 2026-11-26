@@ -1,4 +1,5 @@
 @model IReadOnlyList<Payroll.Domain.Entities.PayrollAuditRecord>
+@using Payroll.Application.Services
 @using Payroll.Domain.Enums
 @{
     ViewData["Title"] = "مراجعة الرواتب";
@@ -55,9 +56,9 @@
                     <td>@Html.HrEnumDisplay(x.Status)</td>
                     <td>@Html.HrUserName(x.AuditorId)</td>
                     <td>@Html.HrUserName(x.ClosedBy)</td>
-                    <td>@(x.Findings ?? "—")</td>
+                    <td>@(PayrollAttendanceGate.IsWarning(x) ? PayrollAttendanceGate.Headline(x.Findings) + " الأسماء في صفحة المسير." : x.Findings ?? "—")</td>
                     <td class="text-end">
-                        @if (x.Status == AuditStatus.Open)
+                        @if (x.Status == AuditStatus.Open && !PayrollAttendanceGate.IsWarning(x))
                         {
                             <form asp-action="CloseAudit" asp-route-id="@x.Id" method="post" class="d-inline">
                                 @Html.AntiForgeryToken()

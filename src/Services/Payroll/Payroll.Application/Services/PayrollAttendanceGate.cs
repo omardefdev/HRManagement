@@ -18,12 +18,16 @@ public sealed record PayrollAttendanceStatus(
     int CarryForwardPending);
 
 /// <summary>The gate's answer before a calculation: a refusal (nothing changes), or a warning to write with the calculation's start.</summary>
-public sealed record PayrollAttendanceGateDecision(string? Refusal, int Missing, PayrollAuditRecord? Warning, bool WarningIsNew);
+public sealed record PayrollAttendanceGateDecision(string? Refusal, int Missing, PayrollAuditRecord? Warning, bool WarningIsNew)
+{
+    /// <summary>The run's warning of an earlier calculation, when nobody is missing any more: the caller removes it with its first save.</summary>
+    public PayrollAuditRecord? StaleWarning { get; init; }
+}
 
 /// <summary>
 /// PLAN-57 (§4 rule 7, §5): before a regular run is calculated, payroll knows which employees' attendance is not closed for its
-/// period. «Not closed» is an employee in the run's scope (an active pay profile, and a pay profile that began by the period's end)
-/// with no <see cref="AttendanceSummaryReceipt"/> whose period overlaps the run's.
+/// period. «Not closed» is an employee in the run's scope (an active pay profile: who the run gives a line to) with no
+/// <see cref="AttendanceSummaryReceipt"/> whose period overlaps the run's.
 /// <list type="bullet">
 /// <item><c>Warn</c> (the default, D-LVA-10): the calculation goes on, and one <b>open</b> <see cref="PayrollAuditRecord"/> of the run
 /// carries the count and the list. It is never a closed record: a closed record is what lets a run be posted.</item>
@@ -50,14 +54,12 @@ public sealed class PayrollAttendanceGate(IPayrollRepository repository, IOption
     {
         var periodStart = DateOnly.FromDateTime(run.PeriodStart);
         var periodEnd = DateOnly.FromDateTime(run.PeriodEnd);
-        // The run's scope for attendance: an employee with an active pay profile who had a pay profile by the period's end. A person
-        // whose first profile begins after the period was not on the payroll then and has no attendance to close for it; without
-        // this, one new hire would hold back (Block) or flag (Warn) every run of an earlier month for ever.
-        var startedBefore = periodEnd.AddDays(1).ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        // The run's scope is who the run gives a line to: every employee with an active pay profile (StartPayrollRunJobHandler reads
+        // the same set). An employee payroll pays and HR.Core holds no closed attendance for is «not closed», whatever the reason —
+        // also when HR.Core will never close the month for him (hired after it, by HR.Core's dates): paying him for that month is
+        // what the warning is there to show.
         var inScope = await repository.EmployeePayProfiles.AsNoTracking()
-            .Where(p => p.IsActive
-                        && (repository.EmployeePayProfiles.Any(q => q.EmployeeId == p.EmployeeId && q.EffectiveFrom < startedBefore)
-                            || repository.EmployeePayProfileHistories.Any(h => h.EmployeeId == p.EmployeeId && h.EffectiveFrom < startedBefore)))
+            .Where(p => p.IsActive)
             .Select(p => p.EmployeeId)
             .Distinct()
             .ToListAsync(ct);
@@ -80,22 +82,39 @@ public sealed class PayrollAttendanceGate(IPayrollRepository repository, IOption
             return new PayrollAttendanceGateDecision(null, 0, null, false);
 
         var (_, missing) = await MissingAsync(run, ct);
-        if (missing.Count == 0)
-            return new PayrollAttendanceGateDecision(null, 0, null, false);
-
         var periodStart = DateOnly.FromDateTime(run.PeriodStart);
-        if (Mode == PayrollAttendanceGateMode.Block)
+        if (missing.Count > 0 && Mode == PayrollAttendanceGateMode.Block)
             return new PayrollAttendanceGateDecision(BlockMessage(missing.Count, periodStart), missing.Count, null, false);
 
-        // One warning record per run, however often it is calculated: a recalculation refreshes it.
+        // One warning record per run, however often it is calculated: a recalculation refreshes it, and removes it when the
+        // attendance was closed meanwhile (the record says what this calculation ran without).
         var warning = await repository.PayrollAuditRecords
             .Where(a => a.PayrollRunId == run.Id && a.Status == AuditStatus.Open && a.Findings != null && a.Findings.StartsWith(WarningPrefix))
             .OrderBy(a => a.CreatedAt)
             .FirstOrDefaultAsync(ct);
+        if (missing.Count == 0)
+            return new PayrollAttendanceGateDecision(null, 0, null, false) { StaleWarning = warning };
+
         var isNew = warning is null;
         warning ??= new PayrollAuditRecord { PayrollRunId = run.Id, Status = AuditStatus.Open, TenantId = run.TenantId };
         warning.Findings = Findings(missing, periodStart);
         return new PayrollAttendanceGateDecision(null, missing.Count, warning, isNew);
+    }
+
+    /// <summary>
+    /// Whether an audit record is the gate's warning. It is not a review: it is never closed by hand, and a closed one would not let
+    /// a run be posted (<c>PostPayrollRunHandler</c> looks for a closed record that is not this).
+    /// </summary>
+    public static bool IsWarning(PayrollAuditRecord record) => IsWarning(record.Findings);
+
+    public static bool IsWarning(string? findings) => findings is not null && findings.StartsWith(WarningPrefix, StringComparison.Ordinal);
+
+    /// <summary>The warning's sentence without its list of ids (lists show it; the run's page names the employees).</summary>
+    public static string Headline(string? findings)
+    {
+        var line = (findings ?? string.Empty).Split('\n')[0];
+        const string listIntro = " معرّفات الموظفين:";
+        return line.EndsWith(listIntro, StringComparison.Ordinal) ? line[..^listIntro.Length] : line;
     }
 
     /// <summary>The warning's text: the count, the period, then the employees' ids, one per line.</summary>

@@ -362,6 +362,10 @@ public sealed class AttendanceDayWriter(
                      ?? await db.DailyAttendanceRecords
                          .FirstOrDefaultAsync(r => r.EmployeeId == correction.EmployeeId && r.AttendanceDate == correction.AttendanceDate, ct);
 
+        // The one write of a locked day: named to the save, which refuses every other write of such a day (AttendanceMonthLock).
+        if (record is not null)
+            db.AttendanceCorrectionWrites.Add(record);
+
         if (correction.NewStatus is not { } target)
         {
             if (record is not null)
@@ -385,6 +389,7 @@ public sealed class AttendanceDayWriter(
                 ReplacedStatus = null
             };
             db.DailyAttendanceRecords.Add(record);
+            db.AttendanceCorrectionWrites.Add(record);
             return record;
         }
 

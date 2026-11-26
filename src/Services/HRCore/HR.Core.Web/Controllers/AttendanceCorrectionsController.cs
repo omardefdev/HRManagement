@@ -154,8 +154,12 @@ public class AttendanceCorrectionsController(
     [HttpPost("api/attendance/corrections")]
     [Authorize(Policy = HrManagementPolicies.HrCoreAttendanceWrite)]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> RequestApi([FromBody] CorrectionRequest request, CancellationToken ct)
+    public async Task<IActionResult> RequestApi(
+        [FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] CorrectionRequest? request, CancellationToken ct)
     {
+        // No body, or one that is not a request (a date that is not a date): 400, as for any other broken rule.
+        if (request is null || !ModelState.IsValid)
+            return BadRequest(new { error = "طلب التصحيح غير مقروء: المطلوب employeeId و attendanceDate (yyyy-MM-dd) و newStatus و reason." });
         if (!Enum.TryParse<DailyAttendanceStatus>(request.NewStatus, ignoreCase: true, out var status) || !Enum.IsDefined(status))
             return BadRequest(new { error = AttendanceMessages.UnknownStatus });
         return ToResponse(await corrections.RequestAsync(await ActorAsync(ct), request.EmployeeId, request.AttendanceDate, status, request.Reason, ct));

@@ -202,12 +202,16 @@ public sealed class AttendanceCorrectionService(
 
         // The day may have changed since the request (a leave decision is the usual cause): the correction records what it really
         // replaces, and one that would change nothing is not approved.
-        var current = await db.DailyAttendanceRecords.AsNoTracking()
+        var day = await db.DailyAttendanceRecords.AsNoTracking()
             .Where(r => r.EmployeeId == correction!.EmployeeId && r.AttendanceDate == correction.AttendanceDate)
-            .Select(r => (DailyAttendanceStatus?)r.Status)
+            .Select(r => new { r.Status, r.Source })
             .FirstOrDefaultAsync(ct);
+        var current = day?.Status;
         if (current == correction!.NewStatus)
             return (AttendanceCorrectionResult.Refused(AttendanceCorrectionOutcome.Conflict, AttendanceCorrectionMessages.NoLongerApplies), false);
+        // A leave took the day while the request waited: the day is the leave's now, as it would be for a new request.
+        if (correction.Source == AttendanceCorrectionSource.Manual && day?.Source == AttendanceRecordSource.Leave)
+            return (AttendanceCorrectionResult.Refused(AttendanceCorrectionOutcome.Conflict, AttendanceCorrectionMessages.LeaveMadeDay), false);
         correction.OldStatus = current;
 
         var now = DateTime.UtcNow;
@@ -244,7 +248,17 @@ public sealed class AttendanceCorrectionService(
         correction.DecidedByName = actor.BoundedName;
         correction.DecidedAt = DateTime.UtcNow;
         correction.DecisionNote = Clean(note);
-        await db.SaveChangesAsync(ct);
+        try
+        {
+            await db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Another decision on this request was saved first (the request's row version): this one wrote nothing.
+            db.ChangeTracker.Clear();
+            return AttendanceCorrectionResult.Refused(AttendanceCorrectionOutcome.Conflict, AttendanceCorrectionMessages.AlreadyDecided);
+        }
+
         return AttendanceCorrectionResult.Done(correction);
     }
 

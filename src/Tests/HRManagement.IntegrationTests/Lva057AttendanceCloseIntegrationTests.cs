@@ -75,7 +75,7 @@ public sealed class Lva057AttendanceCloseIntegrationTests(PgRabbitFixture fixtur
         }
     }
 
-    private async Task<Host> StartAsync()
+    private async Task<Host> StartAsync(params (string Key, string Value)[] settings)
     {
         var admin = await Pol047Pg.MigratedAsync(fixture.Postgres, "lva057");
         var app = await Pol047Pg.ForcedAppAsync(fixture.Postgres, admin);
@@ -96,7 +96,7 @@ public sealed class Lva057AttendanceCloseIntegrationTests(PgRabbitFixture fixtur
             ["RabbitMQ:UseQuorumQueues"] = "false",
             ["RabbitMQ:PublisherConfirmation"] = "false",
             ["MassTransit:RetryCount"] = "0"
-        }).Build();
+        }.Concat(settings.Select(s => new KeyValuePair<string, string?>(s.Key, s.Value)))).Build();
 
         var meeting = new MeetBeforeSave();
         var tenant = new Msg040FixedTenant(Tenant);
@@ -248,12 +248,11 @@ public sealed class Lva057AttendanceCloseIntegrationTests(PgRabbitFixture fixtur
 
     [Trait("Category", "Testcontainers")]
     [SkippableFact]
-    public async Task Two_concurrent_closes_meet_on_the_summarys_unique_index_and_the_loser_writes_nothing()
+    public async Task Two_concurrent_closes_take_the_months_lock_in_turn_and_the_second_finds_everyone_closed()
     {
         Skip.IfNot(RealInfra.IsEnabled);
         await using var host = await StartAsync();
         await SeedEmployeesWithAMonthAsync(host, 6);
-        host.Meeting.Expect(2);
 
         async Task<AttendanceCloseResult> CloseAsync()
         {
@@ -261,24 +260,179 @@ public sealed class Lva057AttendanceCloseIntegrationTests(PgRabbitFixture fixtur
             return await scope.ServiceProvider.GetRequiredService<AttendancePeriodService>().CloseAsync(March, host.Unit, Central());
         }
 
-        // Both read «no summary yet», both reach their save, and only then are let through.
+        // The month's lock (AttendanceMonthLock) lets one close read and write at a time: the other waits, then reads what the first
+        // wrote. (Before the lock they met on the summary's unique index, which stays as the last line: the loser wrote nothing.)
         var results = await Task.WhenAll(Task.Run(CloseAsync), Task.Run(CloseAsync));
 
-        var winner = Assert.Single(results, r => r.Ok);
-        var loser = Assert.Single(results, r => !r.Ok);
-        Assert.Equal(6, winner.ClosedEmployees);
-        Assert.Equal((AttendanceCloseOutcome.ConcurrentClose, AttendancePeriodMessages.Concurrent), (loser.Outcome, loser.Error));
+        Assert.All(results, r => Assert.True(r.Ok, r.Error));
+        Assert.Equal([0, 6], results.Select(r => r.ClosedEmployees).Order().ToArray());
+        Assert.Equal(6, results.Single(r => r.ClosedEmployees == 0).SkippedAlreadyClosed);
         // No partial effect: one period, one closure, one summary and one message per employee.
         Assert.Equal(1, await CountAsync(host, "AttendancePeriods"));
         Assert.Equal(6, await CountAsync(host, "AttendanceEmployeeSummaries"));
         Assert.Equal(1, await CountAsync(host, "AttendancePeriodClosures"));
         Assert.Equal(6, await OutboxAsync(host));
         Assert.Equal(6, await Pol047Pg.ScalarAsync<long>(host.Admin, """SELECT count(DISTINCT "EmployeeId") FROM "AttendanceEmployeeSummaries" """));
+    }
 
-        // The loser's retry finds everyone closed.
-        host.Meeting.Expect(0);
-        var retry = await CloseAsync();
-        Assert.Equal((true, 0, 6), (retry.Ok, retry.ClosedEmployees, retry.SkippedAlreadyClosed));
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task A_save_that_read_the_day_as_free_is_refused_once_a_close_locked_it()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        await using var host = await StartAsync();
+        var employee = (await SeedEmployeesWithAMonthAsync(host, 1)).Single();
+        var day = new DateOnly(2025, 3, 4);
+        var record = await Pol047Pg.ScalarAsync<Guid>(host.Admin,
+            $"""SELECT "Id" FROM "DailyAttendanceRecords" WHERE "EmployeeId" = '{employee}' AND "AttendanceDate" = '2025-03-04'""");
+
+        // A writer reads the day as free and stages its change: an edit, a new record on another day, and a delete.
+        await using var writing = host.Provider.CreateAsyncScope();
+        var writer = writing.ServiceProvider.GetRequiredService<AttendanceDayWriter>();
+        var db = writing.ServiceProvider.GetRequiredService<HRCoreDbContext>();
+        Assert.True((await writer.UpdateManualAsync(Central(), record, DailyAttendanceStatus.Absent, "غياب بلا عذر")).Ok);
+
+        // The close runs and commits before the writer saves.
+        await using (var closing = host.Provider.CreateAsyncScope())
+            Assert.True((await closing.ServiceProvider.GetRequiredService<AttendancePeriodService>().CloseAsync(March, host.Unit, Central())).Ok);
+
+        // The save takes the month's lock and reads the lock again: refused, and nothing is written.
+        var refused = await Assert.ThrowsAsync<AttendanceDayLockedException>(() => db.SaveChangesAsync());
+        Assert.Equal(AttendanceMessages.LockedDay, refused.Message);
+        Assert.Null(db.Database.CurrentTransaction);
+        Assert.Equal(0, await Pol047Pg.ScalarAsync<long>(host.Admin,
+            $"""SELECT count(*) FROM "DailyAttendanceRecords" WHERE "EmployeeId" = '{employee}' AND "AttendanceDate" = '{day:yyyy-MM-dd}' AND "Status" <> 0"""));
+        Assert.Equal(1, await Pol047Pg.ScalarAsync<long>(host.Admin,
+            $"""SELECT count(*) FROM "AttendanceEmployeeSummaries" WHERE "EmployeeId" = '{employee}' AND "Version" = 1 AND "AbsentDays" = 0"""));
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task A_close_waits_for_a_save_in_flight_and_counts_what_it_wrote()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        await using var host = await StartAsync();
+        var employee = (await SeedEmployeesWithAMonthAsync(host, 1)).Single();
+        var record = await Pol047Pg.ScalarAsync<Guid>(host.Admin,
+            $"""SELECT "Id" FROM "DailyAttendanceRecords" WHERE "EmployeeId" = '{employee}' AND "AttendanceDate" = '2025-03-04'""");
+
+        // A writer's save is in flight: its transaction holds the month's lock (shared) and its change is not committed yet.
+        await using var writing = host.Provider.CreateAsyncScope();
+        var writer = writing.ServiceProvider.GetRequiredService<AttendanceDayWriter>();
+        var db = writing.ServiceProvider.GetRequiredService<HRCoreDbContext>();
+        await using var transaction = await db.Database.BeginTransactionAsync();
+        Assert.True((await writer.UpdateManualAsync(Central(), record, DailyAttendanceStatus.Absent, "غياب بلا عذر")).Ok);
+        await db.SaveChangesAsync();
+
+        var closing = Task.Run(async () =>
+        {
+            await using var scope = host.Provider.CreateAsyncScope();
+            return await scope.ServiceProvider.GetRequiredService<AttendancePeriodService>().CloseAsync(March, host.Unit, Central());
+        });
+        // The close does not read the month while the save is in flight (without the lock it would count the day as present).
+        await Task.Delay(TimeSpan.FromSeconds(2));
+        Assert.False(closing.IsCompleted, "the close did not wait for the save in flight");
+
+        await transaction.CommitAsync();
+        var closed = await closing.WaitAsync(TimeSpan.FromSeconds(30));
+
+        Assert.True(closed.Ok, closed.Error);
+        Assert.Equal(1, await Pol047Pg.ScalarAsync<long>(host.Admin,
+            $"""SELECT count(*) FROM "AttendanceEmployeeSummaries" WHERE "EmployeeId" = '{employee}' AND "Version" = 1 AND "AbsentDays" = 1 AND "PresentDays" = 21"""));
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task An_approval_and_a_rejection_of_one_request_do_not_both_win()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        await using var host = await StartAsync();
+        var employee = (await SeedEmployeesWithAMonthAsync(host, 1, absentOnFourth: 1)).Single();
+        await using (var scope = host.Provider.CreateAsyncScope())
+            Assert.True((await scope.ServiceProvider.GetRequiredService<AttendancePeriodService>().CloseAsync(March, host.Unit, Central())).Ok);
+
+        async Task<Guid> RequestAsync(DateOnly day, DailyAttendanceStatus status)
+        {
+            await using var scope = host.Provider.CreateAsyncScope();
+            var requested = await scope.ServiceProvider.GetRequiredService<AttendanceCorrectionService>().RequestAsync(Central(), employee, day, status, Reason);
+            Assert.True(requested.Ok, requested.Error);
+            return requested.Correction!.Id;
+        }
+
+        // A decision that read the request as waiting, then another decision saved first: the row version refuses the late one.
+        async Task<AttendanceCorrectionResult> LateAsync(Guid id, bool lateIsApproval)
+        {
+            await using var late = host.Provider.CreateAsyncScope();
+            var lateDb = late.ServiceProvider.GetRequiredService<HRCoreDbContext>();
+            Assert.Equal(AttendanceCorrectionStatus.Pending, (await lateDb.AttendanceCorrections.FirstAsync(c => c.Id == id)).Status);
+            await using (var first = host.Provider.CreateAsyncScope())
+            {
+                var service = first.ServiceProvider.GetRequiredService<AttendanceCorrectionService>();
+                var decided = lateIsApproval ? await service.RejectAsync(Central(), id, "لا مستند مرفق") : await service.ApproveAsync(Central(), id, "معتمد");
+                Assert.True(decided.Ok, decided.Error);
+            }
+
+            var lateService = late.ServiceProvider.GetRequiredService<AttendanceCorrectionService>();
+            return lateIsApproval ? await lateService.ApproveAsync(Central(), id, "معتمد") : await lateService.RejectAsync(Central(), id, "لا مستند مرفق");
+        }
+
+        // Rejected first, approved late: the approval writes nothing — no day, no version, no event.
+        var rejected = await RequestAsync(new DateOnly(2025, 3, 4), DailyAttendanceStatus.Present);
+        var lateApproval = await LateAsync(rejected, lateIsApproval: true);
+        Assert.Equal((AttendanceCorrectionOutcome.Conflict, AttendanceCorrectionMessages.AlreadyDecided), (lateApproval.Outcome, lateApproval.Error));
+        Assert.Equal("2|", await Pol047Pg.ScalarAsync<string>(host.Admin,
+            $"""SELECT "Status" || '|' || COALESCE("ResultingVersion"::text, '') FROM "AttendanceCorrections" WHERE "Id" = '{rejected}'"""));
+        Assert.Equal(1, await Pol047Pg.ScalarAsync<long>(host.Admin,
+            $"""SELECT count(*) FROM "AttendanceEmployeeSummaries" WHERE "EmployeeId" = '{employee}' AND "Version" = 1 AND "AbsentDays" = 1"""));
+        Assert.Equal(1, await OutboxAsync(host));
+
+        // Approved first, rejected late: the request stays approved, with its version.
+        var approved = await RequestAsync(new DateOnly(2025, 3, 5), DailyAttendanceStatus.Absent);
+        var lateRejection = await LateAsync(approved, lateIsApproval: false);
+        Assert.Equal((AttendanceCorrectionOutcome.Conflict, AttendanceCorrectionMessages.AlreadyDecided), (lateRejection.Outcome, lateRejection.Error));
+        Assert.Equal("1|2", await Pol047Pg.ScalarAsync<string>(host.Admin,
+            $"""SELECT "Status" || '|' || COALESCE("ResultingVersion"::text, '') FROM "AttendanceCorrections" WHERE "Id" = '{approved}'"""));
+        Assert.Equal(2, await OutboxAsync(host));
+    }
+
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task In_Pending_mode_a_leave_decision_on_a_locked_day_replaces_a_persons_waiting_request_in_one_save()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        await using var host = await StartAsync(("Attendance:Corrections:LeaveEventsAfterClose", "Pending"));
+        var employee = (await SeedEmployeesWithAMonthAsync(host, 1)).Single();
+        var day = new DateOnly(2025, 3, 4);
+        await using (var scope = host.Provider.CreateAsyncScope())
+            Assert.True((await scope.ServiceProvider.GetRequiredService<AttendancePeriodService>().CloseAsync(March, host.Unit, Central())).Ok);
+        Guid waiting;
+        await using (var scope = host.Provider.CreateAsyncScope())
+        {
+            var requested = await scope.ServiceProvider.GetRequiredService<AttendanceCorrectionService>().RequestAsync(Central(), employee, day, DailyAttendanceStatus.Absent, Reason);
+            Assert.True(requested.Ok, requested.Error);
+            waiting = requested.Correction!.Id;
+        }
+
+        // The leave consumer's path: the person's request gives way and the leave's own request waits in its place, in one save
+        // under the index that holds one waiting request per employee and day.
+        var leave = Guid.NewGuid();
+        await using (var scope = host.Provider.CreateAsyncScope())
+        {
+            var integration = new HR.Core.Infrastructure.Integration.AttendanceIntegrationService(
+                scope.ServiceProvider.GetRequiredService<AttendanceDayWriter>(), scope.ServiceProvider.GetRequiredService<AttendanceCorrectionService>());
+            var at = day.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+            await integration.UpsertLeaveAttendanceAsync(employee, at, at, leave, "إجازة معتمدة");
+            await scope.ServiceProvider.GetRequiredService<HRCoreDbContext>().SaveChangesAsync();
+        }
+
+        Assert.Equal("2", await Pol047Pg.ScalarAsync<string>(host.Admin, $"""SELECT "Status"::text FROM "AttendanceCorrections" WHERE "Id" = '{waiting}'"""));
+        Assert.Equal(1, await Pol047Pg.ScalarAsync<long>(host.Admin,
+            $"""SELECT count(*) FROM "AttendanceCorrections" WHERE "EmployeeId" = '{employee}' AND "Status" = 0 AND "Source" = 1 AND "SourceReference" = 'LeaveRequestId={leave:D}:Approved'"""));
+        // Nothing is applied while it waits: the day and the version are as the close left them.
+        Assert.Equal(1, await Pol047Pg.ScalarAsync<long>(host.Admin,
+            $"""SELECT count(*) FROM "DailyAttendanceRecords" WHERE "EmployeeId" = '{employee}' AND "AttendanceDate" = '2025-03-04' AND "Status" = 0"""));
+        Assert.Equal(1, await Pol047Pg.ScalarAsync<long>(host.Admin,
+            $"""SELECT count(*) FROM "AttendanceEmployeeSummaries" WHERE "EmployeeId" = '{employee}' AND "Version" = 1"""));
     }
 
     [Trait("Category", "Testcontainers")]

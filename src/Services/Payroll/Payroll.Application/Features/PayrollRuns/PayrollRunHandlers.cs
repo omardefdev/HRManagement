@@ -197,8 +197,11 @@ public class PostPayrollRunHandler(
         if (!allowed)
             return (false, sodError);
 
+        // PLAN-57: the attendance gate's warning is not a review. Even closed (it cannot be, through the screens), it lets nothing be
+        // posted: the record that does is one an auditor opened and another person closed.
         var hasClosedAudit = await repository.PayrollAuditRecords
-            .AnyAsync(a => a.PayrollRunId == run.Id && a.Status == AuditStatus.Closed, cancellationToken);
+            .AnyAsync(a => a.PayrollRunId == run.Id && a.Status == AuditStatus.Closed
+                           && (a.Findings == null || !a.Findings.StartsWith(PayrollAttendanceGate.WarningPrefix)), cancellationToken);
         if (!hasClosedAudit)
             return (false, "يجب إغلاق سجل مراجعة الرواتب قبل الترحيل.");
 

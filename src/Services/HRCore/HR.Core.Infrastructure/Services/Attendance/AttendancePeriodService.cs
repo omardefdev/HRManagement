@@ -189,6 +189,11 @@ public sealed class AttendancePeriodService(
             return AttendanceCloseResult.Refused(AttendanceCloseOutcome.OutOfScope, AttendancePeriodMessages.WholeAgencyNeedsCentral);
         }
 
+        // The month's lock, exclusively, before a day is read (AttendanceMonthLock): a save of an attendance day that began earlier
+        // has finished and is counted below; one that begins now waits for this close and is refused. Released with the transaction.
+        await using var transaction = await AttendanceMonthLock.BeginAsync(db, ct);
+        await AttendanceMonthLock.TakeAsync(db, AttendanceMonthLock.Keys(db.EffectiveTenantId, periodStart, periodEnd), exclusive: true, ct);
+
         var (period, overlaps) = await FindPeriodAsync(periodStart, periodEnd, ct);
         if (overlaps)
             return AttendanceCloseResult.Refused(AttendanceCloseOutcome.InvalidPeriod, AttendancePeriodMessages.Overlap);
@@ -206,7 +211,25 @@ public sealed class AttendancePeriodService(
 
         if (toClose.Count == 0)
         {
-            // Nothing to write: the same answer as the close that did the work, with no new closure row and no event.
+            // Nothing to close: the same answer as the close that did the work, with no new closure row and no event. The period's
+            // state is read again all the same: two closes of two units, each sure the other's employees were still open, can both
+            // have left «partially closed» on a period whose last employee they closed between them.
+            if (period is { Status: AttendancePeriodStatus.PartiallyClosed })
+            {
+                var everyone = orgUnitId is null ? inScope : await eligibility.GetAsync(null, periodStart, periodEnd, ct);
+                if (everyone.All(e => summarized.Contains(e.Id)))
+                {
+                    var tracked = await db.AttendancePeriods.FirstAsync(p => p.Id == period.Id, ct);
+                    tracked.Status = AttendancePeriodStatus.Closed;
+                    tracked.ClosedAt ??= DateTime.UtcNow;
+                    tracked.ClosedBy ??= actor.UserId;
+                    await db.SaveChangesAsync(ct);
+                    if (transaction is not null)
+                        await transaction.CommitAsync(ct);
+                    return new AttendanceCloseResult(AttendanceCloseOutcome.Closed, null, period.Id, AttendancePeriodStatus.Closed, 0, skipped, []);
+                }
+            }
+
             return new AttendanceCloseResult(
                 AttendanceCloseOutcome.Closed, null, period?.Id, period?.Status ?? AttendancePeriodStatus.Open, 0, skipped, []);
         }
@@ -296,6 +319,8 @@ public sealed class AttendancePeriodService(
         {
             // Rule 7: the one save. The summaries, the closure, the period's state and the outbox messages are written together.
             await db.SaveChangesAsync(ct);
+            if (transaction is not null)
+                await transaction.CommitAsync(ct);
         }
         catch (DbUpdateException ex) when (ConcurrencyExtensions.IsUniqueViolation(ex))
         {

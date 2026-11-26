@@ -361,6 +361,10 @@ public sealed class Lva057AttendanceApiHttpTests(Lva057HrCoreApiHost host) : ICl
         Assert.Equal(HttpStatusCode.BadRequest, (await AskAsync(branch, new { employeeId = employee, attendanceDate = "2025-06-03", newStatus = "Present", reason = Reason })).Status);
         Assert.Equal(HttpStatusCode.BadRequest, (await AskAsync(branch, new { employeeId = employee, attendanceDate = "2025-06-03", newStatus = "OnLeave", reason = Reason })).Status);
         Assert.Equal(HttpStatusCode.BadRequest, (await AskAsync(branch, new { employeeId = employee, attendanceDate = "2025-06-03", newStatus = "Holiday", reason = Reason })).Status);
+        // A body that is not a request — a date that is not a date, or no body at all — is 400 too, not a failure of the server.
+        Assert.Equal(HttpStatusCode.BadRequest, (await AskAsync(branch, new { employeeId = employee, attendanceDate = "الثالث من حزيران", newStatus = "Absent", reason = Reason })).Status);
+        using (var empty = await branch.PostAsync("/api/attendance/corrections", new StringContent("", System.Text.Encoding.UTF8, "application/json")))
+            Assert.Equal(HttpStatusCode.BadRequest, empty.StatusCode);
         // A day that is not locked (July is not closed) is edited directly, not corrected.
         Assert.Equal(HttpStatusCode.BadRequest, (await AskAsync(branch, new { employeeId = employee, attendanceDate = "2025-07-01", newStatus = "Absent", reason = Reason })).Status);
         Assert.Equal(0, await host.WithDbAsync(db => db.AttendanceCorrections.CountAsync(c => c.EmployeeId == employee)));

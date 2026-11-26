@@ -33,9 +33,10 @@ namespace HRManagement.AcceptanceTests;
 /// <para>
 /// <b>Isolation.</b> The classes of the group run one at a time, in an order that changes. This class writes attendance only in its
 /// own months (and, for «no future day», in the current month of one small unit, removed again); its payroll runs live in its own
-/// months; the one difference it carries is applied by its own run of the next month in the same scenario, so no free carried row of
-/// agency A is left for another class's run; its other rows are dated in its own months, which only its own runs take. It asserts on
-/// its own employees and rows by id. Nothing stops or recreates a container.
+/// months, and each scenario that calculates cancels its runs at its end (PLAN-56's API) and deletes the carried difference a
+/// cancellation freed, so that no other class finds a run of this class by its state or has its own run take a carried row of
+/// agency A; its other rows are dated in its own months, which only its own runs take. The zero adjustments payroll notes for an
+/// injected leave are deleted too. It asserts on its own employees and rows by id. Nothing stops or recreates a container.
 /// </para>
 /// The leave schedule reconciler's rule (it reads leave-made days only) is proved by <c>Lva057LeaveAttendanceTests</c>: its job runs
 /// hourly and this class restarts no container.
@@ -102,6 +103,15 @@ public class AcLva57AttendancePeriodTests
         fields.Select(f => new KeyValuePair<string, string>(f.Key, f.Value)).ToList();
 
     private static string Snip(string body) => body.Length > 400 ? body[..400] : body;
+
+    /// <summary>How many times a page holds a text: a form states some rules as hints, so a refusal is the text once more than on the form.</summary>
+    private static int Count(string body, string text)
+    {
+        var n = 0;
+        for (var i = body.IndexOf(text, StringComparison.Ordinal); i >= 0; i = body.IndexOf(text, i + text.Length, StringComparison.Ordinal))
+            n++;
+        return n;
+    }
 
     private static bool IsRestDay(DateOnly day) => day.DayOfWeek is DayOfWeek.Friday or DayOfWeek.Saturday;
 
@@ -206,19 +216,39 @@ public class AcLva57AttendancePeriodTests
         return id;
     }
 
-    /// <summary>The employees of a unit's tree who are in service and were hired by the month's end (what a close of it covers, less who left).</summary>
+    /// <summary>
+    /// The employees a close of a unit's tree covers in a month, as <c>AttendanceEligibility</c> reads them: of the unit or a unit
+    /// below it, hired by the month's end, not waiting for activation, and — when the service has ended — ended on or after the
+    /// month's first day (the last status history row that ends a service, as a Damascus date).
+    /// </summary>
     private static Task<string> TreeEmployeesAsync(string unit, DateOnly month) => Db(Core,
         "SELECT COALESCE(string_agg(e.\"Id\"::text, ',' ORDER BY e.\"Id\"), '') FROM \"Employees\" e JOIN \"OrgUnits\" o ON o.\"Id\" = e.\"PrimaryOrgUnitId\" " +
-        $"WHERE e.\"TenantId\"='{TenantA}' AND o.\"MaterializedPath\" LIKE (SELECT \"MaterializedPath\" FROM \"OrgUnits\" WHERE \"Id\"='{unit}') || '%' " +
-        "AND e.\"CurrentStatus\"::text IN ('0','1','4','5','Active','Suspended','OnLeave','Seconded') " +
-        $"AND (e.\"HireDate\" IS NULL OR e.\"HireDate\" < '{Day(EndOf(month).AddDays(1))}');");
+        $"WHERE e.\"TenantId\"='{TenantA}' AND o.\"MaterializedPath\" LIKE (SELECT \"MaterializedPath\" FROM \"OrgUnits\" WHERE \"Id\"='{unit}') || '%' AND {InServiceIn(month)};");
+
+    /// <summary>The service's rule of who is in service in a month, on the <c>Employees</c> row <c>e</c>.</summary>
+    private static string InServiceIn(DateOnly month)
+    {
+        const string ended = "'Terminated','Retired','Resigned','Deceased','Merged','Anonymized'";
+        // The end of a service: the last history row that moved the employee into an ended status; the earliest ended row when none did.
+        return $"e.\"CurrentStatus\" <> 10 AND (e.\"HireDate\" IS NULL OR e.\"HireDate\" < '{Day(EndOf(month).AddDays(1))}') " +
+            "AND (e.\"CurrentStatus\" NOT IN (2, 3, 6, 7, 8, 9) OR (SELECT (COALESCE(" +
+            $"max(h.\"ChangedAt\") FILTER (WHERE h.\"OldStatus\" IS NULL OR h.\"OldStatus\" = '' OR h.\"OldStatus\" NOT IN ({ended})), min(h.\"ChangedAt\")) " +
+            "AT TIME ZONE 'Asia/Damascus')::date FROM \"EmploymentStatusHistories\" h " +
+            $"WHERE h.\"EmployeeId\" = e.\"Id\" AND h.\"NewStatus\" IN ({ended})) >= '{Day(month)}')";
+    }
+
+    /// <summary>Whether an employee sits in a unit or in a unit below it.</summary>
+    private static async Task<bool> InTreeAsync(string employee, string unit) => await Db(Core,
+        "SELECT count(*)::text FROM \"Employees\" e JOIN \"OrgUnits\" o ON o.\"Id\" = e.\"PrimaryOrgUnitId\" " +
+        $"WHERE e.\"Id\"='{employee}' AND o.\"MaterializedPath\" LIKE (SELECT \"MaterializedPath\" FROM \"OrgUnits\" WHERE \"Id\"='{unit}') || '%';") == "1";
 
     /// <summary>The test-only reset of a month of agency A (the SQL is in each scenario's steps).</summary>
     private static async Task ResetMonthAsync(RecruitmentSession s, string step, params DateOnly[] months)
     {
+        // Its own payroll runs are cancelled through PLAN-56's API: a cancellation frees what the run applied. Every month's runs
+        // first: a difference carried from one month is applied by the next month's run, and is deleted only once that run let it go.
         foreach (var month in months)
         {
-            // Its own payroll runs are cancelled through PLAN-56's API: a cancellation frees what the run applied.
             var runs = (await Db(Payroll,
                 $"SELECT COALESCE(string_agg(\"Id\"::text || ':' || \"Status\", ','), '') FROM \"PayrollRuns\" WHERE \"TenantId\"='{TenantA}' " +
                 $"AND \"RunType\"='Regular' AND \"PeriodStart\"::date = '{Day(month)}' AND \"Status\" NOT IN (2, 5, 8);")).Split(',', StringSplitOptions.RemoveEmptyEntries);
@@ -230,7 +260,10 @@ public class AcLva57AttendancePeriodTests
                     new { reason = $"إعادة ضبط شهر {Ym(month)} قبل سيناريو AC-LVA-{s.Key}" });
                 Assert.True(cancelled == HttpStatusCode.OK, $"{step}: the run of {Ym(month)} left by an earlier run could not be cancelled ({(int)cancelled}): {Text(body, "error")}");
             }
+        }
 
+        foreach (var month in months)
+        {
             await Db(Payroll,
                 $"DELETE FROM \"AbsenceDeductions\" WHERE \"TenantId\"='{TenantA}' AND \"OriginalPeriodStart\"='{Day(month)}' AND \"AppliedInRunId\" IS NULL; " +
                 $"DELETE FROM \"AttendanceSummaryReceipts\" WHERE \"TenantId\"='{TenantA}' AND \"PeriodStart\"='{Day(month)}';");
@@ -242,6 +275,45 @@ public class AcLva57AttendancePeriodTests
                 $"DELETE FROM \"DailyAttendanceRecords\" WHERE \"TenantId\"='{TenantA}' AND \"AttendanceDate\" BETWEEN '{Day(month)}' AND '{Day(EndOf(month))}';");
         }
     }
+
+    /// <summary>
+    /// Test-only clean-up after an injected leave: payroll notes every leave decision as an adjustment of zero with no run, which the
+    /// agency's next regular run — another class's — would take. The notes of this leave are deleted once they arrived.
+    /// </summary>
+    private static async Task RemoveLeaveNotesAsync(Guid leave, int expected)
+    {
+        var mine = $"FROM \"PayrollAdjustments\" WHERE \"TenantId\"='{TenantA}' AND \"PayrollRunId\" IS NULL AND \"Amount\" = 0 AND \"AdjustmentReason\" LIKE '%LeaveRequestId={leave:D}%'";
+        await WaitAsync(async () => int.Parse(await Db(Payroll, $"SELECT count(*)::text {mine};"), CultureInfo.InvariantCulture) >= expected, 60);
+        await Db(Payroll, $"DELETE {mine};");
+    }
+
+    /// <summary>
+    /// The end of a scenario that calculated: its own runs are cancelled through PLAN-56's API (never deleted), so that no class
+    /// that looks for the agency's run in a state finds this class's; the cancellation frees what the runs applied, and a carried
+    /// difference among it is deleted (test-only), so that no other class's run takes it. Runs whatever the scenario's result.
+    /// </summary>
+    private static async Task EndRunsAsync(RecruitmentSession s, string step, params DateOnly[] months)
+    {
+        foreach (var month in months)
+        {
+            var runs = (await Db(Payroll,
+                $"SELECT COALESCE(string_agg(\"Id\"::text || ':' || \"Status\", ','), '') FROM \"PayrollRuns\" WHERE \"TenantId\"='{TenantA}' " +
+                $"AND \"RunType\"='Regular' AND \"PeriodStart\"::date = '{Day(month)}' AND \"Status\" NOT IN (2, 5, 8);")).Split(',', StringSplitOptions.RemoveEmptyEntries);
+            foreach (var run in runs)
+            {
+                var (id, status) = (run.Split(':')[0], int.Parse(run.Split(':')[1], CultureInfo.InvariantCulture));
+                using var api = await Api.PayrollAsync(s.Recorder, status is UnderReview or 4 ? Approver : Processor, s.Key);
+                await api.PostAsync($"{step}-end-cancel-{Ym(month)}", $"api/payroll/runs/{id}/cancel", new { reason = $"نهاية سيناريو AC-LVA-{s.Key}: تشغيل تجريبي لشهر {Ym(month)}" });
+            }
+        }
+
+        var mine = string.Join(",", months.Select(m => $"'{Day(m)}'"));
+        await Db(Payroll,
+            $"DELETE FROM \"AbsenceDeductions\" WHERE \"TenantId\"='{TenantA}' AND \"CarryForward\" AND \"AppliedInRunId\" IS NULL AND \"OriginalPeriodStart\" IN ({mine});");
+    }
+
+    private const string EndSteps =
+        "At the end, whatever the result: the scenario's own runs are cancelled through POST api/payroll/runs/{id}/cancel, and a carried difference a cancellation freed is deleted (psql, payroll_db), so that no other class's run finds or takes them.";
 
     private const string ResetSteps = """
         Test-only reset of the scenario's month(s), so a second run on the same stack gives the same numbers:
@@ -314,7 +386,8 @@ public class AcLva57AttendancePeriodTests
     {
         var (answered, body) = await ui.PostWithStatusAsync(step, $"{AttendanceUi}/BulkEntry", $"{AttendanceUi}/BulkEntry",
             F(("orgUnitId", unit), ("month", Ym(month)), ("defaultStatus", status)));
-        Assert.True(answered == HttpStatusCode.OK && body.Contains("الإدخال الجماعي", StringComparison.Ordinal),
+        // The success message («الإدخال الجماعي: N موظف، كُتب …»): the form's own title and hint do not carry the colon.
+        Assert.True(answered == HttpStatusCode.OK && body.Contains("الإدخال الجماعي: ", StringComparison.Ordinal),
             $"{step}: the bulk entry of {Ym(month)} answered {(int)answered}: {Snip(body)}");
     }
 
@@ -365,9 +438,8 @@ public class AcLva57AttendancePeriodTests
     {
         var profile = await Db(Payroll,
             $"SELECT count(*)::text FROM \"EmployeePayProfiles\" WHERE \"TenantId\"='{TenantA}' AND \"EmployeeId\"='{Employee}' AND \"IsActive\";");
-        var unit = await Db(Core, $"SELECT COALESCE((SELECT \"PrimaryOrgUnitId\"::text FROM \"Employees\" WHERE \"Id\"='{Employee}'), '');");
-        AcceptanceGate.RequireData(s.Recorder, profile == "1" && unit == Rif,
-            "موظف فرع ريف دمشق في البذرة بلا ملف أجر فعّال أو خارج وحدته", "The seeded RIF employee has no active pay profile or is not in RIF; run scripts/acceptance-reset.ps1.");
+        AcceptanceGate.RequireData(s.Recorder, profile == "1" && await InTreeAsync(Employee, Rif),
+            "موظف فرع ريف دمشق في البذرة بلا ملف أجر فعّال أو خارج شجرة الفرع", "The seeded RIF employee has no active pay profile or is not in RIF's tree; run scripts/acceptance-reset.ps1.");
     }
 
     // ---------------------------------------------------------------- 57a
@@ -387,8 +459,10 @@ public class AcLva57AttendancePeriodTests
                date. No screen ends a service on a past date.
             2. br1-mgr fills January 2025 for his unit by the bulk entry («حاضر»): working days only, for the unit and its sub-unit.
             3. br1-mgr edits two days of the RIF employee to «غائب» (6 and 7 January), then closes January for his unit.
-            4. Positive: every employee of the tree in service has a summary at version 1 with 22 working days, the sub-unit's employee
-               among them; the employee who left has one with the working days up to 15 January; the RIF employee's has 2 absent days.
+            4. Positive: every employee the close covers (the unit's tree, as the service's own rule reads it) has a summary at
+               version 1 with no working day unrecorded, and there is no other summary; the two seeded employees, who sit in two
+               directorates below the branch, have the month's 22 working days; the employee who left has the working days up to
+               15 January; the RIF employee's summary has 2 absent days.
                Payroll holds a receipt for each summary, and an absence row of 2 days for the RIF employee keyed ATT:<summary>:v1.
             5. Negative: br1-mgr edits a day of the closed month → refused with «اليوم ضمن فترة حضور مغلقة», the record unchanged;
                he creates a record on a locked day → refused, no record. br2-mgr closes br1's unit → 403, nothing written.
@@ -399,18 +473,17 @@ public class AcLva57AttendancePeriodTests
         // The leaver: written once (a later run of the class finds him).
         if (await Db(Core, $"SELECT count(*)::text FROM \"Employees\" WHERE \"Id\"='{Leaver}';") == "0")
         {
-            var ended = await Db(Core, "SELECT CASE WHEN pg_typeof(\"CurrentStatus\")::text = 'integer' THEN '2' ELSE '\"Terminated\"' END FROM \"Employees\" LIMIT 1;");
             await Db(Core,
                 "INSERT INTO \"Employees\" SELECT (jsonb_populate_record(NULL::\"Employees\", to_jsonb(e) || jsonb_build_object(" +
                 $"'Id', '{Leaver}', 'NationalId', '57{Leaver[^10..]}', 'NationalIdHash', md5('{Leaver}'), 'FirstName', 'منتهي', 'LastName', 'الخدمة', " +
                 "'FullName', 'منتهي الخدمة في كانون الثاني', 'FirstNameNormalized', 'منتهي', 'LastNameNormalized', 'الخدمه', 'FullNameNormalized', 'منتهي الخدمه في كانون الثاني', " +
-                $"'HireDate', '2020-01-01T00:00:00+00:00', 'CurrentStatus', {ended}::jsonb))).* FROM \"Employees\" e WHERE e.\"Id\"='{Employee}'; " +
+                $"'HireDate', '2020-01-01T00:00:00+00:00', 'CurrentStatus', 2))).* FROM \"Employees\" e WHERE e.\"Id\"='{Employee}'; " +
                 "INSERT INTO \"EmploymentStatusHistories\" (\"Id\",\"TenantId\",\"CreatedAt\",\"UpdatedAt\",\"EmployeeId\",\"OldStatus\",\"NewStatus\",\"ChangedAt\",\"Reason\") " +
                 $"VALUES (gen_random_uuid(), '{TenantA}', now(), now(), '{Leaver}', 'Active', 'Terminated', '2025-01-15T09:00:00+00:00', 'انتهاء الخدمة — AC-LVA-57a');");
         }
 
         var tree = (await TreeEmployeesAsync(Rif, month)).Split(',', StringSplitOptions.RemoveEmptyEntries);
-        AcceptanceGate.RequireData(s.Recorder, tree.Contains(Employee) && tree.Contains(SubUnitEmployee),
+        AcceptanceGate.RequireData(s.Recorder, tree.Contains(Employee) && tree.Contains(SubUnitEmployee) && tree.Contains(Leaver),
             "شجرة فرع ريف دمشق لا تضم موظفي البذرة", "RIF's tree does not hold the seeded employees; run scripts/acceptance-reset.ps1.");
         s.Recorder.WriteBefore(new { scenario = "57a", explicitDomainSnapshot = true, month = Ym(month), employeesInTheTree = tree.Length, leaver = Leaver });
 
@@ -422,7 +495,7 @@ public class AcLva57AttendancePeriodTests
         var withoutSummary = await Db(Core,
             "SELECT count(*)::text FROM \"Employees\" e WHERE e.\"Id\" IN (" + string.Join(",", tree.Select(id => $"'{id}'")) + ") AND NOT EXISTS (" +
             "SELECT 1 FROM \"AttendanceEmployeeSummaries\" x JOIN \"AttendancePeriods\" p ON p.\"Id\" = x.\"AttendancePeriodId\" " +
-            $"WHERE x.\"EmployeeId\" = e.\"Id\" AND p.\"PeriodStart\"='{Day(month)}' AND x.\"Version\" = 1 AND x.\"WorkingDays\" = {working} AND x.\"UnrecordedWorkingDays\" = 0);");
+            $"WHERE x.\"EmployeeId\" = e.\"Id\" AND p.\"PeriodStart\"='{Day(month)}' AND x.\"Version\" = 1 AND x.\"UnrecordedWorkingDays\" = 0);");
         var employee = await ReadSummaryAsync(Employee, month);
         var subUnit = await ReadSummaryAsync(SubUnitEmployee, month);
         var leaver = await ReadSummaryAsync(Leaver, month);
@@ -458,9 +531,9 @@ public class AcLva57AttendancePeriodTests
             tree = tree.Length,
             working,
             withoutSummary,
-            employee,
-            subUnit,
-            leaver,
+            employee = employee.ToString(),
+            subUnit = subUnit.ToString(),
+            leaver = leaver.ToString(),
             leaverWorking,
             summaries,
             receipts,
@@ -477,7 +550,11 @@ public class AcLva57AttendancePeriodTests
             summariesAfterForeign
         });
 
+        // One summary per employee of the tree and no other: the two seeded employees have the month's 22 working days (an employee
+        // hired inside January has fewer, and so has the one who left).
         Assert.Equal("0", withoutSummary);
+        Assert.Equal(tree.Length.ToString(CultureInfo.InvariantCulture), summaries);
+        Assert.Equal(22, working);
         Assert.Equal((1, working, working - 2, 2), (employee.Version, employee.Working, employee.Present, employee.Absent));
         Assert.Equal((1, working, working, 0), (subUnit.Version, subUnit.Working, subUnit.Present, subUnit.Absent));
         Assert.Equal((1, leaverWorking, leaverWorking, 0), (leaver.Version, leaver.Working, leaver.Present, leaver.Absent));
@@ -514,14 +591,17 @@ public class AcLva57AttendancePeriodTests
                February; each employee has the 18 working days.
             3. Test-only (psql): one of those days is deleted for one employee. The close is refused again (409) and lists that employee
                with one day. br1-mgr creates the day on the screen, and the close succeeds: 18 working days and 18 absent days each.
-            4. «No future day»: br1-mgr fills the current month for the sub-unit; no record is dated after today (Damascus). Test-only
-               (psql): the current month's records of the sub-unit are deleted again.
+            4. «No future day»: br1-mgr fills the current month for the sub-unit; no record is dated after today (Damascus), and each
+               employee of the sub-unit has the working days up to today. Test-only (psql): the records that bulk entry wrote are
+               deleted again.
             """);
         await ResetMonthAsync(s, "57b", month);
         var people = (await TreeEmployeesAsync(RifHr, month)).Split(',', StringSplitOptions.RemoveEmptyEntries);
-        AcceptanceGate.RequireData(s.Recorder, people.Length > 0 && people.Contains(SubUnitEmployee),
+        AcceptanceGate.RequireData(s.Recorder, people.Length > 0,
             "الوحدة الفرعية لفرع ريف دمشق بلا موظفين", "RIF's sub-unit has no employee; run scripts/acceptance-reset.ps1.");
         var ids = string.Join(",", people.Select(id => $"'{id}'"));
+        // The employee whose day goes missing: the first of the sub-unit's tree.
+        var one = people[0];
         using var api = await Api.AttendanceAsync(s.Recorder, Br1, "57b");
 
         var (empty, emptyBody, _) = await api.PostAsync("close-with-no-record", $"{PeriodsApi}/{Ym(month)}/close", new { orgUnitId = RifHr });
@@ -539,7 +619,7 @@ public class AcLva57AttendancePeriodTests
 
         // One working day goes missing for one employee: the close names him.
         var gap = working[3];
-        await Db(Core, $"DELETE FROM \"DailyAttendanceRecords\" WHERE \"EmployeeId\"='{SubUnitEmployee}' AND \"AttendanceDate\"='{Day(gap)}';");
+        await Db(Core, $"DELETE FROM \"DailyAttendanceRecords\" WHERE \"EmployeeId\"='{one}' AND \"AttendanceDate\"='{Day(gap)}';");
         var (incomplete, incompleteBody, _) = await api.PostAsync("close-with-a-gap", $"{PeriodsApi}/{Ym(month)}/close", new { orgUnitId = RifHr });
         var listed = incompleteBody.ValueKind == JsonValueKind.Object && incompleteBody.TryGetProperty("incomplete", out var list)
             ? list.EnumerateArray().Select(i => $"{i.GetProperty("employeeId").GetGuid():D}:{i.GetProperty("unrecordedWorkingDays").GetInt32()}").ToArray()
@@ -548,21 +628,28 @@ public class AcLva57AttendancePeriodTests
         var receiptsAfterGap = await ReceiptCountAsync(month);
 
         var (recreated, recreatedBody) = await s[Br1].PostWithStatusAsync("57b-create-the-day", $"{AttendanceUi}/Create", $"{AttendanceUi}/Create",
-            F(("EmployeeId", SubUnitEmployee), ("AttendanceDate", Day(gap)), ("Status", "Absent"), ("Notes", "استكمال يوم ناقص")));
+            F(("EmployeeId", one), ("AttendanceDate", Day(gap)), ("Status", "Absent"), ("Notes", "استكمال يوم ناقص")));
         var (closed, closedBody, _) = await api.PostAsync("close-complete", $"{PeriodsApi}/{Ym(month)}/close", new { orgUnitId = RifHr });
-        var summary = await ReadSummaryAsync(SubUnitEmployee, month);
+        var summary = await ReadSummaryAsync(one, month);
 
-        // No future day: the current month, then its records are removed again.
+        // No future day: the current month, then what the bulk entry wrote is removed again. The month has its own people (a later
+        // hire is in, an ended service is out), and a day that had a record is skipped.
         var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, HRManagement.ServiceDefaults.Localization.HrLocalTime.Zone));
         var current = new DateOnly(today.Year, today.Month, 1);
+        var currentPeople = (await TreeEmployeesAsync(RifHr, current)).Split(',', StringSplitOptions.RemoveEmptyEntries);
+        var currentIds = string.Join(",", currentPeople.Select(id => $"'{id}'"));
+        var started = DateTime.UtcNow.AddSeconds(-5).ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture);
         var before = await Db(Core,
-            $"SELECT count(*)::text FROM \"DailyAttendanceRecords\" WHERE \"EmployeeId\" IN ({ids}) AND \"AttendanceDate\" BETWEEN '{Day(current)}' AND '{Day(EndOf(current))}';");
+            $"SELECT count(*)::text FROM \"DailyAttendanceRecords\" WHERE \"EmployeeId\" IN ({currentIds}) AND \"AttendanceDate\" BETWEEN '{Day(current)}' AND '{Day(today)}' " +
+            "AND extract(dow from \"AttendanceDate\") NOT IN (5, 6);");
         await BulkAsync(s[Br1], "57b-bulk-current-month", RifHr, current, "Present");
-        var future = await Db(Core, $"SELECT count(*)::text FROM \"DailyAttendanceRecords\" WHERE \"EmployeeId\" IN ({ids}) AND \"AttendanceDate\" > '{Day(today)}';");
+        var future = await Db(Core, $"SELECT count(*)::text FROM \"DailyAttendanceRecords\" WHERE \"EmployeeId\" IN ({currentIds}) AND \"AttendanceDate\" > '{Day(today)}';");
         var written = await Db(Core,
-            $"SELECT count(*)::text FROM \"DailyAttendanceRecords\" WHERE \"EmployeeId\" IN ({ids}) AND \"AttendanceDate\" BETWEEN '{Day(current)}' AND '{Day(today)}' AND \"Source\" = 1;");
+            $"SELECT count(*)::text FROM \"DailyAttendanceRecords\" WHERE \"EmployeeId\" IN ({currentIds}) AND \"AttendanceDate\" BETWEEN '{Day(current)}' AND '{Day(today)}' " +
+            $"AND \"Source\" = 1 AND \"CreatedAt\" >= '{started}';");
         await Db(Core,
-            $"DELETE FROM \"DailyAttendanceRecords\" WHERE \"EmployeeId\" IN ({ids}) AND \"AttendanceDate\" BETWEEN '{Day(current)}' AND '{Day(EndOf(current))}' AND \"Source\" = 1;");
+            $"DELETE FROM \"DailyAttendanceRecords\" WHERE \"TenantId\"='{TenantA}' AND \"AttendanceDate\" BETWEEN '{Day(current)}' AND '{Day(EndOf(current))}' " +
+            $"AND \"Source\" = 1 AND \"CreatedAt\" >= '{started}';");
 
         await s.AuditAsync(summary.Id);
         s.Checks(new
@@ -582,7 +669,7 @@ public class AcLva57AttendancePeriodTests
             receiptsAfterGap,
             recreated = (int)recreated,
             closed = (int)closed,
-            summary,
+            summary = summary.ToString(),
             currentMonth = Ym(current),
             recordsBefore = before,
             future,
@@ -597,7 +684,7 @@ public class AcLva57AttendancePeriodTests
         Assert.Equal("0", onRestDays);
         Assert.Equal("18", perEmployee);
         Assert.Equal(HttpStatusCode.Conflict, incomplete);
-        Assert.Equal([$"{SubUnitEmployee}:1"], listed);
+        Assert.Equal([$"{one}:1"], listed);
         Assert.Equal(("0", "0"), (summariesAfterGap, receiptsAfterGap));
         Assert.True(recreated == HttpStatusCode.OK, Snip(recreatedBody));
         Assert.True(closed == HttpStatusCode.OK, Text(closedBody, "error"));
@@ -605,7 +692,7 @@ public class AcLva57AttendancePeriodTests
         // The close counts working days only: 18, all of them absent.
         Assert.Equal((1, 18, 0, 18), (summary.Version, summary.Working, summary.Present, summary.Absent));
         Assert.Equal("0", future);
-        Assert.Equal((WorkingDays(current, today).Count * people.Length).ToString(CultureInfo.InvariantCulture), written);
+        Assert.Equal((WorkingDays(current, today).Count * currentPeople.Length - int.Parse(before, CultureInfo.InvariantCulture)).ToString(CultureInfo.InvariantCulture), written);
         s.Recorder.WriteResult("Pass");
     }
 
@@ -621,6 +708,7 @@ public class AcLva57AttendancePeriodTests
             Br1, Central, Central2, Processor, Approver);
         s.Steps($"""
             {ResetSteps}
+            {EndSteps}
             1. br1-mgr fills March 2025 for his unit («حاضر»), marks 4 and 5 March «غائب» for the RIF employee, and closes the unit:
                version 1 with 2 absent days; payroll holds a row of +2.
             2. Negative: br1-mgr asks for a correction with a reason of 8 characters → refused on the form, no request.
@@ -635,103 +723,115 @@ public class AcLva57AttendancePeriodTests
             """);
         await RequireEmployeeAsync(s);
         await ResetMonthAsync(s, "57c", month);
-        var absences = new[] { new DateOnly(2025, 3, 4), new DateOnly(2025, 3, 5) };
-        await FillAndCloseAsync(s, "57c", month, absences);
-        var v1 = await ReadSummaryAsync(Employee, month);
-        var firstRow = await WaitAsync(async () => await RowsAsync(v1.Id) == "1:2:false:free");
-
-        var (shortStatus, shortBody, shortId) = await RequestCorrectionAsync(s[Br1], "57c-short-reason", Employee, absences[0], "Present", "سبب قصير");
-        var (asked, askedBody, correction) = await RequestCorrectionAsync(s[Br1], "57c-request", Employee, absences[0], "Present", CorrectionReason);
-        Assert.True(Guid.TryParse(correction, out _), $"57c: the correction was not asked ({(int)asked}): {Snip(askedBody)}");
-        var (byBranch, _) = await DecideAsync(s[Br1], "57c-approve-by-branch", correction, approve: true, "أعتمد طلبي");
-        var afterBranch = await CorrectionAsync(correction);
-
-        var (approved, approvedBody) = await DecideAsync(s[Central], "57c-approve", correction, approve: true, "مطابق لكتاب المهمة");
-        var decided = await CorrectionAsync(correction);
-        var v2 = await ReadSummaryAsync(Employee, month);
-        var day = await RecordAsync(Employee, absences[0]);
-        var difference = await WaitAsync(async () => await RowsAsync(v1.Id) == "1:2:false:free,2:-1:false:free");
-        var rows = await RowsAsync(v1.Id);
-        var receipt = await ReceiptAsync(v1.Id);
-
-        // The requester never decides his own request, whatever his roles.
-        var ownDay = new DateOnly(2025, 3, 6);
-        var (ownAsked, ownAskedBody, own) = await RequestCorrectionAsync(s[Central], "57c-own-request", Employee, ownDay, "Remote", CorrectionReason);
-        Assert.True(Guid.TryParse(own, out _), $"57c: central-a's own request was not asked ({(int)ownAsked}): {Snip(ownAskedBody)}");
-        var (ownApproval, ownApprovalBody) = await DecideAsync(s[Central], "57c-approve-own", own, approve: true, "أعتمد طلبي");
-        var ownAfter = await CorrectionAsync(own);
-        var ownDayAfter = await RecordAsync(Employee, ownDay);
-        var versionAfterOwn = (await ReadSummaryAsync(Employee, month)).Version;
-        var (rejected, _) = await DecideAsync(s[Central2], "57c-reject-own", own, approve: false, "لا مستند مرفق");
-        var ownRejected = await CorrectionAsync(own);
-
-        using var processor = await Api.PayrollAsync(s.Recorder, Processor, "57c");
-        var run = await CreateRunAsync(processor, "57c", month);
-        await CalculateAsync(processor, "57c", run);
-        var line = (await LineAsync(run, Employee)).Split('|');
-        var components = await AttendanceComponentsAsync(line[0]);
-        var applied = await RowsAsync(v1.Id);
-        var parts = components.Split(';').Select(c => (Name: c.Split('=')[0], Amount: decimal.Parse(c.Split('=')[1], CultureInfo.InvariantCulture))).ToList();
-
-        await s.AuditAsync(correction, own, v1.Id);
-        s.Checks(new
+        try
         {
-            month = Ym(month),
-            v1,
-            shortStatus = (int)shortStatus,
-            shortId,
-            correction,
-            byBranch = (int)byBranch,
-            afterBranch,
-            approved = (int)approved,
-            decided,
-            v2,
-            day,
-            rows,
-            receipt,
-            own,
-            ownApproval = (int)ownApproval,
-            ownAfter,
-            ownDayAfter,
-            versionAfterOwn,
-            rejected = (int)rejected,
-            ownRejected,
-            run,
-            runRow = await RunRowAsync(run),
-            line,
-            components,
-            applied
-        });
+            var absences = new[] { new DateOnly(2025, 3, 4), new DateOnly(2025, 3, 5) };
+            await FillAndCloseAsync(s, "57c", month, absences);
+            var v1 = await ReadSummaryAsync(Employee, month);
+            var firstRow = await WaitAsync(async () => await RowsAsync(v1.Id) == "1:2:false:free");
 
-        Assert.Equal((1, 2), (v1.Version, v1.Absent));
-        Assert.True(firstRow, "57c: payroll did not record the close's two days.");
-        Assert.Contains("لا يقل عن 15 حرفاً", shortBody);
-        Assert.Equal("", shortId);
-        Assert.Equal(HttpStatusCode.Forbidden, byBranch);
-        Assert.StartsWith("0|", afterBranch);
-        Assert.True(approved == HttpStatusCode.OK, Snip(approvedBody));
-        // Approved (1): absent (1) → present (0), version 2, asked by one person and decided by another.
-        var decision = decided.Split('|');
-        Assert.Equal(("1", "1", "0", "2", "0"), (decision[0], decision[1], decision[2], decision[3], decision[4]));
-        Assert.NotEqual(decision[5], decision[6]);
-        Assert.Equal((2, 1), (v2.Version, v2.Absent));
-        Assert.Equal(v1.Id, v2.Id);
-        // The day: present (0), written by a correction (3), still the employee's and the day's.
-        Assert.Equal($"0|3|{Employee}|{Day(absences[0])}", day[(day.IndexOf('|') + 1)..]);
-        Assert.True(difference, $"57c: payroll's rows are {rows}.");
-        Assert.Equal("2|1|1", receipt);
-        Assert.Contains("لا يبتّ مقدّم الطلب في طلبه", ownApprovalBody);
-        Assert.StartsWith("0|", ownAfter);
-        Assert.Equal(2, versionAfterOwn);
-        Assert.EndsWith($"|0|1|{Employee}|{Day(ownDay)}", ownDayAfter);
-        Assert.True(rejected == HttpStatusCode.OK);
-        Assert.StartsWith("2|", ownRejected);
-        // The run: two days deducted, one refunded, both rows applied in it.
-        Assert.Equal(2, parts.Count);
-        Assert.True(parts[0].Amount < 0 && parts[1].Amount > 0, components);
-        Assert.Equal(-parts[0].Amount / 2, parts[1].Amount);
-        Assert.Equal($"استرداد خصم غياب — فترة {Ym(month)}", parts[1].Name);
-        Assert.Equal($"1:2:false:{run},2:-1:false:{run}", applied);
+            // The form states the rule as a hint: a refusal is the rule once more, as the form's error.
+            const string shortReasonRule = "لا يقل عن 15 حرفاً";
+            var correctionForm = await s[Br1].GetAsync("57c-correction-form", $"{CorrectionsUi}/Create?employeeId={Employee}&date={Day(absences[0])}");
+            var (shortStatus, shortBody, shortId) = await RequestCorrectionAsync(s[Br1], "57c-short-reason", Employee, absences[0], "Present", "سبب قصير");
+            var (asked, askedBody, correction) = await RequestCorrectionAsync(s[Br1], "57c-request", Employee, absences[0], "Present", CorrectionReason);
+            Assert.True(Guid.TryParse(correction, out _), $"57c: the correction was not asked ({(int)asked}): {Snip(askedBody)}");
+            var (byBranch, _) = await DecideAsync(s[Br1], "57c-approve-by-branch", correction, approve: true, "أعتمد طلبي");
+            var afterBranch = await CorrectionAsync(correction);
+
+            var (approved, approvedBody) = await DecideAsync(s[Central], "57c-approve", correction, approve: true, "مطابق لكتاب المهمة");
+            var decided = await CorrectionAsync(correction);
+            var v2 = await ReadSummaryAsync(Employee, month);
+            var day = await RecordAsync(Employee, absences[0]);
+            var difference = await WaitAsync(async () => await RowsAsync(v1.Id) == "1:2:false:free,2:-1:false:free");
+            var rows = await RowsAsync(v1.Id);
+            var receipt = await ReceiptAsync(v1.Id);
+
+            // The requester never decides his own request, whatever his roles.
+            var ownDay = new DateOnly(2025, 3, 6);
+            var (ownAsked, ownAskedBody, own) = await RequestCorrectionAsync(s[Central], "57c-own-request", Employee, ownDay, "Remote", CorrectionReason);
+            Assert.True(Guid.TryParse(own, out _), $"57c: central-a's own request was not asked ({(int)ownAsked}): {Snip(ownAskedBody)}");
+            var (ownApproval, ownApprovalBody) = await DecideAsync(s[Central], "57c-approve-own", own, approve: true, "أعتمد طلبي");
+            var ownAfter = await CorrectionAsync(own);
+            var ownDayAfter = await RecordAsync(Employee, ownDay);
+            var versionAfterOwn = (await ReadSummaryAsync(Employee, month)).Version;
+            var (rejected, _) = await DecideAsync(s[Central2], "57c-reject-own", own, approve: false, "لا مستند مرفق");
+            var ownRejected = await CorrectionAsync(own);
+
+            using var processor = await Api.PayrollAsync(s.Recorder, Processor, "57c");
+            var run = await CreateRunAsync(processor, "57c", month);
+            await CalculateAsync(processor, "57c", run);
+            var line = (await LineAsync(run, Employee)).Split('|');
+            var components = await AttendanceComponentsAsync(line[0]);
+            var applied = await RowsAsync(v1.Id);
+            var parts = components.Split(';').Select(c => (Name: c.Split('=')[0], Amount: decimal.Parse(c.Split('=')[1], CultureInfo.InvariantCulture))).ToList();
+
+            await s.AuditAsync(correction, own, v1.Id);
+            s.Checks(new
+            {
+                month = Ym(month),
+                v1 = v1.ToString(),
+                shortStatus = (int)shortStatus,
+                shortId,
+                correction,
+                byBranch = (int)byBranch,
+                afterBranch,
+                approved = (int)approved,
+                decided,
+                v2 = v2.ToString(),
+                day,
+                rows,
+                receipt,
+                own,
+                ownApproval = (int)ownApproval,
+                ownAfter,
+                ownDayAfter,
+                versionAfterOwn,
+                rejected = (int)rejected,
+                ownRejected,
+                run,
+                runRow = await RunRowAsync(run),
+                line,
+                components,
+                applied
+            });
+
+            Assert.Equal((1, 2), (v1.Version, v1.Absent));
+            Assert.True(firstRow, "57c: payroll did not record the close's two days.");
+            Assert.True(Count(shortBody, shortReasonRule) > Count(correctionForm, shortReasonRule), "57c: the short reason was not refused on the form.");
+            Assert.Equal("", shortId);
+            Assert.Equal(HttpStatusCode.Forbidden, byBranch);
+            Assert.StartsWith("0|", afterBranch);
+            Assert.True(approved == HttpStatusCode.OK, Snip(approvedBody));
+            // Approved (1): absent (1) → present (0), version 2, asked by one person and decided by another.
+            var decision = decided.Split('|');
+            Assert.Equal(("1", "1", "0", "2", "0"), (decision[0], decision[1], decision[2], decision[3], decision[4]));
+            Assert.NotEqual(decision[5], decision[6]);
+            Assert.Equal((2, 1), (v2.Version, v2.Absent));
+            Assert.Equal(v1.Id, v2.Id);
+            // The day: present (0), written by a correction (3), still the employee's and the day's.
+            Assert.Equal($"0|3|{Employee}|{Day(absences[0])}", day[(day.IndexOf('|') + 1)..]);
+            Assert.True(difference, $"57c: payroll's rows are {rows}.");
+            Assert.Equal("2|1|1", receipt);
+            Assert.Contains("لا يبتّ مقدّم الطلب في طلبه", ownApprovalBody);
+            Assert.StartsWith("0|", ownAfter);
+            Assert.Equal(2, versionAfterOwn);
+            Assert.EndsWith($"|0|1|{Employee}|{Day(ownDay)}", ownDayAfter);
+            Assert.True(rejected == HttpStatusCode.OK);
+            Assert.StartsWith("2|", ownRejected);
+            // The run: two days deducted, one refunded, both rows applied in it.
+            Assert.Equal(2, parts.Count);
+            Assert.True(parts[0].Amount < 0 && parts[1].Amount > 0, components);
+            // One day back of the two: each amount is rounded on its own, so the half is compared to the cent.
+            Assert.InRange(parts[1].Amount + parts[0].Amount / 2, -0.01m, 0.01m);
+            Assert.Equal($"استرداد خصم غياب — فترة {Ym(month)}", parts[1].Name);
+            Assert.Equal($"1:2:false:{run},2:-1:false:{run}", applied);
+        }
+        finally
+        {
+            await EndRunsAsync(s, "57c", month);
+        }
+
         s.Recorder.WriteResult("Pass");
     }
 
@@ -748,6 +848,7 @@ public class AcLva57AttendancePeriodTests
             Br1, Central, Processor, Approver);
         s.Steps($"""
             {ResetSteps}
+            {EndSteps}
             1. br1-mgr fills April 2025 for his unit («حاضر») and closes it: version 1 with no absence, a receipt in payroll and no row.
             2. payroll-processor creates and calculates the run of April 2025 and submits it for review: it is frozen (PLAN-56).
             3. br1-mgr asks to correct 8 April to «غائب»; central-a approves: version 2 with 1 absent day. Payroll records a row of +1
@@ -759,101 +860,113 @@ public class AcLva57AttendancePeriodTests
             """);
         await RequireEmployeeAsync(s);
         await ResetMonthAsync(s, "57d", month, next);
-        await FillAndCloseAsync(s, "57d", month);
-        var v1 = await ReadSummaryAsync(Employee, month);
-        Assert.True(await WaitAsync(async () => await ReceiptAsync(v1.Id) == "1|0|0"), "57d: payroll did not receive April's summary.");
-
-        using var processor = await Api.PayrollAsync(s.Recorder, Processor, "57d");
-        var april = await CreateRunAsync(processor, "57d-april", month);
-        await CalculateAsync(processor, "57d-april", april);
-        var (submitted, submittedBody, _) = await processor.PostAsync("april-submit", $"api/payroll/runs/{april}/submit-for-review");
-        Assert.True(submitted == HttpStatusCode.OK, $"57d: submitting April answered {(int)submitted}: {Text(submittedBody, "error")}");
-        var frozenRun = await RunRowAsync(april);
-        var frozenLine = await LineAsync(april, Employee);
-
-        var day = new DateOnly(2025, 4, 8);
-        var (asked, askedBody, correction) = await RequestCorrectionAsync(s[Br1], "57d-request", Employee, day, "Absent", "لم يحضر ولم يقدّم عذراً بحسب سجل البوابة");
-        Assert.True(Guid.TryParse(correction, out _), $"57d: the correction was not asked ({(int)asked}): {Snip(askedBody)}");
-        var (approved, approvedBody) = await DecideAsync(s[Central], "57d-approve", correction, approve: true, "مطابق لسجل البوابة");
-        Assert.True(approved == HttpStatusCode.OK, Snip(approvedBody));
-        var v2 = await ReadSummaryAsync(Employee, month);
-        var carried = await WaitAsync(async () => await RowsAsync(v1.Id) == "2:1:true:free");
-        var rowsAfterCorrection = await RowsAsync(v1.Id);
-        var runAfterCorrection = await RunRowAsync(april);
-        var lineAfterCorrection = await LineAsync(april, Employee);
-        var (statusBefore, statusBeforeBody, _) = await processor.GetAsync("april-attendance-status", $"api/payroll/runs/{april}/attendance-status", capture: false);
-
-        var may = await CreateRunAsync(processor, "57d-may", next);
-        await CalculateAsync(processor, "57d-may", may);
-        var mayLine = (await LineAsync(may, Employee)).Split('|');
-        var components = await AttendanceComponentsAsync(mayLine[0]);
-        var rowsAfterMay = await RowsAsync(v1.Id);
-        var (mayStatus, mayStatusBody, _) = await processor.GetAsync("may-attendance-status", $"api/payroll/runs/{may}/attendance-status", capture: false);
-        var aprilAtTheEnd = await RunRowAsync(april);
-        var aprilLineAtTheEnd = await LineAsync(april, Employee);
-
-        // The same version again under a new message id, then the older version after it.
-        var period = await Db(Core, $"SELECT \"Id\"::text FROM \"AttendancePeriods\" WHERE \"TenantId\"='{TenantA}' AND \"PeriodStart\"='{Day(month)}';");
-        var correlation = Guid.NewGuid().ToString("D");
-        await AcceptanceMessagingHelper.PublishAttendanceSummaryAsync(
-            AcceptanceSeedIds.AgencyAId, Guid.Parse(v1.Id), 2, Guid.Parse(period), month, EndOf(month), AcceptanceSeedIds.EmpBr1Id,
-            v2.Working, v2.Present, v2.Absent, 0, 0, 0, "Correction", correlation);
-        await AcceptanceMessagingHelper.PublishAttendanceSummaryAsync(
-            AcceptanceSeedIds.AgencyAId, Guid.Parse(v1.Id), 1, Guid.Parse(period), month, EndOf(month), AcceptanceSeedIds.EmpBr1Id,
-            v1.Working, v1.Present, v1.Absent, 0, 0, 0, "Close", correlation);
-        await Task.Delay(TimeSpan.FromSeconds(8));
-        var rowsAfterReplay = await RowsAsync(v1.Id);
-        var receiptAfterReplay = await ReceiptAsync(v1.Id);
-        var freeCarried = await Db(Payroll,
-            $"SELECT count(*)::text FROM \"AbsenceDeductions\" WHERE \"TenantId\"='{TenantA}' AND \"CarryForward\" AND \"AppliedInRunId\" IS NULL AND \"SourceReference\" LIKE 'ATT:%';");
-
-        await s.AuditAsync(correction, v1.Id);
-        s.Checks(new
+        try
         {
-            month = Ym(month),
-            next = Ym(next),
-            v1,
-            april,
-            frozenRun,
-            frozenLine,
-            correction,
-            v2,
-            rowsAfterCorrection,
-            runAfterCorrection,
-            lineAfterCorrection,
-            statusBefore = (int)statusBefore,
-            carryForwardPending = statusBeforeBody.GetProperty("carryForwardPending").GetInt32(),
-            may,
-            mayLine,
-            components,
-            rowsAfterMay,
-            mayStatus = (int)mayStatus,
-            carryForwardApplied = mayStatusBody.GetProperty("carryForwardApplied").GetInt32(),
-            aprilAtTheEnd,
-            aprilLineAtTheEnd,
-            rowsAfterReplay,
-            receiptAfterReplay,
-            freeCarried
-        });
+            await FillAndCloseAsync(s, "57d", month);
+            var v1 = await ReadSummaryAsync(Employee, month);
+            Assert.True(await WaitAsync(async () => await ReceiptAsync(v1.Id) == "1|0|0"), "57d: payroll did not receive April's summary.");
 
-        Assert.Equal((1, 0), (v1.Version, v1.Absent));
-        Assert.StartsWith($"{UnderReview}|", frozenRun);
-        Assert.Equal((2, 1), (v2.Version, v2.Absent));
-        Assert.True(carried, $"57d: payroll's rows are {rowsAfterCorrection}.");
-        // April did not move: not after the correction, and not after May took the difference.
-        Assert.Equal((frozenRun, frozenLine), (runAfterCorrection, lineAfterCorrection));
-        Assert.Equal((frozenRun, frozenLine), (aprilAtTheEnd, aprilLineAtTheEnd));
-        Assert.True(statusBeforeBody.GetProperty("carryForwardPending").GetInt32() >= 1);
-        // May carries it, by name, once.
-        var item = components.Split('=');
-        Assert.Equal($"فرق غياب عن فترة {Ym(month)}", item[0]);
-        Assert.True(decimal.Parse(item[1], CultureInfo.InvariantCulture) < 0, components);
-        Assert.Equal($"2:1:true:{may}", rowsAfterMay);
-        Assert.True(mayStatusBody.GetProperty("carryForwardApplied").GetInt32() >= 1);
-        // A version is recorded once, and an older one is ignored.
-        Assert.Equal(rowsAfterMay, rowsAfterReplay);
-        Assert.Equal("2|1|1", receiptAfterReplay);
-        Assert.Equal("0", freeCarried);
+            using var processor = await Api.PayrollAsync(s.Recorder, Processor, "57d");
+            var april = await CreateRunAsync(processor, "57d-april", month);
+            await CalculateAsync(processor, "57d-april", april);
+            var (submitted, submittedBody, _) = await processor.PostAsync("april-submit", $"api/payroll/runs/{april}/submit-for-review");
+            Assert.True(submitted == HttpStatusCode.OK, $"57d: submitting April answered {(int)submitted}: {Text(submittedBody, "error")}");
+            var frozenRun = await RunRowAsync(april);
+            var frozenLine = await LineAsync(april, Employee);
+
+            var day = new DateOnly(2025, 4, 8);
+            var (asked, askedBody, correction) = await RequestCorrectionAsync(s[Br1], "57d-request", Employee, day, "Absent", "لم يحضر ولم يقدّم عذراً بحسب سجل البوابة");
+            Assert.True(Guid.TryParse(correction, out _), $"57d: the correction was not asked ({(int)asked}): {Snip(askedBody)}");
+            var (approved, approvedBody) = await DecideAsync(s[Central], "57d-approve", correction, approve: true, "مطابق لسجل البوابة");
+            Assert.True(approved == HttpStatusCode.OK, Snip(approvedBody));
+            var v2 = await ReadSummaryAsync(Employee, month);
+            var carried = await WaitAsync(async () => await RowsAsync(v1.Id) == "2:1:true:free");
+            var rowsAfterCorrection = await RowsAsync(v1.Id);
+            var runAfterCorrection = await RunRowAsync(april);
+            var lineAfterCorrection = await LineAsync(april, Employee);
+            var (statusBefore, statusBeforeBody, _) = await processor.GetAsync("april-attendance-status", $"api/payroll/runs/{april}/attendance-status", capture: false);
+
+            var may = await CreateRunAsync(processor, "57d-may", next);
+            await CalculateAsync(processor, "57d-may", may);
+            var mayLine = (await LineAsync(may, Employee)).Split('|');
+            var components = await AttendanceComponentsAsync(mayLine[0]);
+            var rowsAfterMay = await RowsAsync(v1.Id);
+            var (mayStatus, mayStatusBody, _) = await processor.GetAsync("may-attendance-status", $"api/payroll/runs/{may}/attendance-status", capture: false);
+            var aprilAtTheEnd = await RunRowAsync(april);
+            var aprilLineAtTheEnd = await LineAsync(april, Employee);
+
+            // The same version again under a new message id, then the older version after it.
+            var period = await Db(Core, $"SELECT \"Id\"::text FROM \"AttendancePeriods\" WHERE \"TenantId\"='{TenantA}' AND \"PeriodStart\"='{Day(month)}';");
+            var correlation = Guid.NewGuid().ToString("D");
+            var again = await AcceptanceMessagingHelper.PublishAttendanceSummaryAsync(
+                AcceptanceSeedIds.AgencyAId, Guid.Parse(v1.Id), 2, Guid.Parse(period), month, EndOf(month), AcceptanceSeedIds.EmpBr1Id,
+                v2.Working, v2.Present, v2.Absent, 0, 0, 0, "Correction", correlation);
+            var older = await AcceptanceMessagingHelper.PublishAttendanceSummaryAsync(
+                AcceptanceSeedIds.AgencyAId, Guid.Parse(v1.Id), 1, Guid.Parse(period), month, EndOf(month), AcceptanceSeedIds.EmpBr1Id,
+                v1.Working, v1.Present, v1.Absent, 0, 0, 0, "Close", correlation);
+            // Payroll's consumer took both (its inbox holds each message id) before the rows are read: «unchanged» is its decision.
+            var consumed = await WaitAsync(async () => await Db(Payroll,
+                $"SELECT count(DISTINCT \"MessageId\")::text FROM \"IntegrationMessageReceipts\" WHERE \"MessageId\" IN ('{again:D}','{older:D}') " +
+                "AND \"ConsumerType\" = 'AttendanceSummaryPublishedConsumer' AND \"ProcessedAt\" IS NOT NULL;") == "2", 60);
+            var rowsAfterReplay = await RowsAsync(v1.Id);
+            var receiptAfterReplay = await ReceiptAsync(v1.Id);
+            var freeCarried = await Db(Payroll,
+                $"SELECT count(*)::text FROM \"AbsenceDeductions\" WHERE \"TenantId\"='{TenantA}' AND \"CarryForward\" AND \"AppliedInRunId\" IS NULL AND \"SourceReference\" LIKE 'ATT:%';");
+
+            await s.AuditAsync(correction, v1.Id);
+            s.Checks(new
+            {
+                month = Ym(month),
+                next = Ym(next),
+                v1 = v1.ToString(),
+                april,
+                frozenRun,
+                frozenLine,
+                correction,
+                v2 = v2.ToString(),
+                rowsAfterCorrection,
+                runAfterCorrection,
+                lineAfterCorrection,
+                statusBefore = (int)statusBefore,
+                carryForwardPending = statusBeforeBody.GetProperty("carryForwardPending").GetInt32(),
+                may,
+                mayLine,
+                components,
+                rowsAfterMay,
+                mayStatus = (int)mayStatus,
+                carryForwardApplied = mayStatusBody.GetProperty("carryForwardApplied").GetInt32(),
+                aprilAtTheEnd,
+                aprilLineAtTheEnd,
+                rowsAfterReplay,
+                receiptAfterReplay,
+                freeCarried
+            });
+
+            Assert.Equal((1, 0), (v1.Version, v1.Absent));
+            Assert.StartsWith($"{UnderReview}|", frozenRun);
+            Assert.Equal((2, 1), (v2.Version, v2.Absent));
+            Assert.True(carried, $"57d: payroll's rows are {rowsAfterCorrection}.");
+            // April did not move: not after the correction, and not after May took the difference.
+            Assert.Equal((frozenRun, frozenLine), (runAfterCorrection, lineAfterCorrection));
+            Assert.Equal((frozenRun, frozenLine), (aprilAtTheEnd, aprilLineAtTheEnd));
+            Assert.True(statusBeforeBody.GetProperty("carryForwardPending").GetInt32() >= 1);
+            // May carries it, by name, once.
+            var item = components.Split('=');
+            Assert.Equal($"فرق غياب عن فترة {Ym(month)}", item[0]);
+            Assert.True(decimal.Parse(item[1], CultureInfo.InvariantCulture) < 0, components);
+            Assert.Equal($"2:1:true:{may}", rowsAfterMay);
+            Assert.True(mayStatusBody.GetProperty("carryForwardApplied").GetInt32() >= 1);
+            // A version is recorded once, and an older one is ignored.
+            Assert.True(consumed, "57d: payroll's consumer did not take the two replayed versions.");
+            Assert.Equal(rowsAfterMay, rowsAfterReplay);
+            Assert.Equal("2|1|1", receiptAfterReplay);
+            Assert.Equal("0", freeCarried);
+        }
+        finally
+        {
+            await EndRunsAsync(s, "57d", month, next);
+        }
+
         s.Recorder.WriteResult("Pass");
     }
 
@@ -865,92 +978,132 @@ public class AcLva57AttendancePeriodTests
         AcceptanceEnv.RequireEnabled();
         var month = Month("57e");
         var s = await StartAsync(Ac, "57e",
-            "AC-LVA-57e: a run of a month whose attendance is not closed is calculated under «Warn» with one open audit record that lists who is missing, and attendance-status gives the same list. Once central-a closes the month for the whole agency, the month's run has nobody missing and no warning record.",
+            "AC-LVA-57e: a run of a month whose attendance is not closed is calculated under «Warn» with one open audit record that lists who is missing, and attendance-status gives the same list. Once central-a closes the month for the whole agency, nobody HR.Core closed is missing from the month's new run: who is left, if anyone, is who payroll expects and HR.Core did not employ in the month.",
             Central, Processor, Approver);
         s.Steps($"""
             {ResetSteps}
+            {EndSteps}
             1. Negative first (nothing of June 2025 is closed): payroll-processor creates and calculates the run of June 2025. It is
                calculated (the gate is «Warn»), and one audit record of the run, open, lists the employees whose attendance is not
                closed; GET api/payroll/runs/<run>/attendance-status gives the same employees. The run is cancelled (PLAN-56's API).
                («Block» is proved by Lva057PayrollAttendanceGateTests and Lva057PayrollAttendanceHandoffIntegrationTests.)
             2. central-a fills June 2025 for the agency's root unit by the bulk entry («حاضر») and closes June for the whole agency (no
                unit): the period is «مغلقة», and payroll holds a receipt for every summary.
-            3. Positive: payroll-processor creates and calculates a new run of June 2025: attendance-status.missingAttendance = [] and
-               the run has no warning audit record.
+            3. Positive: payroll-processor creates and calculates a new run of June 2025. Nobody HR.Core closed is missing any more:
+               attendance-status.missingAttendance holds only employees payroll expects and HR.Core did not employ in June (the
+               seed dates some pay profiles before their employee's hire date; HR.Core closes no attendance before a hire). With
+               nobody left the run has no warning audit record; otherwise its one open record lists exactly those employees.
             """);
         await ResetMonthAsync(s, "57e", month);
-        using var processor = await Api.PayrollAsync(s.Recorder, Processor, "57e");
-
-        var open = await CreateRunAsync(processor, "57e-open", month);
-        await CalculateAsync(processor, "57e-open", open);
-        var openRun = await RunRowAsync(open);
-        var warning = await AttendanceWarningAsync(open);
-        var warned = await Db(Payroll,
-            "SELECT COALESCE(string_agg(id, ',' ORDER BY id), '') FROM (SELECT unnest(string_to_array(substr(\"Findings\", strpos(\"Findings\", E'\\n') + 1), E'\\n')) AS id " +
-            $"FROM \"PayrollAuditRecords\" WHERE \"PayrollRunId\"='{open}' AND \"Findings\" LIKE 'تحذير بوابة الحضور%') t;");
-        var (openStatus, openBody, _) = await processor.GetAsync("open-attendance-status", $"api/payroll/runs/{open}/attendance-status", capture: false);
-        var missing = openBody.GetProperty("missingAttendance").EnumerateArray().Select(e => e.GetGuid().ToString("D")).Order(StringComparer.Ordinal).ToList();
-        var auditRecords = await Db(Payroll, $"SELECT count(*)::text || '|' || count(*) FILTER (WHERE \"ClosedAt\" IS NOT NULL)::text FROM \"PayrollAuditRecords\" WHERE \"PayrollRunId\"='{open}';");
-        var (cancelled, cancelledBody, _) = await processor.PostAsync("open-cancel", $"api/payroll/runs/{open}/cancel",
-            new { reason = "تشغيل حزيران 2025 قبل إغلاق الحضور — AC-LVA-57e" });
-        Assert.True(cancelled == HttpStatusCode.OK, $"57e: cancelling the first run answered {(int)cancelled}: {Text(cancelledBody, "error")}");
-
-        // The whole agency: filled from the root, closed with no unit.
-        await BulkAsync(s[Central], "57e-bulk-agency", Hq, month, "Present");
-        var (closed, closedBody) = await CloseAsync(s[Central], "57e-close-agency", month, null);
-        var period = await Db(Core, $"SELECT COALESCE((SELECT \"Status\"::text FROM \"AttendancePeriods\" WHERE \"TenantId\"='{TenantA}' AND \"PeriodStart\"='{Day(month)}'), '');");
-        var summaries = await SummaryCountAsync(month);
-        var received = await WaitAsync(async () => await ReceiptCountAsync(month) == summaries, 240);
-        var receipts = await ReceiptCountAsync(month);
-
-        var full = await CreateRunAsync(processor, "57e-closed", month);
-        await CalculateAsync(processor, "57e-closed", full);
-        var (fullStatus, fullBody, _) = await processor.GetAsync("closed-attendance-status", $"api/payroll/runs/{full}/attendance-status", capture: false);
-        var stillMissing = fullBody.GetProperty("missingAttendance").EnumerateArray().Select(e => e.GetGuid().ToString("D")).ToList();
-        var fullWarning = await AttendanceWarningAsync(full);
-        var fullAudit = await Db(Payroll, $"SELECT count(*)::text FROM \"PayrollAuditRecords\" WHERE \"PayrollRunId\"='{full}';");
-
-        s.Checks(new
+        try
         {
-            month = Ym(month),
-            open,
-            openRun,
-            warning,
-            warnedCount = warned.Split(',', StringSplitOptions.RemoveEmptyEntries).Length,
-            missingCount = missing.Count,
-            gateMode = Text(openBody, "gateMode"),
-            employeesInScope = openBody.GetProperty("employeesInScope").GetInt32(),
-            auditRecords,
-            closed = (int)closed,
-            period,
-            summaries,
-            receipts,
-            full,
-            fullRun = await RunRowAsync(full),
-            stillMissing,
-            fullWarning,
-            fullAudit,
-            fullInScope = fullBody.GetProperty("employeesInScope").GetInt32()
-        });
+            using var processor = await Api.PayrollAsync(s.Recorder, Processor, "57e");
 
-        Assert.StartsWith($"{Calculated}|", openRun);
-        Assert.Equal(HttpStatusCode.OK, openStatus);
-        Assert.Equal("Warn", Text(openBody, "gateMode"));
-        Assert.NotEmpty(missing);
-        // The record: open (0), never closed, with the count; its list is the API's list.
-        Assert.StartsWith($"0|true|تحذير بوابة الحضور: {missing.Count} ", warning);
-        Assert.Equal(string.Join(",", missing), warned);
-        // Nothing of June was closed: everyone in the run's scope is missing.
-        Assert.Equal(openBody.GetProperty("employeesInScope").GetInt32(), missing.Count);
-        Assert.Equal("1|0", auditRecords);
-        Assert.True(closed == HttpStatusCode.OK && closedBody.Contains("أُغلقت فترة الحضور", StringComparison.Ordinal), Snip(closedBody));
-        // AttendancePeriodStatus.Closed = 2.
-        Assert.Equal("2", period);
-        Assert.True(received, $"57e: payroll holds {receipts} receipts for {summaries} summaries.");
-        Assert.Equal(HttpStatusCode.OK, fullStatus);
-        Assert.Empty(stillMissing);
-        Assert.Equal("", fullWarning);
-        Assert.Equal("0", fullAudit);
+            var open = await CreateRunAsync(processor, "57e-open", month);
+            await CalculateAsync(processor, "57e-open", open);
+            var openRun = await RunRowAsync(open);
+            var warning = await AttendanceWarningAsync(open);
+            var warned = await Db(Payroll,
+                "SELECT COALESCE(string_agg(id, ',' ORDER BY id), '') FROM (SELECT unnest(string_to_array(substr(\"Findings\", strpos(\"Findings\", E'\\n') + 1), E'\\n')) AS id " +
+                $"FROM \"PayrollAuditRecords\" WHERE \"PayrollRunId\"='{open}' AND \"Findings\" LIKE 'تحذير بوابة الحضور%') t;");
+            var (openStatus, openBody, _) = await processor.GetAsync("open-attendance-status", $"api/payroll/runs/{open}/attendance-status", capture: false);
+            var missing = openBody.GetProperty("missingAttendance").EnumerateArray().Select(e => e.GetGuid().ToString("D")).Order(StringComparer.Ordinal).ToList();
+            var auditRecords = await Db(Payroll, $"SELECT count(*)::text || '|' || count(*) FILTER (WHERE \"ClosedAt\" IS NOT NULL)::text FROM \"PayrollAuditRecords\" WHERE \"PayrollRunId\"='{open}';");
+            var (cancelled, cancelledBody, _) = await processor.PostAsync("open-cancel", $"api/payroll/runs/{open}/cancel",
+                new { reason = "تشغيل حزيران 2025 قبل إغلاق الحضور — AC-LVA-57e" });
+            Assert.True(cancelled == HttpStatusCode.OK, $"57e: cancelling the first run answered {(int)cancelled}: {Text(cancelledBody, "error")}");
+
+            // The whole agency: filled from the root, closed with no unit.
+            await BulkAsync(s[Central], "57e-bulk-agency", Hq, month, "Present");
+            var (closed, closedBody) = await CloseAsync(s[Central], "57e-close-agency", month, null);
+            var period = await Db(Core, $"SELECT COALESCE((SELECT \"Status\"::text FROM \"AttendancePeriods\" WHERE \"TenantId\"='{TenantA}' AND \"PeriodStart\"='{Day(month)}'), '');");
+            var summaries = await SummaryCountAsync(month);
+            var received = await WaitAsync(async () => await ReceiptCountAsync(month) == summaries, 240);
+            var receipts = await ReceiptCountAsync(month);
+
+            var full = await CreateRunAsync(processor, "57e-closed", month);
+            await CalculateAsync(processor, "57e-closed", full);
+            var (fullStatus, fullBody, _) = await processor.GetAsync("closed-attendance-status", $"api/payroll/runs/{full}/attendance-status", capture: false);
+            var stillMissing = fullBody.GetProperty("missingAttendance").EnumerateArray().Select(e => e.GetGuid().ToString("D")).Order(StringComparer.Ordinal).ToList();
+            var fullWarning = await AttendanceWarningAsync(full);
+            var fullWarned = await Db(Payroll,
+                "SELECT COALESCE(string_agg(id, ',' ORDER BY id), '') FROM (SELECT unnest(string_to_array(substr(\"Findings\", strpos(\"Findings\", E'\\n') + 1), E'\\n')) AS id " +
+                $"FROM \"PayrollAuditRecords\" WHERE \"PayrollRunId\"='{full}' AND \"Findings\" LIKE 'تحذير بوابة الحضور%') t;");
+            var fullAudit = await Db(Payroll, $"SELECT count(*)::text || '|' || count(*) FILTER (WHERE \"ClosedAt\" IS NOT NULL)::text FROM \"PayrollAuditRecords\" WHERE \"PayrollRunId\"='{full}';");
+            // Who HR.Core closed, and — of those still missing — who HR.Core holds in service in June (nobody: each was hired later).
+            var closedIds = (await Db(Core,
+                "SELECT COALESCE(string_agg(s.\"EmployeeId\"::text, ','), '') FROM \"AttendanceEmployeeSummaries\" s JOIN \"AttendancePeriods\" p ON p.\"Id\" = s.\"AttendancePeriodId\" " +
+                $"WHERE p.\"TenantId\"='{TenantA}' AND p.\"PeriodStart\"='{Day(month)}';")).Split(',', StringSplitOptions.RemoveEmptyEntries).ToHashSet(StringComparer.Ordinal);
+            var missingAndInService = stillMissing.Count == 0
+                ? "0"
+                : await Db(Core,
+                    $"SELECT count(*)::text FROM \"Employees\" e WHERE e.\"Id\" IN ({string.Join(",", stillMissing.Select(id => $"'{id}'"))}) AND {InServiceIn(month)};");
+            var expectedStillMissing = missing.Where(id => !closedIds.Contains(id)).ToList();
+
+            s.Checks(new
+            {
+                month = Ym(month),
+                open,
+                openRun,
+                warning,
+                warnedCount = warned.Split(',', StringSplitOptions.RemoveEmptyEntries).Length,
+                missingCount = missing.Count,
+                gateMode = Text(openBody, "gateMode"),
+                employeesInScope = openBody.GetProperty("employeesInScope").GetInt32(),
+                auditRecords,
+                closed = (int)closed,
+                period,
+                summaries,
+                receipts,
+                full,
+                fullRun = await RunRowAsync(full),
+                closedByHrCore = closedIds.Count,
+                stillMissing = stillMissing.Count,
+                missingAndInService,
+                fullWarning,
+                fullAudit,
+                fullInScope = fullBody.GetProperty("employeesInScope").GetInt32()
+            });
+
+            Assert.StartsWith($"{Calculated}|", openRun);
+            Assert.Equal(HttpStatusCode.OK, openStatus);
+            Assert.Equal("Warn", Text(openBody, "gateMode"));
+            Assert.NotEmpty(missing);
+            // The record: open (0), never closed, with the count; its list is the API's list.
+            Assert.StartsWith($"0|true|تحذير بوابة الحضور: {missing.Count} ", warning);
+            Assert.Equal(string.Join(",", missing), warned);
+            // Nothing of June was closed: everyone in the run's scope is missing.
+            Assert.Equal(openBody.GetProperty("employeesInScope").GetInt32(), missing.Count);
+            Assert.Equal("1|0", auditRecords);
+            Assert.True(closed == HttpStatusCode.OK && closedBody.Contains("أُغلقت فترة الحضور", StringComparison.Ordinal), Snip(closedBody));
+            // AttendancePeriodStatus.Closed = 2.
+            Assert.Equal("2", period);
+            Assert.True(received, $"57e: payroll holds {receipts} receipts for {summaries} summaries.");
+            Assert.Equal(HttpStatusCode.OK, fullStatus);
+            // Nobody HR.Core closed is missing; who is left is who payroll expected and HR.Core did not close, none of them in service.
+            Assert.True(closedIds.Count > 0 && closedIds.Count == int.Parse(summaries, CultureInfo.InvariantCulture));
+            Assert.DoesNotContain(stillMissing, closedIds.Contains);
+            Assert.Equal(expectedStillMissing, stillMissing);
+            Assert.True(stillMissing.Count < missing.Count, $"57e: {stillMissing.Count} of {missing.Count} are still missing after the close.");
+            Assert.Equal("0", missingAndInService);
+            if (stillMissing.Count == 0)
+            {
+                Assert.Equal("", fullWarning);
+                Assert.Equal("0|0", fullAudit);
+            }
+            else
+            {
+                // One open record, with the count; its list is the API's list.
+                Assert.StartsWith($"0|true|تحذير بوابة الحضور: {stillMissing.Count} ", fullWarning);
+                Assert.Equal(string.Join(",", stillMissing), fullWarned);
+                Assert.Equal("1|0", fullAudit);
+            }
+        }
+        finally
+        {
+            await EndRunsAsync(s, "57e", month);
+        }
+
         s.Recorder.WriteResult("Pass");
     }
 
@@ -975,13 +1128,17 @@ public class AcLva57AttendancePeriodTests
             4. Negative: a create with «في إجازة» and an edit to «في إجازة» → refused on the form, nothing written.
             5. Negative: an approved leave of 8–9 July is injected for the RIF employee (AcceptanceMessagingHelper, until LVA-A): its two
                days are leave-made. br1-mgr posts an edit and a delete of one → refused, the record unchanged. The leave's
-               cancellation is injected: the two days are gone, and nothing else of the month.
+               cancellation is injected: the two days are gone, and nothing else of the month. Test-only clean-up (psql,
+               payroll_db): the two zero adjustments payroll notes for the leave's approval and cancellation are deleted, so
+               that no other class's run takes them.
             """);
         await ResetMonthAsync(s, "57f", month);
         var owner = await Db(Core,
-            "WITH ranked AS (SELECT e.\"Id\", e.\"PrimaryOrgUnitId\", row_number() OVER (ORDER BY e.\"FullName\") AS n FROM \"Employees\" e " +
+            "WITH ranked AS (SELECT e.\"Id\", row_number() OVER (ORDER BY e.\"FullName\") AS n FROM \"Employees\" e " +
             $"WHERE e.\"TenantId\"='{TenantA}') SELECT COALESCE((SELECT r.\"Id\"::text || '|' || r.n FROM ranked r JOIN \"Employees\" e ON e.\"Id\" = r.\"Id\" " +
-            $"WHERE r.\"PrimaryOrgUnitId\"='{Rif}' AND e.\"CurrentStatus\"::text IN ('0','Active') AND r.\"Id\" NOT IN ('{Employee}','{Leaver}') ORDER BY (r.n > 50) DESC, r.n LIMIT 1), '');");
+            "JOIN \"OrgUnits\" o ON o.\"Id\" = e.\"PrimaryOrgUnitId\" " +
+            $"WHERE o.\"MaterializedPath\" LIKE (SELECT \"MaterializedPath\" FROM \"OrgUnits\" WHERE \"Id\"='{Rif}') || '%' AND e.\"CurrentStatus\" = 0 " +
+            $"AND e.\"HireDate\" < '{Day(month)}' AND r.\"Id\" NOT IN ('{Employee}','{Leaver}') ORDER BY (r.n > 50) DESC, r.n LIMIT 1), '');");
         AcceptanceGate.RequireData(s.Recorder, owner.Contains('|'), "لا يوجد موظف نشط في فرع ريف دمشق غير موظف البذرة", "RIF has no active employee but the seeded one.");
         var (ownerId, rank) = (owner.Split('|')[0], int.Parse(owner.Split('|')[1], CultureInfo.InvariantCulture));
         var day = new DateOnly(2025, 7, 7);
@@ -1000,6 +1157,9 @@ public class AcLva57AttendancePeriodTests
         var afterForged = await RecordAsync(ownerId, day);
         var moved = await RecordAsync(Employee, new DateOnly(2025, 7, 21)) + await RecordAsync(Employee, day);
 
+        // The create form states the rule as a hint: a refusal is the rule once more, as the form's error.
+        const string onLeaveRule = "تأتي من إجازة معتمدة فقط";
+        var createForm = await s[Br1].GetAsync("57f-create-form", $"{AttendanceUi}/Create");
         var (onLeaveCreate, onLeaveCreateBody) = await s[Br1].PostWithStatusAsync("57f-create-on-leave", $"{AttendanceUi}/Create", $"{AttendanceUi}/Create",
             F(("EmployeeId", ownerId), ("AttendanceDate", "2025-07-08"), ("Status", "OnLeave")));
         var onLeaveCreated = await RecordAsync(ownerId, new DateOnly(2025, 7, 8));
@@ -1020,8 +1180,12 @@ public class AcLva57AttendancePeriodTests
             F(("Id", leaveId), ("Status", "Present")));
         var (deleteLeave, deleteLeaveBody) = await s[Br1].PostWithStatusAsync("57f-delete-leave-made", $"{AttendanceUi}/Delete/{leaveId}", $"{AttendanceUi}/Create", F());
         var leaveAfter = await RecordAsync(Employee, from);
+        // A refused delete leads to the record's page, which says of a leave-made record what made it: the refusal is that text once more.
+        const string leaveMadeRule = "أنشأته إجازة معتمدة";
+        var leavePage = await s[Br1].GetAsync("57f-leave-made-page", $"{AttendanceUi}/Details/{leaveId}");
         await AcceptanceMessagingHelper.PublishLeaveCancelledAsync(AcceptanceSeedIds.AgencyAId, AcceptanceSeedIds.EmpBr1Id, leave, from, to, "Annual", correlation);
         var givenBack = await WaitAsync(async () => await RecordAsync(Employee, from) == "" && await RecordAsync(Employee, to) == "");
+        await RemoveLeaveNotesAsync(leave, 2);
         var ownerAtTheEnd = await RecordAsync(ownerId, day);
 
         await s.AuditAsync(record, leaveId);
@@ -1058,13 +1222,13 @@ public class AcLva57AttendancePeriodTests
         Assert.DoesNotContain("name=\"AttendanceDate\"", editPage);
         Assert.Equal($"{record}|1|0|{ownerId}|{Day(day)}", afterForged);
         Assert.Equal("", moved);
-        Assert.Contains("تأتي من إجازة معتمدة فقط", onLeaveCreateBody);
+        Assert.True(Count(onLeaveCreateBody, onLeaveRule) > Count(createForm, onLeaveRule), "57f: «في إجازة» was not refused on the create form.");
         Assert.Equal("", onLeaveCreated);
-        Assert.Contains("تأتي من إجازة معتمدة فقط", onLeaveEditBody);
+        Assert.Contains(onLeaveRule, onLeaveEditBody);
         Assert.Equal(afterForged, afterOnLeave);
         Assert.True(leaveMade, $"57f: the injected leave made no record: {leaveRecord}");
-        Assert.Contains("أنشأته إجازة معتمدة", editLeaveBody);
-        Assert.Contains("أنشأته إجازة معتمدة", deleteLeaveBody);
+        Assert.Contains(leaveMadeRule, editLeaveBody);
+        Assert.True(Count(deleteLeaveBody, leaveMadeRule) > Count(leavePage, leaveMadeRule), "57f: the delete of a leave-made record was not refused.");
         Assert.Equal(leaveRecord, leaveAfter);
         Assert.True(givenBack, "57f: the cancelled leave's days are still there.");
         Assert.Equal(afterForged, ownerAtTheEnd);
@@ -1091,6 +1255,8 @@ public class AcLva57AttendancePeriodTests
             3. The leave's cancellation is published: a reverse correction («في إجازة» → «غائب»), the next version, a difference of +1;
                the day is «غائب» again.
             4. Negative: no second correction came from the duplicates (one row per leave event and day).
+            Test-only clean-up (psql, payroll_db): the zero adjustments payroll notes for the leave's approval and cancellation are
+            deleted, so that no other class's run takes them.
             The reconciler's rule is proved by Lva057LeaveAttendanceTests (its job runs hourly; this class restarts no container).
             """);
         var start = await ReadSummaryAsync(Employee, month);
@@ -1101,7 +1267,7 @@ public class AcLva57AttendancePeriodTests
         AcceptanceGate.RequireData(s.Recorder, dayBefore.Split('|').ElementAtOrDefault(1) == "1",
             "يوم 7 كانون الثاني ليس «غائب» لموظف فرع ريف دمشق", "7 January is not «absent» for the RIF employee (a leftover of an earlier run of 57g): run 57a again.");
         var rowsBefore = await RowsAsync(start.Id);
-        s.Recorder.WriteBefore(new { scenario = "57g", explicitDomainSnapshot = true, start, dayBefore, rowsBefore });
+        s.Recorder.WriteBefore(new { scenario = "57g", explicitDomainSnapshot = true, start = start.ToString(), dayBefore, rowsBefore });
 
         var leave = Guid.NewGuid();
         var correlation = Guid.NewGuid().ToString("D");
@@ -1129,19 +1295,21 @@ public class AcLva57AttendancePeriodTests
             "SELECT COALESCE(string_agg(split_part(\"SourceReference\", ':', 2) || '=' || \"Status\" || '/' || COALESCE(\"ResultingVersion\"::text, '-'), ',' ORDER BY \"CreatedAt\"), '') " +
             $"FROM \"AttendanceCorrections\" WHERE \"EmployeeId\"='{Employee}' AND \"SourceReference\" LIKE 'LeaveRequestId={leave:D}:%';");
         var receipt = await ReceiptAsync(start.Id);
+        // Payroll noted the approval twice (two message ids) and the cancellation once.
+        await RemoveLeaveNotesAsync(leave, 3);
 
         await s.AuditAsync(start.Id);
         s.Checks(new
         {
             month = Ym(month),
             leave,
-            start,
-            afterLeave,
+            start = start.ToString(),
+            afterLeave = afterLeave.ToString(),
             dayOnLeave,
             replaced,
             corrections,
             rowsAfterLeave,
-            afterCancel,
+            afterCancel = afterCancel.ToString(),
             dayAfter,
             rowsAfterCancel,
             allCorrections,

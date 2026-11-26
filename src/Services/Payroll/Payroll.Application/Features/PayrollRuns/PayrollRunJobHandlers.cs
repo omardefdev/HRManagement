@@ -150,6 +150,8 @@ public class StartPayrollRunJobHandler(
                 return (false, 0, null, attendance.Refusal);
             if (attendance.Warning is not null && attendance.WarningIsNew)
                 await repository.AddAsync(attendance.Warning, cancellationToken);
+            if (attendance.StaleWarning is not null)
+                repository.Remove(attendance.StaleWarning);
         }
 
         run.PayrollConfigurationId = config.Id;

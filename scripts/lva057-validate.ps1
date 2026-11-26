@@ -23,6 +23,8 @@
 #   9. AcLva57AttendancePeriodTests is a required prod-like class of the main group, and AC-LVA-57 is owned by PLAN-57.
 #  10. The holidays of docker-compose.acceptance.yml are the holidays of testdata/acceptance/lva057-periods.json, and the months that
 #      file reserves are whole months of the past.
+#  11. The month's lock: every async save of HRCoreDbContext that writes an attendance day goes through AttendanceMonthLock.SaveAsync
+#      (and the sync save refuses one), and the close takes the lock exclusively before it reads the period.
 # -SelfTest runs each check on a planted defect and fails unless every one of them is refused.
 #
 # -Inventory reads, and writes nothing (every statement runs in a READ ONLY transaction, through psql inside the PostgreSQL
@@ -152,6 +154,8 @@ $paths = @{
     Inventory = "docs/EVENT_PUBLISHER_INVENTORY.md"
     Scope = "tests/acceptance/ci-scope.json"
     Ownership = "tests/acceptance/ac-ownership.json"
+    Context = "src/Services/HRCore/HR.Core.Infrastructure/Data/HRCoreDbContext.cs"
+    PeriodService = "src/Services/HRCore/HR.Core.Infrastructure/Services/Attendance/AttendancePeriodService.cs"
 }
 $requiredFiles = @(
     "src/Services/HRCore/HR.Core.Domain/Entities/AttendancePeriod.cs",
@@ -163,6 +167,7 @@ $requiredFiles = @(
     "src/Services/HRCore/HR.Core.Infrastructure/Services/Attendance/AttendanceCorrectionService.cs",
     "src/Services/HRCore/HR.Core.Infrastructure/Services/Attendance/AttendanceCalendar.cs",
     "src/Services/HRCore/HR.Core.Infrastructure/Services/Attendance/AttendanceLockService.cs",
+    "src/Services/HRCore/HR.Core.Infrastructure/Services/Attendance/AttendanceMonthLock.cs",
     "src/Shared/HRManagement.MessageContracts/Events/IAttendanceSummaryPublished.cs",
     "src/Services/Payroll/Payroll.Domain/Entities/AttendanceSummaryReceipt.cs",
     "src/Services/Payroll/Payroll.Infrastructure/Consumers/AttendanceSummaryHandoff.cs",
@@ -410,6 +415,30 @@ function Test-Reserved($reserved, [string]$compose, [datetime]$today) {
     return $problems
 }
 
+# 11.
+function Test-MonthLock([string]$context, [string]$service) {
+    if ($null -eq $context) { return @("HRCoreDbContext.cs is missing") }
+    if ($null -eq $service) { return @("AttendancePeriodService.cs is missing") }
+    $problems = @()
+    $async = [regex]::Match($context, '(?s)public override Task<int> SaveChangesAsync\(bool acceptAllChangesOnSuccess.*?\n    \}')
+    if (-not $async.Success -or $async.Value -notmatch 'AttendanceMonthLock\.Pending\(this\)' -or $async.Value -notmatch 'AttendanceMonthLock\.SaveAsync\(') {
+        $problems += "HRCoreDbContext.SaveChangesAsync does not send a save of an attendance day through AttendanceMonthLock.SaveAsync: a close and a writer could pass each other"
+    }
+    $sync = [regex]::Match($context, '(?s)public override int SaveChanges\(bool acceptAllChangesOnSuccess.*?\n    \}')
+    if (-not $sync.Success -or $sync.Value -notmatch 'AttendanceMonthLock\.Pending\(this\)' -or $sync.Value -notmatch '\bthrow\b') {
+        $problems += "HRCoreDbContext.SaveChanges (sync) does not refuse a save of an attendance day: it would go around the month's lock"
+    }
+    $lock = $service.IndexOf('AttendanceMonthLock.TakeAsync(')
+    $read = $service.IndexOf('FindPeriodAsync(periodStart, periodEnd, ct)')
+    if ($lock -lt 0 -or $service.Substring($lock, [Math]::Min(260, $service.Length - $lock)) -notmatch 'exclusive:\s*true') {
+        $problems += "AttendancePeriodService.CloseAsync does not take the month's lock exclusively"
+    }
+    elseif ($read -lt 0 -or $read -lt $lock) {
+        $problems += "AttendancePeriodService.CloseAsync reads the period before it holds the month's lock"
+    }
+    return $problems
+}
+
 function Get-MigrationFile([string]$directory, [string]$suffix) {
     $file = Get-ChildItem -Path (Join-Path $root $directory) -File -Filter ("*_" + $suffix) -ErrorAction SilentlyContinue | Select-Object -First 1
     if ($null -eq $file) { return @{ Name = $suffix; Bytes = $null; Text = $null } }
@@ -452,6 +481,7 @@ function Invoke-All {
     $all += Test-Inventory (Read-Text $paths.Inventory)
     $all += Test-Acceptance (Get-Json (Read-Text $paths.Scope)) (Get-Json (Read-Text $paths.Ownership))
     $all += Test-Reserved (Get-Json (Read-Text $paths.Reserved)) (Read-Text $paths.AcceptanceCompose) ([datetime]::UtcNow)
+    $all += Test-MonthLock (Read-Text $paths.Context) (Read-Text $paths.PeriodService)
     return @($all | Where-Object { $_ })
 }
 
@@ -578,6 +608,18 @@ if ($SelfTest) {
     $planted++; if ((Test-Reserved (Get-Json (Read-Text $paths.Reserved)) $compose ([datetime]"2025-03-15")).Count -eq 0) { $failures += "a reserved month that has not ended was not refused" }
     $planted++; if ((Test-Reserved $null $compose $now).Count -eq 0) { $failures += "a missing reserved file was not noticed" }
 
+    # 11. the month's lock
+    $context = Read-Text $paths.Context
+    $service = Read-Text $paths.PeriodService
+    $plainSave = $context -replace 'AttendanceMonthLock\.SaveAsync\(', 'Plain.SaveAsync('
+    $planted++; if ($plainSave -eq $context -or (Test-MonthLock $plainSave $service).Count -eq 0) { $failures += "an async save around the month's lock was not refused" }
+    $syncSave = [regex]::Replace($context, 'throw new InvalidOperationException\("An attendance day is saved with SaveChangesAsync[^;]*;', '{ }', 1)
+    $planted++; if ($syncSave -eq $context -or (Test-MonthLock $syncSave $service).Count -eq 0) { $failures += "a sync save of an attendance day was not refused" }
+    $sharedClose = $service -replace 'exclusive:\s*true', 'exclusive: false'
+    $planted++; if ($sharedClose -eq $service -or (Test-MonthLock $context $sharedClose).Count -eq 0) { $failures += "a close that shares the month's lock was not refused" }
+    $noLock = [regex]::Replace($service, 'await AttendanceMonthLock\.TakeAsync\([^;]*;', '', 1)
+    $planted++; if ($noLock -eq $service -or (Test-MonthLock $context $noLock).Count -eq 0) { $failures += "a close without the month's lock was not refused" }
+
     $own = Invoke-All
     if ($own.Count -ne 0) { $failures += "the repository itself does not pass: $($own -join '; ')" }
     if ($failures.Count -gt 0) {
@@ -593,5 +635,5 @@ if ($problems.Count -gt 0) {
     $problems | ForEach-Object { Write-Host "[FAIL] $_" -ForegroundColor Red }
     exit 1
 }
-Write-Host "[PASS] lva057-validate: every write of the attendance controllers names its policy and validates its token, nothing names the old close's event, an attendance day is written by AttendanceDayWriter only, the LVA057 migrations have no byte order mark, lift and restore FORCE around the fill and put row security on the new tables, no list of holidays is in code or in a Production or Staging file, the prod-like overlay mirrors Production's attendance settings, IAttendanceSummaryPublished is in the publisher inventory, AC-LVA-57 is required in the prod-like scope, and the acceptance holidays are the reserved file's" -ForegroundColor Green
+Write-Host "[PASS] lva057-validate: every write of the attendance controllers names its policy and validates its token, nothing names the old close's event, an attendance day is written by AttendanceDayWriter only, the LVA057 migrations have no byte order mark, lift and restore FORCE around the fill and put row security on the new tables, no list of holidays is in code or in a Production or Staging file, the prod-like overlay mirrors Production's attendance settings, IAttendanceSummaryPublished is in the publisher inventory, AC-LVA-57 is required in the prod-like scope, the acceptance holidays are the reserved file's, and a save of an attendance day and the close meet on the month's lock" -ForegroundColor Green
 exit 0

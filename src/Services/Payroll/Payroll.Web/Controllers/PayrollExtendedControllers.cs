@@ -1,6 +1,7 @@
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.ViewModels;
 using Payroll.Application.Abstractions;
+using Payroll.Application.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -443,6 +444,13 @@ public class PayrollAuditRecordsController(PayrollDbContext db) : Controller
         if (audit.Status != AuditStatus.Open)
         {
             TempData["Warning"] = "سجل المراجعة مغلق بالفعل.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        // PLAN-57: the attendance gate's warning has no auditor and is not a review. Closing it would look like one.
+        if (PayrollAttendanceGate.IsWarning(audit))
+        {
+            TempData["Error"] = "تحذير بوابة الحضور ليس سجل مراجعة ولا يُغلق يدوياً: يزول عند إعادة الحساب بعد إغلاق حضور الفترة.";
             return RedirectToAction(nameof(Index));
         }
 

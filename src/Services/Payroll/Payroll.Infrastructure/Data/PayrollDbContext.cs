@@ -310,6 +310,9 @@ public class PayrollDbContext : TenantAwareDbContext
                   .HasFilter("\"SourceReference\" IS NOT NULL");
             // PLAN-57 (§5): the carried differences of an employee that no run has applied yet.
             entity.HasIndex(e => new { e.EmployeeId, e.CarryForward, e.AppliedInRunId });
+            // PLAN-57 (review): a carried difference is free for every later regular run. Two runs that calculate at once would both
+            // mark it applied; with the row version the second to save is refused instead.
+            entity.ConfigureOptimisticConcurrency(this);
         });
 
         // PLAN-57 (§4 rule 6): one receipt per attendance summary. The consumer locks its row, and xmin guards any other writer.

@@ -63,7 +63,9 @@ public sealed class LeaveScheduleReconciler(HRCoreDbContext db, ILogger<LeaveSch
             var candidateIds = candidates.Select(e => e.Id).ToList();
             var onLeaveName = EmploymentStatus.OnLeave.ToString();
             var moves = await db.EmploymentStatusHistories.AsNoTracking()
-                .Where(h => candidateIds.Contains(h.EmployeeId) && h.NewStatus == onLeaveName)
+                // A move: a row that changed the status. A row that notes «on leave» over «on leave» (another leave's cancellation,
+                // a medical decision) is not what put the employee on leave, and must not hide the row that did.
+                .Where(h => candidateIds.Contains(h.EmployeeId) && h.NewStatus == onLeaveName && h.OldStatus != onLeaveName)
                 .Select(h => new { h.EmployeeId, h.ChangedAt, h.CreatedAt, h.Reason })
                 .ToListAsync(cancellationToken);
             var lastReason = moves

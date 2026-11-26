@@ -13,6 +13,7 @@ using HRManagement.SharedKernel.Signatures;
 using HRManagement.SharedKernel.Tenancy;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Signatures;
+using HR.Core.Infrastructure.Services.Attendance;
 using Microsoft.EntityFrameworkCore;
 
 namespace HR.Core.Infrastructure.Data;
@@ -483,6 +484,8 @@ public class HRCoreDbContext : TenantAwareDbContext
                   .HasFilter("\"SourceReference\" IS NOT NULL")
                   .HasDatabaseName("IX_AttendanceCorrections_OnePerLeaveEventDay");
             entity.HasIndex(e => new { e.TenantId, e.Status });
+            // An approval and a rejection of one request at once: the second to save is refused, not written over the first.
+            entity.ConfigureOptimisticConcurrency(this);
         });
 
         modelBuilder.Entity<DiwanCorrespondence>(entity =>
@@ -1353,14 +1356,32 @@ public class HRCoreDbContext : TenantAwareDbContext
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
         RecruitmentApplicationEventRecorder.Record(this);
+        // PLAN-57: an attendance day is saved through the month's lock, which the async save takes. No code saves one synchronously.
+        if (Database.IsNpgsql() && AttendanceMonthLock.Pending(this).Count > 0)
+            throw new InvalidOperationException("An attendance day is saved with SaveChangesAsync (the month's lock is taken there).");
         return base.SaveChanges(acceptAllChangesOnSuccess);
     }
 
     public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
     {
         RecruitmentApplicationEventRecorder.Record(this);
+
+        // PLAN-57: a save that writes an attendance day goes through the month's lock (AttendanceMonthLock), so that a close and a
+        // writer cannot pass each other. PostgreSQL only; every async save ends here.
+        if (Database.IsNpgsql() && AttendanceMonthLock.Pending(this) is { Count: > 0 } attendanceDays)
+        {
+            return AttendanceMonthLock.SaveAsync(
+                this, attendanceDays, () => base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken), cancellationToken);
+        }
+
         return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
     }
+
+    /// <summary>
+    /// PLAN-57: the attendance days of this unit of work that an approved correction writes — the one write of a locked day
+    /// (<c>AttendanceDayWriter.ApplyApprovedCorrectionAsync</c> names them; <see cref="AttendanceMonthLock"/> exempts them).
+    /// </summary>
+    internal HashSet<DailyAttendanceRecord> AttendanceCorrectionWrites { get; } = new(ReferenceEqualityComparer.Instance);
 
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
