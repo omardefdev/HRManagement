@@ -1353,10 +1353,13 @@ public class AcLva57AttendancePeriodTests
                The same close again: 200 with closedEmployees = 0.
             4. GET …/attendance/periods/2025-07 as br1-mgr: the summaries of his tree at version 1, as the periods page shows the month.
             5. GET api/payroll/attendance/receipts?periodStart=2025-07-01 as payroll-processor: one receipt per summary, at version 1.
+            6. The lock is the closed employees' only: br1-mgr still writes by hand a July day of the seeded RIF employee, who sits in
+               another directorate of the branch, while the same day of a closed employee is refused.
             """);
         await ResetMonthAsync(s, "57h", month);
         var people = (await TreeEmployeesAsync(RifHr, month)).Split(',', StringSplitOptions.RemoveEmptyEntries);
-        AcceptanceGate.RequireData(s.Recorder, people.Length > 0, "الوحدة الفرعية لفرع ريف دمشق بلا موظفين", "RIF's sub-unit has no employee.");
+        AcceptanceGate.RequireData(s.Recorder, people.Length > 0 && !people.Contains(Employee),
+            "الوحدة الفرعية لفرع ريف دمشق بلا موظفين أو تضم موظف البذرة", "RIF's sub-unit has no employee, or holds the seeded RIF employee.");
         await BulkAsync(s[Br1], "57h-bulk", RifHr, month, "Present");
 
         using var outsider = await Api.AttendanceAsync(s.Recorder, Outsider, "57h");
@@ -1372,6 +1375,16 @@ public class AcLva57AttendancePeriodTests
             .ToList();
         var page = await s[Br1].GetAsync("57h-periods-page", PeriodsUi);
         var stored = await SummaryCountAsync(month);
+
+        // The lock is the closed employees' only: a day of an employee of another directorate is still written by hand.
+        var openDay = new DateOnly(2025, 7, 8);
+        var (outside, outsideBody) = await s[Br1].PostWithStatusAsync("57h-create-outside-the-closed-unit", $"{AttendanceUi}/Create", $"{AttendanceUi}/Create",
+            F(("EmployeeId", Employee), ("AttendanceDate", Day(openDay)), ("Status", "Present"), ("Notes", "حضور موظف من مديرية لم تُغلق")));
+        var outsideRecord = await RecordAsync(Employee, openDay);
+        var (inside, insideBody) = await s[Br1].PostWithStatusAsync("57h-edit-inside-the-closed-unit",
+            $"{AttendanceUi}/Edit/{await RecordIdAsync(people[0], openDay, "57h")}", $"{AttendanceUi}/Create",
+            F(("Status", "Remote"), ("Notes", "محاولة على يوم مقفل")));
+        var insideRecord = await RecordAsync(people[0], openDay);
 
         using var processor = await Api.PayrollAsync(s.Recorder, Processor, "57h");
         JsonElement receiptsBody = default;
@@ -1396,6 +1409,10 @@ public class AcLva57AttendancePeriodTests
             status = Text(closedBody, "status"),
             again = (int)again,
             againClosed = againBody.GetProperty("closedEmployees").GetInt32(),
+            outside = (int)outside,
+            outsideRecord,
+            inside = (int)inside,
+            insideRecord,
             againSkipped = againBody.GetProperty("skippedAlreadyClosed").GetInt32(),
             read = (int)read,
             summaries = summaries.Count,
@@ -1420,6 +1437,11 @@ public class AcLva57AttendancePeriodTests
         Assert.Equal(readBody.GetProperty("closedEmployees").GetInt32(), summaries.Count);
         // The page shows the same month.
         Assert.Contains(Ym(month), page);
+        // Outside the closed sub-unit the day is written («حاضر», by hand); inside it the day is locked and stays as the close left it.
+        Assert.True(outside == HttpStatusCode.OK, Snip(outsideBody));
+        Assert.EndsWith($"|0|0|{Employee}|{Day(openDay)}", outsideRecord);
+        Assert.Contains("اليوم ضمن فترة حضور مغلقة", insideBody);
+        Assert.EndsWith($"|0|1|{people[0]}|{Day(openDay)}", insideRecord);
         // Payroll: one receipt per summary, the same employees, at version 1.
         Assert.True(received, $"57h: payroll lists {receipts.Count} receipts for {people.Length} summaries.");
         Assert.Equal(people.Order(StringComparer.Ordinal), receipts.Select(x => x.Employee).Order(StringComparer.Ordinal));
