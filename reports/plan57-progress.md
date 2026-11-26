@@ -336,6 +336,17 @@ P0 was read-only. P9 (UTC of 2026-11-26):
    **The disk after P-16's removals is 26 GB: under the 28 GB line.** What else holds the disk (read-only look): the loopback
    registry `/opt/hrm/registry` 53.7 GB (the images of every release pushed since PLAN-36), `hrm_seq_data` 47.4 GB (26 days of
    logs, about 1.7 GB a day), the running release's 24 images 8.9 GB, PostgreSQL 0.3 GB.
+4. **Resumed (UTC): 2026-11-26T04:15:04Z.** The session stood `BLOCKED` from 04:01Z. The owner asked why the local registry was
+   not wiped in favour of ghcr.io (answered: GHCR is the documented default; its workflow has never run, the server is not
+   signed in to it, and a wipe was not among what he had allowed), then wrote **«امسح وأكمل»**: wipe the older releases from the
+   local registry now, keep the running one, finish the plan, and move to GHCR as a change of its own after the merge.
+5. **04:15:53Z → 04:16:42Z, the loopback registry wiped and the running release pushed back.** `hrm-registry` (registry:2.8.3,
+   `127.0.0.1:5050`, bind `/opt/hrm/registry`) stopped; its data folder emptied; started; the 17 local images of the running
+   release `e64a0f7e65be` pushed again (17 pushed, 0 failed; 17 of 17 manifests answer 200; the tag list holds that tag alone).
+   **Registry 53,651 MiB → 1,913 MiB; free 26,486 MiB → 78,221 MiB** (`df -h`: 77G of 145G). The demo's 21 containers ran
+   throughout. **This cannot be undone:** the 33 older tags (every release from PLAN-36 to PLAN-56's first build) are gone
+   from the server; a rollback to one of them is a rebuild from git (`scripts/vps/build-on-host.ps1 -Tag <sha12>`). The
+   rollback target of this plan's deploy is `e64a0f7e65be`, which is there.
 
 ## Open issues
 
