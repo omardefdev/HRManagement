@@ -61,45 +61,35 @@ function Get-RunLineSignature($Run) {
         }
 }
 
-function Get-PayrollAntiforgery {
-    # The service scopes its antiforgery cookie to its UI path; the API reads it from the Cookie header.
-    $resp = Invoke-WebRequest -Method Get -Uri "$($BaseUrl.TrimEnd('/'))/api/payroll/run-lifecycle/antiforgery" `
-        -Headers @{ Authorization = "Bearer $($env:ACCESS_TOKEN)" } -UseBasicParsing
-    $issued = $resp.Content | ConvertFrom-Json
-    $cookie = $null
-    foreach ($header in @($resp.Headers['Set-Cookie'])) {
-        foreach ($part in ([string]$header -split ',(?=\s*\.AspNetCore)')) {
-            if ($part -match '^\s*(\.AspNetCore\.Antiforgery\.[^=]+)=([^;]+)') { $cookie = "$($Matches[1])=$($Matches[2])" }
-        }
-    }
-    if (-not $cookie -or -not $issued.headerName -or -not $issued.requestToken) {
+function Cancel-PayrollRun([string]$RunId, [string]$Reason) {
+    # PLAN-56: a run that is not posted is cancelled with a reason; its period and its inputs are free again. The antiforgery cookie
+    # goes through a session (Windows PowerShell 5.1 drops a Cookie entry in -Headers without a word). The service scopes it to its UI
+    # path (/ui/payroll); the API sits under /api/payroll, so it is added again for "/".
+    $base = $BaseUrl.TrimEnd('/')
+    $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+    $auth = @{ Authorization = "Bearer $($env:ACCESS_TOKEN)" }
+    $issued = Invoke-WebRequest -UseBasicParsing -Method Get -Uri "$base/api/payroll/run-lifecycle/antiforgery" -Headers $auth -WebSession $session
+    $token = $issued.Content | ConvertFrom-Json
+    $cookie = [regex]::Match((@($issued.Headers['Set-Cookie']) -join ','), '(\.AspNetCore\.Antiforgery\.[^=;,\s]+)=([^;,\s]+)')
+    if (-not $cookie.Success -or -not $token.headerName -or -not $token.requestToken) {
         throw "The antiforgery token of api/payroll/run-lifecycle/antiforgery was not issued."
     }
-    return @{ Header = [string]$issued.headerName; Token = [string]$issued.requestToken; Cookie = $cookie }
-}
-
-function Cancel-PayrollRun([string]$RunId, [string]$Reason) {
-    # PLAN-56: a run that is not posted is cancelled with a reason; its period and its inputs are free again.
-    $af = Get-PayrollAntiforgery
-    $h = @{
-        Authorization = "Bearer $($env:ACCESS_TOKEN)"
-        "Content-Type" = "application/json"
-        Cookie = $af.Cookie
-    }
-    $h[$af.Header] = $af.Token
+    $session.Cookies.Add([Uri]$base, (New-Object Net.Cookie($cookie.Groups[1].Value, $cookie.Groups[2].Value, '/')))
+    $h = @{ Authorization = "Bearer $($env:ACCESS_TOKEN)" }
+    $h[[string]$token.headerName] = [string]$token.requestToken
     $body = @{ reason = $Reason } | ConvertTo-Json
-    Invoke-RestMethod -Method Post -Uri "$($BaseUrl.TrimEnd('/'))/api/payroll/runs/$RunId/cancel" -Headers $h -Body $body | Out-Null
+    Invoke-RestMethod -Method Post -Uri "$base/api/payroll/runs/$RunId/cancel" -Headers $h -ContentType "application/json" -Body $body -WebSession $session | Out-Null
 }
 
 $start = [datetime]::ParseExact($PeriodStart, 'yyyy-MM-dd', [System.Globalization.CultureInfo]::InvariantCulture)
 if ($start.Day -ne 1) { throw "-PeriodStart must be the first day of a month: $PeriodStart" }
-$periodStart = [datetime]::SpecifyKind($start, [DateTimeKind]::Utc)
-$periodEnd = $periodStart.AddMonths(1).AddDays(-1)
-$runDate = $periodEnd
+$runPeriodStart = [datetime]::SpecifyKind($start, [DateTimeKind]::Utc)
+$runPeriodEnd = $runPeriodStart.AddMonths(1).AddDays(-1)
+$runDate = $runPeriodEnd
 
 $createPayload = @{
-    periodStart = $periodStart.ToString("o")
-    periodEnd = $periodEnd.ToString("o")
+    periodStart = $runPeriodStart.ToString("o")
+    periodEnd = $runPeriodEnd.ToString("o")
     runDate = $runDate.ToString("o")
 }
 
@@ -145,7 +135,7 @@ finally {
 }
 
 $diff = @{
-    periodStart = $periodStart.ToString("yyyy-MM-dd")
+    periodStart = $runPeriodStart.ToString("yyyy-MM-dd")
     runAId = $runAId
     runBId = $runBId
     configHashMatch = ($provA.configContentHash -eq $provB.configContentHash)

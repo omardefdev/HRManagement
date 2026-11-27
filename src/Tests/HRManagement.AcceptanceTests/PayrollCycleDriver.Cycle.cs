@@ -107,6 +107,7 @@ internal static partial class PayrollCycleDriver
         var ym = AcceptancePayrollMonths.Ym(month);
         var mark = "59" + month.ToString("yyMM", CultureInfo.InvariantCulture);
         string? changeId = null;
+        string? pendingAdjustment = null;
         var posted = false;
         try
         {
@@ -121,19 +122,18 @@ internal static partial class PayrollCycleDriver
             var ordered = scope.Order().ToList();
             var y = ordered[0];
             var x = ordered[1];
-            Guid z = Guid.Empty;
+            // Z: from the third id on, the first with no open salary change request whose grade leaves room for a raise (step 3 finds it).
+            var zCandidates = new List<Guid>();
             foreach (var candidate in ordered.Skip(2).Take(40))
             {
                 var requests = await processor.ReadAsync($"z-requests-{candidate:N}"[..18], $"api/payroll/pay-profile-changes?employeeId={candidate:D}", capture: false);
                 if (!requests.EnumerateArray().Any(r => r.GetProperty("state").GetString() is "PendingApproval" or "Scheduled"))
-                {
-                    z = candidate;
-                    break;
-                }
+                    zCandidates.Add(candidate);
             }
 
-            Assert.NotEqual(Guid.Empty, z);
-            checks["month"] = new { month = ym, runId, refused, employeesInScope = inScope, missingBeforeTheClose = scope.Count, gateMode = "Warn", y, x, z };
+            Assert.NotEmpty(zCandidates);
+            Guid z = Guid.Empty;
+            checks["month"] = new { month = ym, runId, refused, employeesInScope = inScope, missingBeforeTheClose = scope.Count, gateMode = "Warn", y, x, zCandidates = zCandidates.Count };
             recorder.WriteBefore(new
             {
                 month = ym,
@@ -142,7 +142,7 @@ internal static partial class PayrollCycleDriver
                 employeesInScope = inScope,
                 y,
                 x,
-                z,
+                zCandidates = zCandidates.Count,
                 cycleFrom = Environment.GetEnvironmentVariable(AcceptancePayrollMonths.CycleFromVariable) ?? "(default: 12 months before today)",
             });
             Lap("month");
@@ -150,10 +150,12 @@ internal static partial class PayrollCycleDriver
             // ------------------------------------------------------------ 1. the framework in force in M
             var frameworks = await processor.ReadAsync("1-frameworks", $"api/payroll/frameworks?code={Law50Code}");
             var inForce = frameworks.EnumerateArray()
-                .Where(f => f.GetProperty("status").GetString() == "Published"
+                // The engine's rule (PayrollConfigurationVersioning.ResolveGoverning): a published or superseded version whose dates cover the
+                // period's first day. The provenance after the calculation confirms which version governed (step 5).
+                .Where(f => f.GetProperty("status").GetString() is "Published" or "Superseded"
                             && DateOnly.Parse(f.GetProperty("effectiveFrom").GetString()!, CultureInfo.InvariantCulture) <= month
                             && (f.GetProperty("effectiveTo").ValueKind != JsonValueKind.String
-                                || DateOnly.Parse(f.GetProperty("effectiveTo").GetString()!, CultureInfo.InvariantCulture) >= month.AddMonths(1).AddDays(-1)))
+                                || DateOnly.Parse(f.GetProperty("effectiveTo").GetString()!, CultureInfo.InvariantCulture) >= month))
                 .OrderByDescending(f => f.GetProperty("effectiveFrom").GetString())
                 .ThenByDescending(f => f.GetProperty("versionNumber").GetInt32())
                 .FirstOrDefault();
@@ -192,11 +194,12 @@ internal static partial class PayrollCycleDriver
             var verified = 0;
             var alreadyActive = 0;
             var accountCalls = new List<string>();
+            var readCaptured = false;
             foreach (var employee in ordered)
             {
                 var path = $"api/payroll/employees/{employee:D}/bank-accounts";
-                var first = accountCalls.Count == 0;
-                var accounts = await processor.ReadAsync("2-accounts", path, capture: first);
+                var accounts = await processor.ReadAsync("2-accounts-first", path, capture: !readCaptured);
+                readCaptured = true;
                 var active = accounts.EnumerateArray().FirstOrDefault(a => a.GetProperty("status").GetString() == "Active");
                 var pending = accounts.EnumerateArray().FirstOrDefault(a => a.GetProperty("status").GetString() == "PendingVerification");
                 if (employee == x)
@@ -218,7 +221,7 @@ internal static partial class PayrollCycleDriver
                     var (registeredX, registeredXBody, registeredXText) = await processor.PostAsync("2-x-register", path, new
                     {
                         accountKind = "Iban",
-                        accountNumber = AcceptancePayrollAccounts.Iban(employee.ToString("D"), mark),
+                        accountNumber = AcceptancePayrollAccounts.UniqueIban(employee.ToString("D"), mark),
                         bankNameAr = "المصرف التجاري السوري",
                         holderNameAr = "موظف اختبار القبول",
                     });
@@ -240,7 +243,7 @@ internal static partial class PayrollCycleDriver
                     var (registered, registeredBody, registeredText) = await processor.PostAsync("2-register", path, new
                     {
                         accountKind = "Iban",
-                        accountNumber = AcceptancePayrollAccounts.Iban(employee.ToString("D"), mark),
+                        accountNumber = AcceptancePayrollAccounts.UniqueIban(employee.ToString("D"), mark),
                         bankNameAr = "المصرف التجاري السوري",
                         holderNameAr = "موظف اختبار القبول",
                     }, capture);
@@ -271,43 +274,55 @@ internal static partial class PayrollCycleDriver
             // D-53-1 refuses a date before the current month and M has ended, so the change is dated next month: decided by two people,
             // Scheduled, it reaches no part of M (Z's line is at his salary in force in M), and it is cancelled in finally.
             var effective = AcceptancePayrollMonths.CurrentMonth.AddMonths(1);
-            object ChangeBody(decimal salary, string why) => new
+            object ChangeBody(Guid employee, decimal salary, string why) => new
             {
-                employeeId = z,
+                employeeId = employee,
                 proposedBaseSalary = salary,
                 effectiveFrom = Day(effective),
                 reason = $"AC-PAY-59 {ym}: {why}",
                 legalReference = "قرار اختبار القبول 59",
             };
 
-            // The grade's bounds come from the request's own refusal of a salary of 1 (no SQL); a grade with no bounds takes it, and that
-            // request names Z's salary in force and is cancelled at once.
+            // A raise inside the grade's bounds, by the request's own answers (no SQL): a salary of 1 is refused with the bounds, and the
+            // grade's maximum is asked; a salary already at the maximum is refused as no change, and the next candidate is tried. A grade
+            // with no bounds takes the probe, which names the salary in force and is cancelled at once; a thousand more is then asked.
             decimal current;
-            decimal proposed;
-            var (probe, probeBody, probeText) = await processor.PostAsync("3-probe-bounds", "api/payroll/pay-profile-changes", ChangeBody(1m, "قراءة حدود الدرجة"));
-            var bounds = Regex.Match(PayrollApi.Error(probeBody), @"الحد الأدنى ([0-9.]+) والحد الأعلى ([0-9.]+)");
-            if (probe == HttpStatusCode.BadRequest && bounds.Success)
+            decimal proposed = 0;
+            JsonElement requestedBody = default;
+            var atMaximum = new List<Guid>();
+            foreach (var candidate in zCandidates)
             {
-                var min = decimal.Parse(bounds.Groups[1].Value, CultureInfo.InvariantCulture);
-                var max = decimal.Parse(bounds.Groups[2].Value, CultureInfo.InvariantCulture);
-                proposed = Math.Round((min + max) / 2m / 1000m, MidpointRounding.AwayFromZero) * 1000m;
-                if (proposed < min || proposed > max) proposed = max;
-            }
-            else
-            {
-                Assert.True(probe == HttpStatusCode.Created, $"3: the probe answered {(int)probe}: {PayrollApi.Snip(probeText)}");
-                var probeId = probeBody.GetProperty("requestId").GetGuid().ToString("D");
-                var probeRead = await processor.ReadAsync("3-probe-read", $"api/payroll/pay-profile-changes/{probeId}");
-                var (cancelledProbe, _, cancelledProbeText) = await processor.PostAsync("3-probe-cancel", $"api/payroll/pay-profile-changes/{probeId}/cancel",
-                    new { reason = "AC-PAY-59: طلب قراءة الراتب فقط" });
-                Assert.True(cancelledProbe == HttpStatusCode.OK, $"3: cancelling the probe answered {(int)cancelledProbe}: {PayrollApi.Snip(cancelledProbeText)}");
-                proposed = Dec(probeRead, "currentBaseSalary") + 1000m;
+                var (probe, probeBody, probeText) = await processor.PostAsync("3-probe-bounds", "api/payroll/pay-profile-changes", ChangeBody(candidate, 1m, "قراءة حدود الدرجة"));
+                var bounds = Regex.Match(PayrollApi.Error(probeBody), @"الحد الأدنى ([0-9.]+) والحد الأعلى ([0-9.]+)");
+                if (probe == HttpStatusCode.BadRequest && bounds.Success)
+                {
+                    proposed = decimal.Parse(bounds.Groups[2].Value, CultureInfo.InvariantCulture);
+                }
+                else
+                {
+                    Assert.True(probe == HttpStatusCode.Created, $"3: the probe answered {(int)probe}: {PayrollApi.Snip(probeText)}");
+                    var probeId = probeBody.GetProperty("requestId").GetGuid().ToString("D");
+                    var probeRead = await processor.ReadAsync("3-probe-read", $"api/payroll/pay-profile-changes/{probeId}");
+                    var (cancelledProbe, _, cancelledProbeText) = await processor.PostAsync("3-probe-cancel", $"api/payroll/pay-profile-changes/{probeId}/cancel",
+                        new { reason = "AC-PAY-59: طلب قراءة الراتب فقط" });
+                    Assert.True(cancelledProbe == HttpStatusCode.OK, $"3: cancelling the probe answered {(int)cancelledProbe}: {PayrollApi.Snip(cancelledProbeText)}");
+                    proposed = Dec(probeRead, "currentBaseSalary") + 1000m;
+                }
+
+                var (requested, body, requestedText) = await processor.PostAsync("3-request", "api/payroll/pay-profile-changes", ChangeBody(candidate, proposed, "زيادة راتب من الشهر القادم (D-53-1)"));
+                if (requested == HttpStatusCode.BadRequest && requestedText.Contains("لم يُقترح تغيير", StringComparison.Ordinal))
+                {
+                    atMaximum.Add(candidate);
+                    continue;
+                }
+
+                Assert.True(requested == HttpStatusCode.Created, $"3: the request answered {(int)requested}: {PayrollApi.Snip(requestedText)}");
+                z = candidate;
+                requestedBody = body;
+                break;
             }
 
-            var (requested, requestedBody, requestedText) = await processor.PostAsync("3-request", "api/payroll/pay-profile-changes", ChangeBody(proposed, "تعديل راتب من الشهر القادم (D-53-1)"));
-            if (requested == HttpStatusCode.BadRequest && requestedText.Contains("لم يُقترح تغيير", StringComparison.Ordinal))
-                (requested, requestedBody, requestedText) = await processor.PostAsync("3-request-other", "api/payroll/pay-profile-changes", ChangeBody(proposed - 1000m, "تعديل راتب من الشهر القادم (D-53-1)"));
-            Assert.True(requested == HttpStatusCode.Created, $"3: the request answered {(int)requested}: {PayrollApi.Snip(requestedText)}");
+            Assert.True(z != Guid.Empty, $"3: none of {zCandidates.Count} candidates has room for a raise in his grade.");
             changeId = requestedBody.GetProperty("requestId").GetGuid().ToString("D");
             Assert.Equal("PendingApproval", requestedBody.GetProperty("state").GetString());
 
@@ -323,14 +338,17 @@ internal static partial class PayrollCycleDriver
             Assert.NotEqual(change.GetProperty("requestedBy").GetGuid(), change.GetProperty("decidedBy").GetGuid());
             Assert.Equal(JsonValueKind.Null, change.GetProperty("appliedProfileId").ValueKind);
             proposed = Dec(change, "proposedBaseSalary");
+            Assert.True(proposed > current, $"3: the request is not a raise ({current} → {proposed}).");
             checks["3-salary-change"] = new
             {
                 read = $"GET api/payroll/pay-profile-changes/{changeId}",
                 z,
+                candidatesAtTheirMaximum = atMaximum,
                 state = "Scheduled",
                 effectiveFrom = Day(effective),
                 currentBaseSalary = current,
                 proposedBaseSalary = proposed,
+                isARaise = proposed > current,
                 requesterIsNotDecider = true,
                 requesterApproval = (int)selfApproval,
                 appliedProfileId = (string?)null,
@@ -416,6 +434,14 @@ internal static partial class PayrollCycleDriver
                 .Where(c => ComponentType(c) == "Deduction" && c.GetProperty("componentName").GetString() == absenceName)
                 .ToList();
             Assert.True(absence.Count == 1 && Dec(absence[0], "amount") < 0, $"5: Y's line carries no absence deduction «{absenceName}».");
+            // Two days' worth: the engine prices a day at the monthly base over 30 (Calendar30) or over the period's working days.
+            var yBase = Dec(yPayslip.GetProperty("components").EnumerateArray().Single(c => ComponentType(c) == "BaseSalary"), "amount");
+            var yDeduction = -Dec(absence[0], "amount");
+            var weekdays = WorkingDays(month).Count();
+            var twoDays = new[] { yBase * 2m / 30m, yBase * 2m / weekdays, yBase * 2m / (weekdays - 1), yBase * 2m / (weekdays - 2) };
+            Assert.True(twoDays.Any(expected => Math.Abs(expected - yDeduction) <= 1m),
+                $"5: Y's absence deduction {yDeduction} is not two days of a monthly base of {yBase} (by 30 or by about {weekdays} working days).");
+            Assert.Equal(JsonValueKind.String, absence[0].GetProperty("referenceId").ValueKind);
             var zPayslip = await PayslipAsync("5-payslip-z", LineOf(run5, z));
             var zBase = zPayslip.GetProperty("components").EnumerateArray().Single(c => ComponentType(c) == "BaseSalary");
             Assert.Equal(current, Dec(zBase, "amount"));
@@ -429,6 +455,8 @@ internal static partial class PayrollCycleDriver
                 missingAttendance = missing,
                 lines = run5.GetProperty("salaryLines").GetArrayLength(),
                 yAbsenceDeduction = Dec(absence[0], "amount"),
+                yBaseSalary = yBase,
+                yAbsenceIsTwoDays = true,
                 zBaseSalary = Dec(zBase, "amount"),
                 zSalaryInForceInM = current,
                 zChangeFromNextMonth = proposed,
@@ -450,26 +478,33 @@ internal static partial class PayrollCycleDriver
             Lap("6-reject");
 
             // ------------------------------------------------------------ 7. an adjustment of +25,000 for Y, by two people, then again
+            var adjustmentsBefore = Dec(LineOf(run5, y), "totalAdjustments");
             var adjustmentReason = $"AC-PAY-59 {ym}: تسوية يدوية للموظف";
+            var listPath = $"{AdjustmentsUi}?employeeId={y:D}";
+            var pendingBefore = Regex.Matches(await approverUi.GetAsync("7-adjustments-before", listPath), @"PayrollAdjustments/Approve/([0-9a-fA-F-]{36})")
+                .Select(m => m.Groups[1].Value).ToHashSet(StringComparer.OrdinalIgnoreCase);
             var (entered, enteredBody) = await processorUi.PostWithStatusAsync("7-adjustment-enter", $"{AdjustmentsUi}/Create", $"{AdjustmentsUi}/Create",
                 F(("EmployeeId", y.ToString("D")), ("Amount", AdjustmentAmount.ToString("0.00", CultureInfo.InvariantCulture)), ("AdjustmentReason", adjustmentReason)));
             Assert.True(entered == HttpStatusCode.OK, $"7: entering the adjustment answered {(int)entered}: {PayrollApi.Snip(enteredBody)}");
-            var listPath = $"{AdjustmentsUi}?employeeId={y:D}";
             var list = await approverUi.GetAsync("7-adjustments", listPath);
-            var pendingIds = Regex.Matches(list, @"PayrollAdjustments/Approve/([0-9a-fA-F-]{36})").Select(m => m.Groups[1].Value).Distinct().ToList();
-            Assert.True(pendingIds.Count == 1, $"7: Y has {pendingIds.Count} adjustment(s) to approve on the approver's page (expected the one just entered).");
+            var pendingIds = Regex.Matches(list, @"PayrollAdjustments/Approve/([0-9a-fA-F-]{36})").Select(m => m.Groups[1].Value)
+                .Distinct(StringComparer.OrdinalIgnoreCase).Where(id => !pendingBefore.Contains(id)).ToList();
+            Assert.True(pendingIds.Count == 1, $"7: {pendingIds.Count} new adjustment(s) of Y to approve on the approver's page (expected the one just entered).");
+            pendingAdjustment = pendingIds[0];
             var (decided, decidedBody) = await approverUi.PostWithStatusAsync("7-adjustment-approve", $"{AdjustmentsUi}/Approve/{pendingIds[0]}", listPath, F());
             Assert.True(decided == HttpStatusCode.OK, $"7: approving the adjustment answered {(int)decided}: {PayrollApi.Snip(decidedBody)}");
             var listAfter = await approverUi.GetAsync("7-adjustments-after", listPath);
             Assert.DoesNotContain($"PayrollAdjustments/Approve/{pendingIds[0]}", listAfter, StringComparison.OrdinalIgnoreCase);
+            pendingAdjustment = null;
 
             await CalculateAndValidateAsync("7");
             var (submitted7, submitted7Body, _) = await processor.PostAsync("7-submit", $"api/payroll/runs/{runId}/submit-for-review");
             Assert.True(submitted7 == HttpStatusCode.OK, $"7: submit answered {(int)submitted7}: {PayrollApi.Error(submitted7Body)}");
             var run7 = await processor.ReadAsync("7-run", $"api/payroll/runs/{runId}");
             var yLine = LineOf(run7, y);
-            Assert.Equal(AdjustmentAmount, Dec(yLine, "totalAdjustments"));
-            Assert.Equal(Dec(yLine, "grossPay") - Dec(yLine, "totalDeductions") + AdjustmentAmount, Dec(yLine, "netPay"));
+            // The adjustment's own effect (an input an earlier, failed execution freed would already be in step 5's line).
+            Assert.Equal(AdjustmentAmount, Dec(yLine, "totalAdjustments") - adjustmentsBefore);
+            Assert.Equal(Dec(yLine, "grossPay") - Dec(yLine, "totalDeductions") + Dec(yLine, "totalAdjustments"), Dec(yLine, "netPay"));
             Assert.Equal(("UnderReview", 2), (AcceptancePayrollMonths.RunStatus(run7), run7.GetProperty("revision").GetInt32()));
             checks["7-adjusted"] = new
             {
@@ -477,7 +512,7 @@ internal static partial class PayrollCycleDriver
                 adjustmentId = pendingIds[0],
                 enteredBy = "payroll-processor",
                 approvedBy = "payroll-approver",
-                y = new { gross = Dec(yLine, "grossPay"), deductions = Dec(yLine, "totalDeductions"), adjustments = Dec(yLine, "totalAdjustments"), net = Dec(yLine, "netPay") },
+                y = new { gross = Dec(yLine, "grossPay"), deductions = Dec(yLine, "totalDeductions"), adjustmentsBefore, adjustments = Dec(yLine, "totalAdjustments"), net = Dec(yLine, "netPay") },
                 validatedWithANonZeroAdjustment = true,
             };
             Lap("7-adjust");
@@ -550,9 +585,10 @@ internal static partial class PayrollCycleDriver
             var files11 = await FilesAsync(poster, "11-files", batchId);
             var initial = Assert.Single(files11);
             Assert.Equal(("Initial", sent11.Count, sent11.Sum(o => o.Amount)), (initial.Kind, initial.ControlCount, initial.ControlTotal));
-            var csv = await FileOrderIdsAsync(poster, recorder, "11-file-initial", batchId, initial.Id);
+            var (csv, csvEmployees) = await FileRowsAsync(poster, recorder, "11-file-initial", batchId, initial.Id);
             Assert.DoesNotContain(x11.Id, csv);
-            Assert.Equal(sent11.Count, csv.Count);
+            Assert.DoesNotContain(x, csvEmployees);
+            Assert.Equal(sent11.Select(o => o.Id).Order(), csv.Order());
 
             // AC-PAY-59b: a second sending of the same batch makes no second file, and X's order is still not sent.
             var (again, againBody, _) = await poster.PostAsync("11-process-again-negative", $"api/payroll/payment-batches/{batchId}/process");
@@ -594,8 +630,9 @@ internal static partial class PayrollCycleDriver
             var x13 = (await OrdersAsync(processor, "13-orders", batchId)).Single(o => o.EmployeeId == x);
             Assert.Equal(("HeldRelease", 1, x13.Amount), (heldRelease.Kind, heldRelease.ControlCount, heldRelease.ControlTotal));
             Assert.Equal(("Submitted", (int?)2), (x13.Status, x13.FileSequence));
-            var csv13 = await FileOrderIdsAsync(poster, recorder, "13-file-held-release", batchId, heldRelease.Id);
+            var (csv13, csv13Employees) = await FileRowsAsync(poster, recorder, "13-file-held-release", batchId, heldRelease.Id);
             Assert.Equal([x13.Id], csv13);
+            Assert.Equal([x], csv13Employees);
             checks["13-held-release"] = new { file = new { heldRelease.Sequence, heldRelease.Kind, heldRelease.ControlCount, heldRelease.ControlTotal }, ordersInTheFile = csv13 };
             Lap("13-submit-held");
 
@@ -608,7 +645,7 @@ internal static partial class PayrollCycleDriver
             for (var i = 0; i < lines14.Count; i++)
             {
                 var line = lines14[i];
-                var payslip = await PayslipAsync("14-payslip", line, capture: i == 0 || i == lines14.Count - 1);
+                var payslip = await PayslipAsync(i == 0 ? "14-payslip-first" : "14-payslip-last", line, capture: i == 0 || i == lines14.Count - 1);
                 payslips++;
                 var net = Dec(payslip.GetProperty("line"), "netPay");
                 var lineId = line.GetProperty("id").GetGuid();
@@ -619,7 +656,11 @@ internal static partial class PayrollCycleDriver
 
             Assert.Empty(mismatches);
             Assert.Equal(Dec(run10, "totalNetPay"), orders14.Sum(o => o.Amount));
-            checks["14-payslips"] = new { payslipsRead = payslips, orders = orders14.Count, sumOfOrders = orders14.Sum(o => o.Amount), totalNetPay = Dec(run10, "totalNetPay"), mismatches = mismatches.Count };
+            // P-4: the posted line of Z (calculated again at step 7, after his change was approved) is at his salary in force in M.
+            var zPosted = await PayslipAsync("14-payslip-z", LineOf(run10, z));
+            var zPostedBase = Dec(zPosted.GetProperty("components").EnumerateArray().Single(c => ComponentType(c) == "BaseSalary"), "amount");
+            Assert.Equal(current, zPostedBase);
+            checks["14-payslips"] = new { zPostedBaseSalary = zPostedBase, zSalaryInForceInM = current, payslipsRead = payslips, orders = orders14.Count, sumOfOrders = orders14.Sum(o => o.Amount), totalNetPay = Dec(run10, "totalNetPay"), mismatches = mismatches.Count };
             Lap("14-payslips");
 
             // ------------------------------------------------------------ 15. the bank's confirmation, recorded by two people
@@ -656,6 +697,7 @@ internal static partial class PayrollCycleDriver
             };
             Lap("15-settle");
 
+            recorder.RecordTiming("gatewayRateLimitWaits", PayrollApi.RateLimitWaits);
             return new
             {
                 month = ym,
@@ -692,6 +734,14 @@ internal static partial class PayrollCycleDriver
                 checks["finally-change"] = state;
             }
 
+            // An adjustment entered and never approved is rejected, so no pending input of Y is left for a later execution.
+            if (pendingAdjustment is not null)
+            {
+                var (rejectedStatus, _) = await approverUi.PostWithStatusAsync("finally-adjustment-reject", $"{AdjustmentsUi}/Reject/{pendingAdjustment}",
+                    AdjustmentsUi, F(("note", $"AC-PAY-59 {ym}: فشلت الدورة")));
+                checks["finally-adjustment"] = $"rejected ({(int)rejectedStatus})";
+            }
+
             checks["finally-run"] = posted
                 ? "posted (kept)"
                 : await CancelUnlessPostedAsync(processor, approver, "finally-run", runId, $"AC-PAY-59 {ym}: فشلت الدورة قبل الترحيل");
@@ -702,18 +752,22 @@ internal static partial class PayrollCycleDriver
     /// The order ids a stored bank file carries (<c>GET payment-batches/{id}/files/{fileId}</c>, as the poster). Read, never kept: the
     /// evidence holds the file's size and its count of order rows only, not its content.
     /// </summary>
-    private static async Task<IReadOnlyList<Guid>> FileOrderIdsAsync(PayrollApi poster, EvidenceRecorder recorder, string step, string batchId, Guid fileId)
+    private static async Task<(IReadOnlyList<Guid> Orders, IReadOnlyList<Guid> Employees)> FileRowsAsync(PayrollApi poster, EvidenceRecorder recorder, string step, string batchId, Guid fileId)
     {
         var path = $"api/payroll/payment-batches/{batchId}/files/{fileId:D}";
         using var response = await poster.Http.GetAsync(path);
         var text = await response.Content.ReadAsStringAsync();
         Assert.True(response.StatusCode == HttpStatusCode.OK, $"{step}: the file answered {(int)response.StatusCode}");
-        var ids = text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(row => row.Split(',')[0])
-            .Select(cell => Guid.TryParse(cell, out var id) ? id : Guid.Empty)
-            .Where(id => id != Guid.Empty)
+        // PaymentBatchFileBuilder: PayrollRunId,PeriodStart,PeriodEnd,Currency,EmployeeId,NationalId,EmployeeName,…,PaymentOrderId,Amount.
+        // The order id is read from the right (the name is quoted and may hold a comma; the amount never does), the employee from the left.
+        var rows = text.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Skip(1)
+            .Where(row => !row.StartsWith("CONTROL,", StringComparison.Ordinal))
+            .Select(row => row.Split(','))
             .ToList();
-        recorder.CaptureHttp($"59-{step}-{poster.Persona}", "GET", "/" + path, (int)response.StatusCode, new { bytes = text.Length, orderRows = ids.Count, content = "not kept" });
-        return ids;
+        var orders = rows.Select(cells => Guid.Parse(cells[^2])).ToList();
+        var employees = rows.Select(cells => Guid.Parse(cells[4])).ToList();
+        recorder.CaptureHttp($"59-{step}-{poster.Persona}", "GET", "/" + path, (int)response.StatusCode, new { bytes = text.Length, orderRows = orders.Count, content = "not kept" });
+        return (orders, employees);
     }
 }

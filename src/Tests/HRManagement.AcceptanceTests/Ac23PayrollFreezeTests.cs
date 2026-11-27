@@ -55,12 +55,35 @@ public class Ac23PayrollFreezeTests
         // The two months follow the service's clock (Localization:TimeZone, Asia/Damascus): a request cannot name a month before the
         // current one. PLAN-59: the registry's current+2 rule gives two consecutive months no other class (and no seeded run) takes.
         await AcceptancePayrollRegime.ClassifyRecordsAddedSinceTheSeedAsync(HRManagement.ServiceDefaults.AcceptanceSeedIds.AgencyAId.ToString("D"));
-        var (monthA, runA, refused) = await AcceptancePayrollMonths.CreateRunAsync(http, recorder, "ac23",
-            AcceptancePayrollMonths.AfterNextCandidates("AC-23", AcceptancePayrollMonths.MainStack, 2));
+        // The pair is taken together: run A by the picker, run B of the next month at once; a refused run B (the live-period refusal)
+        // cancels run A and moves on to the next pair.
+        var candidates = AcceptancePayrollMonths.AfterNextCandidates("AC-23", AcceptancePayrollMonths.MainStack, 2).ToList();
+        DateOnly monthA;
+        string runA;
+        Guid runB;
+        while (true)
+        {
+            (monthA, runA, _) = await AcceptancePayrollMonths.CreateRunAsync(http, recorder, "ac23", candidates);
+            using var createdB = await http.PostAsync("api/payroll/runs", JsonContent(AcceptancePayrollMonths.RunBody(monthA.AddMonths(1))));
+            var createdBBody = await createdB.Content.ReadAsStringAsync();
+            recorder.CaptureHttp($"create-run-b-{AcceptancePayrollMonths.Ym(monthA.AddMonths(1))}", "POST", "/api/payroll/runs", (int)createdB.StatusCode,
+                JsonSerializer.Deserialize<object>(createdBBody));
+            if (createdB.IsSuccessStatusCode)
+            {
+                using var doc = JsonDocument.Parse(createdBBody);
+                runB = doc.RootElement.GetProperty("id").GetGuid();
+                break;
+            }
+
+            Assert.True(createdBBody.Contains(AcceptancePayrollMonths.LivePeriodRefusal, StringComparison.Ordinal), createdBBody);
+            Assert.Equal(System.Net.HttpStatusCode.OK, await AcceptancePayrollMonths.CancelRunAsync(http, recorder, "ac23-pair-refused", runA, "AC-23: الشهر التالي مأخوذ"));
+            candidates = candidates.Where(m => m > monthA).ToList();
+        }
+
         var runAId = Guid.Parse(runA);
         var periodStartA = monthA.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var frozenMonth = periodStartA.ToString("yyyy/MM", System.Globalization.CultureInfo.InvariantCulture);
-        Guid? runBId = null;
+        Guid? runBId = runB;
         Guid? requestId = null;
         try
         {
@@ -139,22 +162,7 @@ public class Ac23PayrollFreezeTests
             recorder.WriteAfter(new { netBefore, netAfter, unchanged = netBefore == netAfter });
             Assert.Equal(netBefore, netAfter);
 
-            var periodStartB = periodStartA.AddMonths(1);
-            var periodEndB = periodStartB.AddMonths(1).AddDays(-1);
-            var createB = await http.PostAsync("api/payroll/runs", JsonContent(new
-            {
-                periodStart = periodStartB,
-                periodEnd = periodEndB,
-                runDate = DateTime.UtcNow
-            }));
-            var createBBody = await createB.Content.ReadAsStringAsync();
-            Assert.True(createB.IsSuccessStatusCode, createBBody);
-
-            Guid runB;
-            using (var doc = JsonDocument.Parse(createBBody))
-                runB = doc.RootElement.GetProperty("id").GetGuid();
-            runBId = runB;
-
+            // Run B (the next month), created with run A: it is calculated while the request is pending.
             var calculateB = await http.PostAsync($"api/payroll/runs/{runB:D}/calculate", null);
             Assert.True(calculateB.IsSuccessStatusCode, await calculateB.Content.ReadAsStringAsync());
             var runBResp = await http.GetAsync($"api/payroll/runs/{runB:D}");

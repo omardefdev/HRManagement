@@ -43,12 +43,15 @@ public class Ac22PayrollResumeAfterKillTests
         }
         finally
         {
-            // The script cancels its run; if it stopped before, the run is cancelled here (a second cancellation is refused, harmlessly).
+            // Payroll was killed and started again: wait until it answers its own read of the run, then cancel the run if the script did
+            // not (a second cancellation is refused, harmlessly).
+            await WaitForPayrollAsync(http, runId);
             await AcceptancePayrollMonths.CancelRunAsync(http, recorder, "ac22-finally", runId, "AC-22: resume drill ended (PLAN-59)");
         }
 
+        recorder.WriteDbChecks(new { month = AcceptancePayrollMonths.Ym(month), runId, scriptExitCode = exitCode, scriptOutput = output });
         var status = AcceptancePayrollMonths.RunStatus(await AcceptancePayrollMonths.ReadRunAsync(http, runId));
-        recorder.WriteDbChecks(new { month = AcceptancePayrollMonths.Ym(month), runId, statusAfter = status, scriptOutput = output });
+        recorder.WriteDbChecks(new { month = AcceptancePayrollMonths.Ym(month), runId, statusAfter = status, scriptExitCode = exitCode, scriptOutput = output });
         recorder.FlushTiming();
 
         Assert.True(exitCode == 0, $"AC-22 resume script failed: {output}");
@@ -64,5 +67,18 @@ public class Ac22PayrollResumeAfterKillTests
         Assert.Equal("Cancelled", status);
         recorder.WriteAfter(result.RootElement.Clone());
         recorder.WriteResult("Pass");
+    }
+
+    /// <summary>Waits (up to three minutes) until Payroll, started again after the kill, answers its read of the run.</summary>
+    private static async Task WaitForPayrollAsync(HttpClient http, string runId)
+    {
+        var deadline = DateTime.UtcNow.AddMinutes(3);
+        while (DateTime.UtcNow < deadline)
+        {
+            using var response = await http.GetAsync($"api/payroll/runs/{runId}");
+            if (response.IsSuccessStatusCode)
+                return;
+            await Task.Delay(TimeSpan.FromSeconds(3));
+        }
     }
 }

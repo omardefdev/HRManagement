@@ -22,13 +22,15 @@ public class AcPay59FullCycleTests
         0. The month M (D-PAY-22): the first ended month from ACCEPTANCE_PAYROLL_CYCLE_FROM with no live regular run (the run is created:
            201; the live-period refusal moves on) and no closed attendance (central-a reads GET api/attendance/periods/{M}); the months of
            lva057-periods.json and of the registry's other classes are skipped. The run's scope is its attendance-status before the close;
-           Y, X and Z are three of its employees in the order of their ids (Z with no open salary change request).
+           Y, X and Z are three of its employees in the order of their ids (Z: the first from the third on with no open salary change
+           request and room for a raise in his grade).
         1. payroll-processor reads the framework in force for LAW_50_2004 in M; none in force → import law50-interim.json from the first
            day of M, payroll-approver approves, a-payroll-approver-2 attests, payroll-approver publishes.
         2. Accounts: payroll-processor registers and payroll-approver verifies one for everyone in scope without one in force; X's account in
            force (an earlier execution's) is retired by payroll-approver, and a new one is registered and left unverified.
-        3. payroll-processor asks for a salary change of Z from the first day of next month (D-53-1: not before the current month; M has
-           ended); his own approval → 403; payroll-approver approves → Scheduled; Z's salary in force unchanged. Cancelled in finally.
+        3. payroll-processor asks for a raise of Z inside his grade's bounds (read from the request's own refusal of a salary of 1) from
+           the first day of next month (D-53-1: not before the current month; M has ended); his own approval → 403; payroll-approver
+           approves → Scheduled; Z's salary in force unchanged. Cancelled in finally.
         4. central-a: Y absent on M's first two working days (the create screen), the bulk entry «حاضر» from agency A's root unit, then
            POST api/attendance/periods/{M}/close with no unit → 200; payroll holds one receipt per employee closed.
         5. payroll-processor calculates and validates: missingAttendance = []; Y's line has the absence deduction of the close; Z's base

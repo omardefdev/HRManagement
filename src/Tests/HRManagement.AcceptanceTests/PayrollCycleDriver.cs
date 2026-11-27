@@ -26,12 +26,31 @@ internal sealed class PayrollApi(HttpClient http, EvidenceRecorder recorder, str
     /// <summary>The underlying client (the months' picker posts with it).</summary>
     public HttpClient Http => http;
 
+    /// <summary>How many times a call met the gateway's rate limit (429) and waited before it was sent again.</summary>
+    public static int RateLimitWaits => _rateLimitWaits;
+
+    private static int _rateLimitWaits;
+
     public async Task<(HttpStatusCode Status, JsonElement Body, string Text)> SendAsync(
         string step, HttpMethod method, string path, object? body = null, bool capture = true)
     {
-        using var request = new HttpRequestMessage(method, path);
-        if (body is not null) request.Content = JsonContent.Create(body);
-        using var response = await http.SendAsync(request);
+        // The gateway limits each user's requests per minute (2,000 on the acceptance stacks, 120 in production): a bulk step meets
+        // 429 and, as any client should, waits as long as Retry-After says (or a few seconds) and sends the same request again.
+        HttpResponseMessage response;
+        for (var attempt = 1; ; attempt++)
+        {
+            using var request = new HttpRequestMessage(method, path);
+            if (body is not null) request.Content = JsonContent.Create(body);
+            response = await http.SendAsync(request);
+            if (response.StatusCode != HttpStatusCode.TooManyRequests || attempt >= 60)
+                break;
+            var wait = response.Headers.RetryAfter?.Delta ?? TimeSpan.FromSeconds(5);
+            response.Dispose();
+            Interlocked.Increment(ref _rateLimitWaits);
+            await Task.Delay(wait < TimeSpan.FromSeconds(1) ? TimeSpan.FromSeconds(1) : wait);
+        }
+
+        using var _ = response;
         var text = await response.Content.ReadAsStringAsync();
         JsonElement json = default;
         var trimmed = text.TrimStart();

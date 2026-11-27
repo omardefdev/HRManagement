@@ -133,3 +133,83 @@ Finished (UTC): 2026-11-27T06:43:15Z
 ## Next step
 P6: disk/memory checks; acceptance-reset (personas changed); build the service images one at a time; cycle stack: AC-PAY-59 x3;
 main stack: AC-12/21/23 + touched classes, then AC-22 alone; lab stack; validators; Testcontainers step; independent review.
+
+## P6 — local acceptance (in progress)
+- Images: 16 services built one at a time from b40795d0 in 23 min 50 s (07:08:07Z); every hrm-acceptance image new; the 15
+  superseded images of this repository removed by id. Disk 22 G free after.
+- Independent review (one fresh subagent, read-only, ~29 min, started beside the image build so its fixes land before the stacks):
+  1 high, 2 medium, 8 low. Fixed: H1 the bank file's order id is its second-to-last column (column 0 is the run): parsed from the
+  right, the employee from column 4, X's employee also checked absent; M2 Y's adjustment checked by its delta from step 5, the
+  pending set read before and after, a never-approved one rejected in finally; M3 Z's base on the posted line checked at step 14;
+  L4 Y's deduction must be two days of his base (by 30 or by the month's working days) with a reference; L5 the scripts send the
+  antiforgery cookie through a WebRequestSession (5.1 drops a Cookie header); L6 AC-23 takes its months as a pair (run B created
+  with run A; a refused B cancels A and moves on); L7 step 1 mirrors the engine's rule (Published or Superseded, covering the period's
+  first day); L8 evidence of the bulk steps first/last only, distinct names; L10 the orders read clamps its page (no overflow), with a
+  test. Recorded, not changed: L9 the per-test hang limit (20 min) is measured below; L11 AC-12's posted run keeps its held orders,
+  which a later verification on the main stack may re-pin or hold ACCOUNT-RETIRED — holds of AC-12's run act on AC-12's batch only
+  (P-11 accepts AC-12's posted run and held orders in its month).
+- Cycle stack 1 (07:08–07:20:44Z, 12 min 3 s incl. reset). AC-PAY-59 first execution FAILED at step 2 after 26 s: the gateway's
+  429 (2,000 requests a minute per user on the acceptance stacks) met the bulk account step, and the finally's cancel was itself
+  429, leaving the 2026-08 run live. Fix: PayrollApi waits on 429 (Retry-After, else 5 s) and sends the request again (counted in
+  timing.json). The stack is reset so the three executions take 2026-08..10 in a row.
+- Cycle stack 2 (07:24–07:35:39Z, 10 min 52 s). Execution 1: steps 1–10 passed (month 2026-08; 1,102 in scope, 1,101 orders;
+  accounts 3 min 33 s), step 11 failed: two orders Held PAYMENT-HOLD. A debug execution on the same stack (2026-09) showed the same.
+  Cause: the two seeded legacy employees (…0201, …0203) share the first 18 hex digits of their ids, and
+  AcceptancePayrollAccounts.Iban builds the number from the mark and the id's first characters, so both got one IBAN and the fraud
+  scan's FR-04 (shared account, payment-hold) held both. (A first guess — standing holds with no run — was wrong: the holds screen
+  showed none, and that step was removed.) Fix: AcceptancePayrollAccounts.UniqueIban (mark + SHA-256 of the whole id), used by the
+  cycle; Iban is unchanged for the classes that pick a few employees (they exclude the legacy two). Stack reset again (07:46:51Z).
+- Cycle stack 3 (fresh, 15 min 13 s to ready, 08:02:04Z): **AC-PAY-59a Pass three times in a row on 2026-08, 2026-09, 2026-10**
+  (5 min 52 s, 4 min 53 s, 4 min 57 s; gateway 429 waits 4 each). Each: 1,102 lines and orders (scope 1,102; HR.Core closed 1,138
+  and payroll holds 1,138 receipts), two approvals (≈276–286 M), X held NO-ACCOUNT then sent alone (Initial 1,101 orders; HeldRelease
+  1 order), AC-PAY-59b second process 409 with no second file, 1,102 payslips equal their orders, settled by two people; Y's
+  deduction = two days by the month's working days (40,272.73 = 443,000×2/22); Z's line at 260,000 (his salary in force).
+  Totals: 2026-08 276,109,392.27; 2026-09 286,251,392.27; 2026-10 286,249,474.52. Evidence in artifacts/plan59/ac-pay-59-{1,2,3}.
+  Found after: Z's change was a decrease (the probe's mid-of-bounds); P-4 asks for a raise → the grade's maximum now (a fresh cycle
+  stack and three executions again after the main and lab stacks). Cycle stack down (reset).
+- payroll-web image rebuilt alone with the review's page clamp (118 s); the old payroll image removed by id.
+- Main stack (fresh, 15 min 3 s to ready, 08:36:40Z):
+  - AC-12 Pass (2026-08; multirole 403 naming payroll-approver/payroll-poster; 2 approvals; posting before review 400 with
+    ReviewRequired; posted). AC-23 Pass (2027-03/04, both runs and the request cancelled). AC-21 first FAILED: in PowerShell
+    $periodStart is $PeriodStart (names are case-insensitive), so the [string] parameter took the date; renamed $runPeriodStart in
+    both scripts; AC-21 Pass (2024-01; 1,102 lines bit for bit; both runs Cancelled through the API).
+  - AC-PAY-58, AC-PAY-56, AC-PAY-55, AC-IAM-53, AC-LVA-57: 32/32 (6 min 32 s), beside the moved classes.
+  - acceptance-evidence-summarize.ps1 ran on the run's evidence (complete, 8 elements; locally «stale» only because the payroll image
+    was built from an uncommitted tree).
+  - AC-22 (RUN_CHAOS=true) first FAILED: after the kill and the restart the drill's next call met Payroll still starting and the
+    script died without cancelling (its 2024-07 run stayed live on that stack), the class's cancel and read hit the restart (405/502).
+    Fix: the drill waits for Payroll's own read of the run after the restart (Wait-PayrollReady), a trap cancels the run on any
+    failure, the cancel retries (Stop-TestRun); the class waits for Payroll before its clean-up and writes the script's output first.
+    **AC-22 Pass** (2024-08; killed mid-partition at 200 of 1,102, resumed, 1,102 lines, no duplicate, lease conflict 400, Cancelled).
+  - acceptance-verify after the tests: counts differ by design (the tests wrote); the seeded counts are compared on the final fresh
+    cycle stack before its tests. Main stack down (reset).
+- Lab main stage started (08:51:19Z): scripts/ci/acceptance-job.ps1 -Profile Lab -Stage lab:main -NoBuild.
+- Lab main stage (fresh lab stack 15 min 20 s; tests 14 min 26 s; whole job 30 min 43 s, 09:21:51Z): **PASS** — 159 passed, 1 skipped
+  (AC-09's known skip), acceptance-guard 54 classes; AC-24 and AC-25 Pass; the three moved classes no longer in it.
+- Final cycle stack started (fresh) at 09:22:21Z.
+- Final cycle stack (fresh, 14 min 42 s, 09:36:51Z): its start-up verification **Pass** (seeded counts: DATA-AUTH 70, DATA-DIRECTORY
+  61, DATA-PAYPROFILE 1,489, DATA-PAYRUN 57, SEED-03 one fingerprint); a second verification after it differs only in BASELINE-02
+  (the first run's gateway checks wrote audit rows). AC-PAY-59 Pass x3 on 2026-08/09/10 (6 min 33 s, 5 min 4 s, 4 min 48 s), but Z
+  (the third id) is at his grade's maximum (260,000), so the «raise» became 259,000. P-4 asks for a raise: Z is now the first
+  candidate (third id on, no open request) whose grade has room — the probe's bounds, the maximum asked, «no change» → next
+  candidate; the step asserts proposed > current. Earlier passing evidence kept as artifacts/plan59/ac-pay-59-pre-{1,2,3}.
+  One more fresh cycle stack for the three executions on this code (started 09:57:03Z).
+- Stack start failure 1 (09:57–10:00:54Z): admin-logistics-web exited 139 (segfault) under memory pressure (swap 4,087/4,095 MB full,
+  532 MB free, load 16.9; the owner's other applications hold the swap). Stopped this session's compiler servers
+  (dotnet build-server shutdown), brought the stack down, waited for the load to fall under 6; retry 1 at 10:02:57Z.
+- Retry 1 of the stack start (10:03–10:18:00Z, 15 min 3 s): Pass. **AC-PAY-59a final series Pass x3 on 2026-08, 2026-09, 2026-10**
+  (6 min 32 s, 5 min 3 s, 4 min 48 s): Z = the second candidate (the first is at his maximum), raised 439,000 → 500,000 from
+  2026-12, Scheduled, his posted line 439,000; totals 276,109,392.27 / 286,251,392.27 / 286,249,474.52 (equal to the earlier series:
+  the scheduled raise reaches no part of M); X held then sent alone; AC-PAY-59b 409; settled. Evidence artifacts/plan59/ac-pay-59-{1,2,3}.
+  Stack down. ci.yml: prodlike-cycle limit 40 (QA-066: local ~26 min × 1.5).
+- Testcontainers step (CI's filter) started 10:35:45Z.
+- Testcontainers step on the host (CI's filter Category=Testcontainers&Category!=ObjectStorage, Debug): **335 passed, 1 skipped**
+  (Ops038, needs the migrator image), 0 failed — 15 min 42 s of tests, 19 min 44 s with the build (10:55:20Z).
+- pay059-validate PASS, -SelfTest 25 planted defects refused. Solution build 0 warnings; format clean. Two reports/tenant-assignment-*
+  files a lab test wrote (AC-07's dry run) removed: never committed.
+- P7's documents drafted during the waits: the runbook (docs/runbooks/payroll-monthly-cycle.md), PILOT_DEPLOYMENT indicators,
+  PAYROLL_RUN_RESUME, CI_AND_TESTING, G-PAY-05's status, the plan's status and notes (committed with P7).
+Finished (UTC): 2026-11-27T10:58:32Z
+
+## Next step
+P7: commit the documents (runbook etc.), OPS_VPS_SINGLE_HOST PLAN-59 section (pre-server part), check origin/main; then P8 gates.

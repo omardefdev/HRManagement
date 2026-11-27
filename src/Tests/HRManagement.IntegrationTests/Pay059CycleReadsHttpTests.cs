@@ -224,6 +224,13 @@ public sealed class Pay059CycleReadsHttpTests(PostgreSqlFixture postgres)
         using (var response = await processor.GetAsync($"/api/payroll/payment-batches/{batch.Id:D}/orders?page=2"))
         using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
             Assert.Equal(0, json.RootElement.GetProperty("orders").GetArrayLength());
+        using (var response = await processor.GetAsync($"/api/payroll/payment-batches/{batch.Id:D}/orders?page={int.MaxValue}"))
+        using (var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync()))
+        {
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            Assert.Equal(0, json.RootElement.GetProperty("orders").GetArrayLength());
+        }
+
         Assert.Equal(HttpStatusCode.NotFound, (await processor.GetAsync($"/api/payroll/payment-batches/{Guid.NewGuid():D}/orders")).StatusCode);
 
         // Another agency: neither the run nor the batch exists for it.

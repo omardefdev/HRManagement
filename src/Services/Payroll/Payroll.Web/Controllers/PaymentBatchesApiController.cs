@@ -66,6 +66,9 @@ public sealed class PaymentBatchesApiController(IMediator mediator, PayrollDbCon
     /// <summary>PLAN-59 (P-9): how many orders one page of <see cref="Orders"/> answers.</summary>
     public const int OrdersPageSize = 500;
 
+    /// <summary>PLAN-59 (review): the last page the orders read answers (500,000 orders; far above any agency's batch).</summary>
+    public const int MaxOrdersPage = 1_000;
+
     /// <summary>
     /// PLAN-59 (P-9): the batch's orders by employee, in the order of their employee ids, a page at a time: each order's id, employee and
     /// salary line, state, amount, hold reason, whether a destination is pinned on it, and the sequence of the bank file that carried it
@@ -76,7 +79,8 @@ public sealed class PaymentBatchesApiController(IMediator mediator, PayrollDbCon
     {
         if (!await db.PaymentBatches.AsNoTracking().AnyAsync(b => b.Id == id, ct))
             return NotFound(new { error = PaymentBatchMessages.BatchNotFound });
-        page = Math.Max(1, page);
+        // A page past any batch's size answers an empty page (never an overflow of the skip).
+        page = Math.Clamp(page, 1, MaxOrdersPage);
         var orders = db.PaymentOrders.AsNoTracking().Where(o => o.PaymentBatchId == id);
         var total = await orders.CountAsync(ct);
         var sequences = await db.PaymentBatchFiles.AsNoTracking()

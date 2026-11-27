@@ -70,34 +70,54 @@ function Invoke-PsqlJson([string]$Sql) {
     return $raw.Trim()
 }
 
-function Get-PayrollAntiforgery {
-    # The service scopes its antiforgery cookie to its UI path; the API reads it from the Cookie header.
-    $resp = Invoke-WebRequest -Method Get -Uri "$($BaseUrl.TrimEnd('/'))/api/payroll/run-lifecycle/antiforgery" `
-        -Headers @{ Authorization = "Bearer $($env:ACCESS_TOKEN)" } -UseBasicParsing
-    $issued = $resp.Content | ConvertFrom-Json
-    $cookie = $null
-    foreach ($header in @($resp.Headers['Set-Cookie'])) {
-        foreach ($part in ([string]$header -split ',(?=\s*\.AspNetCore)')) {
-            if ($part -match '^\s*(\.AspNetCore\.Antiforgery\.[^=]+)=([^;]+)') { $cookie = "$($Matches[1])=$($Matches[2])" }
-        }
-    }
-    if (-not $cookie -or -not $issued.headerName -or -not $issued.requestToken) {
+function Cancel-PayrollRun([string]$Id, [string]$Reason) {
+    # PLAN-56: a run that is not posted is cancelled with a reason; its period and its inputs are free again. The antiforgery cookie
+    # goes through a session (Windows PowerShell 5.1 drops a Cookie entry in -Headers without a word). The service scopes it to its UI
+    # path (/ui/payroll); the API sits under /api/payroll, so it is added again for "/".
+    $base = $BaseUrl.TrimEnd('/')
+    $session = New-Object Microsoft.PowerShell.Commands.WebRequestSession
+    $auth = @{ Authorization = "Bearer $($env:ACCESS_TOKEN)" }
+    $issued = Invoke-WebRequest -UseBasicParsing -Method Get -Uri "$base/api/payroll/run-lifecycle/antiforgery" -Headers $auth -WebSession $session
+    $token = $issued.Content | ConvertFrom-Json
+    $cookie = [regex]::Match((@($issued.Headers['Set-Cookie']) -join ','), '(\.AspNetCore\.Antiforgery\.[^=;,\s]+)=([^;,\s]+)')
+    if (-not $cookie.Success -or -not $token.headerName -or -not $token.requestToken) {
         throw "The antiforgery token of api/payroll/run-lifecycle/antiforgery was not issued."
     }
-    return @{ Header = [string]$issued.headerName; Token = [string]$issued.requestToken; Cookie = $cookie }
+    $session.Cookies.Add([Uri]$base, (New-Object Net.Cookie($cookie.Groups[1].Value, $cookie.Groups[2].Value, '/')))
+    $h = @{ Authorization = "Bearer $($env:ACCESS_TOKEN)" }
+    $h[[string]$token.headerName] = [string]$token.requestToken
+    $body = @{ reason = $Reason } | ConvertTo-Json
+    Invoke-RestMethod -Method Post -Uri "$base/api/payroll/runs/$Id/cancel" -Headers $h -ContentType "application/json" -Body $body -WebSession $session | Out-Null
 }
 
-function Cancel-PayrollRun([string]$Id, [string]$Reason) {
-    # PLAN-56: a run that is not posted is cancelled with a reason; its period and its inputs are free again.
-    $af = Get-PayrollAntiforgery
-    $h = @{
-        Authorization = "Bearer $($env:ACCESS_TOKEN)"
-        "Content-Type" = "application/json"
-        Cookie = $af.Cookie
+function Wait-PayrollReady([string]$Id, [int]$Seconds = 180) {
+    # After a kill and a start, Payroll answers again only once it is ready: wait for its own read of the run (a gateway health
+    # page can answer before the service does).
+    $deadline = (Get-Date).AddSeconds($Seconds)
+    while ((Get-Date) -lt $deadline) {
+        try {
+            Invoke-PayrollApi -Method Get -Path "api/payroll/runs/$Id" | Out-Null
+            return $true
+        }
+        catch { Start-Sleep -Seconds 3 }
     }
-    $h[$af.Header] = $af.Token
-    $body = @{ reason = $Reason } | ConvertTo-Json
-    Invoke-RestMethod -Method Post -Uri "$($BaseUrl.TrimEnd('/'))/api/payroll/runs/$Id/cancel" -Headers $h -Body $body | Out-Null
+    return $false
+}
+
+function Stop-TestRun([string]$Id, [string]$Reason) {
+    # The run gives its month and inputs back through the API; a Payroll that is still starting is waited for, a few times.
+    for ($attempt = 1; $attempt -le 5; $attempt++) {
+        try {
+            [void](Wait-PayrollReady $Id 60)
+            Cancel-PayrollRun $Id $Reason
+            return $true
+        }
+        catch {
+            Write-Host "Cancelling run $Id (attempt $attempt) failed: $($_.Exception.Message)"
+            Start-Sleep -Seconds 5
+        }
+    }
+    return $false
 }
 
 function Get-PartitionSnapshot([string]$RunId) {
@@ -135,13 +155,13 @@ SELECT COUNT(*) FROM (
 $sw = [System.Diagnostics.Stopwatch]::StartNew()
 $start = [datetime]::ParseExact($PeriodStart, 'yyyy-MM-dd', [System.Globalization.CultureInfo]::InvariantCulture)
 if ($start.Day -ne 1) { throw "-PeriodStart must be the first day of a month: $PeriodStart" }
-$periodStart = [datetime]::SpecifyKind($start, [DateTimeKind]::Utc)
-$periodEnd = $periodStart.AddMonths(1).AddDays(-1)
-$runDate = $periodEnd
+$runPeriodStart = [datetime]::SpecifyKind($start, [DateTimeKind]::Utc)
+$runPeriodEnd = $runPeriodStart.AddMonths(1).AddDays(-1)
+$runDate = $runPeriodEnd
 
 $createPayload = @{
-    periodStart = $periodStart.ToString("o")
-    periodEnd = $periodEnd.ToString("o")
+    periodStart = $runPeriodStart.ToString("o")
+    periodEnd = $runPeriodEnd.ToString("o")
     runDate = $runDate.ToString("o")
 }
 
@@ -153,6 +173,12 @@ else {
     Write-Host "Creating payroll run for chaos resume..."
     $run = Invoke-PayrollApi -Method Post -Path "api/payroll/runs" -Body $createPayload
     $runId = $run.id
+}
+
+# Whatever fails from here on, the run is cancelled through the API before the script stops.
+trap {
+    if ($runId) { [void](Stop-TestRun $runId "AC-22: the drill failed (PLAN-59)") }
+    break
 }
 
 $calcScript = {
@@ -211,6 +237,7 @@ if ($UseDockerKill -and $midPartition) {
         }
         catch { Start-Sleep -Seconds 3 }
     }
+    if (-not (Wait-PayrollReady $runId)) { throw "Payroll did not answer again after the restart." }
     Write-Host "Marking the interrupted running job as paused after process recovery..."
     Invoke-PayrollApi -Method Post -Path "api/payroll/jobs/$jobId/pause" | Out-Null
     $interruptionApplied = $true
@@ -236,7 +263,7 @@ if ($jobId -and $interruptionApplied) {
     if (-not $paused) {
         # Do not leave a live reserved run behind when the assertion fails. This
         # script is also used as a prerequisite for the following payroll cases.
-        Cancel-PayrollRun $runId "AC-22: the interrupted job did not pause (PLAN-59)"
+        [void](Stop-TestRun $runId "AC-22: the interrupted job did not pause (PLAN-59)")
         throw "Interrupted payroll job did not reach Paused before resume."
     }
     Write-Host "Resuming job $jobId..."
@@ -284,7 +311,7 @@ $ok = $interruptionApplied -and ($afterLines.duplicateEmployeeGroups -eq 0) -and
 
 $result = [ordered]@{
     ok = $ok
-    periodStart = $periodStart.ToString("yyyy-MM-dd")
+    periodStart = $runPeriodStart.ToString("yyyy-MM-dd")
     runId = $runId
     totalEmployees = $totalEmployees
     salaryLines = $afterLines
@@ -295,12 +322,7 @@ $result = [ordered]@{
 $result | ConvertTo-Json -Depth 6 | Set-Content (Join-Path $OutputDir "result.json") -Encoding UTF8
 
 # Leave the shared stack reusable: the run gives back its month and its inputs through the API.
-$cancelledThroughApi = $false
-try {
-    Cancel-PayrollRun $runId "AC-22: resume drill ended (PLAN-59)"
-    $cancelledThroughApi = $true
-}
-catch { Write-Host "Cancelling run $runId failed: $($_.Exception.Message)" }
+$cancelledThroughApi = Stop-TestRun $runId "AC-22: resume drill ended (PLAN-59)"
 $result.cancelledThroughApi = $cancelledThroughApi
 $ok = $ok -and $cancelledThroughApi
 $result.ok = $ok
