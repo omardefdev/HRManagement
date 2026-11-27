@@ -289,24 +289,26 @@ public sealed class Pay056RunLifecycleHttpTests(PostgreSqlFixture postgres)
             Assert.Equal(HttpStatusCode.OK, asked.StatusCode);
         var requestId = await host.WithDbAsync(db => db.Set<PayrollReversalRequest>().IgnoreQueryFilters().Select(r => r.Id).SingleAsync());
 
-        // The same roles in another agency: the run, the job and the request are not there.
-        var everyRole = $"{ProcessorRoles},{HrManagementRoles.PayrollApprover},{HrManagementRoles.PayrollPoster},{HrManagementRoles.PayrollReverser}";
-        using var foreigner = await WithTokenAsync(As(host, Guid.NewGuid(), everyRole, agency: OtherAgency));
-        var foreign = new (string Path, object Body)[]
+        // The same roles in another agency: the run, the job and the request are not there. PLAN-58 (D-PAY-20): each act by the one role
+        // its policy asks for, since a token with two conflicting payroll roles passes no financial act.
+        using var foreignApprover = await WithTokenAsync(As(host, Guid.NewGuid(), ApproverRoles, agency: OtherAgency));
+        using var foreignProcessor = await WithTokenAsync(As(host, Guid.NewGuid(), ProcessorRoles, agency: OtherAgency));
+        using var foreignReverser = await WithTokenAsync(As(host, Guid.NewGuid(), ReverserRoles, agency: OtherAgency));
+        var foreign = new (HttpClient By, string Path, object Body)[]
         {
-            ($"/api/payroll/runs/{underReview}/reject", new { notes = "ملاحظة" }),
-            ($"/api/payroll/runs/{underReview}/cancel", new { reason = "سبب" }),
-            ($"/api/payroll/runs/{posted}/reversal-requests", new { reason = "سبب" }),
-            ($"/api/payroll/reversal-requests/{requestId}/decide", new { approve = true }),
-            ($"/api/payroll/runs/{posted}/corrections", new { }),
+            (foreignApprover, $"/api/payroll/runs/{underReview}/reject", new { notes = "ملاحظة" }),
+            (foreignProcessor, $"/api/payroll/runs/{underReview}/cancel", new { reason = "سبب" }),
+            (foreignReverser, $"/api/payroll/runs/{posted}/reversal-requests", new { reason = "سبب" }),
+            (foreignApprover, $"/api/payroll/reversal-requests/{requestId}/decide", new { approve = true }),
+            (foreignProcessor, $"/api/payroll/runs/{posted}/corrections", new { }),
         };
-        foreach (var (path, body) in foreign)
+        foreach (var (by, path, body) in foreign)
         {
-            using var response = await foreigner.PostAsJsonAsync(path, body);
+            using var response = await by.PostAsJsonAsync(path, body);
             Assert.True(response.StatusCode == HttpStatusCode.NotFound, $"{path}: {(int)response.StatusCode}");
         }
 
-        using (var list = await foreigner.GetAsync("/api/payroll/reversal-requests"))
+        using (var list = await foreignApprover.GetAsync("/api/payroll/reversal-requests"))
         {
             Assert.Equal(HttpStatusCode.OK, list.StatusCode);
             Assert.Equal("[]", (await list.Content.ReadAsStringAsync()).Trim());
@@ -315,13 +317,16 @@ public sealed class Pay056RunLifecycleHttpTests(PostgreSqlFixture postgres)
         // A user restricted to a branch: a run belongs to the whole agency, so the acts of its life are central.
         // He is refused on every action of the controller, the token's endpoint included. With a token of Payroll taken where a
         // restricted user may take one (every Payroll API write accepts it), the act itself answers 403.
-        using var restricted = As(host, Guid.NewGuid(), $"{HrManagementRoles.BranchManager},{everyRole}", unit: host.OwnUnit);
+        // (PLAN-58: one role per token, so the 403 is the branch's and never the conflict's.)
+        using var restricted = As(host, Guid.NewGuid(), $"{HrManagementRoles.BranchManager},{ApproverRoles}", unit: host.OwnUnit);
+        using var restrictedProcessor = As(host, Guid.NewGuid(), $"{HrManagementRoles.BranchManager},{ProcessorRoles}", unit: host.OwnUnit);
         using (var noToken = await restricted.GetAsync(TokenPath))
             Assert.Equal(HttpStatusCode.Forbidden, noToken.StatusCode);
         await WithTokenAsync(restricted, "/api/payroll/bank-accounts/antiforgery");
+        await WithTokenAsync(restrictedProcessor, "/api/payroll/bank-accounts/antiforgery");
         using (var refused = await restricted.PostAsJsonAsync($"/api/payroll/runs/{underReview}/reject", new { notes = "ملاحظة" }))
             Assert.Equal(HttpStatusCode.Forbidden, refused.StatusCode);
-        using (var refusedCancel = await restricted.PostAsJsonAsync($"/api/payroll/runs/{underReview}/cancel", new { reason = "سبب" }))
+        using (var refusedCancel = await restrictedProcessor.PostAsJsonAsync($"/api/payroll/runs/{underReview}/cancel", new { reason = "سبب" }))
             Assert.Equal(HttpStatusCode.Forbidden, refusedCancel.StatusCode);
         using (var refusedList = await restricted.GetAsync("/api/payroll/reversal-requests"))
             Assert.Equal(HttpStatusCode.Forbidden, refusedList.StatusCode);
@@ -341,8 +346,10 @@ public sealed class Pay056RunLifecycleHttpTests(PostgreSqlFixture postgres)
         var runId = await PlantAsync(host, PayrollRunStatus.Posted, 1, PaymentBatchStatus.Pending);
         using var reverser = await WithTokenAsync(As(host, Reverser, ReverserRoles));
         using var approver = await WithTokenAsync(As(host, Approver, ApproverRoles));
-        // The person who posted the run, holding the approval role as well: the handler's rule still refuses him.
-        using var posterWhoApproves = await WithTokenAsync(As(host, Poster, $"{PosterRoles},{HrManagementRoles.PayrollApprover}"));
+        // The person who posted the run, now holding the approval role: the handler's rule still refuses him. (PLAN-58: a token that holds
+        // both roles at once passes no financial act — 403 — so his approver token carries the approval role alone.)
+        using var posterWhoApproves = await WithTokenAsync(As(host, Poster, ApproverRoles));
+        using var posterAndApprover = await WithTokenAsync(As(host, Poster, $"{PosterRoles},{HrManagementRoles.PayrollApprover}"));
         var ask = $"/api/payroll/runs/{runId}/reversal-requests";
 
         using (var byApprover = await approver.PostAsJsonAsync(ask, new { reason = "سبب" }))
@@ -370,6 +377,8 @@ public sealed class Pay056RunLifecycleHttpTests(PostgreSqlFixture postgres)
         // The reverser deciding his own request: he does not hold the approval policy.
         using (var byRequester = await reverser.PostAsJsonAsync(decide, new { approve = true }))
             Assert.Equal(HttpStatusCode.Forbidden, byRequester.StatusCode);
+        using (var byConflictingToken = await posterAndApprover.PostAsJsonAsync(decide, new { approve = true }))
+            Assert.Equal(HttpStatusCode.Forbidden, byConflictingToken.StatusCode);
         using (var byPoster = await posterWhoApproves.PostAsJsonAsync(decide, new { approve = true }))
         {
             Assert.Equal(HttpStatusCode.BadRequest, byPoster.StatusCode);
@@ -614,7 +623,8 @@ public sealed class Pay056RunLifecycleHttpTests(PostgreSqlFixture postgres)
             });
             return await db.SaveChangesAsync();
         });
-        using var poster = As(host, Poster, PosterRoles);
+        // PLAN-58: the posting validates an antiforgery token (it makes the batch and its orders).
+        using var poster = await WithTokenAsync(As(host, Poster, PosterRoles));
 
         using var posted = await poster.PostAsync($"/api/payroll/runs/{runId}/post", null);
 

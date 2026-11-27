@@ -40,30 +40,30 @@
                 </div>
             </form>
 
+            @if (Model.Severity == FraudAlertSeverity.Critical)
+            {
+                <p class="text-muted small">التنبيه حرج: حله فعلان من شخصين. تطلبه هنا بسبب، ويقرّره معتمد آخر من «طلبات بانتظار قرارك»، فيُحل التنبيه ويُفرج عن حجزه المرتبط.</p>
+            }
+            else
+            {
+                <p class="text-muted small">التنبيه غير حرج: يُحل بفعل واحد. حجز الصرف المرتبط به (إن وجد) لا يُفرج عنه من هنا: الإفراج طلب يقرّره معتمد آخر من صفحة الحجز.</p>
+            }
             <form asp-action="Resolve" asp-route-id="@Model.Id" method="post">
                 @Html.AntiForgeryToken()
                 <div class="row g-2">
                     <div class="col-md-6">
-                        <label class="form-label">سبب الحل</label>
-                        <input name="resolutionReason" class="form-control" required />
+                        <label class="form-label" for="resolutionReason">سبب الحل</label>
+                        <input id="resolutionReason" name="resolutionReason" class="form-control" required />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label">الحالة المستهدفة</label>
-                        <select name="targetStatus" class="form-select">
+                        <label class="form-label" for="targetStatus">الحالة المستهدفة</label>
+                        <select id="targetStatus" name="targetStatus" class="form-select">
                             <option value="@FraudAlertStatus.Resolved">محلول</option>
                             <option value="@FraudAlertStatus.Dismissed">مُستبعد</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
-                        <label class="form-label">المعتمد (أربعة عيون)</label>
-                        <input name="ApprovedBy" class="form-control" placeholder="Guid" />
-                    </div>
-                    <div class="col-12 form-check ms-2">
-                        <input class="form-check-input" type="checkbox" name="releaseHold" value="true" id="releaseHold" />
-                        <label class="form-check-label" for="releaseHold">إفراج حجز الصرف المرتبط</label>
-                    </div>
                     <div class="col-12">
-                        <button type="submit" class="btn btn-success">حل التنبيه</button>
+                        <button type="submit" class="btn btn-success">@(Model.Severity == FraudAlertSeverity.Critical ? "طلب حل التنبيه (أربع عيون)" : "حل التنبيه")</button>
                     </div>
                 </div>
             </form>

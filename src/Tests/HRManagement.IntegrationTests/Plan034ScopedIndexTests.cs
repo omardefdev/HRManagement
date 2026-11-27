@@ -379,12 +379,12 @@ public sealed class ScopedIndexHost : IAsyncDisposable
             "Contracts/ServiceTransactions" => await With(new ContractsControllers.ServiceTransactionsController(repo, lookup, cdb)).Index(null, null, employeeId),
             "Contracts/Contracts" => await With(new ContractsControllers.ContractsController(cdb, mediator, lookup)).Index(null, employeeId),
             "Contracts/HireWizard" => await With(new ContractsControllers.HireWizardController(repo, mediator, cdb, lookup)).Index(null, employeeId),
-            "Payroll/PaymentHolds" => await With(new PayrollControllers.PaymentHoldsController(pdb, null!, employees)).Index(employeeId, null, null, null, null),
+            "Payroll/PaymentHolds" => await With(new PayrollControllers.PaymentHoldsController(pdb, employees)).Index(employeeId, null, null, null, null),
             "Payroll/EndOfService" => await With(new PayrollControllers.EndOfServiceController(pdb, mediator, employees)).Index(employeeId, null, null, null),
             "Payroll/AllowanceRecords" => await With(new PayrollControllers.AllowanceRecordsController(pdb, employees, mediator, NobodyApproves)).Index(employeeId, null, null, null),
             "Payroll/DeductionRecords" => await With(new PayrollControllers.DeductionRecordsController(pdb, employees, mediator, NobodyApproves)).Index(employeeId, null, null, null, null),
             "Payroll/PayrollAdjustments" => await With(new PayrollControllers.PayrollAdjustmentsController(pdb, employees, mediator, NobodyApproves)).Index(employeeId, null, null, null),
-            "Payroll/FraudAlerts" => await With(new PayrollControllers.FraudAlertsController(pdb, null!, employees)).Index(null, null, null, employeeId, null, null),
+            "Payroll/FraudAlerts" => await With(new PayrollControllers.FraudAlertsController(pdb, employees)).Index(null, null, null, employeeId, null, null),
             _ => throw new ArgumentOutOfRangeException(nameof(action), action, null)
         };
     }

@@ -25,6 +25,9 @@ public static class DependencyInjection
         services.AddScoped<PayrollExternalExportService>();
         services.AddScoped<PaymentOrderService>();
         services.AddScoped<IPaymentOrderCoordinator, PaymentOrderCoordinator>();
+        // PLAN-58 (§2): the bank file of each sending, built from its orders and stored.
+        services.AddScoped<PaymentBatchFileWriter>();
+        services.AddScoped<IPaymentBatchFileWriter>(sp => sp.GetRequiredService<PaymentBatchFileWriter>());
         services.AddScoped<IBankReconciliationCoordinator, BankReconciliationCoordinator>();
         services.AddScoped<BankReconciliationService>();
         services.AddScoped<ExportJobs.IPayrollExportJobService, ExportJobs.PayrollExportJobService>();

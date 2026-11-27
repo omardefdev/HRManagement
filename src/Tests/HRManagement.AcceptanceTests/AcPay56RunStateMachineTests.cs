@@ -26,9 +26,9 @@ namespace HRManagement.AcceptanceTests;
 /// approved input of its agency whatever its date. So the class leaves no free input with an amount in agency A after any scenario:
 /// what it enters is consumed by one of its own runs. It asserts on its own employees' lines and on its own inputs by id.
 /// </para>
-/// <b>Test-only preconditions</b>, each recorded in its scenario's evidence: the closed audit record a posting needs is made by
-/// <c>scripts/acceptance-payroll-audit-fixture.ps1</c>, as AC-25 does (no persona closes one before PLAN-58, G-PAY-05); 56c's advance
-/// instalment and absence are planted by psql (they come from an upstream approval and from attendance, which no screen of this
+/// <b>PLAN-58:</b> every posting goes through the independent review by API, opened by <c>acc-auditor</c> and closed by
+/// <c>acc-a-auditor-2</c>, and every approval the run's amount asks for (<see cref="AcceptancePayrollReview"/>); no SQL fixture remains.
+/// <b>Test-only preconditions</b>, each recorded in its scenario's evidence: 56c's advance instalment and absence are planted by psql (they come from an upstream approval and from attendance, which no screen of this
 /// release creates for a given month). Everything a scenario proves goes through the API or the screens. The rule «the decider of a
 /// reversal is neither its requester nor the run's poster» is proved by <c>Pay056ReversalSodTests</c> on the handler: no persona
 /// holds both the reversal and the approval before PLAN-58.
@@ -120,6 +120,8 @@ public class AcPay56RunStateMachineTests
 
         public Task<(HttpStatusCode Status, JsonElement Body, string Text)> GetAsync(string step, string path, bool capture = true) =>
             SendAsync(step, HttpMethod.Get, path, capture: capture);
+
+        public EvidenceRecorder Recorder => recorder;
 
         public void Dispose() => http.Dispose();
     }
@@ -274,23 +276,15 @@ public class AcPay56RunStateMachineTests
         Assert.True(submitted == HttpStatusCode.OK, $"{step}: the submission answered {(int)submitted}: {Text(submittedBody, "error")}");
         var (approved, approvedBody, _) = await approver.PostAsync($"{step}-approve", $"api/payroll/runs/{run}/approve");
         Assert.True(approved == HttpStatusCode.OK, $"{step}: the approval answered {(int)approved}: {Text(approvedBody, "error")}");
+        // PLAN-58 (D-PAY-5): above the agency's threshold the second approver approves it too.
+        await AcceptancePayrollReview.CompleteApprovalAsync(approver.Recorder, run, approvedBody, step);
     }
 
     /// <summary>
-    /// The closed audit record a posting needs. A test-only precondition, made by the script AC-25 uses: no persona can close a
-    /// payroll audit through the screens before PLAN-58 (G-PAY-05).
+    /// The closed review a posting needs (PLAN-58, D-PAY-3): opened by acc-auditor and closed by acc-a-auditor-2, through the gateway.
     /// </summary>
-    private static async Task<object> CloseAuditAsync(string run)
-    {
-        var (exit, output) = await AcceptanceMessagingHelper.RunScriptAsync(
-            "acceptance-payroll-audit-fixture.ps1",
-            ("RunId", run),
-            ("AuditorId", Guid.NewGuid().ToString("D")),
-            ("ClosedBy", Guid.NewGuid().ToString("D")),
-            ("TenantId", TenantA));
-        Assert.True(exit == 0, output);
-        return new { testOnlyPrecondition = "closed payroll audit record (scripts/acceptance-payroll-audit-fixture.ps1, as AC-25; G-PAY-05, PLAN-58)", exit };
-    }
+    private static Task<object> CloseAuditAsync(EvidenceRecorder recorder, string run, string step) =>
+        AcceptancePayrollReview.ReviewAsync(recorder, run, step);
 
     private static async Task PostRunAsync(Api poster, string step, string run)
     {
@@ -320,7 +314,7 @@ public class AcPay56RunStateMachineTests
                with an amount failed the whole cycle): calculated, validated, frozen. Each of the two lines carries its adjustment,
                and its net is gross − deductions + adjustments.
             4. payroll-processor submits it; payroll-approver approves it. The total at the approval is noted.
-            5. Test-only precondition: the closed audit record a posting needs (scripts/acceptance-payroll-audit-fixture.ps1).
+            5. The independent review a posting needs: acc-auditor opens it and acc-a-auditor-2 closes it, through the gateway.
             6. a-payroll-poster posts it. The run's total is the approved total, to the unit; it is the sum of the lines' nets the
                API returns; the batch carries the same amount; and the two payslips (GET api/payroll/payslips/{line}) show the
                adjustments beside the gross and the deductions.
@@ -362,7 +356,7 @@ public class AcPay56RunStateMachineTests
         var approvedTotal = Money(afterApproval.Split('|')[4]);
 
         // 5–6. The posting.
-        var audit = await CloseAuditAsync(run);
+        var audit = await CloseAuditAsync(s.Recorder, run, "56a");
         await PostRunAsync(poster, "56a", run);
         var afterPosting = await RunRowAsync(run);
         var postedTotal = Money(afterPosting.Split('|')[4]);
@@ -763,8 +757,8 @@ public class AcPay56RunStateMachineTests
         s.Steps("""
             1. Precondition, in before.json: agency A has no run of April or May 2028; an agency-A employee of this class is picked.
             2. payroll-processor enters an adjustment for the employee (approved by payroll-approver), creates and calculates the
-               Regular run of April 2028 and submits it; payroll-approver approves it; the closed audit record is made (test-only
-               precondition); a-payroll-poster posts it. It is posted, with a pending batch.
+               Regular run of April 2028 and submits it; payroll-approver approves it; acc-auditor and acc-a-auditor-2 review it
+               (PLAN-58); a-payroll-poster posts it. It is posted, with a pending batch.
             3. Negative: a-payroll-reverser asks for its reversal without a reason. 400; no request is made.
             4. a-payroll-reverser asks for its reversal with a reason. The request waits; the run and its batch are as they were.
                A second request while that one waits answers 409. Agency B's processor does not find the run (404).
@@ -797,7 +791,7 @@ public class AcPay56RunStateMachineTests
         var adjustment = await ApprovedAdjustmentAsync(s, "56e-adjustment", employee, 9_000m, AprilReason);
         var run = await CalculateMonthAsync(processor, "56e", April);
         await SubmitAndApproveAsync(processor, approver, "56e", run);
-        var audit = await CloseAuditAsync(run);
+        var audit = await CloseAuditAsync(s.Recorder, run, "56e");
         await PostRunAsync(poster, "56e", run);
         var posted = await RunRowAsync(run);
         var batchPosted = await BatchesAsync(run);
@@ -837,7 +831,7 @@ public class AcPay56RunStateMachineTests
         // 8. D-PAY-16: May's batch has left.
         var may = await CalculateMonthAsync(processor, "56e-may", May);
         await SubmitAndApproveAsync(processor, approver, "56e-may", may);
-        var mayAudit = await CloseAuditAsync(may);
+        var mayAudit = await CloseAuditAsync(s.Recorder, may, "56e-may");
         await PostRunAsync(poster, "56e-may", may);
         var mayBatch = await Db($"SELECT \"Id\"::text FROM \"PaymentBatches\" WHERE \"PayrollRunId\"='{may}' AND \"BatchKind\"='Disbursement';");
         var (processed, processedBody, _) = await poster.PostAsync("process-may", $"api/payroll/payment-batches/{mayBatch}/process");
@@ -1043,7 +1037,7 @@ public class AcPay56RunStateMachineTests
 
         // 6. The correction is reviewed, approved and posted like every run.
         await SubmitAndApproveAsync(processor, approver, "56f-correction", correction);
-        var audit = await CloseAuditAsync(correction);
+        var audit = await CloseAuditAsync(s.Recorder, correction, "56f-correction");
         await PostRunAsync(poster, "56f-correction", correction);
         var correctionPosted = await RunRowAsync(correction) + "|" + await BatchesAsync(correction);
         var recoveryBeforeJune = await Db($"SELECT COALESCE(\"AppliedInRunId\"::text,'free') FROM \"DeductionRecords\" WHERE \"Id\"='{recoveryId}';");

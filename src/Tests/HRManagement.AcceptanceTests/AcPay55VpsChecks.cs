@@ -331,6 +331,7 @@ public partial class AcOps36VpsBootTests
             "Demo server: the administrator, who holds the processing and the approval policies, registers a test IBAN for another demo employee; his own verification answers 400 with the rule's Arabic reason (the handler's separation of duties, not a policy); a second waiting account for the same employee answers 409; the approver rejects the account with a reason; nothing is left in force or waiting");
         var password = DemoPassword();
         using var admin = await Pay55ApiAsync(Pay55Admin, password);
+        using var processor = await Pay55ApiAsync(Pay55Processor, password);
         using var approver = await Pay55ApiAsync(Pay55Approver, password);
         var employee = Pay55Employee(1);
         AcceptanceGate.RequireData(recorder, employee is not null, "لا يوجد موظف ثانٍ بملف أجر فعّال على خادم العرض", "The demo has no second employee with an active pay profile and no account.");
@@ -338,14 +339,28 @@ public partial class AcOps36VpsBootTests
         var payDataBefore = Pay55PayData();
         try
         {
+            var accountsBefore = Pay55Count($"\"EmployeeId\" = '{employee}'");
             var (registered, registeredError, registeredBody) = await Pay55PostAsync(admin, Pay55Accounts(employee!), Pay55Registration(number));
+            // PLAN-58 (D-PAY-20): in demo mode hradmin holds both payroll policies, so his token carries a conflicting pair and passes no
+            // financial act: his registration is 403 with the pair named, and nothing is written. The registrar is then the processor,
+            // who does not hold the approval policy: his own verification is refused by the policy (403) before the handler's rule
+            // «لا يتحقق من الحساب مَن سجّله» (that rule, with one person and two tokens, is proved by Pay055BankAccountHttpTests).
+            var adminRefused = registered == 403 && registeredError.Contains("payroll-", StringComparison.Ordinal);
+            var accountsAfterAdmin = Pay55Count($"\"EmployeeId\" = '{employee}'");
+            var registrar = admin;
+            if (adminRefused)
+            {
+                registrar = processor;
+                (registered, registeredError, registeredBody) = await Pay55PostAsync(processor, Pay55Accounts(employee!), Pay55Registration(number));
+            }
+
             var id = Pay55Id(registeredBody);
             Assert.True(registered == 201 && id.Length == 36,
-                $"The registration by {Pay55Admin} answered {registered}: {registeredError}. If it is 403 the user does not hold Payroll.Process on this server: name another in PAY055_VPS_ADMIN.");
+                $"The registration answered {registered}: {registeredError}. If it is 403 the user does not hold Payroll.Process on this server: name another in PAY055_VPS_ADMIN.");
             var pending = Pay55Account(id);
-            var (own, ownError, _) = await Pay55PostAsync(admin, $"{Pay55Accounts(employee!)}/{id}/verify", new { verificationReference = Pay55Reference });
+            var (own, ownError, _) = await Pay55PostAsync(registrar, $"{Pay55Accounts(employee!)}/{id}/verify", new { verificationReference = Pay55Reference });
             var afterOwn = Pay55Account(id);
-            var (again, againError, _) = await Pay55PostAsync(admin, Pay55Accounts(employee!), Pay55Registration(Pay55Iban(employee!, 3)));
+            var (again, againError, _) = await Pay55PostAsync(registrar, Pay55Accounts(employee!), Pay55Registration(Pay55Iban(employee!, 3)));
             var waiting = Pay55Count($"\"EmployeeId\" = '{employee}' and \"Status\" = 0");
             var (noReason, _, _) = await Pay55PostAsync(approver, $"{Pay55Accounts(employee!)}/{id}/reject", new { reason = "" });
             var afterNoReason = Pay55Account(id);
@@ -358,6 +373,9 @@ public partial class AcOps36VpsBootTests
             recorder.WriteScenarioDbChecks(new
             {
                 admin = Pay55Admin,
+                hradminRefusedByTheConflict = adminRefused,
+                accountsBefore,
+                accountsAfterAdmin,
                 employee,
                 account = id,
                 registered,
@@ -377,8 +395,17 @@ public partial class AcOps36VpsBootTests
             });
 
             Assert.Equal("0~true~~~~", pending);
-            Assert.Equal(400, own);
-            Assert.Contains(Pay55SelfVerification, ownError, StringComparison.Ordinal);
+            if (adminRefused)
+            {
+                Assert.Equal(accountsBefore, accountsAfterAdmin);
+                Assert.Equal(403, own);
+            }
+            else
+            {
+                Assert.Equal(400, own);
+                Assert.Contains(Pay55SelfVerification, ownError, StringComparison.Ordinal);
+            }
+
             Assert.Equal(pending, afterOwn);
             Assert.Equal(409, again);
             Assert.Equal("1", waiting);

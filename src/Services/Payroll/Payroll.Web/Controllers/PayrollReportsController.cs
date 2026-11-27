@@ -250,42 +250,13 @@ public class PayrollReportsController : Controller
         return File(System.Text.Encoding.UTF8.GetBytes(csv.ToString()), "text/csv", $"payroll-{run.PeriodStart:yyyyMM}.csv");
     }
 
-    /// <summary>تصدير ملف الرواتب للمالية/الخزانة عبر موصّل التكامل (CSV في مجلد integration-outbox/treasury).</summary>
-    [Authorize(Policy = HrManagementPolicies.PayrollPost)]
-    public async Task<IActionResult> ExportTreasuryFile(Guid runId)
-    {
-        try
-        {
-            var (disbursement, _) = await _externalExport.ExportRunAsync(runId);
-            if (!disbursement.Success)
-            {
-                TempData["Error"] = disbursement.Message ?? "فشل تصدير ملف المالية";
-                return RedirectToAction(nameof(MonthlySummary));
-            }
-
-            if (!string.IsNullOrEmpty(disbursement.OutputFilePath) && System.IO.File.Exists(disbursement.OutputFilePath))
-            {
-                var bytes = await System.IO.File.ReadAllBytesAsync(disbursement.OutputFilePath);
-                return File(bytes, "text/csv", Path.GetFileName(disbursement.OutputFilePath));
-            }
-
-            TempData["Success"] = disbursement.Message;
-            return RedirectToAction(nameof(MonthlySummary));
-        }
-        catch (Exception ex)
-        {
-            TempData["Error"] = ex.Message;
-            return RedirectToAction(nameof(MonthlySummary));
-        }
-    }
-
     /// <summary>تصدير ملف اشتراكات التأمينات الاجتماعية عبر موصّل التكامل.</summary>
     [Authorize(Policy = HrManagementPolicies.PayrollPost)]
     public async Task<IActionResult> ExportSocialInsuranceFile(Guid runId)
     {
         try
         {
-            var (_, insurance) = await _externalExport.ExportRunAsync(runId);
+            var insurance = await _externalExport.ExportInsuranceAsync(runId);
             if (!insurance.Success)
             {
                 TempData["Error"] = insurance.Message ?? "فشل تصدير ملف التأمينات";
@@ -299,29 +270,6 @@ public class PayrollReportsController : Controller
             }
 
             TempData["Success"] = insurance.Message;
-            return RedirectToAction(nameof(MonthlySummary));
-        }
-        catch (Exception ex)
-        {
-            TempData["Error"] = ex.Message;
-            return RedirectToAction(nameof(MonthlySummary));
-        }
-    }
-
-    /// <summary>تصدير ملفي المالية والتأمينات معاً (JSON ملخص + تحميل ZIP اختياري لاحقاً — حالياً رسالة نجاح).</summary>
-    [Authorize(Policy = HrManagementPolicies.PayrollPost)]
-    public async Task<IActionResult> ExportExternalIntegrationBundle(Guid runId)
-    {
-        try
-        {
-            var (disbursement, insurance) = await _externalExport.ExportRunAsync(runId);
-            if (!disbursement.Success || !insurance.Success)
-            {
-                TempData["Error"] = $"{disbursement.Message}; {insurance.Message}";
-                return RedirectToAction(nameof(MonthlySummary));
-            }
-
-            TempData["Success"] = $"تم التصدير: المالية → {disbursement.OutputFilePath}; التأمينات → {insurance.OutputFilePath}";
             return RedirectToAction(nameof(MonthlySummary));
         }
         catch (Exception ex)

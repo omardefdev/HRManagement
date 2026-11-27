@@ -98,3 +98,40 @@ public sealed class PayrollLegalAttestHandler(IServiceProvider services) : Autho
             context.Succeed(requirement);
     }
 }
+
+/// <summary>
+/// PLAN-58 (D-PAY-3): the requirement of <c>Payroll.AuditReview</c> (the reviewer's roles, <see cref="SettingKey"/>), and of
+/// <c>Payroll.RunRead</c> when <see cref="AlsoTheModule"/> (the module's users as well).
+/// </summary>
+public sealed class PayrollReviewerRequirement(bool alsoTheModule) : IAuthorizationRequirement
+{
+    public const string SettingKey = "Payroll:Audit:ReviewerRoles";
+    public const string DefaultRoles = HrManagementRoles.Auditor;
+
+    public bool AlsoTheModule { get; } = alsoTheModule;
+
+    /// <summary>The configured reviewer roles (comma- or semicolon-separated), or <c>auditor</c>.</summary>
+    public static IReadOnlyList<string> ReviewerRoles(IConfiguration? configuration)
+    {
+        var value = configuration?[SettingKey];
+        var roles = (string.IsNullOrWhiteSpace(value) ? DefaultRoles : value)
+            .Split([',', ';'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return roles.Length == 0 ? [DefaultRoles] : roles;
+    }
+
+    public static bool IsReviewer(ClaimsPrincipal user, IConfiguration? configuration) =>
+        ReviewerRoles(configuration).Any(user.IsInRole);
+}
+
+public sealed class PayrollReviewerHandler(IServiceProvider services) : AuthorizationHandler<PayrollReviewerRequirement>
+{
+    protected override Task HandleRequirementAsync(AuthorizationHandlerContext context, PayrollReviewerRequirement requirement)
+    {
+        var configuration = services.GetService<IConfiguration>();
+        if (PayrollReviewerRequirement.IsReviewer(context.User, configuration)
+            || (requirement.AlsoTheModule
+                && (context.User.IsInRole(HrManagementRoles.Admin) || context.User.IsInRole(HrManagementRoles.Payroll))))
+            context.Succeed(requirement);
+        return Task.CompletedTask;
+    }
+}

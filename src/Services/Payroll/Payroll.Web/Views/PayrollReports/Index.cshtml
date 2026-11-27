@@ -25,14 +25,13 @@
                 </ul>
             </div>
             <div class="col-md-6">
-                <h5>تصدير التكامل الخارجي (المالية / التأمينات)</h5>
-                <p class="text-muted small">يُصدّر ملفات CSV قياسية إلى مجلد <code>integration-outbox</code> — وضع File (المستوى الثاني).</p>
+                <h5>تصدير التكامل الخارجي (التأمينات)</h5>
+                <p class="text-muted small">يُصدّر ملف CSV قياسياً إلى مجلد <code>integration-outbox</code> — وضع File (المستوى الثاني). ملف الصرف المصرفي لا يُصدَّر من هنا: يُنشأ مرة واحدة مع كل إرسال للدفعة ويُنزَّل من صفحة الدفعة.</p>
                 @if (ViewBag.LatestRunId is Guid latestRunId)
                 {
                     <div class="d-flex flex-wrap gap-2">
-                        <a asp-action="ExportTreasuryFile" asp-route-runId="@latestRunId" class="btn btn-outline-primary btn-sm">ملف المالية/الخزانة</a>
                         <a asp-action="ExportSocialInsuranceFile" asp-route-runId="@latestRunId" class="btn btn-outline-primary btn-sm">ملف التأمينات</a>
-                        <a asp-action="ExportExternalIntegrationBundle" asp-route-runId="@latestRunId" class="btn btn-primary btn-sm">التصدير المزدوج</a>
+                        <a asp-controller="PaymentBatches" asp-action="Index" class="btn btn-outline-secondary btn-sm">دفعات الصرف وملفاتها</a>
                     </div>
                 }
                 else

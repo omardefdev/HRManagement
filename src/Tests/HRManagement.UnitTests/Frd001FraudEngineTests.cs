@@ -64,7 +64,8 @@ public class Frd001FraudEngineTests
 
         Assert.Equal(2, result.Alerts.Count);
         Assert.All(result.Alerts, a => Assert.Equal(FraudRuleIds.SharedIban, a.RuleId));
-        Assert.Empty(result.Holds);
+        // PLAN-58 (§6, AC-PAY-58g): FR-04 holds each of the two employees' orders (it only flagged before); the others are not touched.
+        Assert.Equal(new[] { e1, e2 }.Order(), result.Holds.Select(h => h.EmployeeId).Order());
     }
 
     [Fact]

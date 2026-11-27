@@ -186,46 +186,17 @@ public sealed class GetRunBankReadinessHandler(IPayrollRepository repository) : 
 }
 
 /// <summary>
-/// PLAN-55 (§2): the treasury file of a run is refused while a line of it has no pinned account. The refusal lists the employees:
-/// <see cref="EmployeeIds"/> for an API, and their names in the message for a screen (an employee whose name the directory did not give
-/// is counted, never shown by an id).
+/// PLAN-55's naming rule, kept by PLAN-58 for the held employees (the treasury file whose refusals used it is gone): a list of people
+/// shows up to <see cref="NamesShown"/> names, in order, and counts the rest; an employee whose name the directory did not give is
+/// counted, never shown by an id.
 /// </summary>
-public sealed class MissingPinnedBankAccountsException : InvalidOperationException
+public static class PayrollEmployeeNames
 {
     /// <summary>The most names one message lists; the rest are counted.</summary>
     public const int NamesShown = 25;
 
-    public MissingPinnedBankAccountsException(IReadOnlyList<Guid> employeeIds, IReadOnlyDictionary<Guid, string> names)
-        : base(Describe(employeeIds, names))
-    {
-        EmployeeIds = employeeIds;
-    }
-
-    public IReadOnlyList<Guid> EmployeeIds { get; }
-
-    private static string Describe(IReadOnlyList<Guid> employeeIds, IReadOnlyDictionary<Guid, string> names)
-    {
-        var known = employeeIds.Select(id => names.TryGetValue(id, out var name) ? name?.Trim() : null)
-            .Where(name => !string.IsNullOrEmpty(name))
-            .Select(name => name!)
-            .Order(StringComparer.Ordinal)
-            .ToList();
-        var shown = known.Take(NamesShown).ToList();
-        var others = employeeIds.Count - shown.Count;
-        var list = shown.Count == 0 ? string.Empty : ": " + string.Join("، ", shown);
-        var rest = others <= 0
-            ? string.Empty
-            : shown.Count == 0
-                ? FormattableString.Invariant($" (عددهم {others})")
-                : FormattableString.Invariant($"، و{others} آخرون");
-        return "لا يمكن تصدير ملف الصرف: موظفون بلا حساب مصرفي مثبَّت في هذا التشغيل"
-               + list + rest
-               + ". الحساب يُثبَّت عند حساب التشغيل: حساب يُسجَّل ويُتحقق منه الآن يسري من التشغيل التالي، أو من هذا التشغيل إن أُعيد حسابه"
-               + " قبل تجميده. القائمة الكاملة في تقرير جاهزية الحسابات للتشغيل.";
-    }
-
-    /// <summary>The names of up to <see cref="NamesShown"/> employees and a count of the rest; never an id.</summary>
-    internal static string Names(IReadOnlyList<Guid> employeeIds, IReadOnlyDictionary<Guid, string> names)
+    /// <summary>«: name، name، و3 آخرون», or « (عددهم 2)» when no name is known; never an id.</summary>
+    public static string Listed(IReadOnlyList<Guid> employeeIds, IReadOnlyDictionary<Guid, string> names)
     {
         var known = employeeIds.Select(id => names.TryGetValue(id, out var name) ? name?.Trim() : null)
             .Where(name => !string.IsNullOrEmpty(name))
@@ -238,21 +209,4 @@ public sealed class MissingPinnedBankAccountsException : InvalidOperationExcepti
             return FormattableString.Invariant($" (عددهم {others})");
         return ": " + string.Join("، ", shown) + (others <= 0 ? string.Empty : FormattableString.Invariant($"، و{others} آخرون"));
     }
-}
-
-/// <summary>
-/// PLAN-55 (§1 rule 5): the treasury file of a run is refused while an employee's pinned account was retired and no person released
-/// his hold. The file is an instruction to pay: it must not name an account the employee withdrew.
-/// </summary>
-public sealed class RetiredPinnedBankAccountsException : InvalidOperationException
-{
-    public RetiredPinnedBankAccountsException(IReadOnlyList<Guid> employeeIds, IReadOnlyDictionary<Guid, string> names)
-        : base("لا يمكن تصدير ملف الصرف: موظفون أُحيل حسابهم المصرفي المثبَّت في هذا التشغيل ولم يُفرج عن حجز صرفهم"
-               + MissingPinnedBankAccountsException.Names(employeeIds, names)
-               + ". يُفرج عن الحجز من شاشة حجوزات الصرف (فيُصرف إلى الحساب المحال نفسه)، أو يُعاد حساب التشغيل قبل تجميده ليثبّت الحساب النافذ.")
-    {
-        EmployeeIds = employeeIds;
-    }
-
-    public IReadOnlyList<Guid> EmployeeIds { get; }
 }

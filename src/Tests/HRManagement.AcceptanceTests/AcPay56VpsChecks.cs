@@ -418,69 +418,99 @@ public partial class AcOps36VpsBootTests
         try
         {
             var requests = $"runs/{postedRun}/reversal-requests";
-            var (noReason, _, _) = await Pay56PostAsync(admin, requests, new { reason = " " });
+            var (noReason, noReasonError, _) = await Pay56PostAsync(admin, requests, new { reason = " " });
             var afterNoReason = Pay56One("select count(*) from \"PayrollReversalRequests\"");
-            var (requested, requestError, requestBody) = await Pay56PostAsync(admin, requests, new { reason = Pay56ReversalReason });
-            var request = Pay56IdOf(requestBody);
-            Assert.True(requested == 200 && request.Length == 36,
-                $"The request by {Pay56Admin} answered {requested}: {requestError}. If it is 403 the user does not hold Payroll.Reverse on this server: name another in PAY056_VPS_ADMIN.");
-            var (second, _, _) = await Pay56PostAsync(admin, requests, new { reason = Pay56ReversalReason });
 
-            // The requester's own decision. It is sent as a rejection: the rule is the same for both, and no approval is sent here.
-            var decide = $"reversal-requests/{request}/decide";
-            var (own, ownError, _) = await Pay56PostAsync(admin, decide, new { approve = false, notes = Pay56ReversalRejection });
-            var afterOwn = Pay56One($"select \"Status\" from \"PayrollReversalRequests\" where \"Id\" = '{request}'");
-            var (byTheProcessor, _, _) = await Pay56PostAsync(processor, decide, new { approve = false, notes = Pay56ReversalRejection });
-            var (noNote, _, _) = await Pay56PostAsync(approver, decide, new { approve = false, notes = " " });
-            var afterNoNote = Pay56One($"select \"Status\" from \"PayrollReversalRequests\" where \"Id\" = '{request}'");
-            var (rejected, rejectionError, _) = await Pay56PostAsync(approver, decide, new { approve = false, notes = Pay56ReversalRejection });
-            var ended = Pay56One(
-                "select \"Status\" || '~' || (\"DecidedBy\" is not null and \"DecidedBy\" <> \"RequestedBy\")::text || '~' || coalesce(\"DecisionNotes\", '') || '~' || \"Reason\" " +
-                $"from \"PayrollReversalRequests\" where \"Id\" = '{request}'");
-            var (again, _, _) = await Pay56PostAsync(approver, decide, new { approve = false, notes = Pay56ReversalRejection });
-            using var listed = await approver.GetAsync($"https://{AppDomain}{Pay56Api}/reversal-requests?status=Rejected");
-            var list = await listed.Content.ReadAsStringAsync();
-            var demoAfter = Pay56DemoData();
-
-            recorder.WriteScenarioDbChecks(new
+            // PLAN-58 (D-PAY-20): in demo mode hradmin holds every payroll policy, so his token carries conflicting roles and passes no
+            // financial act, a reversal request included: 403 naming the pair, nothing written. The demo has no other holder of
+            // Payroll.Reverse and the checks add no user (P-16), so the request and its decisions are proved on the stacks (AC-PAY-56e,
+            // Pay056RunLifecycleHttpTests); here the refusal is what is checked, and that nothing changed.
+            if (noReason == 403 && noReasonError.Contains("payroll-", StringComparison.Ordinal))
             {
-                run = postedRun,
-                admin = Pay56Admin,
-                requestWithoutAReason = noReason,
-                request,
-                requested,
-                secondRequestWhileOneWaits = second,
-                theRequestersOwnDecision = own,
-                ownError,
-                afterOwn,
-                aDecisionByTheProcessor = byTheProcessor,
-                rejectionWithoutANote = noNote,
-                rejection = rejected,
-                rejectionError,
-                ended,
-                requestFormat = "status~decided by another person~note~reason",
-                aSecondDecision = again,
-                listedAmongTheRejected = list.Contains(request, StringComparison.OrdinalIgnoreCase),
-                demoUnchanged = demoBefore == demoAfter
-            });
+                var (refused, refusedError, _) = await Pay56PostAsync(admin, requests, new { reason = Pay56ReversalReason });
+                var requestsAfter = Pay56One("select count(*) from \"PayrollReversalRequests\"");
+                var demoAfterRefusal = Pay56DemoData();
+                recorder.WriteScenarioDbChecks(new
+                {
+                    run = postedRun,
+                    admin = Pay56Admin,
+                    plan58 = "hradmin's token carries conflicting payroll roles: every financial act is refused (403, the pair named)",
+                    requestWithoutAReason = noReason,
+                    request = refused,
+                    refusal = refusedError,
+                    requestsBefore,
+                    requestsAfter,
+                    demoUnchanged = demoBefore == demoAfterRefusal
+                });
+                Assert.Equal(403, refused);
+                Assert.Contains("payroll-", refusedError, StringComparison.Ordinal);
+                Assert.Equal(requestsBefore, requestsAfter);
+                Assert.Equal(demoBefore, demoAfterRefusal);
+            }
+            else
+            {
+                var (requested, requestError, requestBody) = await Pay56PostAsync(admin, requests, new { reason = Pay56ReversalReason });
+                var request = Pay56IdOf(requestBody);
+                Assert.True(requested == 200 && request.Length == 36,
+                    $"The request by {Pay56Admin} answered {requested}: {requestError}. If it is 403 the user does not hold Payroll.Reverse on this server: name another in PAY056_VPS_ADMIN.");
+                var (second, _, _) = await Pay56PostAsync(admin, requests, new { reason = Pay56ReversalReason });
 
-            Assert.Equal(400, noReason);
-            Assert.Equal(requestsBefore, afterNoReason);
-            Assert.Equal(409, second);
-            // The requester never decides his own request: the handler's rule (400) where he holds the approval policy, the policy
-            // (403) where he does not. Either way nothing changes.
-            Assert.True(own is 400 or 403, $"The requester's own decision answered {own}: {ownError}");
-            if (own == 400) Assert.Contains(Pay56OwnDecisionRefusal, ownError, StringComparison.Ordinal);
-            Assert.Equal("Pending", afterOwn);
-            Assert.Equal(403, byTheProcessor);
-            Assert.Equal(400, noNote);
-            Assert.Equal("Pending", afterNoNote);
-            Assert.True(rejected == 200, $"The rejection answered {rejected}: {rejectionError}");
-            Assert.Equal($"Rejected~true~{Pay56ReversalRejection}~{Pay56ReversalReason}", ended);
-            Assert.Equal(409, again);
-            Assert.Contains(request, list, StringComparison.OrdinalIgnoreCase);
-            // The run is posted, its batch as it was, every line as it was.
-            Assert.Equal(demoBefore, demoAfter);
+                // The requester's own decision. It is sent as a rejection: the rule is the same for both, and no approval is sent here.
+                var decide = $"reversal-requests/{request}/decide";
+                var (own, ownError, _) = await Pay56PostAsync(admin, decide, new { approve = false, notes = Pay56ReversalRejection });
+                var afterOwn = Pay56One($"select \"Status\" from \"PayrollReversalRequests\" where \"Id\" = '{request}'");
+                var (byTheProcessor, _, _) = await Pay56PostAsync(processor, decide, new { approve = false, notes = Pay56ReversalRejection });
+                var (noNote, _, _) = await Pay56PostAsync(approver, decide, new { approve = false, notes = " " });
+                var afterNoNote = Pay56One($"select \"Status\" from \"PayrollReversalRequests\" where \"Id\" = '{request}'");
+                var (rejected, rejectionError, _) = await Pay56PostAsync(approver, decide, new { approve = false, notes = Pay56ReversalRejection });
+                var ended = Pay56One(
+                    "select \"Status\" || '~' || (\"DecidedBy\" is not null and \"DecidedBy\" <> \"RequestedBy\")::text || '~' || coalesce(\"DecisionNotes\", '') || '~' || \"Reason\" " +
+                    $"from \"PayrollReversalRequests\" where \"Id\" = '{request}'");
+                var (again, _, _) = await Pay56PostAsync(approver, decide, new { approve = false, notes = Pay56ReversalRejection });
+                using var listed = await approver.GetAsync($"https://{AppDomain}{Pay56Api}/reversal-requests?status=Rejected");
+                var list = await listed.Content.ReadAsStringAsync();
+                var demoAfter = Pay56DemoData();
+
+                recorder.WriteScenarioDbChecks(new
+                {
+                    run = postedRun,
+                    admin = Pay56Admin,
+                    requestWithoutAReason = noReason,
+                    request,
+                    requested,
+                    secondRequestWhileOneWaits = second,
+                    theRequestersOwnDecision = own,
+                    ownError,
+                    afterOwn,
+                    aDecisionByTheProcessor = byTheProcessor,
+                    rejectionWithoutANote = noNote,
+                    rejection = rejected,
+                    rejectionError,
+                    ended,
+                    requestFormat = "status~decided by another person~note~reason",
+                    aSecondDecision = again,
+                    listedAmongTheRejected = list.Contains(request, StringComparison.OrdinalIgnoreCase),
+                    demoUnchanged = demoBefore == demoAfter
+                });
+
+                Assert.Equal(400, noReason);
+                Assert.Equal(requestsBefore, afterNoReason);
+                Assert.Equal(409, second);
+                // The requester never decides his own request: the handler's rule (400) where he holds the approval policy, the policy
+                // (403) where he does not. Either way nothing changes.
+                Assert.True(own is 400 or 403, $"The requester's own decision answered {own}: {ownError}");
+                if (own == 400) Assert.Contains(Pay56OwnDecisionRefusal, ownError, StringComparison.Ordinal);
+                Assert.Equal("Pending", afterOwn);
+                Assert.Equal(403, byTheProcessor);
+                Assert.Equal(400, noNote);
+                Assert.Equal("Pending", afterNoNote);
+                Assert.True(rejected == 200, $"The rejection answered {rejected}: {rejectionError}");
+                Assert.Equal($"Rejected~true~{Pay56ReversalRejection}~{Pay56ReversalReason}", ended);
+                Assert.Equal(409, again);
+                Assert.Contains(request, list, StringComparison.OrdinalIgnoreCase);
+                // The run is posted, its batch as it was, every line as it was.
+                Assert.Equal(demoBefore, demoAfter);
+            }
         }
         finally
         {
@@ -516,8 +546,14 @@ public partial class AcOps36VpsBootTests
             var draft = await Pay56CreateRunAsync(processor, Pay56FreeMonth());
             var (requested, requestError, requestBody) = await Pay56PostAsync(admin, $"runs/{postedRun}/reversal-requests", new { reason = Pay56ReversalReason });
             var request = Pay56IdOf(requestBody);
-            Assert.True(requested == 200 && request.Length == 36, $"The request by {Pay56Admin} answered {requested}: {requestError}");
-            var requester = Pay56One($"select \"RequestedBy\" from \"PayrollReversalRequests\" where \"Id\" = '{request}'");
+            // PLAN-58 (D-PAY-20): hradmin's token carries conflicting payroll roles in demo mode and passes no financial act; the demo has
+            // no other reverser and the checks add no user. The pages are then read with no waiting request (the request's own parts of
+            // them are proved on the stacks, AC-PAY-56e), and the refusal is checked instead.
+            var hasRequest = requested == 200 && request.Length == 36;
+            if (!hasRequest)
+                Assert.True(requested == 403 && requestError.Contains("payroll-", StringComparison.Ordinal),
+                    $"The request by {Pay56Admin} answered {requested}: {requestError}");
+            var requester = hasRequest ? Pay56One($"select \"RequestedBy\" from \"PayrollReversalRequests\" where \"Id\" = '{request}'") : "";
 
             Ux067KeyPage[] processorPages =
             [
@@ -651,16 +687,19 @@ public partial class AcOps36VpsBootTests
             Assert.Contains("dir=\"rtl\"", draftPage, StringComparison.Ordinal);
             Assert.Contains("lang=\"ar\"", draftPage, StringComparison.Ordinal);
             Assert.Contains("data-hr-confirm-title=\"إلغاء تشغيل الرواتب\"", draftPage, StringComparison.Ordinal);
-            Assert.Contains(Pay56ReversalReason, postedPage, StringComparison.Ordinal);
             Assert.Contains("تسويات", Visible(postedPage), StringComparison.Ordinal);       // the adjustments, beside the gross and the deductions
-            Assert.Contains($"data-hr-user-id=\"{requester}\"", postedPage, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain(requester, Visible(postedPage), StringComparison.OrdinalIgnoreCase);
             Assert.Contains("طلبات العكس", Visible(requestsPage), StringComparison.Ordinal);
-            Assert.Contains(Pay56ReversalReason, requestsPage, StringComparison.Ordinal);
-            Assert.Contains("data-hr-confirm-title=\"رفض طلب العكس\"", requestsPage, StringComparison.Ordinal);
-            Assert.Contains($"data-hr-user-id=\"{requester}\"", requestsPage, StringComparison.OrdinalIgnoreCase);
-            Assert.DoesNotContain(requester, Visible(requestsPage), StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain(postedRun!, Visible(requestsPage), StringComparison.OrdinalIgnoreCase);
+            if (hasRequest)
+            {
+                Assert.Contains(Pay56ReversalReason, postedPage, StringComparison.Ordinal);
+                Assert.Contains($"data-hr-user-id=\"{requester}\"", postedPage, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain(requester, Visible(postedPage), StringComparison.OrdinalIgnoreCase);
+                Assert.Contains(Pay56ReversalReason, requestsPage, StringComparison.Ordinal);
+                Assert.Contains("data-hr-confirm-title=\"رفض طلب العكس\"", requestsPage, StringComparison.Ordinal);
+                Assert.Contains($"data-hr-user-id=\"{requester}\"", requestsPage, StringComparison.OrdinalIgnoreCase);
+                Assert.DoesNotContain(requester, Visible(requestsPage), StringComparison.OrdinalIgnoreCase);
+            }
             Assert.Contains($"value=\"{postedRun}\"", form, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(200, payslipStatus);
             Assert.True(payslipHasTheAdjustments, "The payslip does not carry the line's adjustments.");

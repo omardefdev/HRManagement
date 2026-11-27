@@ -60,3 +60,20 @@ MDM-002, MIG-004, IAM-003, EVD-001, OBS-003, SYR-006, SYR-009
 - `docs/frd/anomaly-rules.json`
 - `scripts/frd001-validate.ps1`
 - `Frd001FraudTests`
+
+## PLAN-58: four eyes, and the rules that really run
+
+- **Releases and resolutions are two people's acts.** Releasing a hold (`POST api/payroll/payment-holds/{id}/release`) and resolving a
+  critical alert (`POST api/payroll/fraud-alerts/{id}/resolution-requests`) make a request (202, `Payroll.Approve`); another holder of
+  `Payroll.Approve` decides it from his own session (`POST api/payroll/dual-control/{id}/decide`, or the inbox «طلبات بانتظار قرارك»).
+  The requester never decides his own request (400); the decider is the caller, never a field of a body. A release of a hold resolves its
+  linked alert. Requests expire after `Payroll:DualControl:ExpiryHours` (72) with no effect.
+- **A hold holds its employee only.** The gate (`PaymentDisbursementGate`) holds the orders of an employee with an active hold of the run
+  or with no run (every batch), an open critical alert of his, no pinned account, or a retired pinned account; the others are sent. Only a
+  critical alert with no employee stops a batch.
+- **The scan reads real data** (`RunPayrollFraudScanCommand`, `FraudScanFacts`): FR-01 from PLAN-57's attendance receipts of the run's
+  period (absent days at least the period's working days = no attendance; no receipt = no fact); FR-04 from the accounts the lines
+  pinned; FR-05 from the employee's net in the last posted regular run; FR-07 from the employee's first pay profile (`EffectiveFrom`);
+  FR-08 from the run job's input snapshots, and a correction's lines carry their source run. **FR-04's action is now `payment-hold`**
+  (`docs/frd/anomaly-rules.json`): two employees paid into one account are both held, the others sent.
+- The scan runs in the same request as each sending (`process`, `submit-held`); a released fraud hold of a run is not raised again.

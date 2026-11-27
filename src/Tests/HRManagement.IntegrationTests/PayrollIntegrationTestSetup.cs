@@ -39,6 +39,8 @@ internal static class PayrollIntegrationTestSetup
         services.TryAddScoped<IHrCoreServiceRegimeClient, FakeHrCoreServiceRegimeClient>();
         services.AddScoped<PaymentOrderService>();
         services.AddScoped<IPaymentOrderCoordinator, PaymentOrderCoordinator>();
+        services.AddScoped<PaymentBatchFileWriter>();
+        services.AddScoped<IPaymentBatchFileWriter>(sp => sp.GetRequiredService<PaymentBatchFileWriter>());
         services.AddScoped<BankReconciliationService>();
         services.AddScoped<IBankReconciliationCoordinator, BankReconciliationCoordinator>();
         services.AddSingleton<IHostEnvironment>(_ =>

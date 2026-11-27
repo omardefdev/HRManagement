@@ -62,7 +62,7 @@ public sealed partial class Pay056TransitionTests
             case PayrollRunAct.MarkCalculated: run.MarkCalculated(900m); break;
             case PayrollRunAct.MarkValidated: run.MarkValidated(900m); break;
             case PayrollRunAct.SubmitForReview: run.SubmitForReview(); break;
-            case PayrollRunAct.Approve: run.Approve(Guid.NewGuid(), "payroll-approver", "موافق"); break;
+            case PayrollRunAct.Approve: run.Approve(Guid.NewGuid(), 1, "payroll-approver", "موافق"); break;
             case PayrollRunAct.Reject: run.ReopenAfterRejection(Actor, When, "الإجمالي لا يطابق كشف المالية"); break;
             case PayrollRunAct.Post: run.Post(Actor, When); break;
             case PayrollRunAct.Reverse: run.Reverse(); break;

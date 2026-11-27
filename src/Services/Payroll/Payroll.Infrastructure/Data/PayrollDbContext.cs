@@ -20,6 +20,8 @@ public class PayrollDbContext : TenantAwareDbContext
     public DbSet<PayrollAuditRecord> PayrollAuditRecords => Set<PayrollAuditRecord>();
     public DbSet<PaymentBatch> PaymentBatches => Set<PaymentBatch>();
     public DbSet<PaymentOrder> PaymentOrders => Set<PaymentOrder>();
+    public DbSet<PaymentBatchFile> PaymentBatchFiles => Set<PaymentBatchFile>();
+    public DbSet<PayrollDualControlRequest> PayrollDualControlRequests => Set<PayrollDualControlRequest>();
     public DbSet<BankStatementLine> BankStatementLines => Set<BankStatementLine>();
     public DbSet<FundingDecision> FundingDecisions => Set<FundingDecision>();
     public DbSet<DisbursementPriorityRule> DisbursementPriorityRules => Set<DisbursementPriorityRule>();
@@ -169,9 +171,42 @@ public class PayrollDbContext : TenantAwareDbContext
         modelBuilder.Entity<PaymentOrder>(entity =>
         {
             entity.Property(e => e.Status).HasConversion<string>().HasMaxLength(32);
+            entity.Property(e => e.HoldReason).HasMaxLength(PaymentOrderHoldReasons.MaxLength);
+            entity.HasIndex(e => e.PaymentBatchFileId);
             entity.HasIndex(e => new { e.TenantId, e.IdempotencyKey }).IsUnique();
             entity.HasIndex(e => new { e.PayrollRunId, e.EmployeeId });
             entity.HasIndex(e => e.PaymentBatchId);
+            entity.ConfigureOptimisticConcurrency(this);
+        });
+
+        // PLAN-58 (§2): one file per sending of a batch, stored and never regenerated. The unique sequence lets one of two concurrent
+        // sendings in; a new table's enum is stored as an integer (PLAN-57's rule).
+        modelBuilder.Entity<PaymentBatchFile>(entity =>
+        {
+            entity.HasIndex(e => new { e.PaymentBatchId, e.Sequence })
+                .IsUnique()
+                .HasDatabaseName(PayrollDisbursementIndexNames.OneFilePerSequence);
+            entity.HasOne<PaymentBatch>()
+                .WithMany()
+                .HasForeignKey(e => e.PaymentBatchId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(e => e.Sha256).HasMaxLength(64);
+            entity.Property(e => e.ReissueReason).HasMaxLength(PaymentBatchFile.ReasonMaxLength);
+            entity.Property(e => e.ControlTotal).HasPrecision(18, 2);
+            entity.Ignore(e => e.FileName);
+            entity.ConfigureOptimisticConcurrency(this);
+        });
+
+        // PLAN-58 (§3): one pending four-eyes request per kind and target; the decision is taken once (xmin). Enums as integers.
+        modelBuilder.Entity<PayrollDualControlRequest>(entity =>
+        {
+            entity.HasIndex(e => new { e.TenantId, e.Kind, e.TargetId })
+                .IsUnique()
+                .HasDatabaseName(PayrollDisbursementIndexNames.OnePendingDualControlRequest)
+                .HasFilter("\"Status\" = 0");
+            entity.HasIndex(e => new { e.TenantId, e.Status, e.Kind });
+            entity.Property(e => e.PayloadJson).HasMaxLength(PayrollDualControlRequest.PayloadMaxLength);
+            entity.Property(e => e.DecisionNotes).HasMaxLength(PayrollDualControlRequest.ReasonMaxLength);
             entity.ConfigureOptimisticConcurrency(this);
         });
 
@@ -299,6 +334,8 @@ public class PayrollDbContext : TenantAwareDbContext
             entity.Property(e => e.Origin).HasConversion<string>().HasMaxLength(20);
             entity.HasIndex(e => new { e.TenantId, e.ApprovalStatus })
                   .HasDatabaseName("IX_DeductionRecords_Tenant_ApprovalStatus");
+            // PLAN-58 (P-11): a free deduction is taken by one run only: the second of two runs calculating at once is refused.
+            entity.ConfigureOptimisticConcurrency(this);
         });
 
         modelBuilder.Entity<AbsenceDeduction>(entity =>
@@ -341,6 +378,8 @@ public class PayrollDbContext : TenantAwareDbContext
                   .OnDelete(DeleteBehavior.Restrict);
             entity.HasIndex(e => e.TargetSourceRunId)
                   .HasDatabaseName("IX_PayrollAdjustments_TargetSourceRunId");
+            // PLAN-58 (P-11): a free adjustment is taken by one run only, as a deduction and an absence row are.
+            entity.ConfigureOptimisticConcurrency(this);
         });
 
         modelBuilder.Entity<SalaryScale>(entity =>

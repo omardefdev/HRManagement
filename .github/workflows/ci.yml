@@ -622,12 +622,14 @@ jobs:
           - name: lab-rest
             stages: lab:journey,lab:isolated
             timeout: 30
+          # PLAN-58: QA-066's rule (about 1.5 times the measured duration). The prodlike job took 25m50s (PR #58) and 33m36s (PR #57),
+          # and PLAN-58 adds a required class of eight scenarios to its main group; prodlike-final waits for it.
           - name: prodlike
             stages: prodLike:journey,prodLike:main,prodLike:isolated,prodLike:s2s42
-            timeout: 35
+            timeout: 55
           - name: prodlike-final
             stages: prodLike:final
-            timeout: 40
+            timeout: 60
           - name: prodlike-policy
             stages: prodLike:pol49
             timeout: 25

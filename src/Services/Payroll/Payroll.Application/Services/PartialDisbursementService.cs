@@ -18,7 +18,9 @@ public sealed record EmployeeDisbursementAllocation(
 
 public sealed class PartialDisbursementResult
 {
-    public required PaymentBatch Batch { get; init; }
+    /// <summary>PLAN-58: true when the funding leaves arrears (the batch it is applied to becomes partial).</summary>
+    public bool IsPartial { get; init; }
+
     public required IReadOnlyList<ArrearsLedgerEntry> ArrearsEntries { get; init; }
     public required IReadOnlyList<EmployeeDisbursementAllocation> Allocations { get; init; }
     public decimal TotalEntitled { get; init; }
@@ -26,12 +28,15 @@ public sealed class PartialDisbursementResult
     public decimal TotalArrears { get; init; }
 }
 
-/// <summary>PAY-004: allocates constrained treasury funding by legal priority rules.</summary>
+/// <summary>
+/// PAY-004: allocates constrained treasury funding by legal priority rules. PLAN-58 (§1): it makes no batch — the funding decision applies
+/// the allocation to the orders of the posting's batch (<c>PaymentBatchIssuer</c> is the only maker of a batch).
+/// </summary>
 public class PartialDisbursementService
 {
     /// <summary>
     /// Allocates <paramref name="decision"/>.ApprovedAmount across claims ordered by priority rules
-    /// (Priority ascending). Creates a PaymentBatch and arrears entries for unpaid remainders.
+    /// (Priority ascending), and the arrears entries for unpaid remainders.
     /// Invariant: sum(disbursed) + sum(arrears) == sum(entitled).
     /// </summary>
     public PartialDisbursementResult Allocate(
@@ -128,21 +133,7 @@ public class PartialDisbursementService
             throw new InvalidOperationException(
                 $"Disbursement invariant violated: disbursed ({totalDisbursed}) + arrears ({totalArrears}) != entitled ({totalEntitled}).");
 
-        var isPartial = decision.FundingRatio < 1m;
         var tid = tenantId ?? run.TenantId;
-
-        var batch = new PaymentBatch
-        {
-            TenantId = tid,
-            PayrollRunId = run.Id,
-            FundingDecisionId = decision.Id == Guid.Empty ? null : decision.Id,
-            TotalAmount = totalEntitled,
-            DisbursedAmount = totalDisbursed,
-            IsPartial = isPartial,
-            Status = PaymentBatchStatus.Pending,
-            BatchKind = PaymentBatchKind.Disbursement,
-            ProcessedAt = DateTime.UtcNow
-        };
 
         var arrearsEntries = allocations
             .Where(a => a.ArrearsAmount > 0)
@@ -164,7 +155,7 @@ public class PartialDisbursementService
 
         return new PartialDisbursementResult
         {
-            Batch = batch,
+            IsPartial = decision.FundingRatio < 1m || totalArrears > 0,
             ArrearsEntries = arrearsEntries,
             Allocations = allocations,
             TotalEntitled = totalEntitled,

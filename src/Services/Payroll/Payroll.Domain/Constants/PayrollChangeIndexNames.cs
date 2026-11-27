@@ -34,3 +34,13 @@ public static class PayrollRunIndexNames
     /// <summary>One kept revision per rejected version of a run.</summary>
     public const string OneRevisionPerVersion = "IX_PayrollRunRevisions_Run_Revision";
 }
+
+/// <summary>PLAN-58: the names of the disbursement governance's unique indexes, so a refusal can be told from another database error.</summary>
+public static class PayrollDisbursementIndexNames
+{
+    /// <summary>One bank file per sequence of a batch: two concurrent sendings make one file.</summary>
+    public const string OneFilePerSequence = "IX_PaymentBatchFiles_Batch_Sequence";
+
+    /// <summary>One pending four-eyes request per kind and target.</summary>
+    public const string OnePendingDualControlRequest = "IX_PayrollDualControlRequests_OnePending";
+}

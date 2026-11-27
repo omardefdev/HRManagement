@@ -180,7 +180,7 @@ public class Qa002InvariantCoverageTests
         run.MarkValidated(900);
         run.SubmitForReview();
         Assert.Equal(PayrollRunStatus.UnderReview, run.Status);
-        run.Approve(Guid.NewGuid());
+        run.Approve(Guid.NewGuid(), requiredApprovals: 1);
         Assert.Equal(PayrollRunStatus.Approved, run.Status);
         run.Post(Guid.NewGuid(), DateTime.UtcNow);
         Assert.Equal(PayrollRunStatus.Posted, run.Status);

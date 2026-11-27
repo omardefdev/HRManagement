@@ -454,13 +454,17 @@ public class Pay003ResumablePayrollRunTests
             ResultsFrozen = true
         };
         var employeeId = Guid.NewGuid();
+        // PLAN-58: an order goes to the account its line pinned; a line with none is held (NO-ACCOUNT), so the planted line pins one.
+        var account = Pay055TestAccounts.Active(employeeId);
+        db.Add(account);
         var line = new SalaryLine
         {
             PayrollRunId = run.Id,
             EmployeeId = employeeId,
             GrossPay = 1000m,
             TotalDeductions = 100m,
-            NetPay = 900m
+            NetPay = 900m,
+            BankAccountId = account.Id
         };
         run.SalaryLines.Add(line);
         // PLAN-56: the posting checks the saved lines again, so the planted line is a sound one.

@@ -39,13 +39,17 @@ public class G4SandboxPaymentCycleIntegrationTests
             ValidatedAtCalculate = true,
             ResultsFrozen = true
         };
+        // PLAN-58: the order goes to the account the line pinned (a line with none is held NO-ACCOUNT).
+        var account = Pay055TestAccounts.Active(empId);
+        db.Add(account);
         run.SalaryLines.Add(new SalaryLine
         {
             PayrollRunId = run.Id,
             EmployeeId = empId,
             GrossPay = 5000m,
             TotalDeductions = 500m,
-            NetPay = 4500m
+            NetPay = 4500m,
+            BankAccountId = account.Id
         });
         db.PayrollRuns.Add(run);
 

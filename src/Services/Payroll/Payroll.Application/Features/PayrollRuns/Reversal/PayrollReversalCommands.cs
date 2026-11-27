@@ -207,7 +207,21 @@ public class DecidePayrollReversalHandler(
 
         foreach (var order in orders.Where(o => voided.Contains(o.PaymentBatchId)
                                                 && PaymentOrderTransitions.CanTransition(o.Status, PaymentOrderStatus.Cancelled)))
+        {
             order.Status = PaymentOrderStatus.Cancelled;
+            order.HoldReason = null;
+        }
+
+        // PLAN-58 (P-5): a funding decision on the posting's batch that never left: its arrears rows are closed with the reversal as
+        // their reason — nothing of them was paid, and nothing is owed under a reversed run.
+        if (batches.Any(b => voided.Contains(b.Id) && b.FundingDecisionId != null))
+        {
+            var arrears = await repository.ArrearsLedgerEntries
+                .Where(a => a.PayrollRunId == run.Id && a.Status != ArrearsLedgerStatus.FullyPaid && a.Status != ArrearsLedgerStatus.Voided)
+                .ToListAsync(cancellationToken);
+            foreach (var entry in arrears)
+                entry.VoidForReversal(PayrollRunLifecycle.ArrearsVoidedByReversal(reversal.Reason), now);
+        }
 
         // 2. What the run's calculation consumed is free again (in this transaction).
         await PayrollInputRelease.ReleaseAsync(repository, run, PayrollReversalMessages.ReleaseReason, request.DecidedBy, cancellationToken);

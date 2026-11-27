@@ -38,8 +38,11 @@ public sealed class Pay055BankAccountHarness
 
     public PayrollBankOptions Banks { get; } = new();
 
+    // PLAN-58: a verification re-pins the employee's held orders in its own transaction; the in-memory store has none (the transaction
+    // itself is proved on SQLite and PostgreSQL).
     public PayrollDbContext Db() =>
-        new(new DbContextOptionsBuilder<PayrollDbContext>().UseInMemoryDatabase(_database).Options);
+        new(new DbContextOptionsBuilder<PayrollDbContext>().UseInMemoryDatabase(_database)
+            .ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning)).Options);
 
     public IPayrollCalendar Calendar => new PayrollCalendar(Clock);
 

@@ -4,6 +4,7 @@ using Payroll.Application.Abstractions;
 using Payroll.Application.Services;
 using Payroll.Domain.Constants;
 using Payroll.Domain.Entities;
+using Payroll.Domain.Services;
 
 namespace Payroll.Application.Features.Fraud;
 
@@ -42,15 +43,11 @@ public class RunPayrollFraudScanHandler(
         var employeeIds = lines.Select(l => l.EmployeeId).Distinct().ToList();
         var releasedForRun = await repository.PaymentHolds
             .AsNoTracking()
-            .Where(h => h.PayrollRunId == run.Id && h.Status == PaymentHoldStatus.Released)
+            // A person released a fraud hold of this run: the scan does not raise it again. (A service-regime or account hold's release
+            // says nothing about fraud.)
+            .Where(h => h.PayrollRunId == run.Id && h.Status == PaymentHoldStatus.Released && h.HoldType == PaymentHoldType.Fraud)
             .Select(h => h.EmployeeId)
             .ToHashSetAsync(cancellationToken);
-
-        var profiles = await repository.EmployeePayProfiles
-            .AsNoTracking()
-            .Where(p => employeeIds.Contains(p.EmployeeId) && p.IsActive)
-            .ToListAsync(cancellationToken);
-        var profilesByEmployee = profiles.ToDictionary(p => p.EmployeeId);
 
         var job = await repository.PayrollRunJobs
             .AsNoTracking()
@@ -66,9 +63,48 @@ public class RunPayrollFraudScanHandler(
         var pinned = await Features.BankAccounts.BankAccountPinning.PinnedAccountsAsync(repository.EmployeeBankAccounts, lines, cancellationToken);
         var pinnedNumbers = pinned.ToDictionary(p => p.Key, p => p.Value.AccountNumber);
 
+        // PLAN-58 (§6): FR-07 the earliest date of the employee's pay profiles (his first in this service), not the active version's.
+        var hireDates = (await repository.EmployeePayProfiles.AsNoTracking()
+                .Where(p => employeeIds.Contains(p.EmployeeId))
+                .GroupBy(p => p.EmployeeId)
+                .Select(g => new { EmployeeId = g.Key, First = g.Min(p => p.EffectiveFrom) })
+                .ToListAsync(cancellationToken))
+            .ToDictionary(x => x.EmployeeId, x => x.First);
+
+        // PLAN-58 (§6): FR-01 from PLAN-57's receipts of the run's period. A receipt that counts as many absent days as the period has
+        // working days is «no attendance»; no receipt is no fact (the attendance gate handles a missing receipt).
+        var periodStart = DateOnly.FromDateTime(run.PeriodStart);
+        var periodEnd = DateOnly.FromDateTime(run.PeriodEnd);
+        var receipts = await repository.AttendanceSummaryReceipts.AsNoTracking()
+            .Where(r => employeeIds.Contains(r.EmployeeId) && r.PeriodStart <= periodEnd && r.PeriodEnd >= periodStart)
+            .Select(r => new { r.EmployeeId, r.PeriodStart, r.PeriodEnd, r.LatestAbsentDays })
+            .ToListAsync(cancellationToken);
+        var config = run.PayrollConfigurationId is Guid configId
+            ? await repository.PayrollConfigurations.AsNoTracking().FirstOrDefaultAsync(c => c.Id == configId, cancellationToken)
+            : null;
+        var attendance = receipts
+            .GroupBy(r => r.EmployeeId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Any(r => r.LatestAbsentDays < PayrollPeriodRules.CountWorkingDays(r.PeriodStart, r.PeriodEnd, config, null)));
+
+        // PLAN-58 (§6): FR-05 the employee's net in the last posted regular run before this one.
+        var previous = await (from line in repository.SalaryLines.AsNoTracking()
+                              join earlier in repository.PayrollRuns.AsNoTracking() on line.PayrollRunId equals earlier.Id
+                              where employeeIds.Contains(line.EmployeeId)
+                                    && earlier.Status == Domain.Enums.PayrollRunStatus.Posted
+                                    && earlier.RunType == Domain.Enums.PayrollRunType.Regular
+                                    && earlier.PeriodStart < run.PeriodStart
+                                    && earlier.Id != run.Id
+                              select new { line.EmployeeId, earlier.PeriodStart, line.NetPay })
+            .ToListAsync(cancellationToken);
+        var expectedNet = previous
+            .GroupBy(p => p.EmployeeId)
+            .ToDictionary(g => g.Key, g => g.OrderByDescending(p => p.PeriodStart).First().NetPay);
+
         var asOf = run.RunDate;
         var scanInputs = FraudScanInputBuilder.FromRun(
-            run, lines, profilesByEmployee, snapshotEmployees, asOf, pinnedNumbers);
+            run, lines, new FraudScanFacts(snapshotEmployees, pinnedNumbers, hireDates, attendance, expectedNet), asOf);
 
         var scan = fraudEngine.Scan(run.Id, scanInputs, asOfUtc: asOf);
         if (!request.Persist)
@@ -88,11 +124,12 @@ public class RunPayrollFraudScanHandler(
             if (releasedForRun.Contains(alert.EmployeeId))
                 continue;
 
+            // PLAN-58 (review): one alert per run, employee and rule, whatever its status: what two people resolved or dismissed is not
+            // raised again by the next sending's scan (the employee may have had another hold, so no fraud hold of his was released).
             var duplicate = await repository.FraudAlerts.AnyAsync(
                 a => a.PayrollRunId == run.Id
                      && a.EmployeeId == alert.EmployeeId
-                     && a.RuleId == alert.RuleId
-                     && a.Status == FraudAlertStatus.Open,
+                     && a.RuleId == alert.RuleId,
                 cancellationToken);
             if (duplicate)
                 continue;

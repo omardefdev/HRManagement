@@ -31,7 +31,7 @@ public class AcPay55BankAccountTests
     private const string Ac = "AC-PAY-55";
     private const string Processor = "payroll-processor";
     private const string Approver = "payroll-approver";
-    private const string Admin = "a-directory-checker";             // hr-admin: holds both payroll policies
+    private const string Admin = "a-directory-checker";             // hr-admin: holds both payroll policies (refused both since PLAN-58)
     private const string ForeignProcessor = "b-payroll-processor";
     private const string ForeignApprover = "b-payroll-approver";
     private const string Payroll = "payroll_db";
@@ -265,9 +265,11 @@ public class AcPay55BankAccountTests
             5. Negative: a second registration for the first employee while one waits → 409; he still has one account.
             6. payroll-approver verifies the first employee's account with the reference of the bank's confirmation → Active, verified
                by another person than its registrar.
-            7. Negative, the plan's own: a person who holds both payroll policies (hr-admin) registers an account for the second
-               employee and then verifies it himself → 400 «لا يتحقق من الحساب مَن سجّله»; the account still waits. Without a reference
-               the approver's verification is 400 too. Then payroll-approver verifies it with a reference → Active.
+            7. Negative, the plan's own: a person who holds both payroll policies (hr-admin) cannot register and then verify his own
+               account. Since PLAN-58 (D-PAY-20) a token that carries both conflicting roles passes neither act: his registration for
+               the second employee → 403, the conflict named, and no row. (That the registrar never verifies his own registration with
+               another token is proved by Pay055BankAccountHttpTests, one person with two tokens.) payroll-processor registers it;
+               without a reference the approver's verification is 400. Then payroll-approver verifies it with a reference → Active.
             8. after.json: each employee has one account in force; payroll_db's audit rows of both accounts name no account number.
             """);
 
@@ -314,12 +316,12 @@ public class AcPay55BankAccountTests
         Assert.True(verified == HttpStatusCode.OK, $"55a: the verification answered {(int)verified}: {Text(verifiedBody, "error")}");
         var twoPeople = await Db($"SELECT \"Status\" || '|' || (\"VerifiedBy\" IS NOT NULL AND \"VerifiedBy\" <> \"CreatedBy\")::text || '|' || \"VerificationReference\" FROM \"EmployeeBankAccounts\" WHERE \"Id\"='{firstAccount}';");
 
-        // 7. The registrar who holds both policies cannot verify his own registration.
-        var (adminRegistered, adminBody, _) = await admin.PostAsync("register-by-admin", Accounts(second), Registration(secondIban));
-        Assert.True(adminRegistered == HttpStatusCode.Created, $"55a: the administrator's registration answered {(int)adminRegistered}: {Text(adminBody, "error")}");
-        var secondAccount = adminBody.GetProperty("accountId").GetGuid().ToString("D");
-        var (self, selfBody, _) = await admin.PostAsync("verify-own-by-admin", $"{Accounts(second)}/{secondAccount}/verify", new { verificationReference = SecondReference });
-        var afterSelf = await StatusAsync(secondAccount);
+        // 7. The person who holds both policies registers nothing (PLAN-58, D-PAY-20): 403, the conflict named, no row.
+        var (self, selfBody, _) = await admin.PostAsync("register-by-admin", Accounts(second), Registration(secondIban));
+        var rowsAfterAdmin = await AccountCountAsync(second);
+        var (processorRegistered, processorBody, _) = await processor.PostAsync("register-second", Accounts(second), Registration(secondIban));
+        Assert.True(processorRegistered == HttpStatusCode.Created, $"55a: the second registration answered {(int)processorRegistered}: {Text(processorBody, "error")}");
+        var secondAccount = processorBody.GetProperty("accountId").GetGuid().ToString("D");
         var (noReference, noReferenceBody, _) = await approver.PostAsync("verify-without-reference", $"{Accounts(second)}/{secondAccount}/verify", new { verificationReference = "  " });
         var afterNoReference = await StatusAsync(secondAccount);
         var (secondVerified, secondVerifiedBody, _) = await approver.PostAsync("verify-second", $"{Accounts(second)}/{secondAccount}/verify", new { verificationReference = SecondReference });
@@ -339,7 +341,7 @@ public class AcPay55BankAccountTests
             processorVerifiesHisOwn = (int)ownVerify,
             wrongCheckDigit = new { status = (int)bad, error = Text(badBody, "error"), rows = rowsAfterBad },
             secondPending = new { status = (int)again, error = Text(againBody, "error"), rows = rowsAfterSecond },
-            registrarWithBothPoliciesVerifiesHisOwn = new { status = (int)self, error = Text(selfBody, "error"), stillPending = afterSelf == PendingStatus },
+            holderOfBothPoliciesRegisters = new { status = (int)self, error = Text(selfBody, "error"), rows = rowsAfterAdmin },
             verificationWithoutReference = new { status = (int)noReference, error = Text(noReferenceBody, "error") },
             auditRows,
             auditRowsWithANumber = auditWithNumber
@@ -361,9 +363,9 @@ public class AcPay55BankAccountTests
         Assert.Equal(HttpStatusCode.Conflict, again);
         Assert.Equal(1, rowsAfterSecond);
         Assert.Equal($"{ActiveStatus}|true|{FirstReference}", twoPeople);
-        Assert.Equal(HttpStatusCode.BadRequest, self);
-        Assert.Equal("لا يتحقق من الحساب مَن سجّله: يتحقق منه شخص ثانٍ", Text(selfBody, "error"));
-        Assert.Equal(PendingStatus, afterSelf);
+        Assert.Equal(HttpStatusCode.Forbidden, self);
+        Assert.Contains(HrManagementRoles.PayrollApprover, Text(selfBody, "error"), StringComparison.Ordinal);
+        Assert.Equal(0, rowsAfterAdmin);
         Assert.Equal(HttpStatusCode.BadRequest, noReference);
         Assert.Equal(PendingStatus, afterNoReference);
         Assert.Equal(ActiveStatus, await StatusAsync(secondAccount));

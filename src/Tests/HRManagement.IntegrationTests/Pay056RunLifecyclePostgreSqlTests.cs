@@ -364,9 +364,9 @@ public sealed class Pay056RunLifecyclePostgreSqlTests(PgRabbitFixture fixture, I
         var (rejection, rejectionThrown) = await rejecting;
         host.Barrier.Arm(0);
 
-        var approved = approvalThrown is null && approval.Success;
+        var approved = approvalThrown is null && approval!.Success;
         var rejected = rejectionThrown is null && rejection!.Success;
-        Assert.True(approved ^ rejected, $"approved={approved} ({approvalThrown?.GetType().Name} {approval.Error}); rejected={rejected} ({rejectionThrown?.GetType().Name} {rejection?.Error})");
+        Assert.True(approved ^ rejected, $"approved={approved} ({approvalThrown?.GetType().Name} {approval?.Error}); rejected={rejected} ({rejectionThrown?.GetType().Name} {rejection?.Error})");
         // The loser lost on the run's row version: the exception the conflict middleware answers 409.
         var lost = approved ? rejectionThrown : approvalThrown;
         Assert.NotNull(lost);

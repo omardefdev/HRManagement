@@ -214,7 +214,8 @@ public class PayrollRun : AuditableEntity
             ApproverId = cancelledBy,
             Decision = ApprovalDecision.Cancelled,
             Notes = CancellationReason,
-            DecidedAt = cancelledAt
+            DecidedAt = cancelledAt,
+            Revision = Revision,
         };
         Approvals.Add(decision);
         return decision;
@@ -246,20 +247,51 @@ public class PayrollRun : AuditableEntity
         Move(PayrollRunAct.SubmitForReview);
     }
 
-    public void Approve(Guid approverId, string? role = null, string? notes = null)
+    public const string SameApproverTwice = "سبق أن اعتمدتَ هذا التشغيل: الاعتماد التالي لمعتمد آخر.";
+
+    /// <summary>
+    /// PLAN-58 (D-PAY-5): the approvals given to the present version of the run, one per approver. A rejection reopens the run with
+    /// its version one more, so an approval of an earlier version does not count here.
+    /// </summary>
+    [NotMapped]
+    public IReadOnlyList<PayrollRunApproval> ApprovalsOfThisVersion =>
+        Approvals.Where(a => a.Decision == ApprovalDecision.Approved && a.Revision == Revision).ToList();
+
+    /// <summary>PLAN-58: how many different approvers approved the present version («اعتماد 1 من 2» shows it).</summary>
+    [NotMapped]
+    public int ApprovalsGiven =>
+        ApprovalsOfThisVersion.Where(a => a.ApproverId.HasValue).Select(a => a.ApproverId!.Value).Distinct().Count();
+
+    /// <summary>
+    /// PLAN-58 (D-PAY-5, G-PAY-09): one approval of the present version. The run stays «قيد المراجعة» until
+    /// <paramref name="requiredApprovals"/> different approvers approved it (two above the threshold), and only the approval that
+    /// completes the count moves it to «معتمد»: the first of two is not a transition. The same approver never counts twice.
+    /// Returns true when the run moved to «معتمد».
+    /// </summary>
+    public bool Approve(Guid approverId, int requiredApprovals, string? role = null, string? notes = null, DateTime? decidedAt = null)
     {
         var err = ValidateCanApprove();
         if (err != null) throw new InvalidOperationException(err);
-        Move(PayrollRunAct.Approve);
+        if (ApprovalsOfThisVersion.Any(a => a.ApproverId == approverId))
+            throw new InvalidOperationException(SameApproverTwice);
         Approvals.Add(new PayrollRunApproval
         {
             PayrollRunId = Id,
+            TenantId = TenantId,
             ApproverId = approverId,
             ApproverRole = role,
             Decision = ApprovalDecision.Approved,
             Notes = notes,
-            DecidedAt = DateTime.UtcNow
+            DecidedAt = decidedAt ?? DateTime.UtcNow,
+            Revision = Revision,
         });
+        // The run itself is written by every approval, so that two approvals at once cannot both count without one of them losing on
+        // the run's row version (the second is refused, not lost).
+        UpdatedAt = decidedAt ?? DateTime.UtcNow;
+        if (ApprovalsGiven < Math.Max(1, requiredApprovals))
+            return false;
+        Move(PayrollRunAct.Approve);
+        return true;
     }
 
     /// <summary>
@@ -284,7 +316,8 @@ public class PayrollRun : AuditableEntity
             ApproverId = rejectedBy,
             Decision = ApprovalDecision.Rejected,
             Notes = Trimmed(notes),
-            DecidedAt = rejectedAt
+            DecidedAt = rejectedAt,
+            Revision = Revision - 1,
         };
         Approvals.Add(decision);
         return decision;

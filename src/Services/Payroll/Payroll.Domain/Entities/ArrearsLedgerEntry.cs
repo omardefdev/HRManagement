@@ -44,7 +44,7 @@ public class ArrearsLedgerEntry : AuditableEntity
     /// </summary>
     public bool ApplyPayment(decimal amount)
     {
-        if (amount <= 0)
+        if (amount <= 0 || Status == ArrearsLedgerStatus.Voided)
             return false;
 
         if (amount > ArrearsAmount)
@@ -65,6 +65,21 @@ public class ArrearsLedgerEntry : AuditableEntity
     }
 
     /// <summary>
+    /// PLAN-58 (P-5): the run was reversed while its funded batch had not left: nothing of these arrears was paid and nothing is owed under
+    /// that run. The row is closed with the reversal as its reason.
+    /// </summary>
+    public bool VoidForReversal(string reason, DateTime at)
+    {
+        if (Status is ArrearsLedgerStatus.FullyPaid or ArrearsLedgerStatus.Voided)
+            return false;
+        Status = ArrearsLedgerStatus.Voided;
+        var trimmed = reason.Trim();
+        Reason = trimmed.Length <= 500 ? trimmed : trimmed[..500];
+        UpdatedAt = at;
+        return true;
+    }
+
+    /// <summary>
     /// Manual edit of amounts requires four-eyes: ApproverId must differ from ActorId.
     /// </summary>
     public bool TryManualUpdate(
@@ -74,7 +89,7 @@ public class ArrearsLedgerEntry : AuditableEntity
         Guid approverId,
         string? reason = null)
     {
-        if (actorId == Guid.Empty || approverId == Guid.Empty || actorId == approverId)
+        if (actorId == Guid.Empty || approverId == Guid.Empty || actorId == approverId || Status == ArrearsLedgerStatus.Voided)
             return false;
 
         if (originalAmount < 0 || paidAmount < 0 || paidAmount > originalAmount)

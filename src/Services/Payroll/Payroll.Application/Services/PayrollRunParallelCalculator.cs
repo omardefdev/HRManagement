@@ -40,21 +40,8 @@ public static class PayrollRunParallelCalculator
         if (configResult.Error != null) return (false, 0, jobId, configResult.Error);
         var config = configResult.Config!;
 
-        var employeeIds = job.InputSnapshots.Select(s => s.EmployeeId).Distinct().ToList();
-        await using (var scope = scopeFactory.CreateAsyncScope())
-        {
-            var hrCoreClient = scope.ServiceProvider.GetService<IHrCoreServiceRegimeClient>();
-            var configuration = scope.ServiceProvider.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
-            var blocksFinalPayroll = configuration?.GetValue("ServiceRegimes:BlocksFinalPayroll", true) ?? true;
-            var regimeError = await PayrollRegimeGovernance.ValidateEmployeesAsync(
-                run.RunType,
-                employeeIds,
-                hrCoreClient,
-                blocksFinalPayroll,
-                cancellationToken);
-            if (regimeError is not null)
-                return (false, 0, jobId, regimeError);
-        }
+        // PLAN-58 (D-PAY-4): the service-regime blockers are decided before the run moves (StartPayrollRunJobHandler): a refusal leaves
+        // the run as it was, and in HoldEmployee everyone is calculated (the blocked employees are held, not left out).
 
         var profileIds = job.InputSnapshots.OrderBy(s => s.SortOrder)
             .Select(s => s.EmployeePayProfileId)
@@ -186,7 +173,26 @@ public static class PayrollRunParallelCalculator
                         async Task<bool> FlushAsync()
                         {
                             if (packages.Count == 0) return true;
-                            var written = await repo.SaveEmployeePackagesForJobAsync(run.Id, jobId, packages, cancellationToken);
+                            (int Saved, int AlreadyExists)? written;
+                            try
+                            {
+                                written = await repo.SaveEmployeePackagesForJobAsync(run.Id, jobId, packages, cancellationToken);
+                            }
+                            catch (DbUpdateConcurrencyException conflict) when (conflict is PayrollInputTakenException
+                                                                                 || conflict.Entries.Any(e => e.Entity is DeductionRecord or PayrollAdjustment or AbsenceDeduction))
+                            {
+                                // PLAN-58 (P-11): an input this batch marks was taken by another run calculating at once. Nothing of the
+                                // batch was written; the partition fails as an input-fingerprint conflict does, and a restart takes a new
+                                // snapshot.
+                                packages.Clear();
+                                repo.ClearChangeTracker();
+                                await FailPartitionAsync(repo, partitionId, jobId, PayrollInputTakenException.TakenMessage, cancellationToken);
+                                Interlocked.Exchange(ref stopRequested, 3);
+                                lock (fatalGate) { fatalError ??= PayrollInputTakenException.TakenMessage; }
+                                return false;
+                            }
+
+
                             packages.Clear();
                             repo.ClearChangeTracker();
                             if (written is null)

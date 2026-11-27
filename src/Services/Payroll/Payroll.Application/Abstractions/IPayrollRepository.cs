@@ -34,10 +34,13 @@ public interface IPayrollRepository
     IQueryable<PayrollRunInputSnapshot> PayrollRunInputSnapshots { get; }
     IQueryable<PaymentBatch> PaymentBatches { get; }
     IQueryable<PaymentOrder> PaymentOrders { get; }
+    IQueryable<PaymentBatchFile> PaymentBatchFiles { get; }
+    IQueryable<PayrollDualControlRequest> PayrollDualControlRequests { get; }
     IQueryable<FundingDecision> FundingDecisions { get; }
     IQueryable<DisbursementPriorityRule> DisbursementPriorityRules { get; }
     IQueryable<FraudAlert> FraudAlerts { get; }
     IQueryable<PaymentHold> PaymentHolds { get; }
+    IQueryable<ArrearsLedgerEntry> ArrearsLedgerEntries { get; }
     IQueryable<LegalDecisionRecord> LegalDecisionRecords { get; }
     IQueryable<LegalAttestation> LegalAttestations { get; }
     IQueryable<PayrollRunRevision> PayrollRunRevisions { get; }

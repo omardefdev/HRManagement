@@ -90,23 +90,24 @@ public class ArrearsController(PayrollDbContext db, IEmployeeLookup employeeLook
         return View(entry);
     }
 
+    /// <summary>
+    /// PLAN-58 (§3): a manual adjustment of an arrears row is four eyes: the processor asks, with the amounts and a reason, and an approver
+    /// decides it from «طلبات بانتظار قرارك». No approver comes from the request.
+    /// </summary>
     [HttpPost, ValidateAntiForgeryToken]
-    [Authorize(Policy = HrManagementPolicies.PayrollApprove)]
-    public async Task<IActionResult> Update(Guid id, decimal originalAmount, decimal paidAmount, Guid approverId, string? reason)
+    [Authorize(Policy = HrManagementPolicies.PayrollProcess)]
+    public async Task<IActionResult> Update(
+        Guid id, decimal originalAmount, decimal paidAmount, string? reason, [FromServices] Payroll.Application.Services.PayrollDualControlService dualControl)
     {
-        var actorId = RequireUserId();
-        var entry = await db.ArrearsLedgerEntries.FirstOrDefaultAsync(e => e.Id == id);
-        if (entry is null)
+        var result = await dualControl.RequestAsync(
+            Payroll.Domain.Enums.PayrollDualControlKind.ArrearsAdjust, id,
+            new Payroll.Application.Services.PayrollDualControlPayload(reason ?? string.Empty, OriginalAmount: originalAmount, PaidAmount: paidAmount),
+            RequireUserId(), HttpContext.RequestAborted);
+        if (result.Outcome == Payroll.Application.Features.PayrollRuns.Lifecycle.RunActOutcome.NotFound)
             return NotFound();
-
-        if (!entry.TryManualUpdate(originalAmount, paidAmount, actorId, approverId, reason))
-        {
-            TempData["Error"] = "التعديل اليدوي للمتأخرات يتطلب موافقة رباعية العيون (المعتمد ≠ المنفّذ).";
-            return RedirectToAction(nameof(Details), new { id });
-        }
-
-        await db.SaveChangesAsync();
-        TempData["Success"] = "تم تحديث قيد المتأخرات بعد الموافقة الرباعية.";
+        TempData[result.Success ? "Success" : "Error"] = result.Success
+            ? "سُجّل طلب تعديل قيد المتأخرات؛ يقرّره معتمد آخر من «طلبات بانتظار قرارك»"
+            : result.Error;
         return RedirectToAction(nameof(Details), new { id });
     }
 

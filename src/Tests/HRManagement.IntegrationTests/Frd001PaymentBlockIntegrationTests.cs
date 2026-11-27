@@ -89,16 +89,19 @@ public class Frd001PaymentBlockIntegrationTests
         Assert.False(blocked);
         Assert.Contains("حجز", blockReason ?? "", StringComparison.Ordinal);
 
+        // PLAN-58 (§3): the release is a request and a decision by two people. The requester cannot decide it himself.
+        var dualControl = scope.ServiceProvider.GetRequiredService<Payroll.Application.Services.PayrollDualControlService>();
         var releaser = Guid.NewGuid();
-        var (soloRelease, soloErr) = await mediator.Send(new ReleasePaymentHoldCommand(
-            hold.Id, releaser, releaser, "solo attempt"));
-        Assert.False(soloRelease);
-        Assert.Contains("four-eyes", soloErr ?? "", StringComparison.OrdinalIgnoreCase);
+        var asked = await dualControl.RequestAsync(Payroll.Domain.Enums.PayrollDualControlKind.HoldRelease, hold.Id,
+            new Payroll.Application.Services.PayrollDualControlPayload("cleared after review"), releaser, CancellationToken.None);
+        Assert.True(asked.Success, asked.Error);
+        var solo = await dualControl.DecideAsync(asked.Id!.Value, true, null, releaser, _ => Task.FromResult(true), CancellationToken.None);
+        Assert.False(solo.Success);
+        Assert.Equal(Payroll.Application.Services.PayrollDualControlMessages.DeciderIsRequester, solo.Error);
 
         var approver = Guid.NewGuid();
-        var (released, releaseErr) = await mediator.Send(new ReleasePaymentHoldCommand(
-            hold.Id, releaser, approver, "cleared after review"));
-        Assert.True(released, releaseErr);
+        var released = await dualControl.DecideAsync(asked.Id!.Value, true, "ok", approver, _ => Task.FromResult(true), CancellationToken.None);
+        Assert.True(released.Success, released.Error);
 
         db.ChangeTracker.Clear();
         hold = await db.PaymentHolds.FirstAsync(h => h.Id == hold.Id);

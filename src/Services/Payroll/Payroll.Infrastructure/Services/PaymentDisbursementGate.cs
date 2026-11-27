@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Payroll.Application.Abstractions;
+using Payroll.Application.Features.BankAccounts;
 using Payroll.Domain.Constants;
 using Payroll.Domain.Entities;
 using Payroll.Infrastructure.Data;
@@ -7,64 +8,56 @@ using Payroll.Infrastructure.Data;
 namespace Payroll.Infrastructure.Services;
 
 /// <summary>
-/// Enforces FRD-001 controls on the disbursement path: an active payment hold or an unresolved
-/// critical fraud alert blocks submission of the whole batch.
+/// Enforces FRD-001 controls on the disbursement path. PLAN-58 (D-PAY-4, G-PAY-15): per employee. An active payment hold of the batch's
+/// run or with no run (a review hold, an activation hold, a service-regime blocker), an open critical alert of the employee, and a pinned
+/// account retired with no person's release (PLAN-55) each hold that employee's order only; the other employees are sent. A critical
+/// alert that names no employee stops the whole batch, as before.
 /// </summary>
 public sealed class PaymentDisbursementGate(PayrollDbContext db) : IPaymentDisbursementGate
 {
-    public async Task<DisbursementGateResult> EvaluateAsync(
-        PaymentBatch batch,
-        CancellationToken cancellationToken)
+    public const string AlertWithoutEmployee = "يوجد تنبيه احتيال حرج غير مغلق لهذا التشغيل لا يخص موظفاً بعينه؛ لا تُرسل الدفعة حتى يُحسم.";
+
+    public async Task<DisbursementGateResult> EvaluateAsync(PaymentBatch batch, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(batch);
 
-        var heldEmployees = await db.PaymentHolds
-            .AsNoTracking()
-            .Where(h => h.Status == PaymentHoldStatus.Active
-                        && (h.PayrollRunId == null || h.PayrollRunId == batch.PayrollRunId))
-            .Select(h => h.EmployeeId)
-            .Distinct()
+        var openCritical = await db.FraudAlerts.AsNoTracking()
+            .Where(a => a.PayrollRunId == batch.PayrollRunId
+                        && a.Severity == FraudAlertSeverity.Critical
+                        && (a.Status == FraudAlertStatus.Open || a.Status == FraudAlertStatus.UnderReview))
+            .Select(a => new { a.Id, a.EmployeeId })
             .ToListAsync(cancellationToken);
+        if (openCritical.Any(a => a.EmployeeId == Guid.Empty))
+            return DisbursementGateResult.Stop(AlertWithoutEmployee);
 
-        if (heldEmployees.Count > 0)
-        {
-            var affected = await db.SalaryLines
-                .AsNoTracking()
-                .Where(l => l.PayrollRunId == batch.PayrollRunId && heldEmployees.Contains(l.EmployeeId))
-                .CountAsync(cancellationToken);
-
-            if (affected > 0)
-            {
-                return DisbursementGateResult.Block(
-                    $"يوجد {affected} موظف بحجز صرف نشط ضمن هذه الدفعة. يجب الإفراج عن الحجز أو استبعادهم قبل الإرسال.");
-            }
-        }
-
-        // PLAN-55 (§1 rule 5): a line whose pinned account was retired and that no person released is not paid, whether or not a
-        // hold row exists for it (a retirement that met neither a line nor a snapshot of this run places none).
         var lines = await db.SalaryLines.AsNoTracking().Where(l => l.PayrollRunId == batch.PayrollRunId).ToListAsync(cancellationToken);
-        var retiredAndHeld = await Payroll.Application.Features.BankAccounts.BankAccountPinning.RetiredAndNotReleasedAsync(
+        var employees = lines.Select(l => l.EmployeeId).ToHashSet();
+        var held = new List<HeldEmployee>();
+
+        // A hold of this run, or with no run (it follows the employee into every batch, never the other employees).
+        var holds = await db.PaymentHolds.AsNoTracking()
+            .Where(h => h.Status == PaymentHoldStatus.Active && (h.PayrollRunId == null || h.PayrollRunId == batch.PayrollRunId))
+            .Select(h => new { h.Id, h.EmployeeId, h.HoldType, h.Reason })
+            .ToListAsync(cancellationToken);
+        foreach (var hold in holds.Where(h => employees.Contains(h.EmployeeId)).OrderBy(h => h.Id))
+        {
+            var reason = hold.HoldType == PaymentHoldType.RegimeBlocker
+                ? PaymentOrderHoldReasons.RegimeBlocker
+                : hold.Reason.StartsWith(EmployeeBankAccount.RetiredHoldRule, StringComparison.Ordinal)
+                    ? PaymentOrderHoldReasons.AccountRetired
+                    : PaymentOrderHoldReasons.PaymentHold;
+            held.Add(new HeldEmployee(hold.EmployeeId, reason, hold.Id));
+        }
+
+        // PLAN-55 (§1 rule 5): a line whose pinned account was retired and that no person released is not paid, whether or not a hold
+        // row exists for it.
+        var retired = await BankAccountPinning.RetiredAndNotReleasedAsync(
             db.EmployeeBankAccounts, db.PaymentHolds, db.PaymentOrders, db.PaymentBatches, batch.PayrollRunId, lines, cancellationToken);
-        if (retiredAndHeld.Count > 0)
-        {
-            return DisbursementGateResult.Block(
-                FormattableString.Invariant($"{Payroll.Application.Features.BankAccounts.BankAccountMessages.RetiredPinnedAccountBlocksBatch} ({retiredAndHeld.Count})."));
-        }
+        held.AddRange(retired.Select(e => new HeldEmployee(e, PaymentOrderHoldReasons.AccountRetired, null)));
 
-        var openCriticalAlerts = await db.FraudAlerts
-            .AsNoTracking()
-            .CountAsync(
-                a => a.PayrollRunId == batch.PayrollRunId
-                     && a.Severity == FraudAlertSeverity.Critical
-                     && (a.Status == FraudAlertStatus.Open || a.Status == FraudAlertStatus.UnderReview),
-                cancellationToken);
+        held.AddRange(openCritical.Where(a => employees.Contains(a.EmployeeId)).OrderBy(a => a.Id)
+            .Select(a => new HeldEmployee(a.EmployeeId, PaymentOrderHoldReasons.CriticalAlert, a.Id)));
 
-        if (openCriticalAlerts > 0)
-        {
-            return DisbursementGateResult.Block(
-                $"يوجد {openCriticalAlerts} تنبيه احتيال حرج غير مغلق لهذا التشغيل.");
-        }
-
-        return DisbursementGateResult.Allow();
+        return DisbursementGateResult.HoldOnly(held);
     }
 }

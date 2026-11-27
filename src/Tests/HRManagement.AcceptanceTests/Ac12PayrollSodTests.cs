@@ -20,7 +20,8 @@ public class Ac12PayrollSodTests
         recorder.WriteMetadata("AC-12 payroll SoD", processor.Id);
 
         using var httpProcessor = await AcceptanceHarness.CreateAuthorizedClientAsync(processor, correlationId);
-        using var httpApprover = await AcceptanceHarness.CreateAuthorizedClientAsync(approver, correlationId);
+        // PLAN-58: the run's approval and posting validate an antiforgery token (a Payroll token, accepted by every Payroll API write).
+        using var httpApprover = await AcceptanceHarness.CreatePayrollClientAsync(approver, correlationId);
 
         var periodStart = new DateTime(2027, 6, 1, 0, 0, 0, DateTimeKind.Utc);
         var periodEnd = periodStart.AddMonths(1).AddDays(-1);
@@ -68,6 +69,12 @@ public class Ac12PayrollSodTests
             "تعذّر اعتماد مسيّر الرواتب، فلا يمكن تنفيذ فحص فصل المهام لمنع المعتمد من الترحيل",
             "Payroll run could not be approved, so the approver-post SoD check cannot run.");
 
+        // PLAN-58: the run is approved by every approver its amount asks for, and reviewed by two auditors, before the approver tries
+        // to post it: what is refused is the approver posting an approved, reviewed run.
+        var approvals = await AcceptancePayrollReview.CompleteApprovalAsync(recorder, runId.ToString("D"),
+            JsonSerializer.Deserialize<JsonElement>(approveBody), "ac12");
+        var review = await AcceptancePayrollReview.ReviewAsync(recorder, runId.ToString("D"), "ac12");
+
         var approverPostResp = await httpApprover.PostAsync($"api/payroll/runs/{runId:D}/post", null);
         var approverPostBody = await approverPostResp.Content.ReadAsStringAsync();
         recorder.CaptureHttp("post-approver-negative", "POST", $"/api/payroll/runs/{runId:D}/post",
@@ -79,6 +86,8 @@ public class Ac12PayrollSodTests
         {
             runId,
             creatorCannotApprove = true,
+            approvals,
+            review,
             approverCannotPostWhenApproved = true
         });
         recorder.WriteAfter(new { runId, sodEnforced = true });

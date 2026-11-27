@@ -245,6 +245,10 @@ public static class HrManagementAuthorizationExtensions
             // PLAN-56 (D-PAY-18): a run is cancelled by the processing or the approval role (or hr-admin), and by no one else; the
             // run's state decides which of the two it needs (CancelPayrollRunHandler).
             options.AddPolicy(HrManagementPolicies.PayrollRunCancel, p => p.RequireAssertion(c => PayrollPolicyRules.CanCancelRun(c.User)));
+            // PLAN-58 (D-PAY-3): the reviewer's roles from Payroll:Audit:ReviewerRoles (auditor by default); a run is read by the module's
+            // users and by the reviewer.
+            options.AddPolicy(HrManagementPolicies.PayrollAuditReview, p => p.AddRequirements(new PayrollReviewerRequirement(alsoTheModule: false)));
+            options.AddPolicy(HrManagementPolicies.PayrollRunRead, p => p.AddRequirements(new PayrollReviewerRequirement(alsoTheModule: true)));
 
             // PLAN-50 (§5, rule 3): or an active delegate of hr-management-approver for the action's entity type. With no lookup registered
             // (the gateway, HR.Contracts' HireWizard.Step3Approve) it is the two roles only.
@@ -308,6 +312,7 @@ public static class HrManagementAuthorizationExtensions
         services.AddSingleton<IAuthorizationHandler, ConfiguredRolesHandler>();
         services.AddSingleton<IAuthorizationHandler, PayrollChangeCancelHandler>();
         services.AddSingleton<IAuthorizationHandler, PayrollLegalAttestHandler>();
+        services.AddSingleton<IAuthorizationHandler, PayrollReviewerHandler>();
         services.AddSingleton<IAuthorizationHandler, Delegation.RoleOrDelegationHandler>();
         services.AddServiceToServiceAuthorizationPolicies();
         services.AddHrMvcSecurityDefaults();

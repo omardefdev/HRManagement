@@ -8,13 +8,19 @@ namespace HRManagement.UnitTests;
 
 public class PaymentOrderCoordinatorTests
 {
+    /// <summary>
+    /// PLAN-58: the one sending. A batch older than PLAN-58 gets its orders by the issuer's rule; an employee the gate holds keeps his order
+    /// held with the gate's reason, a line with no pinned account is held NO-ACCOUNT, and the others are submitted. Nothing is saved by the
+    /// coordinator (the handler saves once).
+    /// </summary>
     [Fact]
-    public async Task EnsureAndSubmitOrders_advances_draft_orders_to_submitted()
+    public async Task EnsureAndSubmitOrders_holds_the_held_and_the_accountless_and_submits_the_others()
     {
         await using var db = CreateDb();
         var runId = Guid.NewGuid();
         var batchId = Guid.NewGuid();
-        var lineId = Guid.NewGuid();
+        var (paid, held, noAccount) = (Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
+        var (paidAccount, heldAccount) = (Guid.NewGuid(), Guid.NewGuid());
 
         db.PayrollRuns.Add(new PayrollRun
         {
@@ -23,31 +29,36 @@ public class PaymentOrderCoordinatorTests
             PeriodEnd = new DateTime(2026, 1, 31, 0, 0, 0, DateTimeKind.Utc),
             Status = PayrollRunStatus.Posted
         });
-        db.SalaryLines.Add(new SalaryLine
-        {
-            Id = lineId,
-            PayrollRunId = runId,
-            EmployeeId = Guid.NewGuid(),
-            NetPay = 500m,
-            GrossPay = 600m,
-            TotalDeductions = 100m
-        });
+        db.EmployeeBankAccounts.Add(new EmployeeBankAccount { Id = paidAccount, EmployeeId = paid, AccountNumber = "1001", Status = BankAccountStatus.Active });
+        db.EmployeeBankAccounts.Add(new EmployeeBankAccount { Id = heldAccount, EmployeeId = held, AccountNumber = "1002", Status = BankAccountStatus.Active });
+        db.SalaryLines.Add(new SalaryLine { PayrollRunId = runId, EmployeeId = paid, BankAccountId = paidAccount, NetPay = 500m, GrossPay = 600m, TotalDeductions = 100m });
+        db.SalaryLines.Add(new SalaryLine { PayrollRunId = runId, EmployeeId = held, BankAccountId = heldAccount, NetPay = 400m, GrossPay = 400m });
+        db.SalaryLines.Add(new SalaryLine { PayrollRunId = runId, EmployeeId = noAccount, NetPay = 300m, GrossPay = 300m });
         db.PaymentBatches.Add(new PaymentBatch
         {
             Id = batchId,
             PayrollRunId = runId,
-            TotalAmount = 500m,
-            Status = PaymentBatchStatus.Submitted
+            TotalAmount = 1200m,
+            Status = PaymentBatchStatus.Pending
         });
         await db.SaveChangesAsync();
 
-        var orders = new PaymentOrderService(db);
-        var coordinator = new PaymentOrderCoordinator(db, orders);
-        await coordinator.EnsureAndSubmitOrdersAsync(batchId);
+        var batch = await db.PaymentBatches.SingleAsync();
+        var coordinator = new PaymentOrderCoordinator(db);
+        var gate = Payroll.Application.Abstractions.DisbursementGateResult.HoldOnly(
+            [new Payroll.Application.Abstractions.HeldEmployee(held, PaymentOrderHoldReasons.PaymentHold, Guid.NewGuid())]);
+        var sent = await coordinator.EnsureAndSubmitOrdersAsync(batch, gate, Payroll.Application.Abstractions.PaymentSending.Initial);
 
-        var order = await db.PaymentOrders.SingleAsync();
+        var order = Assert.Single(sent);
+        Assert.Equal(paid, order.EmployeeId);
         Assert.Equal(PaymentOrderStatus.Submitted, order.Status);
         Assert.NotNull(order.SubmittedAt);
+        await db.SaveChangesAsync();
+        var orders = await db.PaymentOrders.AsNoTracking().ToListAsync();
+        Assert.Equal(3, orders.Count);
+        Assert.Equal((PaymentOrderStatus.Held, PaymentOrderHoldReasons.PaymentHold), orders.Where(o => o.EmployeeId == held).Select(o => (o.Status, o.HoldReason)).Single());
+        Assert.Equal((PaymentOrderStatus.Held, PaymentOrderHoldReasons.NoAccount), orders.Where(o => o.EmployeeId == noAccount).Select(o => (o.Status, o.HoldReason)).Single());
+        Assert.Null(orders.Single(o => o.EmployeeId == noAccount).BeneficiaryIban);
     }
 
     [Fact]

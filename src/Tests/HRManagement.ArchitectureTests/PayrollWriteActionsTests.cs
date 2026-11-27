@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using HRManagement.ServiceDefaults;
 using HRManagement.TestSupport;
+using Payroll.Web.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -164,6 +165,45 @@ public sealed class PayrollWriteActionsTests
         ["PayrollReversalRequests.Decide"] = HrManagementPolicies.PayrollApprove,
     };
 
+    /// <summary>
+    /// The write actions PLAN-58 adds or changes (P-4): a funding decision with Payroll.Approve (on the batch, and the run route kept for
+    /// its clients); the sendings (<c>process</c>, <c>submit-held</c>) with Payroll.Post.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> Pay058 = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["PaymentBatchesApi.CreateFundingDecision"] = HrManagementPolicies.PayrollApprove,
+        ["PayrollApi.CreateFundingDecision"] = HrManagementPolicies.PayrollApprove,
+        ["PaymentBatchesApi.Process"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatchesApi.SubmitHeld"] = HrManagementPolicies.PayrollPost,
+        ["PayrollRuns.ProcessPayment"] = HrManagementPolicies.PayrollPost,
+        // The batch's page (§2): the same acts on the screens.
+        ["PaymentBatches.Fund"] = HrManagementPolicies.PayrollApprove,
+        ["PaymentBatches.Process"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatches.SubmitHeld"] = HrManagementPolicies.PayrollPost,
+        // §3, §7: four eyes. A request under its kind's policy (an approver asks to release a hold or resolve a critical alert; the
+        // processor to adjust an arrears row; the poster to reissue a file and record the channel's settlement or rejection); the
+        // decision with Payroll.Approve, by another person (the service's rule). The channel's acknowledgement is one act of the poster.
+        ["DualControlApi.Decide"] = HrManagementPolicies.PayrollApprove,
+        ["DualControl.Decide"] = HrManagementPolicies.PayrollApprove,
+        ["DualControlApi.RequestAlertResolution"] = HrManagementPolicies.PayrollApprove,
+        ["DualControlApi.RequestArrearsAdjustment"] = HrManagementPolicies.PayrollProcess,
+        ["PaymentHoldsApi.Release"] = HrManagementPolicies.PayrollApprove,
+        ["PaymentHolds.Release"] = HrManagementPolicies.PayrollApprove,
+        ["FraudAlerts.Resolve"] = HrManagementPolicies.PayrollApprove,
+        ["Arrears.Update"] = HrManagementPolicies.PayrollProcess,
+        ["PaymentBatchesApi.Ack"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatchesApi.RequestSettlement"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatchesApi.RequestRejection"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatchesApi.RequestReissue"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatches.Ack"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatches.RequestSettlement"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatches.RequestRejection"] = HrManagementPolicies.PayrollPost,
+        ["PaymentBatches.RequestReissue"] = HrManagementPolicies.PayrollPost,
+    };
+
+    /// <summary>The controllers PLAN-58 adds: every write of theirs has a row in <see cref="Pay058"/>.</summary>
+    private static readonly string[] Pay058Controllers = ["PaymentBatchesApi", "PaymentBatches", "DualControlApi", "DualControl", "PaymentHoldsApi"];
+
     /// <summary>The controllers PLAN-56 adds: every write of theirs has a row in <see cref="Pay056"/>.</summary>
     private static readonly string[] Pay056Controllers = ["PayrollRunLifecycleApi", "PayrollReversalRequests"];
 
@@ -191,13 +231,24 @@ public sealed class PayrollWriteActionsTests
             .Append(new Claim(TenantContext.TenantClaimType, Guid.NewGuid().ToString())),
         "TestAuth"));
 
-    private static IAuthorizationService Authorization(IConfiguration? configuration = null)
+    /// <summary>
+    /// The policies as Payroll evaluates them: the shared ones, and (PLAN-58, D-PAY-20) Payroll's conflict check on its five financial
+    /// policies. <paramref name="conflictCheck"/> false gives the policies' role rules alone, to say what a role «reaches by policy».
+    /// </summary>
+    private static IAuthorizationService Authorization(IConfiguration? configuration = null, bool conflictCheck = true)
     {
         var services = new ServiceCollection();
         services.AddSingleton(configuration ?? new ConfigurationBuilder().Build());
         services.AddLogging();
         services.AddAuthorization();
         services.AddHrManagementAuthorizationPolicies();
+        if (conflictCheck)
+        {
+            services.AddSingleton(new HRManagement.SharedKernel.SeparationOfDuties.SeparationOfDutiesService());
+            services.AddOptions<Payroll.Application.Options.PayrollSodOptions>();
+            services.AddPayrollRoleConflictCheck();
+        }
+
         return services.BuildServiceProvider().GetRequiredService<IAuthorizationService>();
     }
 
@@ -218,9 +269,10 @@ public sealed class PayrollWriteActionsTests
         return true;
     }
 
-    private static async Task<List<string>> ReachedAsync(ClaimsPrincipal user, IEnumerable<ActionInfo> actions, IConfiguration? configuration = null)
+    private static async Task<List<string>> ReachedAsync(
+        ClaimsPrincipal user, IEnumerable<ActionInfo> actions, IConfiguration? configuration = null, bool conflictCheck = true)
     {
-        var authorization = Authorization(configuration);
+        var authorization = Authorization(configuration, conflictCheck);
         var reached = new List<string>();
         foreach (var action in actions)
         {
@@ -444,13 +496,15 @@ public sealed class PayrollWriteActionsTests
         Assert.Equal(
             Pay055.Where(p => p.Value == HrManagementPolicies.PayrollApprove).Select(p => p.Key).Order(StringComparer.Ordinal),
             await ReachedAsync(approver, writes));
-        // The module role alone, the poster, the reverser and a branch manager reach none of them; hr-admin holds both policies (the
-        // handler then refuses his verification of his own registration).
+        // The module role alone, the poster, the reverser and a branch manager reach none of them. hr-admin passes both policies' role
+        // rules; PLAN-58 (D-PAY-20) counts him as processor and approver, a conflicting pair, so Payroll's conflict check refuses him
+        // every one of them (he keeps the repair, which is no financial act).
         Assert.Empty(await ReachedAsync(User(HrManagementRoles.Payroll), writes));
         Assert.Empty(await ReachedAsync(User(HrManagementRoles.Payroll, HrManagementRoles.PayrollPoster), writes));
         Assert.Empty(await ReachedAsync(User(HrManagementRoles.Payroll, HrManagementRoles.PayrollReverser), writes));
         Assert.Empty(await ReachedAsync(User(HrManagementRoles.BranchManager, HrManagementRoles.HrCore), writes));
-        Assert.Equal(Pay055.Keys.Order(StringComparer.Ordinal), await ReachedAsync(User(HrManagementRoles.Admin), writes));
+        Assert.Equal(Pay055.Keys.Order(StringComparer.Ordinal), await ReachedAsync(User(HrManagementRoles.Admin), writes, conflictCheck: false));
+        Assert.Equal(["PayrollAdmin.BackfillProfileOrgUnit"], await ReachedAsync(User(HrManagementRoles.Admin), writes));
 
         // The repair: administrators only. A person who holds every operational payroll role does not reach it.
         var repair = writes.Where(a => a.ControllerName == "PayrollAdmin").ToList();
@@ -566,6 +620,47 @@ public sealed class PayrollWriteActionsTests
         Assert.Empty(await ReachedByAsync(HrManagementRoles.PayrollProcessor));
     }
 
+    public static TheoryData<string, string> Pay058Rows()
+    {
+        var data = new TheoryData<string, string>();
+        foreach (var (key, policy) in Pay058)
+            data.Add(key, policy);
+        return data;
+    }
+
+    [Theory]
+    [MemberData(nameof(Pay058Rows))]
+    public void Each_action_plan_58_adds_names_its_policy_on_the_action(string key, string policy)
+    {
+        var actions = Writes.Where(a => a.Key == key).ToList();
+        Assert.True(actions.Count > 0, $"{key} is not a write action of Payroll.Web");
+        Assert.All(actions, a => Assert.Equal([policy], a.ActionPolicies));
+    }
+
+    [Fact]
+    public void Every_write_of_the_controllers_plan_58_adds_is_in_its_table()
+    {
+        var unlisted = Writes.Where(a => Pay058Controllers.Contains(a.ControllerName)).Select(a => a.Key)
+            .Where(k => !Pay058.ContainsKey(k)).Distinct(StringComparer.Ordinal).ToList();
+        Assert.True(unlisted.Count == 0, "Write actions with no row in PayrollWriteActionsTests.Pay058: " + string.Join(", ", unlisted));
+    }
+
+    [Fact]
+    public async Task The_one_payment_path_is_reached_by_the_roles_the_plan_names_and_the_processor_reaches_none_of_it()
+    {
+        var pay058 = Writes.Where(a => Pay058.ContainsKey(a.Key)).ToList();
+        async Task<List<string>> ReachedByAsync(params string[] roles) => (await ReachedAsync(User(roles), pay058)).ToList();
+        List<string> Rows(string policy) => Pay058.Where(r => r.Value == policy).Select(r => r.Key).Order(StringComparer.Ordinal).ToList();
+
+        // D-PAY-2: the funding decision is the approver's; the sending is the poster's; the processor reaches neither (403).
+        Assert.Equal(Rows(HrManagementPolicies.PayrollApprove), await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollApprover));
+        Assert.Equal(Rows(HrManagementPolicies.PayrollPost), await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollPoster));
+        // The processor reaches only the arrears adjustment's request; never a sending, a funding decision or a decision of four eyes.
+        Assert.Equal(Rows(HrManagementPolicies.PayrollProcess), await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollProcessor));
+        Assert.Empty(await ReachedByAsync(HrManagementRoles.Payroll, HrManagementRoles.PayrollReverser));
+        Assert.Empty(await ReachedByAsync(HrManagementRoles.Payroll));
+    }
+
     [Fact]
     public async Task The_module_role_alone_reaches_no_payroll_write_but_cancelling_its_own_export_job()
     {
@@ -615,13 +710,19 @@ public sealed class PayrollWriteActionsTests
     }
 
     [Fact]
-    public async Task Hr_admin_reaches_the_sixteen_in_development_and_with_payrolls_production_settings()
+    public async Task Hr_admin_passes_the_sixteen_policies_and_the_conflict_check_refuses_him_the_processing_ones()
     {
         var admin = User(HrManagementRoles.Admin);
-        Assert.Equal(Sixteen.Keys.Order(StringComparer.Ordinal), await ReachedAsync(admin, SixteenActions));
-        // Payroll.MasterData is not one of Authorization:AdminExcludedPolicies (P-4): hr-admin keeps the sixteen outside demo mode too.
-        Assert.Equal(Sixteen.Keys.Order(StringComparer.Ordinal), await ReachedAsync(admin, SixteenActions, Settings("Production")));
-        Assert.Equal(Sixteen.Keys.Order(StringComparer.Ordinal), await ReachedAsync(admin, SixteenActions, Settings("Staging")));
+        // By the policies' role rules hr-admin reaches the sixteen, in development and with Payroll's production settings
+        // (Payroll.MasterData is not one of Authorization:AdminExcludedPolicies, P-4).
+        foreach (var settings in new[] { null, Settings("Production"), Settings("Staging") })
+            Assert.Equal(Sixteen.Keys.Order(StringComparer.Ordinal), await ReachedAsync(admin, SixteenActions, settings, conflictCheck: false));
+
+        // PLAN-58 (D-PAY-20): hr-admin counts as processor and approver, a conflicting pair: Payroll refuses him the three
+        // Payroll.Process writes; the master data writes and his own export job are no financial act.
+        var notFinancial = Sixteen.Where(r => r.Value != HrManagementPolicies.PayrollProcess).Select(r => r.Key).Order(StringComparer.Ordinal).ToList();
+        foreach (var settings in new[] { null, Settings("Production"), Settings("Staging") })
+            Assert.Equal(notFinancial, await ReachedAsync(admin, SixteenActions, settings));
     }
 
     // --- Payroll.MasterData: roles from configuration ---
@@ -698,12 +799,14 @@ public sealed class PayrollWriteActionsTests
         var processor = User(HrManagementRoles.Payroll, HrManagementRoles.PayrollProcessor);
         var approver = User(HrManagementRoles.Payroll, HrManagementRoles.PayrollApprover);
         var module = User(HrManagementRoles.Payroll);
-        async Task<bool> PassesAsync(ClaimsPrincipal user, IConfiguration? configuration = null) =>
-            (await Authorization(configuration).AuthorizeAsync(user, HrManagementPolicies.PayrollLegalAttest)).Succeeded;
+        async Task<bool> PassesAsync(ClaimsPrincipal user, IConfiguration? configuration = null, bool conflictCheck = true) =>
+            (await Authorization(configuration, conflictCheck).AuthorizeAsync(user, HrManagementPolicies.PayrollLegalAttest)).Succeeded;
 
-        // By default (no setting, and Payroll's own settings files) it is Payroll.Approve.
+        // By default (no setting, and Payroll's own settings files) it is Payroll.Approve. hr-admin passes its role rules, and PLAN-58's
+        // conflict check (processor and approver, D-PAY-20) refuses him in Payroll.
         Assert.True(await PassesAsync(approver));
-        Assert.True(await PassesAsync(User(HrManagementRoles.Admin)));
+        Assert.True(await PassesAsync(User(HrManagementRoles.Admin), conflictCheck: false));
+        Assert.False(await PassesAsync(User(HrManagementRoles.Admin)));
         Assert.False(await PassesAsync(processor));
         Assert.False(await PassesAsync(module));
         foreach (var environment in new[] { null, "Production", "Staging" })
