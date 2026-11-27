@@ -40,6 +40,10 @@ Snapshot → Calculate → Validate → (Approve يدوي) → Post → Pay
   التشغيل وأقسامها (`StopRunJobsAsync`، وينتظر حفظ العامل الجاري ثم يمسك صف المهمة)، تُحرَّر المدخلات، ويصير التشغيل
   `Cancelled` مع مَن ألغاه ومتى ولماذا، وصفّ قرار `Cancelled` في `PayrollRunApprovals`. أسطر التشغيل الملغى تبقى سجلاً له،
   وفترته تصير حرة لتشغيل جديد.
+- **سكربتات القبول تلغي عبر الواجهة (PLAN-59):** `scripts/acceptance-payroll-determinism.ps1` (AC-21) و`acceptance-payroll-resume-chaos.ps1`
+  (AC-22) تلغيان تشغيلاتهما بـ`POST api/payroll/runs/{id}/cancel` بسبب ورمز مكافحة التزوير، فيتحرر الشهر والمدخلات كما أعلاه.
+  لم يبق فيهما SQL يكتب (`Invoke-PayrollSql` حُذف)؛ وكل سكربت يأخذ شهره من صنفه (`-PeriodStart`) من سجل الأشهر
+  `testdata/acceptance/payroll-months.json`.
 - **تحرير المدخلات** (`PayrollInputRelease`): يفرّغ `AppliedInRunId` للاستقطاعات والغياب و`PayrollRunId` للتسويات لذلك التشغيل،
   ويحذف استقطاعات «استرداد التصحيح» التي أنشأها التشغيل ولم يطبّقها تشغيل. لا يمس غير علامات التطبيق. يستدعيه الإلغاء والرفض
   وإعادة البدء وإعادة حساب التصحيح والعكس، داخل معاملة المستدعي، وصفّ تدقيق واحد يلخّص ما حُرّر.

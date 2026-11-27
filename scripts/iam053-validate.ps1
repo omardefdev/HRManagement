@@ -16,7 +16,7 @@
 #   6. Payroll.Web registers the org-scope filter with Payroll's keys and the activation job.
 #   7. The acceptance seed orchestrator applies the service-regime patch, and nothing else does.
 #   8. AcIam53SalaryChangeTests is a required prod-like class of the main group owned by PLAN-53, and the payroll regression
-#      (AC-23, AC-24, AC-25) is required on the lab stack. AC-12 is not: its design defect is PLAN-59's rewrite.
+#      (AC-23, AC-24, AC-25) is required where it runs (AC-23 in the prod-like main group since PLAN-59; AC-24 and AC-25 on the lab).
 # -SelfTest runs each check on a planted defect and fails unless every one of them is refused.
 param([switch]$SelfTest)
 
@@ -183,11 +183,11 @@ function Test-Acceptance($scope, $ownership) {
     if ($null -eq $scope) { return @("tests/acceptance/ci-scope.json is missing") }
     $row = @($scope.prodLike | Where-Object { $_.class -eq "AcIam53SalaryChangeTests" })
     if ($row.Count -ne 1 -or $row[0].group -ne "main" -or -not $row[0].required) { $problems += "AcIam53SalaryChangeTests is not a required prod-like class of the main group" }
-    # AC-12 is not in this list: it submits a run for review without calculating it (a defect in the test's design, PLAN-59's
-    # rewrite, G-PAY-05), so it stays Blocked and not required whatever this plan does.
+    # AC-12 is not in this list: PLAN-59 rewrote it and owns its place. PLAN-59 (P-11) moved AC-23 to the prod-like main group: the
+    # payroll regression stays required wherever its class runs (lab[] or prodLike[]), once.
     foreach ($class in @("Ac23PayrollFreezeTests", "Ac24PartialDisbursementTests", "Ac25FraudHoldTests")) {
-        $lab = @($scope.lab | Where-Object { $_.class -eq $class })
-        if ($lab.Count -ne 1 -or -not $lab[0].required) { $problems += "$class is not a required lab class (the payroll regression of PLAN-53)" }
+        $rows = @(@($scope.lab) + @($scope.prodLike) | Where-Object { $_.class -eq $class })
+        if ($rows.Count -ne 1 -or -not $rows[0].required) { $problems += "$class is not a required acceptance class (the payroll regression of PLAN-53)" }
     }
     $entry = $null
     if ($null -ne $ownership) {
@@ -289,7 +289,7 @@ if ($SelfTest) {
     $scope.prodLike = @($scope.prodLike | Where-Object { $_.class -ne "AcIam53SalaryChangeTests" })
     if ((Test-Acceptance $scope (Get-Json (Read-Text $paths.Ownership))).Count -eq 0) { $failures += "a scope without AC-IAM-53 was not refused" }
     $scope = Get-Json (Read-Text $paths.Scope)
-    ($scope.lab | Where-Object { $_.class -eq "Ac23PayrollFreezeTests" }).required = $false
+    (@(@($scope.lab) + @($scope.prodLike)) | Where-Object { $_.class -eq "Ac23PayrollFreezeTests" }).required = $false
     if ((Test-Acceptance $scope (Get-Json (Read-Text $paths.Ownership))).Count -eq 0) { $failures += "AC-23 not required was not refused" }
     if ((Invoke-All).Count -ne 0) { $failures += "the repository itself does not pass" }
     if ($failures.Count -gt 0) {

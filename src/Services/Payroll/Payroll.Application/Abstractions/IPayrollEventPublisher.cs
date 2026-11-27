@@ -27,6 +27,12 @@ public interface IPayrollEventPublisher
         CancellationToken ct);
 }
 
+/// <summary>PLAN-59: what a lookup answers for an employee it cannot name (the caller may show his id instead).</summary>
+public static class EmployeeLookupLabels
+{
+    public const string Unavailable = "غير متاح";
+}
+
 public interface IEmployeeLookup
 {
     Task<string?> GetEmployeeDisplayNameAsync(Guid employeeId, CancellationToken ct);

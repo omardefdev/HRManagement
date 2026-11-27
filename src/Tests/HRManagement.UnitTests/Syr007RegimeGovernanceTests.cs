@@ -147,6 +147,9 @@ public class Syr007RegimeGovernanceTests
 
         Assert.NotNull(blockRun.Refusal);
         Assert.Contains("استثناء نظام خدمة", blockRun.Refusal);
+        // PLAN-59 (P-6): the refusal names the employee (his id when no name lookup is given) and HR.Core's reason.
+        Assert.Contains(employeeId.ToString("D"), blockRun.Refusal, StringComparison.Ordinal);
+        Assert.Contains(ServiceRegimePayrollBlockService.OpenExceptionReason, blockRun.Refusal, StringComparison.Ordinal);
 
         // PLAN-58 (D-PAY-4) default HoldEmployee: no refusal; the blocked employee is named, to be held alone.
         var holdEmployee = await PayrollRegimeGovernance.DecideAsync(

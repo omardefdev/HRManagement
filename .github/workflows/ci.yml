@@ -627,6 +627,12 @@ jobs:
           - name: prodlike
             stages: prodLike:journey,prodLike:main,prodLike:isolated,prodLike:s2s42
             timeout: 55
+          # PLAN-59 (P-11): the monthly payroll cycle on a prod-like stack of its own (it gives every employee of agency A a verified
+          # account). QA-066's rule: about 1.5 times the measured duration — locally a fresh prod-like stack 15 min and the cycle 6.5 min
+          # (about 26 min with the images and the test build): 40; the PR's first run measures it again.
+          - name: prodlike-cycle
+            stages: prodLike:cycle
+            timeout: 40
           - name: prodlike-final
             stages: prodLike:final
             timeout: 60

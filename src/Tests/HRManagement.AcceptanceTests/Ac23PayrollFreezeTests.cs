@@ -11,6 +11,10 @@ namespace HRManagement.AcceptanceTests;
 /// stays pending), and the frozen run refuses recalculation and keeps its line. A run of the next month is still computed while the request is
 /// pending, and the request is still pending after it. That a run holds an applied change is AC-IAM-53a's (the prod-like stack) and
 /// Pay023FrozenRunIsolationTests' (the automatic path): no change can be applied here for a month the clock has not reached.
+/// PLAN-59 (P-8): on the prod-like stack's main group. Its two months follow the registry's <c>current+2</c> rule
+/// (<c>testdata/acceptance/payroll-months.json</c>: two consecutive months from the current month + 2 on that no other entry gives, found
+/// by creating the run), and it leaves nothing: after its assertions both runs are cancelled through PLAN-56's API and its request by
+/// its requester, in <c>finally</c>.
 /// </summary>
 [RequiredAcceptance]
 public class Ac23PayrollFreezeTests
@@ -49,141 +53,180 @@ public class Ac23PayrollFreezeTests
         using var httpApprover = await AcceptanceHarness.CreatePayrollClientAsync(approver, correlationId);
 
         // The two months follow the service's clock (Localization:TimeZone, Asia/Damascus): a request cannot name a month before the
-        // current one, so fixed months would end the scenario's life at their date. Thirteen and fourteen months ahead meet no month
-        // another lab class uses (AC-25 the current month; AC-24 and AC-12 fixed months of 2027) and no seeded Regular run.
-        var today = HRManagement.ServiceDefaults.Localization.HrLocalTime.ToLocal(DateTime.UtcNow, HRManagement.ServiceDefaults.Localization.HrLocalTime.DefaultZone);
-        var periodStartA = new DateTime(today.Year, today.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(13);
-        var periodEndA = periodStartA.AddMonths(1).AddDays(-1);
+        // current one. PLAN-59: the registry's current+2 rule gives two consecutive months no other class (and no seeded run) takes.
+        await AcceptancePayrollRegime.ClassifyRecordsAddedSinceTheSeedAsync(HRManagement.ServiceDefaults.AcceptanceSeedIds.AgencyAId.ToString("D"));
+        // The pair is taken together: run A by the picker, run B of the next month at once; a refused run B (the live-period refusal)
+        // cancels run A and moves on to the next pair.
+        var candidates = AcceptancePayrollMonths.AfterNextCandidates("AC-23", AcceptancePayrollMonths.MainStack, 2).ToList();
+        DateOnly monthA;
+        string runA;
+        Guid runB;
+        while (true)
+        {
+            (monthA, runA, _) = await AcceptancePayrollMonths.CreateRunAsync(http, recorder, "ac23", candidates);
+            using var createdB = await http.PostAsync("api/payroll/runs", JsonContent(AcceptancePayrollMonths.RunBody(monthA.AddMonths(1))));
+            var createdBBody = await createdB.Content.ReadAsStringAsync();
+            recorder.CaptureHttp($"create-run-b-{AcceptancePayrollMonths.Ym(monthA.AddMonths(1))}", "POST", "/api/payroll/runs", (int)createdB.StatusCode,
+                JsonSerializer.Deserialize<object>(createdBBody));
+            if (createdB.IsSuccessStatusCode)
+            {
+                using var doc = JsonDocument.Parse(createdBBody);
+                runB = doc.RootElement.GetProperty("id").GetGuid();
+                break;
+            }
+
+            Assert.True(createdBBody.Contains(AcceptancePayrollMonths.LivePeriodRefusal, StringComparison.Ordinal), createdBBody);
+            Assert.Equal(System.Net.HttpStatusCode.OK, await AcceptancePayrollMonths.CancelRunAsync(http, recorder, "ac23-pair-refused", runA, "AC-23: الشهر التالي مأخوذ"));
+            candidates = candidates.Where(m => m > monthA).ToList();
+        }
+
+        var runAId = Guid.Parse(runA);
+        var periodStartA = monthA.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
         var frozenMonth = periodStartA.ToString("yyyy/MM", System.Globalization.CultureInfo.InvariantCulture);
-        var createA = await http.PostAsync("api/payroll/runs", JsonContent(new
+        Guid? runBId = runB;
+        Guid? requestId = null;
+        try
         {
-            periodStart = periodStartA,
-            periodEnd = periodEndA,
-            runDate = DateTime.UtcNow
-        }));
-        var createBody = await createA.Content.ReadAsStringAsync();
-        recorder.CaptureHttp("create-run-a", "POST", "/api/payroll/runs", (int)createA.StatusCode,
-            JsonSerializer.Deserialize<object>(createBody));
+            var calculateA = await http.PostAsync($"api/payroll/runs/{runAId:D}/calculate", null);
+            Assert.True(calculateA.IsSuccessStatusCode, await calculateA.Content.ReadAsStringAsync());
+            var validateA = await http.PostAsync($"api/payroll/runs/{runAId:D}/validate", null);
+            Assert.True(validateA.IsSuccessStatusCode, await validateA.Content.ReadAsStringAsync());
 
-        Assert.True(createA.IsSuccessStatusCode, createBody);
+            var freezeResp = await http.GetAsync($"api/payroll/runs/{runAId:D}/freeze-status");
+            var freezeBody = await freezeResp.Content.ReadAsStringAsync();
+            recorder.CaptureHttp("freeze-status", "GET", $"/api/payroll/runs/{runAId:D}/freeze-status",
+                (int)freezeResp.StatusCode, JsonSerializer.Deserialize<object>(freezeBody));
+            Assert.True(freezeResp.IsSuccessStatusCode);
 
-        Guid runAId;
-        using (var doc = JsonDocument.Parse(createBody))
-            runAId = doc.RootElement.GetProperty("id").GetGuid();
+            var runResp = await http.GetAsync($"api/payroll/runs/{runAId:D}");
+            var runJson = await runResp.Content.ReadAsStringAsync();
+            recorder.WriteBefore(JsonSerializer.Deserialize<object>(runJson) ?? new { runAId });
 
-        var calculateA = await http.PostAsync($"api/payroll/runs/{runAId:D}/calculate", null);
-        Assert.True(calculateA.IsSuccessStatusCode, await calculateA.Content.ReadAsStringAsync());
-        var validateA = await http.PostAsync($"api/payroll/runs/{runAId:D}/validate", null);
-        Assert.True(validateA.IsSuccessStatusCode, await validateA.Content.ReadAsStringAsync());
+            using var runDoc = JsonDocument.Parse(runJson);
+            // PLAN-59: the first of the run's employees with no open salary change request (the main stack's other classes leave some).
+            var employeeId = await WithoutOpenRequestAsync(http, runDoc.RootElement.GetProperty("salaryLines"));
+            var netBefore = NetOf(runDoc.RootElement, employeeId);
 
-        var freezeResp = await http.GetAsync($"api/payroll/runs/{runAId:D}/freeze-status");
-        var freezeBody = await freezeResp.Content.ReadAsStringAsync();
-        recorder.CaptureHttp("freeze-status", "GET", $"/api/payroll/runs/{runAId:D}/freeze-status",
-            (int)freezeResp.StatusCode, JsonSerializer.Deserialize<object>(freezeBody));
-        Assert.True(freezeResp.IsSuccessStatusCode);
+            // PLAN-53: the processor requests a raise from the first day of the frozen month, inside the grade's bounds, through the PUT alias. It is a
+            // request: 202, pending, and the pay profile is not written.
+            var (currentSalary, raisedSalary) = await SalaryInsideBoundsAsync(employeeId);
+            var profileResp = await http.PutAsJsonAsync($"api/payroll/employees/{employeeId:D}/pay-profile", new
+            {
+                baseSalary = raisedSalary,
+                payGradeId = (Guid?)null,
+                effectiveFrom = periodStartA,
+                changeReason = "AC-23: زيادة في شهر مجمّد",
+                legalReference = "القرار 23"
+            });
+            var requestBody = await profileResp.Content.ReadAsStringAsync();
+            recorder.CaptureHttp("after-profile-edit", "PUT",
+                $"/api/payroll/employees/{employeeId:D}/pay-profile",
+                (int)profileResp.StatusCode,
+                JsonSerializer.Deserialize<object>(requestBody));
+            Assert.Equal(System.Net.HttpStatusCode.Accepted, profileResp.StatusCode);
+            Guid request;
+            using (var requestDoc = JsonDocument.Parse(requestBody))
+            {
+                Assert.Equal("PendingApproval", requestDoc.RootElement.GetProperty("state").GetString());
+                request = requestDoc.RootElement.GetProperty("requestId").GetGuid();
+            }
 
-        var runResp = await http.GetAsync($"api/payroll/runs/{runAId:D}");
-        var runJson = await runResp.Content.ReadAsStringAsync();
-        recorder.WriteBefore(JsonSerializer.Deserialize<object>(runJson) ?? new { runAId });
+            requestId = request;
 
-        using var runDoc = JsonDocument.Parse(runJson);
-        var employeeId = runDoc.RootElement.GetProperty("salaryLines")[0].GetProperty("employeeId").GetGuid();
-        var netBefore = runDoc.RootElement.GetProperty("salaryLines")[0].GetProperty("netPay").GetDecimal();
+            // The approver, another person, cannot approve it: the month's run is frozen. The request stays pending.
+            var approve = await httpApprover.PostAsJsonAsync($"api/payroll/pay-profile-changes/{request:D}/approve", new { note = "AC-23" });
+            var approveBody = await approve.Content.ReadAsStringAsync();
+            recorder.CaptureHttp("approve-frozen-month-negative", "POST", $"/api/payroll/pay-profile-changes/{request:D}/approve",
+                (int)approve.StatusCode, JsonSerializer.Deserialize<object>(approveBody));
+            Assert.Equal(System.Net.HttpStatusCode.Conflict, approve.StatusCode);
+            using (var refusal = JsonDocument.Parse(approveBody))
+            {
+                Assert.Contains(frozenMonth, refusal.RootElement.GetProperty("error").GetString() ?? "", StringComparison.Ordinal);
+                Assert.Equal("PendingApproval", refusal.RootElement.GetProperty("state").GetString());
+            }
 
-        // PLAN-53: the processor requests a raise from the first day of the frozen month, inside the grade's bounds, through the PUT alias. It is a
-        // request: 202, pending, and the pay profile is not written.
-        var (currentSalary, raisedSalary) = await SalaryInsideBoundsAsync(employeeId);
-        var profileResp = await http.PutAsJsonAsync($"api/payroll/employees/{employeeId:D}/pay-profile", new
-        {
-            baseSalary = raisedSalary,
-            payGradeId = (Guid?)null,
-            effectiveFrom = periodStartA,
-            changeReason = "AC-23: زيادة في شهر مجمّد",
-            legalReference = "القرار 23"
-        });
-        var requestBody = await profileResp.Content.ReadAsStringAsync();
-        recorder.CaptureHttp("after-profile-edit", "PUT",
-            $"/api/payroll/employees/{employeeId:D}/pay-profile",
-            (int)profileResp.StatusCode,
-            JsonSerializer.Deserialize<object>(requestBody));
-        Assert.Equal(System.Net.HttpStatusCode.Accepted, profileResp.StatusCode);
-        Guid requestId;
-        using (var requestDoc = JsonDocument.Parse(requestBody))
-        {
-            Assert.Equal("PendingApproval", requestDoc.RootElement.GetProperty("state").GetString());
-            requestId = requestDoc.RootElement.GetProperty("requestId").GetGuid();
+            Assert.Equal("PendingApproval", await RequestStateAsync(http, request));
+            var (salaryAfterRefusal, _) = await SalaryInsideBoundsAsync(employeeId);
+            Assert.Equal(currentSalary, salaryAfterRefusal);
+
+            var recalc = await http.PostAsync($"api/payroll/runs/{runAId:D}/calculate", null);
+            recorder.CaptureHttp("recalc-frozen-negative", "POST",
+                $"/api/payroll/runs/{runAId:D}/calculate", (int)recalc.StatusCode,
+                JsonSerializer.Deserialize<object>(await recalc.Content.ReadAsStringAsync()));
+            Assert.Equal(System.Net.HttpStatusCode.BadRequest, recalc.StatusCode);
+
+            var runAfter = await http.GetAsync($"api/payroll/runs/{runAId:D}");
+            var afterJson = await runAfter.Content.ReadAsStringAsync();
+            using var afterDoc = JsonDocument.Parse(afterJson);
+            var netAfter = NetOf(afterDoc.RootElement, employeeId);
+            recorder.WriteAfter(new { netBefore, netAfter, unchanged = netBefore == netAfter });
+            Assert.Equal(netBefore, netAfter);
+
+            // Run B (the next month), created with run A: it is calculated while the request is pending.
+            var calculateB = await http.PostAsync($"api/payroll/runs/{runB:D}/calculate", null);
+            Assert.True(calculateB.IsSuccessStatusCode, await calculateB.Content.ReadAsStringAsync());
+            var runBResp = await http.GetAsync($"api/payroll/runs/{runB:D}");
+            var runBJson = await runBResp.Content.ReadAsStringAsync();
+            recorder.CaptureHttp("run-b-request-still-pending", "GET", $"/api/payroll/runs/{runB:D}",
+                (int)runBResp.StatusCode, JsonSerializer.Deserialize<object>(runBJson));
+
+            using var runBDoc = JsonDocument.Parse(runBJson);
+            Assert.NotEqual(0, runBDoc.RootElement.GetProperty("salaryLines").GetArrayLength());
+            // A pending request reaches no run (rule 2): after the next month was computed it is still pending and unapplied, and the pay profile
+            // still holds the salary it held. (The old assertion compared the frozen month's net with the next month's after a direct write.)
+            var stateAfterRunB = await RequestStateAsync(http, request);
+            var (salaryAfterRunB, _) = await SalaryInsideBoundsAsync(employeeId);
+            recorder.WriteDbChecks(new { netBefore, requestId = request, stateAfterRunB, currentSalary, salaryAfterRunB, raisedSalary });
+            Assert.Equal("PendingApproval", stateAfterRunB);
+            Assert.Equal(currentSalary, salaryAfterRunB);
+
+            // The request is closed by its requester, so the employee is left with no open request.
+            var cancel = await http.PostAsJsonAsync($"api/payroll/pay-profile-changes/{request:D}/cancel", new { reason = "AC-23: انتهى الاختبار" });
+            recorder.CaptureHttp("cancel-request", "POST", $"/api/payroll/pay-profile-changes/{request:D}/cancel", (int)cancel.StatusCode,
+                JsonSerializer.Deserialize<object>(await cancel.Content.ReadAsStringAsync()));
+            Assert.True(cancel.IsSuccessStatusCode);
+            Assert.Equal("Cancelled", await RequestStateAsync(http, request));
+
+            recorder.WriteResult("Pass");
         }
-
-        // The approver, another person, cannot approve it: the month's run is frozen. The request stays pending.
-        var approve = await httpApprover.PostAsJsonAsync($"api/payroll/pay-profile-changes/{requestId:D}/approve", new { note = "AC-23" });
-        var approveBody = await approve.Content.ReadAsStringAsync();
-        recorder.CaptureHttp("approve-frozen-month-negative", "POST", $"/api/payroll/pay-profile-changes/{requestId:D}/approve",
-            (int)approve.StatusCode, JsonSerializer.Deserialize<object>(approveBody));
-        Assert.Equal(System.Net.HttpStatusCode.Conflict, approve.StatusCode);
-        using (var refusal = JsonDocument.Parse(approveBody))
+        finally
         {
-            Assert.Contains(frozenMonth, refusal.RootElement.GetProperty("error").GetString() ?? "", StringComparison.Ordinal);
-            Assert.Equal("PendingApproval", refusal.RootElement.GetProperty("state").GetString());
+            // Nothing is left for another class: the request (if still open) by its requester, and both runs through PLAN-56's API.
+            if (requestId is Guid open && await RequestStateAsync(http, open) is "PendingApproval" or "Scheduled")
+            {
+                using var cancelled = await http.PostAsJsonAsync($"api/payroll/pay-profile-changes/{open:D}/cancel", new { reason = "AC-23: انتهى الاختبار" });
+                recorder.CaptureHttp("cancel-request-finally", "POST", $"/api/payroll/pay-profile-changes/{open:D}/cancel", (int)cancelled.StatusCode,
+                    await cancelled.Content.ReadAsStringAsync());
+            }
+
+            foreach (var run in new[] { runBId, (Guid?)runAId })
+            {
+                if (run is Guid id)
+                    await AcceptancePayrollMonths.CancelRunAsync(http, recorder, $"ac23-{id:N}"[..14], id.ToString("D"), "AC-23: انتهى اختبار التجميد (PLAN-59)");
+            }
         }
-
-        Assert.Equal("PendingApproval", await RequestStateAsync(http, requestId));
-        var (salaryAfterRefusal, _) = await SalaryInsideBoundsAsync(employeeId);
-        Assert.Equal(currentSalary, salaryAfterRefusal);
-
-        var recalc = await http.PostAsync($"api/payroll/runs/{runAId:D}/calculate", null);
-        recorder.CaptureHttp("recalc-frozen-negative", "POST",
-            $"/api/payroll/runs/{runAId:D}/calculate", (int)recalc.StatusCode,
-            JsonSerializer.Deserialize<object>(await recalc.Content.ReadAsStringAsync()));
-        Assert.Equal(System.Net.HttpStatusCode.BadRequest, recalc.StatusCode);
-
-        var runAfter = await http.GetAsync($"api/payroll/runs/{runAId:D}");
-        var afterJson = await runAfter.Content.ReadAsStringAsync();
-        using var afterDoc = JsonDocument.Parse(afterJson);
-        var netAfter = afterDoc.RootElement.GetProperty("salaryLines")[0].GetProperty("netPay").GetDecimal();
-        recorder.WriteAfter(new { netBefore, netAfter, unchanged = netBefore == netAfter });
-        Assert.Equal(netBefore, netAfter);
-
-        var periodStartB = periodStartA.AddMonths(1);
-        var periodEndB = periodStartB.AddMonths(1).AddDays(-1);
-        var createB = await http.PostAsync("api/payroll/runs", JsonContent(new
-        {
-            periodStart = periodStartB,
-            periodEnd = periodEndB,
-            runDate = DateTime.UtcNow
-        }));
-        var createBBody = await createB.Content.ReadAsStringAsync();
-        Assert.True(createB.IsSuccessStatusCode, createBBody);
-
-        Guid runBId;
-        using (var doc = JsonDocument.Parse(createBBody))
-            runBId = doc.RootElement.GetProperty("id").GetGuid();
-
-        var calculateB = await http.PostAsync($"api/payroll/runs/{runBId:D}/calculate", null);
-        Assert.True(calculateB.IsSuccessStatusCode, await calculateB.Content.ReadAsStringAsync());
-        var runBResp = await http.GetAsync($"api/payroll/runs/{runBId:D}");
-        var runBJson = await runBResp.Content.ReadAsStringAsync();
-        recorder.CaptureHttp("run-b-request-still-pending", "GET", $"/api/payroll/runs/{runBId:D}",
-            (int)runBResp.StatusCode, JsonSerializer.Deserialize<object>(runBJson));
-
-        using var runBDoc = JsonDocument.Parse(runBJson);
-        Assert.NotEqual(0, runBDoc.RootElement.GetProperty("salaryLines").GetArrayLength());
-        // A pending request reaches no run (rule 2): after the next month was computed it is still pending and unapplied, and the pay profile
-        // still holds the salary it held. (The old assertion compared the frozen month's net with the next month's after a direct write.)
-        var stateAfterRunB = await RequestStateAsync(http, requestId);
-        var (salaryAfterRunB, _) = await SalaryInsideBoundsAsync(employeeId);
-        recorder.WriteDbChecks(new { netBefore, requestId, stateAfterRunB, currentSalary, salaryAfterRunB, raisedSalary });
-        Assert.Equal("PendingApproval", stateAfterRunB);
-        Assert.Equal(currentSalary, salaryAfterRunB);
-
-        // The request is closed by its requester, so the employee is left with no open request.
-        var cancel = await http.PostAsJsonAsync($"api/payroll/pay-profile-changes/{requestId:D}/cancel", new { reason = "AC-23: انتهى الاختبار" });
-        recorder.CaptureHttp("cancel-request", "POST", $"/api/payroll/pay-profile-changes/{requestId:D}/cancel", (int)cancel.StatusCode,
-            JsonSerializer.Deserialize<object>(await cancel.Content.ReadAsStringAsync()));
-        Assert.True(cancel.IsSuccessStatusCode);
-        Assert.Equal("Cancelled", await RequestStateAsync(http, requestId));
-
-        recorder.WriteResult("Pass");
     }
+
+    /// <summary>The first employee of the run's lines (in their order) with no pending or scheduled salary change request (an API read).</summary>
+    private static async Task<Guid> WithoutOpenRequestAsync(HttpClient http, JsonElement lines)
+    {
+        foreach (var line in lines.EnumerateArray().Take(50))
+        {
+            var employee = line.GetProperty("employeeId").GetGuid();
+            using var response = await http.GetAsync($"api/payroll/pay-profile-changes?employeeId={employee:D}");
+            var body = await response.Content.ReadAsStringAsync();
+            Assert.True(response.IsSuccessStatusCode, body);
+            using var doc = JsonDocument.Parse(body);
+            if (!doc.RootElement.EnumerateArray().Any(r => r.GetProperty("state").GetString() is "PendingApproval" or "Scheduled"))
+                return employee;
+        }
+
+        Assert.Fail("AC-23: none of the run's first 50 employees is free of an open salary change request.");
+        return Guid.Empty;
+    }
+
+    private static decimal NetOf(JsonElement run, Guid employee) =>
+        run.GetProperty("salaryLines").EnumerateArray().Single(l => l.GetProperty("employeeId").GetGuid() == employee).GetProperty("netPay").GetDecimal();
 
     private static async Task<string> RequestStateAsync(HttpClient http, Guid requestId)
     {
