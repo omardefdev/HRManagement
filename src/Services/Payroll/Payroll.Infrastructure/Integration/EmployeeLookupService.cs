@@ -27,14 +27,14 @@ public sealed class EmployeeLookupService(IHrCoreLookupClient lookupClient) : IE
             foreach (var id in ids)
             {
                 if (!result.ContainsKey(id))
-                    result[id] = "غير متاح";
+                    result[id] = EmployeeLookupLabels.Unavailable;
             }
 
             return result;
         }
         catch
         {
-            return ids.ToDictionary(id => id, _ => "غير متاح");
+            return ids.ToDictionary(id => id, _ => EmployeeLookupLabels.Unavailable);
         }
     }
 }

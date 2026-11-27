@@ -34,8 +34,8 @@ dotnet test src/Tests/HRManagement.ArchitectureTests/HRManagement.ArchitectureTe
   و`PayrollReferenceWritersTests` (في اختبارات الوحدة) يسمّيان كل كاتب لملف الأجر وللسلّم والدرجة ويفشلان عند كاتب جديد.
   `scripts/iam053-validate.ps1` (ومعه `-SelfTest` بعشرين عيباً مزروعاً) يجمع ثوابت الخطة: لا قائمة سقف، لا كتابة راتب مباشرة،
   الإعداد ومرآته في مكدس prod-like، الترحيل PAY053، الأحداث الثلاثة، مرشح النطاق ومهمة التفعيل، رقعة نظام الخدمة في بذرة
-  القبول وحدها، و`AcIam53SalaryChangeTests` مطلوبة في prod-like و`AC-23` و`AC-24` و`AC-25` مطلوبة في lab. (`AC-12` خارجها: يرسل
-  التشغيل للمراجعة بلا حساب، وإعادة كتابته في PLAN-59.) واختبارات التكامل `Iam053*` (Testcontainers) تثبت على PostgreSQL:
+  القبول وحدها، و`AcIam53SalaryChangeTests` مطلوبة في prod-like و`AC-23` و`AC-24` و`AC-25` مطلوبة حيث تجري (`AC-23` في prod-like
+  main منذ PLAN-59، و`AC-24` و`AC-25` في lab). (`AC-12` أعادت PLAN-59 كتابته؛ انظر أدناه.) واختبارات التكامل `Iam053*` (Testcontainers) تثبت على PostgreSQL:
   اعتمادين متزامنين، الفهرس المرشَّح، الحفظ الواحد مع الـ outbox، أمان الصفوف بدور غير مالك، مهمة التفعيل، ونطاق الفرع عبر HTTP.
 - منذ PLAN-54: `PayrollWriteActionsTests` يثبت سياسات إجراءات الإطار القانوني (الإنشاء والاستيراد والتعديل بـ`Payroll.MasterData`،
   والاعتماد والنشر والتفعيل بـ`Payroll.Approve`، والمصادقة بـ`Payroll.LegalAttest` التي تتبع `Payroll:Legal:AttestorPolicy`)،
@@ -379,6 +379,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -SkipTe
 | `Acceptance` | يعمل دائماً. يجمع نتائج المراحل في تخطيط التشغيل المتتابع (`scripts/ci/acceptance-merge.ps1`)، ثم الملخص والمدقق والحارس وفحص الأثر، ويسقط إن لم تنجح وظيفة من الوظائف التي يحتاجها (`scripts/ci/acceptance-needs-check.ps1`) |
 
 - `prodlike-final` تحمل `AcQa41AcceptanceBaselineTests`، وهو يقرأ مجلدات التشغيل ويحتاج مكدساً حياً. فتبدأ مكدسها بالتوازي، وتنتظر نتائج ما سمّته `waitFor`، وتقرأها ولا تعيد رفعها.
+- `prodlike-cycle` (PLAN-59) تحمل `AcPay59FullCycleTests` وحده (المجموعة `cycle`، مطلوبة): دورة رواتب شهرية كاملة للجهة A عبر HTTP وحده،
+  على مكدس prod-like جديد يبدأ لها. وظيفة مستقلة لأن الدورة تعطي كل موظف في الجهة A حساباً مصرفياً محققاً، والأصناف التي تختار موظفين
+  بلا حساب (AC-PAY-55 وAC-PAY-58) يجب ألا تلقى ذلك؛ ولأن مكدساً جديداً يجعل شهر الدورة (D-PAY-22) و`missingAttendance = []` حتميين.
+  `prodlike-final` تنتظرها. وفي `order[]` تلي `s2s42`، فالتشغيل بلا `-Stage` يعطيها مكدساً جديداً أيضاً. محلياً:
+  `acceptance-job.ps1 -Stage prodLike:cycle`. شهرها من `ACCEPTANCE_PAYROLL_CYCLE_FROM` (`yyyy-MM`؛ الافتراضي قبل 12 شهراً من اليوم بتوقيت
+  دمشق): أول شهر منتهٍ بلا تشغيل اعتيادي حي ولا حضور مغلق في الجهة A، فثلاثة تنفيذات متتالية على مكدس واحد تأخذ ثلاثة أشهر متتالية.
+- **أشهر الرواتب في القبول (PLAN-59):** `testdata/acceptance/payroll-months.json` يسجّل أشهر كل صنف في الجهة A لكل مكدس (البذرة،
+  AC-LVA-57 وملفه، AC-IAM-53، AC-PAY-54..58، AC-12 وAC-PAY-59 بقاعدة D-PAY-22، نافذة AC-21 ‏2024-01..06 ونافذة AC-22 ‏2024-07..12،
+  وقاعدة AC-23 «الشهر الجاري + 2»، وAC-24 وAC-25 في lab). `AcceptancePayrollMonths` يجد شهر الصنف بإنشاء التشغيل (201) أو بلقاء رفض
+  الفترة الحية، بلا SQL؛ و`Pay059PayrollMonthsRegistryTests` و`scripts/pay059-validate.ps1` يثبتان أن الأشهر المطلقة لا تتقاطع على مكدس.
+- **أصناف الرواتب المنقولة (PLAN-59):** `Ac12PayrollSodTests` و`Ac21PayrollDeterminismTests` و`Ac23PayrollFreezeTests` في prod-like main
+  ومطلوبة؛ كل منها يلغي ما لا يبقيه عبر `POST api/payroll/runs/{id}/cancel`. `Ac22PayrollResumeAfterKillTests` يبقى في `excluded[]`
+  لأنه يقتل Payroll على مكدس مشترك (تمرين QA-G)، ويُثبت على المكدس prod-like المحلي.
 - `prodlike-policy` (PLAN-49) تحمل `AcPol49EnforceOverlayTests` وحده: مكدس prod-like جديد، ثم طبقة `pol49` عليه. وهي وظيفة مستقلة لأن الطبقة تغيّر المكدس، ولأن بدء مكدس ثانٍ داخل `prodlike` كان يتجاوز مهلتها.
 - `meta` تبدأ مكدسها وتنتظر نتائج `CI` كما كانت.
 - `E2E` لا ينتظر `CI`: لم يكن يأخذ منه غير نجاحه.

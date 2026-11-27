@@ -1,106 +1,135 @@
-using System.Net.Http.Json;
-using System.Text;
+using System.Net;
 using System.Text.Json;
 using HRManagement.E2E;
 
 namespace HRManagement.AcceptanceTests;
 
-/// <summary>AC-12: Payroll SoD — distinct maker/checker/poster; same-actor attempts denied.</summary>
+/// <summary>
+/// AC-12: payroll separation of duties, for the right reason (PLAN-59 §2, P-7). On a calculated and validated run of agency A — its month
+/// D-PAY-22's, the first ended month with no live regular run and no closed attendance (<see cref="PayrollCycleDriver.CycleMonthAsync"/>):
+/// the creator cannot approve (403: no approval role); a token holding conflicting payroll roles cannot approve (403 naming the pair,
+/// D-PAY-20); the approver cannot post (403: no poster role); the poster cannot post before the independent review (400 with
+/// <c>PayrollPostingMessages.ReviewRequired</c>'s text); after one auditor opened the review and another closed it, the poster posts.
+/// A run not posted is cancelled in <c>finally</c> (PLAN-56), so its month stays free. The handlers' own rules, which no persona reaches
+/// since PLAN-58, are <c>Pay059PayrollSodHandlerTests</c>'.
+/// </summary>
+[RequiredAcceptance]
 public class Ac12PayrollSodTests
 {
+    private const string Owner = "AC-12";
+
+    /// <summary><c>PayrollPostingMessages.ReviewRequired</c> (PLAN-58).</summary>
+    private const string ReviewRequired = "يجب أن يفتح مدقق سجل مراجعة للتشغيل ويغلقه مدقق آخر قبل الترحيل.";
+
     [SkippableFact]
     public async Task Payroll_SoD_blocks_creator_approve_and_approver_post()
     {
         AcceptanceEnv.RequireEnabled();
-        var processor = AcceptanceHarness.RequirePersona("payroll-processor");
-        var approver = AcceptanceHarness.RequirePersona("payroll-approver");
-
-        var (_, correlationId) = await AcceptanceHarness.LoginAsync(processor);
+        var processorPersona = AcceptanceHarness.RequirePersona("payroll-processor");
+        var (_, correlationId) = await AcceptanceHarness.LoginAsync(processorPersona);
         var recorder = new EvidenceRecorder("AC-12", correlationId);
-        recorder.WriteMetadata("AC-12 payroll SoD", processor.Id);
+        recorder.WriteMetadata("AC-12 payroll SoD", processorPersona.Id);
+        recorder.WriteSteps("""
+            AC-12 (PLAN-59 §2): on a calculated, validated run of D-PAY-22's month:
+            1. payroll-processor creates, calculates and validates → 200, ResultsFrozen=true.
+            2. payroll-processor approves → 403 (no approval role).
+            3. a-payroll-multirole approves → 403, the conflicting pair named.
+            4. payroll-processor submits; payroll-approver approves, and a-payroll-approver-2 when two are required → Approved.
+            5. payroll-approver posts → 403 (no poster role).
+            6. a-payroll-poster posts before the review → 400 «يجب أن يفتح مدقق سجل مراجعة للتشغيل ويغلقه مدقق آخر قبل الترحيل.»
+            7. auditor opens the review, a-auditor-2 closes it → 200.
+            8. a-payroll-poster posts → 200, Posted, with its disbursement batch.
+            In finally: a run not posted is cancelled through POST api/payroll/runs/{id}/cancel.
+            """);
 
-        using var httpProcessor = await AcceptanceHarness.CreateAuthorizedClientAsync(processor, correlationId);
-        // PLAN-58: the run's approval and posting validate an antiforgery token (a Payroll token, accepted by every Payroll API write).
-        using var httpApprover = await AcceptanceHarness.CreatePayrollClientAsync(approver, correlationId);
+        using var processor = await PayrollApi.PayrollAsync(recorder, "payroll-processor", "ac12");
+        using var approver = await PayrollApi.PayrollAsync(recorder, "payroll-approver", "ac12");
+        using var multirole = await PayrollApi.PayrollAsync(recorder, "a-payroll-multirole", "ac12");
+        using var poster = await PayrollApi.PayrollAsync(recorder, "a-payroll-poster", "ac12");
+        using var central = await PayrollApi.AttendanceAsync(recorder, "central-a", "ac12");
 
-        var periodStart = new DateTime(2027, 6, 1, 0, 0, 0, DateTimeKind.Utc);
-        var periodEnd = periodStart.AddMonths(1).AddDays(-1);
-        var createPayload = new
+        // The main stack's other classes may have added employment records after the seed; the regime gate reads them.
+        await AcceptancePayrollRegime.ClassifyRecordsAddedSinceTheSeedAsync(HRManagement.ServiceDefaults.AcceptanceSeedIds.AgencyAId.ToString("D"));
+        var (month, runId, refused) = await PayrollCycleDriver.CycleMonthAsync(processor, central, recorder, "ac12", Owner, AcceptancePayrollMonths.MainStack);
+        recorder.WriteBefore(new { month = AcceptancePayrollMonths.Ym(month), runId, refused });
+        string cleanUp;
+        try
         {
-            periodStart,
-            periodEnd,
-            runDate = DateTime.UtcNow
-        };
+            // 1. Created, calculated and validated: the results are frozen.
+            var (calculated, calculatedBody, _) = await processor.PostAsync("calculate", $"api/payroll/runs/{runId}/calculate");
+            Assert.True(calculated == HttpStatusCode.OK, $"calculate: {(int)calculated} {PayrollApi.Error(calculatedBody)}");
+            var (validated, validatedBody, _) = await processor.PostAsync("validate", $"api/payroll/runs/{runId}/validate");
+            Assert.True(validated == HttpStatusCode.OK, $"validate: {(int)validated} {PayrollApi.Error(validatedBody)}");
+            var freeze = await processor.ReadAsync("freeze-status", $"api/payroll/runs/{runId}/freeze-status");
+            Assert.True(freeze.GetProperty("resultsFrozen").GetBoolean());
 
-        var createResp = await httpProcessor.PostAsync("api/payroll/runs", JsonContent(createPayload));
-        var createBody = await createResp.Content.ReadAsStringAsync();
-        recorder.CaptureHttp("create-run", "POST", "/api/payroll/runs",
-            (int)createResp.StatusCode, JsonSerializer.Deserialize<object>(createBody));
-        Assert.True(createResp.IsSuccessStatusCode, createBody);
+            // 2. The creator cannot approve: the policy answers before any handler (no approval role).
+            var (selfApprove, _, _) = await processor.PostAsync("approve-creator-negative", $"api/payroll/runs/{runId}/approve");
+            Assert.Equal(HttpStatusCode.Forbidden, selfApprove);
 
-        Guid runId;
-        using (var doc = JsonDocument.Parse(createBody))
-        {
-            runId = doc.RootElement.GetProperty("id").GetGuid();
+            // 3. A token holding conflicting payroll roles is refused, the pair named (D-PAY-20).
+            var (conflict, conflictBody, conflictText) = await multirole.PostAsync("approve-multirole-negative", $"api/payroll/runs/{runId}/approve");
+            Assert.Equal(HttpStatusCode.Forbidden, conflict);
+            var conflictError = PayrollApi.Error(conflictBody);
+            Assert.True(System.Text.RegularExpressions.Regex.Matches(conflictError, "payroll-[a-z]+").Select(m => m.Value).Distinct().Count() >= 2,
+                $"The conflict's refusal names no pair of roles: {PayrollApi.Snip(conflictText)}");
+
+            // 4. Submitted; approved by every approver the amount asks for.
+            var (submitted, submittedBody, _) = await processor.PostAsync("submit-for-review", $"api/payroll/runs/{runId}/submit-for-review");
+            Assert.True(submitted == HttpStatusCode.OK, $"submit: {(int)submitted} {PayrollApi.Error(submittedBody)}");
+            var (approved, approvedBody, _) = await approver.PostAsync("approve-distinct-checker", $"api/payroll/runs/{runId}/approve");
+            Assert.True(approved == HttpStatusCode.OK, $"approve: {(int)approved} {PayrollApi.Error(approvedBody)}");
+            var approvals = await AcceptancePayrollReview.CompleteApprovalAsync(recorder, runId, approvedBody, "ac12");
+            var afterApproval = await processor.ReadAsync("run-approved", $"api/payroll/runs/{runId}");
+            Assert.Equal("Approved", AcceptancePayrollMonths.RunStatus(afterApproval));
+            Assert.Equal(afterApproval.GetProperty("approvalsRequired").GetInt32(), afterApproval.GetProperty("approvalsGiven").GetInt32());
+
+            // 5. The approver cannot post: no poster role.
+            var (approverPost, _, _) = await approver.PostAsync("post-approver-negative", $"api/payroll/runs/{runId}/post");
+            Assert.Equal(HttpStatusCode.Forbidden, approverPost);
+
+            // 6. The poster cannot post before the independent review.
+            var (early, earlyBody, earlyText) = await poster.PostAsync("post-before-review-negative", $"api/payroll/runs/{runId}/post");
+            Assert.Equal(HttpStatusCode.BadRequest, early);
+            Assert.True(PayrollApi.Error(earlyBody) == ReviewRequired, $"The posting before the review answered: {PayrollApi.Snip(earlyText)}");
+            Assert.Equal("Approved", AcceptancePayrollMonths.RunStatus(await processor.ReadAsync("run-still-approved", $"api/payroll/runs/{runId}")));
+
+            // 7. The independent review: one auditor opens it, another closes it.
+            var review = await AcceptancePayrollReview.ReviewAsync(recorder, runId, "ac12");
+
+            // 8. The poster posts.
+            var (posted, postedBody, postedText) = await poster.PostAsync("post", $"api/payroll/runs/{runId}/post");
+            Assert.True(posted == HttpStatusCode.OK, $"post: {(int)posted} {PayrollApi.Snip(postedText)} {PayrollApi.Error(postedBody)}");
+            var after = await processor.ReadAsync("run-posted", $"api/payroll/runs/{runId}");
+            Assert.Equal("Posted", AcceptancePayrollMonths.RunStatus(after));
+            Assert.Equal(JsonValueKind.String, after.GetProperty("paymentBatchId").ValueKind);
+
+            recorder.WriteDbChecks(new
+            {
+                source = "API reads (GET api/payroll/runs/{id}, freeze-status) and the answers above",
+                month = AcceptancePayrollMonths.Ym(month),
+                runId,
+                resultsFrozen = true,
+                creatorApprove = (int)selfApprove,
+                multiroleApprove = new { status = (int)conflict, error = conflictError },
+                approvals,
+                approverPost = (int)approverPost,
+                postBeforeReview = new { status = (int)early, error = PayrollApi.Error(earlyBody) },
+                review,
+                posted = (int)posted,
+                status = AcceptancePayrollMonths.RunStatus(after),
+                paymentBatchId = after.GetProperty("paymentBatchId").GetString(),
+            });
+            recorder.WriteAfter(new { runId, status = AcceptancePayrollMonths.RunStatus(after), sodEnforced = true });
+            recorder.WriteAudit(new { scenario = "AC-12", explicitAuditQuery = false, source = "the API answers above", review, approvals });
+            recorder.FlushTiming();
+            recorder.WriteResult("Pass");
         }
-
-        var selfApproveResp = await httpProcessor.PostAsync($"api/payroll/runs/{runId:D}/approve", null);
-        var selfApproveBody = await selfApproveResp.Content.ReadAsStringAsync();
-        recorder.CaptureHttp("approve-self-negative", "POST", $"/api/payroll/runs/{runId:D}/approve",
-            (int)selfApproveResp.StatusCode, ParseEvidenceBody(selfApproveBody));
-        // The processor has no approval role by design. The request is rejected by
-        // authorization before the command handler, so there is no JSON error body.
-        Assert.Equal(System.Net.HttpStatusCode.Forbidden, selfApproveResp.StatusCode);
-
-        var submitResp = await httpProcessor.PostAsync($"api/payroll/runs/{runId:D}/submit-for-review", null);
-        recorder.CaptureHttp("submit-for-review", "POST", $"/api/payroll/runs/{runId:D}/submit-for-review",
-            (int)submitResp.StatusCode, await submitResp.Content.ReadAsStringAsync());
-
-        AcceptanceGate.RequireData(recorder, submitResp.IsSuccessStatusCode,
-            "تعذّر إرسال مسيّر الرواتب للمراجعة، فلا يمكن تنفيذ فحص فصل المهام لمنع المعتمد من الترحيل",
-            "Payroll run could not be submitted for review, so the approver-post SoD check cannot run.");
-
-        var approveResp = await httpApprover.PostAsync($"api/payroll/runs/{runId:D}/approve", null);
-        var approveBody = await approveResp.Content.ReadAsStringAsync();
-        recorder.CaptureHttp("approve-distinct-checker", "POST", $"/api/payroll/runs/{runId:D}/approve",
-            (int)approveResp.StatusCode, JsonSerializer.Deserialize<object>(approveBody));
-
-        AcceptanceGate.RequireData(recorder, approveResp.IsSuccessStatusCode,
-            "تعذّر اعتماد مسيّر الرواتب، فلا يمكن تنفيذ فحص فصل المهام لمنع المعتمد من الترحيل",
-            "Payroll run could not be approved, so the approver-post SoD check cannot run.");
-
-        // PLAN-58: the run is approved by every approver its amount asks for, and reviewed by two auditors, before the approver tries
-        // to post it: what is refused is the approver posting an approved, reviewed run.
-        var approvals = await AcceptancePayrollReview.CompleteApprovalAsync(recorder, runId.ToString("D"),
-            JsonSerializer.Deserialize<JsonElement>(approveBody), "ac12");
-        var review = await AcceptancePayrollReview.ReviewAsync(recorder, runId.ToString("D"), "ac12");
-
-        var approverPostResp = await httpApprover.PostAsync($"api/payroll/runs/{runId:D}/post", null);
-        var approverPostBody = await approverPostResp.Content.ReadAsStringAsync();
-        recorder.CaptureHttp("post-approver-negative", "POST", $"/api/payroll/runs/{runId:D}/post",
-            (int)approverPostResp.StatusCode, JsonSerializer.Deserialize<object>(approverPostBody));
-        Assert.Equal(System.Net.HttpStatusCode.BadRequest, approverPostResp.StatusCode);
-        Assert.Contains("ترحيل", approverPostBody, StringComparison.Ordinal);
-
-        recorder.WriteDbChecks(new
+        finally
         {
-            runId,
-            creatorCannotApprove = true,
-            approvals,
-            review,
-            approverCannotPostWhenApproved = true
-        });
-        recorder.WriteAfter(new { runId, sodEnforced = true });
-        recorder.WriteResult("Pass");
-    }
-
-    private static StringContent JsonContent(object payload) =>
-        new(JsonSerializer.Serialize(payload), Encoding.UTF8, "application/json");
-
-    private static object? ParseEvidenceBody(string body)
-    {
-        if (string.IsNullOrWhiteSpace(body)) return null;
-        try { return JsonSerializer.Deserialize<object>(body); }
-        catch (JsonException) { return body; }
+            cleanUp = await PayrollCycleDriver.CancelUnlessPostedAsync(processor, approver, "ac12-finally", runId, "AC-12: انتهى اختبار فصل الواجبات (PLAN-59)");
+            recorder.RecordTiming("cleanUp", cleanUp);
+            recorder.FlushTiming();
+        }
     }
 }

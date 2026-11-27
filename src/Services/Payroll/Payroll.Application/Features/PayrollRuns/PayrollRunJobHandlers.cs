@@ -58,8 +58,11 @@ public class StartPayrollRunJobHandler(
         var hrCoreClient = scope.ServiceProvider.GetService<HRManagement.SharedKernel.Legal.IHrCoreServiceRegimeClient>();
         var configuration = scope.ServiceProvider.GetService<Microsoft.Extensions.Configuration.IConfiguration>();
         var blocksFinalPayroll = configuration?.GetValue("ServiceRegimes:BlocksFinalPayroll", true) ?? true;
+        // PLAN-59 (P-6): BlockRun's refusal names the employees by the names the module shows, when the host has a lookup.
+        var employeeLookup = scope.ServiceProvider.GetService<IEmployeeLookup>();
         return await PayrollRegimeGovernance.DecideAsync(
-            run.RunType, employees, hrCoreClient, blocksFinalPayroll, blockerOptions?.Value.Mode ?? PayrollBlockerMode.HoldEmployee, cancellationToken);
+            run.RunType, employees, hrCoreClient, blocksFinalPayroll, blockerOptions?.Value.Mode ?? PayrollBlockerMode.HoldEmployee, cancellationToken,
+            employeeLookup);
     }
 
     public async Task<(bool Success, int LinesGenerated, Guid? JobId, string? Error)> Handle(

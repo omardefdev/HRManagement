@@ -623,10 +623,16 @@ jobs:
             stages: lab:journey,lab:isolated
             timeout: 30
           # PLAN-58: QA-066's rule (about 1.5 times the measured duration). The prodlike job took 25m50s (PR #58) and 33m36s (PR #57),
-          # and PLAN-58 adds a required class of eight scenarios to its main group; prodlike-final waits for it.
+          # and PLAN-58 adds a required class of eight scenarios to its main group; prodlike-final waits for it. PLAN-59 moved AC-12,
+          # AC-21 and AC-23 into its main group: 35m44s on PR #60's first run, so 55 stays.
           - name: prodlike
             stages: prodLike:journey,prodLike:main,prodLike:isolated,prodLike:s2s42
             timeout: 55
+          # PLAN-59 (P-11): the monthly payroll cycle on a prod-like stack of its own (it gives every employee of agency A a verified
+          # account). QA-066's rule: about 1.5 times the measured duration — 17m25s on PR #60's first run (locally ~26 min): 27.
+          - name: prodlike-cycle
+            stages: prodLike:cycle
+            timeout: 27
           - name: prodlike-final
             stages: prodLike:final
             timeout: 60

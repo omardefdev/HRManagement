@@ -91,7 +91,9 @@
         "AC-IAM-52",
         "AC-01",
         "AC-03",
-        "AC-LVA-57"
+        "AC-LVA-57",
+        "AC-12",
+        "AC-PAY-59"
       ],
       "enabled": true
     },
@@ -211,7 +213,7 @@
       "employeeSiteCode": "HQ",
       "employeeOrdinal": 48,
       "purpose": "PLAN-54 (D-PAY-12): a second payroll approver, the legal attestor of a framework version (neither its editor nor its approver)",
-      "scenarios": [ "AC-PAY-54", "AC-PAY-58" ],
+      "scenarios": [ "AC-PAY-54", "AC-PAY-58", "AC-12", "AC-PAY-59" ],
       "enabled": true
     },
     {
@@ -224,7 +226,7 @@
       "employeeSiteCode": "HQ",
       "employeeOrdinal": 49,
       "purpose": "PLAN-58 (D-PAY-20): the one persona that holds conflicting payroll roles, to prove that such a token passes no financial act; the realm import refuses any other",
-      "scenarios": [ "AC-PAY-58" ],
+      "scenarios": [ "AC-PAY-58", "AC-12" ],
       "enabled": true,
       "sodConflictFixture": true
     },
@@ -238,7 +240,7 @@
       "employeeSiteCode": "HQ",
       "employeeOrdinal": 50,
       "purpose": "PLAN-58 (D-PAY-3): a second agency A auditor: one auditor opens a run's review record and another closes it",
-      "scenarios": [ "AC-PAY-58" ],
+      "scenarios": [ "AC-PAY-58", "AC-12", "AC-PAY-59" ],
       "enabled": true
     },
     {
@@ -374,7 +376,9 @@
         "AC-PAY-54",
         "AC-PAY-55",
         "AC-PAY-56",
-        "AC-LVA-57", "AC-PAY-58" ],
+        "AC-LVA-57",
+        "AC-PAY-58",
+        "AC-PAY-59" ],
       "enabled": true
     },
     {
@@ -399,7 +403,9 @@
         "AC-PAY-54",
         "AC-PAY-55",
         "AC-PAY-56",
-        "AC-LVA-57", "AC-PAY-58" ],
+        "AC-LVA-57",
+        "AC-PAY-58",
+        "AC-PAY-59" ],
       "enabled": true
     },
     {
@@ -417,7 +423,10 @@
       "purpose": "Payroll posting operator",
       "scenarios": [
         "AC-IAM-53",
-        "AC-PAY-56", "AC-PAY-58" ],
+        "AC-PAY-56",
+        "AC-PAY-58",
+        "AC-12",
+        "AC-PAY-59" ],
       "enabled": true
     },
     {
@@ -684,7 +693,7 @@
       "employeeSiteCode": "HQ",
       "employeeOrdinal": 24,
       "purpose": "Agency A independent audit reader",
-      "scenarios": [ "AC-PAY-58" ],
+      "scenarios": [ "AC-PAY-58", "AC-12", "AC-PAY-59" ],
       "enabled": true
     },
     {

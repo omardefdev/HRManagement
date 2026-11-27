@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "description": "PLAN-59 (P-8): every acceptance class's payroll months in agency A, by stack, so that no two classes of one stack take one month (PLAN-58's AC-IAM-52a met AC-LVA-57's months). An entry gives absolute months (from..to), a window a class picks one month from (the first with no live regular run, found by creating the run: 201, or the live-period refusal), or a rule computed at run time. A class never takes a month another class's entry gives on its stack; the seed's months are taken by the seed. PLAN-57's own file (lva057-periods.json) stays, and is inside AC-LVA-57's entry. scripts/pay059-validate.ps1 and Pay059PayrollMonthsRegistryTests check that the absolute months overlap nowhere on one stack.",
+  "tenantCode": "AGENCY-A",
+  "stacks": [ "prodlike-main", "prodlike-cycle", "lab-main" ],
+  "rules": {
+    "D-PAY-22": "The first ended calendar month with no live regular run in agency A, from ACCEPTANCE_PAYROLL_CYCLE_FROM (yyyy-MM; default 12 months before today, Damascus) to the last ended month; skipping the months of lva057-periods.json, the months another class's entry gives on the stack, and any month GET api/attendance/periods/{M} shows closed for anyone in agency A. No month left: AcceptanceGate.RequireData asks for scripts/acceptance-reset.ps1.",
+    "current-month": "The current month on the service's clock (Asia/Damascus), and a request dated the next month.",
+    "current+2": "Two consecutive months from the current month + 2 on (a salary change cannot name a month before the current one), skipping every month another entry gives (the seed's included) and every month with a live regular run."
+  },
+  "entries": [
+    { "owner": "seed", "stacks": [ "prodlike-main", "prodlike-cycle", "lab-main" ], "from": "2025-08", "to": "2026-07", "what": "a posted regular run of every month (DemoPayrollSeeder.SeedPayrollRunsAsync): live, so a new regular run of these months is refused" },
+    { "owner": "seed-scenarios", "stacks": [ "prodlike-main", "prodlike-cycle", "lab-main" ], "from": "2026-08", "to": "2027-02", "what": "one run per status, Correction or FinalSettlement (AcceptancePayrollSeeder.SeedScenarioRunsAsync): outside the live-period index, so D-PAY-22 may take these months; the current+2 rule does not" },
+    { "owner": "AC-LVA-57", "class": "AcLva57AttendancePeriodTests", "stacks": [ "prodlike-main" ], "from": "2025-01", "to": "2025-07", "file": "testdata/acceptance/lva057-periods.json" },
+    { "owner": "AC-IAM-53", "class": "AcIam53SalaryChangeTests", "stacks": [ "prodlike-main" ], "rule": "current-month", "what": "AC-IAM-53a leaves a frozen regular run of the current month" },
+    { "owner": "AC-PAY-54", "class": "AcPay54LegalFrameworkTests", "stacks": [ "prodlike-main" ], "from": "2031-01", "to": "2031-07" },
+    { "owner": "AC-PAY-55", "class": "AcPay55BankAccountTests", "stacks": [ "prodlike-main" ], "from": "2029-05", "to": "2029-06" },
+    { "owner": "AC-PAY-56", "class": "AcPay56RunStateMachineTests", "stacks": [ "prodlike-main" ], "from": "2028-01", "to": "2028-06" },
+    { "owner": "AC-PAY-58", "class": "AcPay58DisbursementGovernanceTests", "stacks": [ "prodlike-main" ], "from": "2030-01", "to": "2030-12" },
+    { "owner": "AC-12", "class": "Ac12PayrollSodTests", "stacks": [ "prodlike-main" ], "rule": "D-PAY-22", "what": "posts one run of its month and cancels it otherwise" },
+    { "owner": "AC-21", "class": "Ac21PayrollDeterminismTests", "stacks": [ "prodlike-main" ], "window": { "from": "2024-01", "to": "2024-06" }, "what": "governed by the seed's law-50 version from 2000; no run and no attendance there; both runs cancelled" },
+    { "owner": "AC-22", "class": "Ac22PayrollResumeAfterKillTests", "stacks": [ "prodlike-main" ], "window": { "from": "2024-07", "to": "2024-12" }, "what": "outside CI (it kills Payroll); proved on the local prod-like stack; its run cancelled" },
+    { "owner": "AC-23", "class": "Ac23PayrollFreezeTests", "stacks": [ "prodlike-main" ], "rule": "current+2", "count": 2, "what": "both runs cancelled after the assertions, and its request cancelled" },
+    { "owner": "AC-PAY-59", "class": "AcPay59FullCycleTests", "stacks": [ "prodlike-cycle" ], "rule": "D-PAY-22", "what": "one month per execution, on a stack of its own: three executions in a row take three consecutive months" },
+    { "owner": "AC-24", "class": "Ac24PartialDisbursementTests", "stacks": [ "lab-main" ], "from": "2027-04", "to": "2027-04" },
+    { "owner": "AC-25", "class": "Ac25FraudHoldTests", "stacks": [ "lab-main" ], "from": "2027-08", "to": "2027-08" }
+  ]
+}

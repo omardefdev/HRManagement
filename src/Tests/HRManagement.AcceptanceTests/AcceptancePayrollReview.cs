@@ -91,6 +91,19 @@ internal static class AcceptancePayrollAccounts
         return "SY" + check.ToString("D2", System.Globalization.CultureInfo.InvariantCulture) + bban;
     }
 
+    /// <summary>
+    /// PLAN-59: a test IBAN made of the class's mark and a digest of the whole id, for a class that gives every employee of the agency an
+    /// account. <see cref="Iban"/> keeps the id's first characters, and ids that share them (the seed's two legacy employees share
+    /// eighteen) would share one number — the fraud scan's FR-04 then holds both. Never a real account; computed, never written out.
+    /// </summary>
+    public static string UniqueIban(string employee, string mark)
+    {
+        var digest = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(employee.ToUpperInvariant())));
+        var bban = (mark + digest).ToUpperInvariant()[..24];
+        var check = 98 - Mod97(bban + "SY00");
+        return "SY" + check.ToString("D2", System.Globalization.CultureInfo.InvariantCulture) + bban;
+    }
+
     private static int Mod97(string text)
     {
         var remainder = 0;

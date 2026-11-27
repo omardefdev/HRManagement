@@ -214,6 +214,18 @@
 
 ### 4.2 ثغرات سلامة القرار والمال (P1)
 
+- **الحالة:** أُغلقت — [PLAN-59](acceptance-plans/PLAN-59-pay-full-cycle-production-proof.md). دورة رواتب شهرية كاملة للجهة A مُثبتة على الملف
+  الشبيه بالإنتاج عبر HTTP وحده وبشخص لكل دور (AC-PAY-59، مرحلة CI خاصة `prodlike-cycle`): الإطار النافذ، وحسابات محققة، وزيادة راتب
+  بشخصين (مؤرخة الشهر القادم وفق D-53-1، وسطر الموظف في شهر الدورة براتبه النافذ فيه)، وإغلاق حضور الشهر للجهة كلها، ثم حساب بلا
+  ناقص، ورفض إلى النسخة 2، وتسوية بشخصين، واعتمادان، ومراجعة من مدققَين، وترحيل يحجز الموظف بلا حساب `NO-ACCOUNT`، وملف `Initial`
+  مجاميع ضبطه مطابقة ومعالجة ثانية بلا ملف ثانٍ (AC-PAY-59b)، والتحقق من حسابه وملف `HeldRelease` به وحده، وقسائم تساوي الأوامر،
+  وتأكيد المصرف بشخصين («مسدَّدة»). ثلاثة تنفيذات متتالية على ثلاثة أشهر متتالية محلياً (2026-08..10). AC-12 أُعيدت كتابته على تشغيل
+  محسوب ومتحقق ومطلوب؛ وAC-21 وAC-23 مطلوبان في prod-like بأشهر من سجل `testdata/acceptance/payroll-months.json`؛ وAC-22 مُثبت على
+  المكدس المحلي (خارج CI لأنه يقتل Payroll)؛ ولا SQL كتابة في سكربتات قبول الرواتب (الإلغاء عبر `POST api/payroll/runs/{id}/cancel`).
+  اختبارات التكامل الأربعة عشر خضراء، ومعها `Pay059RegimeBlockerTests` و`Pay059PayrollSodHandlerTests`. **الدليل المعتمد:** مجلدات
+  `AC-PAY-59` و`AC-12` و`AC-21` و`AC-23` في أثر `acceptance-evidence` لتشغيل CI على طلب دمج PLAN-59 (D-QA-20؛ الرابط في
+  [plan59-final-report.md](../reports/plan59-final-report.md)). **الباقي للموجة 2:** تقسيط تغيير الراتب وتشغيل شهر ماضٍ بعد تغيير لاحق
+  (G-PAY-11، **PAY-E**)، والفروق الرجعية (**PAY-G**)، واستيراد إشعار القناة وكشف المصرف آلياً (**PAY-I**).
 #### G-PAY-06 — آلة حالات التشغيل والعكس: التحقق يعيد أي حالة، والعكس بلا اعتماد
 - **الدليل:**
   - `ValidatePayrollRunHandler` لا يفحص الحالة ([PayrollRunJobHandlers.cs:300-346](../src/Services/Payroll/Payroll.Application/Features/PayrollRuns/PayrollRunJobHandlers.cs)). و`MarkValidated` يضبط `Status = Calculated` دون شرط ([PayrollRun.cs:113-119](../src/Services/Payroll/Payroll.Domain/Entities/PayrollRun.cs)).
