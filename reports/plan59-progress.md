@@ -228,3 +228,32 @@ Finished (UTC): 2026-11-27T10:59:24Z
 ## Next step
 P8: Release build; local CI steps (run-steps.sh --all in a fresh clone of HEAD, compiler servers off); plan035-prepush; then the release
 branch, the push, the PR; start P9 beside the checks.
+
+## P8 — local gates, the release branch, the PR
+- Testcontainers step: P6's (10:55Z; nothing it builds or tests changed since — later commits are documents and reports).
+- Release build: 0 warnings, 0 errors (2 min 24 s).
+- Local CI steps in a fresh clone of f0f5466b (/home/omar/plan59-ci-clone; compiler servers off; run-steps.sh --all, 11:03–11:47:34Z,
+  44 min 14 s): **87 passed, 0 failed, 5 not run and named** (Integration tests (Testcontainers): run natively, 335/1; Coverage gate,
+  Install ReportGenerator, Generate coverage report: they follow it; Verify Docker builds: images built here one at a time). Unit
+  7,253, architecture 444, integration (in-memory) 647 passed and 4 skipped.
+- plan035-prepush (11:52Z): gitleaks (history 632, range 11: no leak), actionlint, cilocal (the five not-run steps named by
+  -AllowNotRun), forbidden, nonprod, signatures — PASS. (First run read the old artifacts/ci-local summary: the HEAD summary copied there.)
+- release/plan-59 = origin/main 708d2004 + the feature merged --no-ff (8086ac86). **One push** 11:52:32Z. PR #60 opened 11:52:48Z
+  (https://github.com/omardefdev/HRManagement/pull/60), bound in the app; the owner turned Auto-fix on. Auto-merge off.
+Finished (UTC): 2026-11-27T11:54:07Z
+
+## P9 — the demo server (in progress)
+| # | UTC | Change | Undo |
+|---|---|---|---|
+| 1 | 11:53:13 | GHCR build of release/plan-59 (deploy.yml action=build, run 45994097920) | none needed |
+| 2 | 11:53:33–11:53:55 | backup /opt/hrm/backups/pre-plan59-20261127T115333Z (pg_dumpall 55,555,882 bytes, 17 CREATE DATABASE, env.backup, SHA256SUMS verified; 700/600); picture before the deploy = P0's (checksums unchanged) | delete the folder when not needed |
+| 3 | 11:53:13–12:07:09 | GHCR build success: 17/17 images 8086ac8629af (build-and-push jobs green; deploy/rollback jobs skipped) | none needed |
+| 4 | 12:07:45– | deploy scripts/vps/deploy.ps1 -Tag 8086ac8629af (previous 25be64cf9fa8) | scripts/vps/deploy.ps1 -Rollback (25be64cf9fa8 from GHCR; safe: reads and a message only) |
+| 4 | 12:07:45–12:16:02 | deployed 8086ac8629af first time (pull 107 s, up 137, bootstrap 58, keycloak reconcile 14 (0 changes), healthy 15); smoke 50 pass, 0 fail, 1 warn | scripts/vps/deploy.ps1 -Rollback |
+| 5 | 12:17–12:24 | AC_PAY_59_vps_* 4/4 (the run-read check's own SQL first compared Source as text: fixed to its number, rerun alone): tag 8086ac8629af on 16 images, 0 unhealthy, last payroll migration = the tree's (PAY058); a posted demo run answers revision/approvals/batch; the newest demo batch answers its orders (total 0 = the demo's), fields batchId,total,page,pageSize,orders; the picture unchanged | none (reads) |
+- PR #60 first CI run 45994047230 on 8086ac86 (11:54–~13:00Z): **16/16 green**, merge state CLEAN. Stage times: lab-main 20m21s,
+  lab-rest 13m33s, prodlike 35m44s, prodlike-cycle 17m25s, prodlike-final 37m16s, prodlike-policy 11m44s, leastpriv 9m10s, meta 40m2s;
+  CI 44m22s, CodeQL 19m16s, E2E 15m39s, Acceptance images 22m51s.
+- QA-066: prodlike-cycle limit 40 → 27 (1.5 × 17m25s); prodlike 55 kept (1.5 × 35m44s ≈ 54). Unit suite before the push: first run's
+  test host crashed (known flake), rerun with --blame 7,253/7,253.
+- Pushed AcPay59VpsChecks.cs and the limit as one commit (a second CI run); the older server checks keep running beside it.
