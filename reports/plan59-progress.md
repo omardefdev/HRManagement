@@ -67,3 +67,25 @@ Finished (UTC): 2026-11-27T05:59:43Z
 ## Next step
 P3: scripts on the cancel API with their month from the class; testdata/acceptance/payroll-months.json + unit test; AcceptancePayrollMonths;
 AC-21/22/23 [RequiredAcceptance], windows, clean-up, classification.
+
+## P3 — the scripts without SQL, AC-21..23, the months
+- `acceptance-payroll-determinism.ps1` and `acceptance-payroll-resume-chaos.ps1`: `Invoke-PayrollSql`, `Cancel-PayrollRunInDb`,
+  `Cancel-TestRun` and `Reset-ReservedPeriod` gone; `Cancel-PayrollRun` = `POST api/payroll/runs/{id}/cancel` with a reason, the
+  antiforgery header and its cookie from `GET api/payroll/run-lifecycle/antiforgery`, in a `finally`; month from `-PeriodStart`
+  (mandatory) and the class's run from `-RunAId`/`-RunId`; the chaos script's psql reads stay. ASCII, parse clean. The plan's
+  `Select-String` finds 0 lines (was 22).
+- `testdata/acceptance/payroll-months.json`: the seed (posted 2025-08..2026-07; scenario runs 2026-08..2027-02), AC-LVA-57 (2025-01..07, its
+  file named), AC-IAM-53 (current month), AC-PAY-54 (2031-01..07), 55 (2029-05..06), 56 (2028-01..06), 58 (2030), AC-12 and AC-PAY-59
+  (D-PAY-22; main and cycle stacks), AC-21 window 2024-01..06, AC-22 window 2024-07..12, AC-23 (current+2, two months), AC-24, AC-25 (lab).
+- `AcceptancePayrollMonths`: the registry, `WindowOf`, `CycleCandidates` (D-PAY-22), `AfterNextCandidates` (current+2, seed included),
+  `CreateRunAsync` (201, or skip at the live-period refusal; none left → RequireData asking for acceptance-reset.ps1), `CancelRunAsync`,
+  `ReadRunAsync`, `RunStatus`.
+- AC-21 and AC-22 `[RequiredAcceptance]`; AC-21/22/23 classify the records added since the seed before their first calculation, take
+  their month from the picker, and cancel what they do not keep in `finally` (AC-21 both runs, AC-22 its run, AC-23 both runs and its
+  request); AC-21 and AC-22 assert their runs read «Cancelled»; AC-23 picks the first employee of its run with no open request (API).
+- Tests: `Pay059PayrollMonthsRegistryTests` 3/4 — the fourth (every class named exists) waits for `AcPay59FullCycleTests.cs` (P5).
+  Acceptance project builds; solution build 0 warnings; format clean.
+Finished (UTC): 2026-11-27T06:22:05Z
+
+## Next step
+P4: rewrite Ac12PayrollSodTests on a calculated, validated run of D-PAY-22's month.

@@ -1,15 +1,20 @@
 # PLAN-06 AC-21: dual payroll run determinism via gateway API.
+# PLAN-59 (P-8): no SQL. The month comes from the class (-PeriodStart, the first day of a month of AC-21's window in
+# testdata/acceptance/payroll-months.json, found by AcceptancePayrollMonths); the class may pass the run it created there (-RunAId).
+# Run A is cancelled through PLAN-56's API (POST api/payroll/runs/{id}/cancel with a reason and the antiforgery token of
+# GET api/payroll/run-lifecycle/antiforgery), which frees the period and every input its calculation took, so Run B reads the same
+# frozen inputs; Run B is cancelled the same way at the end, whatever happened.
 # Requires: ACCESS_TOKEN (payroll-processor), acceptance stack up, SEED_ACCEPTANCE on payroll-web.
 #
 # Usage:
 #   $env:ACCESS_TOKEN = '<jwt>'
-#   pwsh scripts/acceptance-payroll-determinism.ps1
+#   pwsh scripts/acceptance-payroll-determinism.ps1 -PeriodStart 2024-01-01 [-RunAId <guid>]
 
 param(
+    [Parameter(Mandatory = $true)][string]$PeriodStart,
+    [string]$RunAId = "",
     [string]$BaseUrl = $(if ($env:BASE_URL) { $env:BASE_URL } else { 'http://localhost:5200' }),
-    [string]$OutputPath = "",
-    [string]$PostgresContainer = "",
-    [string]$PayrollDb = "payroll_db"
+    [string]$OutputPath = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -56,72 +61,41 @@ function Get-RunLineSignature($Run) {
         }
 }
 
-if ([string]::IsNullOrWhiteSpace($PostgresContainer)) {
-    $PostgresContainer = docker ps `
-        --filter "label=com.docker.compose.project=hrm-acceptance" `
-        --filter "label=com.docker.compose.service=postgresql" `
-        --format "{{.Names}}" | Select-Object -First 1
-}
-if ([string]::IsNullOrWhiteSpace($PostgresContainer)) {
-    throw "The hrm-acceptance PostgreSQL container is not running."
-}
-
-function Invoke-PayrollSql([string]$Sql) {
-    $output = docker exec $PostgresContainer psql -v ON_ERROR_STOP=1 -U hrm_ci -d $PayrollDb -t -A -c $Sql 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Payroll database command failed: $output"
+function Get-PayrollAntiforgery {
+    # The service scopes its antiforgery cookie to its UI path; the API reads it from the Cookie header.
+    $resp = Invoke-WebRequest -Method Get -Uri "$($BaseUrl.TrimEnd('/'))/api/payroll/run-lifecycle/antiforgery" `
+        -Headers @{ Authorization = "Bearer $($env:ACCESS_TOKEN)" } -UseBasicParsing
+    $issued = $resp.Content | ConvertFrom-Json
+    $cookie = $null
+    foreach ($header in @($resp.Headers['Set-Cookie'])) {
+        foreach ($part in ([string]$header -split ',(?=\s*\.AspNetCore)')) {
+            if ($part -match '^\s*(\.AspNetCore\.Antiforgery\.[^=]+)=([^;]+)') { $cookie = "$($Matches[1])=$($Matches[2])" }
+        }
     }
-    return $output
+    if (-not $cookie -or -not $issued.headerName -or -not $issued.requestToken) {
+        throw "The antiforgery token of api/payroll/run-lifecycle/antiforgery was not issued."
+    }
+    return @{ Header = [string]$issued.headerName; Token = [string]$issued.requestToken; Cookie = $cookie }
 }
 
-function Cancel-PayrollRunInDb([string]$RunId) {
-    # Calculation claims one-off inputs atomically. The determinism experiment must
-    # release those claims when it cancels its disposable run, otherwise Run B no
-    # longer receives the same frozen inputs as Run A.
-    $sql = @"
-BEGIN;
-UPDATE "DeductionRecords" SET "AppliedInRunId" = NULL WHERE "AppliedInRunId" = '$RunId';
-UPDATE "AbsenceDeductions" SET "AppliedInRunId" = NULL WHERE "AppliedInRunId" = '$RunId';
-UPDATE "PayrollAdjustments" SET "PayrollRunId" = NULL WHERE "PayrollRunId" = '$RunId';
-UPDATE "PayrollRuns" SET "Status" = 8 WHERE "Id" = '$RunId';
-COMMIT;
-"@
-    Invoke-PayrollSql $sql | Out-Null
+function Cancel-PayrollRun([string]$RunId, [string]$Reason) {
+    # PLAN-56: a run that is not posted is cancelled with a reason; its period and its inputs are free again.
+    $af = Get-PayrollAntiforgery
+    $h = @{
+        Authorization = "Bearer $($env:ACCESS_TOKEN)"
+        "Content-Type" = "application/json"
+        Cookie = $af.Cookie
+    }
+    $h[$af.Header] = $af.Token
+    $body = @{ reason = $Reason } | ConvertTo-Json
+    Invoke-RestMethod -Method Post -Uri "$($BaseUrl.TrimEnd('/'))/api/payroll/runs/$RunId/cancel" -Headers $h -Body $body | Out-Null
 }
 
-function Reset-ReservedPeriod {
-    $sql = @'
-BEGIN;
-CREATE TEMP TABLE acceptance_reserved_runs ON COMMIT DROP AS
-SELECT "Id"
-FROM "PayrollRuns"
-WHERE "PeriodStart" = TIMESTAMPTZ '2027-01-01T00:00:00Z'
-  AND "PeriodEnd" = TIMESTAMPTZ '2027-01-31T00:00:00Z';
-
-UPDATE "DeductionRecords"
-SET "AppliedInRunId" = NULL
-WHERE "AppliedInRunId" IN (SELECT "Id" FROM acceptance_reserved_runs);
-
-UPDATE "AbsenceDeductions"
-SET "AppliedInRunId" = NULL
-WHERE "AppliedInRunId" IN (SELECT "Id" FROM acceptance_reserved_runs);
-
-UPDATE "PayrollAdjustments"
-SET "PayrollRunId" = NULL
-WHERE "PayrollRunId" IN (SELECT "Id" FROM acceptance_reserved_runs);
-
-UPDATE "PayrollRuns"
-SET "Status" = 8
-WHERE "Id" IN (SELECT "Id" FROM acceptance_reserved_runs)
-  AND "Status" NOT IN (5, 8);
-COMMIT;
-'@
-    Invoke-PayrollSql $sql | Out-Null
-}
-
-$periodStart = [datetime]::SpecifyKind([datetime]'2027-01-01', [DateTimeKind]::Utc)
-$periodEnd = [datetime]::SpecifyKind([datetime]'2027-01-31', [DateTimeKind]::Utc)
-$runDate = [datetime]::SpecifyKind([datetime]'2026-08-01', [DateTimeKind]::Utc)
+$start = [datetime]::ParseExact($PeriodStart, 'yyyy-MM-dd', [System.Globalization.CultureInfo]::InvariantCulture)
+if ($start.Day -ne 1) { throw "-PeriodStart must be the first day of a month: $PeriodStart" }
+$periodStart = [datetime]::SpecifyKind($start, [DateTimeKind]::Utc)
+$periodEnd = $periodStart.AddMonths(1).AddDays(-1)
+$runDate = $periodEnd
 
 $createPayload = @{
     periodStart = $periodStart.ToString("o")
@@ -129,30 +103,49 @@ $createPayload = @{
     runDate = $runDate.ToString("o")
 }
 
-Reset-ReservedPeriod
+$runBId = $null
+$cancelled = @{}
+try {
+    if ($RunAId) {
+        Write-Host "Run A is the class's run ($RunAId)."
+        $runAId = $RunAId
+    }
+    else {
+        Write-Host "Creating Run A..."
+        $runA = Invoke-PayrollApi -Method Post -Path "api/payroll/runs" -Body $createPayload
+        $runAId = $runA.id
+    }
+    Write-Host "Calculating Run A ($runAId)..."
+    Invoke-PayrollApi -Method Post -Path "api/payroll/runs/$runAId/calculate" | Out-Null
+    $provA = Invoke-PayrollApi -Method Get -Path "api/payroll/runs/$runAId/provenance"
+    $runADetail = Invoke-PayrollApi -Method Get -Path "api/payroll/runs/$runAId"
+    $sigA = Get-RunLineSignature $runADetail
 
-Write-Host "Creating Run A..."
-$runA = Invoke-PayrollApi -Method Post -Path "api/payroll/runs" -Body $createPayload
-$runAId = $runA.id
-Write-Host "Calculating Run A ($runAId)..."
-Invoke-PayrollApi -Method Post -Path "api/payroll/runs/$runAId/calculate" | Out-Null
-$provA = Invoke-PayrollApi -Method Get -Path "api/payroll/runs/$runAId/provenance"
-$runADetail = Invoke-PayrollApi -Method Get -Path "api/payroll/runs/$runAId"
-$sigA = Get-RunLineSignature $runADetail
+    Write-Host "Cancelling Run A through the API (frees the period and its inputs)..."
+    Cancel-PayrollRun $runAId "AC-21: determinism experiment, run A (PLAN-59)"
+    $cancelled[$runAId] = $true
 
-Write-Host "Cancelling Run A in DB (free live period slot)..."
-Cancel-PayrollRunInDb $runAId
-
-Write-Host "Creating Run B (same period)..."
-$runB = Invoke-PayrollApi -Method Post -Path "api/payroll/runs" -Body $createPayload
-$runBId = $runB.id
-Write-Host "Calculating Run B ($runBId)..."
-Invoke-PayrollApi -Method Post -Path "api/payroll/runs/$runBId/calculate" | Out-Null
-$provB = Invoke-PayrollApi -Method Get -Path "api/payroll/runs/$runBId/provenance"
-$runBDetail = Invoke-PayrollApi -Method Get -Path "api/payroll/runs/$runBId"
-$sigB = Get-RunLineSignature $runBDetail
+    Write-Host "Creating Run B (same period)..."
+    $runB = Invoke-PayrollApi -Method Post -Path "api/payroll/runs" -Body $createPayload
+    $runBId = $runB.id
+    Write-Host "Calculating Run B ($runBId)..."
+    Invoke-PayrollApi -Method Post -Path "api/payroll/runs/$runBId/calculate" | Out-Null
+    $provB = Invoke-PayrollApi -Method Get -Path "api/payroll/runs/$runBId/provenance"
+    $runBDetail = Invoke-PayrollApi -Method Get -Path "api/payroll/runs/$runBId"
+    $sigB = Get-RunLineSignature $runBDetail
+}
+finally {
+    # Leave the shared stack reusable: neither run keeps the month or an input, whatever happened above.
+    foreach ($id in @($runAId, $runBId)) {
+        if ($id -and -not $cancelled[$id]) {
+            try { Cancel-PayrollRun $id "AC-21: determinism experiment ended (PLAN-59)"; $cancelled[$id] = $true }
+            catch { Write-Host "Cancelling run $id failed: $($_.Exception.Message)" }
+        }
+    }
+}
 
 $diff = @{
+    periodStart = $periodStart.ToString("yyyy-MM-dd")
     runAId = $runAId
     runBId = $runBId
     configHashMatch = ($provA.configContentHash -eq $provB.configContentHash)
@@ -178,22 +171,20 @@ if (-not $diff.signaturesMatch) {
 
 $dir = Split-Path -Parent $OutputPath
 if ($dir) { New-Item -ItemType Directory -Force -Path $dir | Out-Null }
-$diff | ConvertTo-Json -Depth 8 | Set-Content -Path $OutputPath -Encoding UTF8
 
 $provAPath = Join-Path $dir "run-a-provenance.json"
 $provBPath = Join-Path $dir "run-b-provenance.json"
 $provA | ConvertTo-Json -Depth 6 | Set-Content -Path $provAPath -Encoding UTF8
 $provB | ConvertTo-Json -Depth 6 | Set-Content -Path $provBPath -Encoding UTF8
 
-# Leave the shared Acceptance environment reusable for any subsequent payroll
-# scenario while retaining both runs and their provenance as evidence.
-Cancel-PayrollRunInDb $runBId
+$diff.cancelledThroughApi = (@($runAId, $runBId) | Where-Object { $cancelled[$_] }).Count
+$diff | ConvertTo-Json -Depth 8 | Set-Content -Path $OutputPath -Encoding UTF8
 
 Write-Host ($diff | ConvertTo-Json -Depth 6)
-if ($diff.signaturesMatch -and $diff.configHashMatch -and $diff.lineCountA -gt 0) {
+if ($diff.signaturesMatch -and $diff.configHashMatch -and $diff.lineCountA -gt 0 -and $diff.cancelledThroughApi -eq 2) {
     Write-Host "PASS: AC-21 payroll determinism"
     exit 0
 }
 
-Write-Host "FAIL: determinism diff non-empty or zero lines"
+Write-Host "FAIL: determinism diff non-empty, zero lines, or a run not cancelled through the API"
 exit 1
