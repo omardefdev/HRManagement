@@ -104,3 +104,32 @@ Finished (UTC): 2026-11-27T06:25:51Z
 ## Next step
 P5: AcPay59FullCycleTests + PayrollCycleDriver steps; ci-scope (cycle group, prodlike-cycle job, ci.yml, prodlike-final), the moved
 classes, ac-ownership.json; scripts/pay059-validate.ps1 with -SelfTest.
+
+## P5 — AC-PAY-59, its CI stage, its guard
+- `AcPay59FullCycleTests` (`[RequiredAcceptance]`, `EvidenceRecorder("AC-PAY-59")`) and `PayrollCycleDriver.Cycle.cs`: the fifteen
+  steps by HTTP alone (P-10), every check an API read in db-checks.json; no SQL. Decisions in the driver:
+  - the run is created first (D-PAY-22's picker creates it), so its attendance-status before the close gives the scope;
+    Y, X, Z = the scope's first ids in order (Z the first from the third on with no open request);
+  - Z's salary is never read by SQL: a probe request at salary 1 is refused with the grade's bounds (or, for a grade with none, is
+    created, names the salary in force, and is cancelled at once); the real request is inside the bounds, dated next month (P-4);
+  - accounts: GET per employee; Active kept, a leftover pending verified, else registered and verified (first and last captured);
+    X's Active retired and a stale pending rejected, then a new one registered; the IBAN mark is "59"+yyMM of M (unique per execution);
+  - the bank files' content is read only for their order ids (not kept in the evidence; size and row count only);
+  - finally: Z's change cancelled whatever happened; a run not posted cancelled by the processor or approver.
+- Seed check: the gate holds on alerts/holds of the run itself or holds with no run, so the seed's open critical alert (of a seeded
+  run) does not reach the cycle's batch.
+- ci-scope.json: group cycle (AcPay59FullCycleTests, required) after s2s42 in order[] (a run without -Stage gives it a fresh stack);
+  stage job prodlike-cycle; prodlike-final waits for it; AC-12, AC-21, AC-23 moved from lab main to prodLike main, required; AC-22
+  stays excluded. ci.yml matrix: prodlike-cycle, timeout 45 (first guess; set by the local measurement in P6). ac-ownership.json:
+  AC-12/21/23/PAY-59 owned by PLAN-59 (provesClaim true), AC-22 QA-G with «proved by PLAN-59 outside CI».
+- personas.json: AC-12 and AC-PAY-59 in the scenario lists of their personas (a persona change: reset before the first stack start).
+- `scripts/pay059-validate.ps1` (+ -SelfTest): all checks pass but the runbook's (written in P7). `iam053-validate.ps1` adapted:
+  the payroll regression (AC-23/24/25) required where it runs; its self-test 20/20.
+- Tests: unit Pay059|Qa066|CiStepsParity|Acceptance 221/221 (registry 4/4); acceptance static classes 48 + 1 skipped (needs a stack);
+  validators pay054/055/056/058, lva057, ux067, iam050..053 pass. acceptance-baseline-validate red as on main (stale committed
+  evidence; 95 → 96 ACs with AC-PAY-59), recorded. Solution build 0 warnings; format clean.
+Finished (UTC): 2026-11-27T06:43:15Z
+
+## Next step
+P6: disk/memory checks; acceptance-reset (personas changed); build the service images one at a time; cycle stack: AC-PAY-59 x3;
+main stack: AC-12/21/23 + touched classes, then AC-22 alone; lab stack; validators; Testcontainers step; independent review.

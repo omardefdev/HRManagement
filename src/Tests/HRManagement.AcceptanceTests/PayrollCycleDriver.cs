@@ -116,3 +116,9 @@ internal static partial class PayrollCycleDriver
         return cancelled == HttpStatusCode.OK ? $"cancelled from {state} by {actor.Persona}" : $"cancel refused ({(int)cancelled}): {PayrollApi.Error(body)}";
     }
 }
+
+/// <summary>An order of a batch, as <c>GET api/payroll/payment-batches/{id}/orders</c> answers it (no account number).</summary>
+internal sealed record CycleOrder(Guid Id, Guid EmployeeId, Guid SalaryLineId, string Status, decimal Amount, string? HoldReason, bool DestinationPinned, int? FileSequence);
+
+/// <summary>A bank file of a batch, as <c>GET api/payroll/payment-batches/{id}/files</c> answers it (controls, never content).</summary>
+internal sealed record CycleFile(Guid Id, int Sequence, string Kind, int ControlCount, decimal ControlTotal);
