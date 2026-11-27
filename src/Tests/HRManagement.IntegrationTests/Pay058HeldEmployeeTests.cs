@@ -108,7 +108,9 @@ public sealed class Pay058HeldEmployeeTests
 
         Assert.False(ok);
         Assert.Equal(0, lines);
-        Assert.Equal(PayrollRegimeGovernance.BlockRunRefusal(1), error);
+        // PLAN-59 (P-6): the refusal names the blocked employee (by his id: this host has no name lookup) with HR.Core's reason.
+        Assert.Equal(PayrollRegimeGovernance.BlockRunRefusal([new HrCorePayrollBlockerDto(blocked, true, hrCore.ReasonCode)]), error);
+        Assert.Contains(blocked.ToString("D"), error, StringComparison.Ordinal);
         var run = await scope.RunAsync(runId);
         Assert.Equal((PayrollRunStatus.Draft, (Guid?)null), (run.Status, run.PayrollConfigurationId));
         Assert.Empty(await scope.Db.PayrollRunJobs.AsNoTracking().Where(j => j.PayrollRunId == runId).ToListAsync());

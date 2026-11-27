@@ -28,3 +28,23 @@ Finished (UTC): 2026-11-27T05:42:00Z
 
 ## Next step
 P1: build; Syr007/Pay058 tests follow the new text; write Pay059RegimeBlockerTests and Pay059PayrollSodHandlerTests; run the filters.
+
+Correction (UTC 2026-11-27T05:51:11Z): P0's «Finished» stamp above (05:42:00Z) was typed, not read; P0 actually ended at 05:38:47Z (read
+with date -u just after its commit). The stamp is left as written; this line corrects it.
+
+## P1 — the fourteen, the regime refusal, the handler's rules
+- `PayrollRegimeGovernance.BlockRunRefusal(blocked, displayNames)`: the first ten blocked employees (by id) by display name, else by id,
+  each with HR.Core's reason code, then «و{n} آخرون»; `DecideAsync` asks `IEmployeeLookup` (when registered) for those ten only; still
+  decided before `BeginCalculating`. `EmployeeLookupLabels.Unavailable` names the lookup's «غير متاح».
+- New: `Pay059RegimeBlockerTests` (4: BlockRun refuses by name, run as it was; no client → ClientMissing; no client + BlocksFinalPayroll=false
+  → calculated; ten names and «و2 آخرون»), `Pay059PayrollSodHandlerTests` (2: creator → CreatorCannotApprove, nothing written; approver
+  posts → PosterIsApprover before and after a closed review by two auditors, no batch; then the poster posts).
+- Changed: `Pay058HeldEmployeeTests` (BlockRun: the new text, and the employee's id in it), `Syr007RegimeGovernanceTests` (the id and reason).
+- Tests: plan filter + Pay059 on SQLite 214/0/91 skipped (53 s); with Testcontainers 305/305 (3 min 39 s); unit Syr007|Pay058 30/30;
+  Pay059 + Pay058HeldEmployeeTests 13/13; solution build 0 warnings; format clean.
+- CI picks the new classes in «Integration tests (MassTransit InMemory)» (`Category!=Testcontainers`); the four PostgreSQL ones carry
+  `Category=Testcontainers` (the Testcontainers step).
+Finished (UTC): 2026-11-27T05:51:11Z
+
+## Next step
+P2: the run read's revision/approvals/batch; GET payment-batches/{id}/orders; tests (shape, 404 across agencies, no account number, stance).
