@@ -3,6 +3,7 @@ using System.Net;
 using System.Text.Json;
 using HRManagement.ServiceDefaults;
 using HRManagement.SharedKernel.Legal;
+using HRManagement.SharedKernel.ViewModels;
 using static HRManagement.AcceptanceTests.RecruitmentAcceptance;
 
 namespace HRManagement.AcceptanceTests;
@@ -93,7 +94,10 @@ public class AcIam52BranchScopeTests
 
     /// <summary>
     /// An attendance day with no record of the employee yet (the table has years of seeded days), and that no attendance summary of
-    /// the employee covers: a day of a closed period is locked (PLAN-57), and a create on it is refused whatever the scope.
+    /// the employee covers: a day of a closed period is locked (PLAN-57), and a create on it is refused whatever the scope. The day's
+    /// list must also fit one page with room to spare: the list of one day shows its first 100 records, all of the same date and in no
+    /// further order, and AC-LVA-57 fills whole months of 2025 for every employee of its tenant (on 2025-03-05 the ALEP record was not
+    /// among central-a's first 100).
     /// </summary>
     private static async Task<string> FreeAttendanceDayAsync(string employee)
     {
@@ -104,7 +108,8 @@ public class AcIam52BranchScopeTests
                 $"SELECT ((SELECT count(*) FROM \"DailyAttendanceRecords\" WHERE \"EmployeeId\"='{employee}' AND \"AttendanceDate\"='{day}') + " +
                 "(SELECT count(*) FROM \"AttendanceEmployeeSummaries\" s JOIN \"AttendancePeriods\" p ON p.\"Id\" = s.\"AttendancePeriodId\" " +
                 $"WHERE s.\"EmployeeId\"='{employee}' AND '{day}' BETWEEN p.\"PeriodStart\" AND p.\"PeriodEnd\"))::text;");
-            if (taken == "0")
+            var onTheDay = await Db(Core, $"SELECT count(*)::text FROM \"DailyAttendanceRecords\" WHERE \"AttendanceDate\"='{day}';");
+            if (taken == "0" && int.Parse(onTheDay, CultureInfo.InvariantCulture) < SearchFilterBase.MaxPageSize / 2)
                 return day;
         }
 
