@@ -224,8 +224,9 @@ public partial class AcOps36VpsBootTests
         var (published, publishedError, _) = await Pay54PostAsync(approver, $"{Pay54Api}/{id}/publish");
         var final = Pay54State(id);
         var people = Sql("payroll_db",
-            "select (select string_agg(distinct e.\"UserId\"::text, ',') from \"PayrollConfigurationEditors\" e where e.\"PayrollConfigurationId\" = c.\"Id\") || '|' || c.\"ApprovedBy\" || '|' || " +
-            "(select a.\"AttestedBy\" from \"LegalAttestations\" a where a.\"PayrollConfigurationId\" = c.\"Id\" and a.\"Status\" = 'Active') " +
+            // Each part coalesced: with no attestation (hradmin refused, below) the row is still one row, its last part empty.
+            "select coalesce((select string_agg(distinct e.\"UserId\"::text, ',') from \"PayrollConfigurationEditors\" e where e.\"PayrollConfigurationId\" = c.\"Id\"), '') || '|' || coalesce(c.\"ApprovedBy\"::text, '') || '|' || " +
+            "coalesce((select a.\"AttestedBy\"::text from \"LegalAttestations\" a where a.\"PayrollConfigurationId\" = c.\"Id\" and a.\"Status\" = 'Active'), '') " +
             $"from \"PayrollConfigurations\" c where c.\"Id\" = '{id}'").Single().Split('|');
         var rulesStoredActive = Sql("payroll_db", $"select count(*) from \"DisbursementPriorityRules\" where \"PayrollConfigurationId\" = '{id}' and \"IsActive\"").Single();
 
