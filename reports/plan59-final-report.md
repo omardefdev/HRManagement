@@ -33,7 +33,10 @@ Progress, decisions and every stop: `reports/plan59-progress.md`. Baseline: `rep
 | `b40795d0` | test(pay059): AC-PAY-59, its CI stage, pay059-validate |
 | `8a6ce4fe` | test(pay059): AC-PAY-59a three times and AC-PAY-59b, AC-12, AC-21, AC-22, AC-23 pass; review fixes |
 | `d5d21bea` | docs(pay059): the runbook; the pilot's indicators; G-PAY-05's status |
-| later | this report, the server's section and its checks (see `git log`) |
+| `f0f5466b` | docs(pay059): the final report's draft and the PR's description |
+| `8086ac86` | merge of the feature into `release/plan-59` (the tag deployed) |
+| `a8a3b831` | test(pay059): the demo server's checks; the cycle's stage limit by QA-066's rule |
+| later | the server's results, this report (see `git log`) |
 
 ## 3. Decisions applied and deviations
 
@@ -157,11 +160,45 @@ with its batch. A run not posted is cancelled in `finally`.
   AC-PAY-56, AC-PAY-55, AC-IAM-53, AC-LVA-57 (32/32); **AC-22 Pass** (2024-08: killed mid-partition at 200 of 1,102, resumed, 1,102 lines,
   no duplicate, Cancelled); the lab main stage PASS (159 passed, 1 skipped; AC-24 and AC-25 Pass). Seeded counts at a fresh stack's start:
   Pass (DATA-AUTH 70, DATA-DIRECTORY 61, DATA-PAYPROFILE 1,489, SEED-03).
-- **The evidence of record is the PR run's artifact** `acceptance-evidence` (D-QA-20): link in §15 and the merge note.
+- **The evidence of record is the PR run's artifact** `acceptance-evidence` (D-QA-20) of
+  [run 45994047230](https://github.com/omardefdev/HRManagement/actions/runs/45994047230): AC-PAY-59 Pass (2026-08, 1,102 lines,
+  276,109,392.27 — the local figures), AC-12, AC-21, AC-23 Pass; the second run
+  [46006396762](https://github.com/omardefdev/HRManagement/actions/runs/46006396762) carries the same on `a8a3b831`.
 
 ## 12. The server
 
-(P9.)
+- **Before:** tag `25be64cf9fa8`, 21 containers healthy, 54 G free; the picture (P0 and again just before the deploy, unchanged): runs
+  `19|f3d7c343…`, lines `2975|cff7e1eb…`, batches `6|31924d45…`, orders `0|`, arrears `15|747ae32f…` (count|md5, no amount).
+- **Backup:** `/opt/hrm/backups/pre-plan59-20261127T115333Z` (700/600): `pg_dumpall.sql` 55,555,882 bytes, 17 `CREATE DATABASE`, `env.backup`,
+  `SHA256SUMS` verified.
+- **Build:** GitHub Actions `deploy.yml action=build` on `release/plan-59` (run 45994097920, 11:53:13–12:07:09Z, 48 job-minutes): 17/17
+  images `8086ac8629af`.
+- **Deploy:** `scripts/vps/deploy.ps1 -Tag 8086ac8629af` (previous `25be64cf9fa8`), first time, 12:07:45–12:16:02Z (8 min 17 s): pull 107 s,
+  up 137, bootstrap 58 (no migration), Keycloak reconcile 14 (0 changes), healthy 15. Smoke 50 pass, 0 fail, 1 warn (the client-side
+  port check). Downtime: the services' restart inside «up» (about two minutes).
+- **This plan's checks** (`AcPay59VpsChecks`, 12:17–12:24Z): 4/4 — the tag on 16 images, 0 unhealthy, the last payroll migration the
+  tree's (PAY058); a posted demo run answers `revision` 1, `approvalsGiven` 0, `approvalsRequired` 2, `paymentBatchId` its batch; the newest
+  demo batch answers its orders (0, as the demo) with the fields batchId/total/page/pageSize/orders only; the picture as before. Their
+  own first try found its SQL comparing `Source` as text (it is stored as its number): fixed, rerun alone, passed. They write nothing.
+- **The older plans' checks** (`AcOps36VpsBootTests` and `AcInt37VpsServerTests` without 36j and this plan's; 12:28:51–21:44:39Z):
+  **80 of 83 passed** — 56 in the first pass; a browser tour then hung silently (17:26–18:05Z) and the run was stopped by its process ids;
+  the 19 unreported and the 8 failed checks were then run one at a time under a 20-minute limit (20 passed), and five flaky ones once
+  more (four passed). Not passed: `AC_POL_47_vps_the_migration…` (its local file was lost with the Windows machine, since PLAN-53);
+  `Server_services_log_the_repository_legal_pack_fingerprint` (an earlier boot check restarted `hr-core-web` at 15:27:15Z and its logs
+  rotate at 3 × 10 MB, so the start-up line is gone; the two other services carry it); `AC_UX_67_vps_every_key_page…` (the full-page CSP
+  tour hung three times from this machine: Chromium meets `net::ERR_NETWORK_CHANGED` while the owner's dev container `hrm-keycloak`
+  restarts every minute — 14,070 restarts, not touched). The flakes seen on the way were the same machine's: HTTP 60-second timeouts,
+  the ssh helper's «No such container: timeout», «Connection closed by … port 22», sign-ins landing on `chromewebdata/`. This plan
+  changed no page, no realm and no migration.
+- **After:** tag `8086ac8629af`, every container healthy, 47 G free; final smoke `-RequireIntegrationWiring` 50/0/1 (21:45:46Z). The
+  money as before but what the older PLAN-56 checks leave on every deploy: two runs of 2028-09 created and cancelled (one calculation's
+  425 `REGIME-BLOCKER` holds on the cancelled run, holding nothing), its gate warning, one rejected approval. Nothing posted, funded,
+  processed or settled; no user added.
+- **Rollback:** `scripts/vps/deploy.ps1 -Rollback` (`25be64cf9fa8` from GHCR) is safe at any time: this release adds two reads and a
+  message, writes nothing PLAN-58's code cannot read, and has no migration.
+- **What the demo needs before a cycle:** a poster, a second approver (its runs are above 50,000,000) and two auditors (through
+  `scripts/vps/add-demo-user.sh`); its service regimes classified (a data task: without it a calculation holds all 425 employees
+  `REGIME-BLOCKER`); verified bank accounts for its employees.
 
 ## 13. Changes for API clients and operators
 
@@ -181,7 +218,39 @@ with its batch. A run not posted is cancelled in `finally`.
 
 ## 15. Timing
 
-(P10.)
+All UTC. Started 2026-11-27T05:19:45Z (the progress file's first line).
+
+| Stretch | From → to | Duration |
+|---|---|---|
+| P0 baseline | 05:19:45 → 05:38:47 | 19 min |
+| P1–P5 (code, tests, the cycle, CI scope, validator) | 05:38 → 07:08 (P5 committed 06:52; images built 06:44–07:08) | ~1 h 30 min |
+| P6 local acceptance and the review | 07:08 → 10:58 | 3 h 50 min |
+| P7 documents | 10:58 → 11:03 | 5 min |
+| P8 local gates, push, PR | 11:03 → 11:52:48 | 50 min |
+| P9 GHCR build | 11:53:13 → 12:07:09 | 14 min |
+| P9 deploy | 12:07:45 → 12:16:02 | 8 min 17 s |
+| P9 this plan's server checks | 12:17 → 12:24 | 7 min |
+| P9 older server checks (first pass; stopped after a silent hang) | 12:28:51 → 18:05:30 | 5 h 37 min |
+| P9 older server checks one at a time, and the flakes once more | 18:06 → 21:44:39 | 3 h 39 min |
+| P10 report, merge, merge note | 21:45 → (merge note) | — |
+
+- **Local waits:** solution build 4 min 49 s (baseline); integration filter 66 s (SQLite) and 3 min 51 s (Testcontainers); 16 service
+  images one at a time 23 min 50 s, payroll-web alone 1 min 58 s; prod-like stacks to ready 12 min 3 s, 10 min 52 s, 15 min 13 s,
+  15 min 3 s (main), 14 min 42 s, and 15 min 3 s after one failed start (a segfault under memory pressure: swap full from other
+  applications; retried once after the load fell); the lab stack 15 min 20 s inside the lab main stage (30 min 43 s); the Testcontainers
+  step 19 min 44 s; the Release build 2 min 24 s; the local CI steps 44 min 14 s; the unit suite 8 min 9 s (`--blame`, after a test
+  host crash).
+- **AC-PAY-59's executions (final code):** 6 min 32 s, 5 min 3 s, 4 min 48 s locally; 6 min 6 s in the PR's first CI run. Earlier series
+  on the way: one failed at step 2 (the gateway's 429), one failed at step 11 (two legacy employees sharing an IBAN), one passed three
+  times with a decrease for Z (corrected to a raise).
+- **CI:** run 45994047230 on `8086ac86` (11:54–~13:00Z, 16/16 green, 289 job-minutes); run 46006396762 on `a8a3b831` (13:21–~14:30Z,
+  16/16 green, 227 job-minutes); the GHCR build 48 job-minutes. **Actions: 564 job-minutes.**
+- **Waiting for CI:** no turn ended to wait and no time stood still on CI: both runs overlapped the server work.
+- **Stops:** none (no stopped turn, no usage limit, no sleep or restart of the machine, no full disk, no blocked port). One mistake of
+  seconds: a clean-up with `pgrep -f` matched my own shell and ended that command (P-2's rule; nothing else was hit).
+- `pwsh -NoProfile -File scripts/plan-timing.ps1 -From 25 -To 67` before the merge: PLAN-59, 11 commits, first commit 08:25 Riyadh
+  (05:25Z), span 6:27 to the release branch's merge commit (`8086ac86`, matched by the branch name); the merge note records the true
+  wall-clock after the PR's merge.
 
 ## 16. Readiness note
 
