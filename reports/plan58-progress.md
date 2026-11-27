@@ -295,3 +295,23 @@ Finished (UTC): 2026-11-27T00:04:45Z
   test's random free day was 2025-03-05, in a month AC-LVA-57 fills for every employee of its tenant (same stage), and one day's list
   shows its first 100 records ordered by date only. Fixed in the test's day choice (fewer than half a page on that day); the
   assertion is unchanged. Not this plan's code; possible since PLAN-57 put AC-LVA-57 in the prod-like main group.
+- CI run 45920953888 (274861a6, 01:09:38–02:16:44Z): 15/15 green, PR CLEAN.
+
+## Merge note
+Merged by agent on owner instruction (UTC): 2026-11-27T04:03:31Z
+- PR: https://github.com/omardefdev/HRManagement/pull/59 (`release/plan-58` → `main`), `gh pr merge 59 --merge`, on the owner's
+  «ادمجه واكمل» (2026-11-26T18:37Z). Checks on the merged head 274861a6: 15/15 green (run 45920953888), merge state CLEAN.
+- Merge commit: 708d200432d9. Local `main` fast-forwarded to it and equal to `origin/main`.
+- Post-merge run 45937694571 (push, 04:03:34Z): the dedupe job found the tested tree, so CI, E2E, CodeQL and the acceptance stages
+  are skipped and Gitleaks runs; in progress when this note was written.
+- Demo server: still on 25be64cf9fa8 (healthy; smoke 50/0/1 at 23:59:41Z). What came after that tag is tests and documents only.
+- Timing: started 2026-11-26T11:50:02Z, merged 2026-11-27T04:03:31Z: 16 h 13 min wall-clock. Stops:
+  1. BLOCKED 18:34:41Z (the demo ran the owner's open PR #58), answered 18:37Z: ~3 min.
+  2. WAITING-CI 00:06Z (run 45914768450): the app's failure event ~01:01Z (AC-IAM-52a), fixed and pushed by 01:09:35Z.
+  3. WAITING-CI 01:09Z (run 45920953888): green at 02:16:44Z, but the app wakes the session on failures only; resumed by the
+     owner's «هل انتهيت» at ~04:03Z: 1 h 47 min idle after green.
+  Waiting on CI in all: ~55 min + 67 min, plus the 1 h 47 min after green. The earlier PR runs overlapped the server work.
+  Actions: 1,271 job-minutes over the PR's five CI runs and the GHCR build (280 + 174 + 242 + 236 + 294 + 45).
+- `scripts/plan-timing.ps1 -From 25 -To 67`: PLAN-58 17 commits, span 8:17, wall-clock 8:22 — it ends PLAN-58 at the release
+  branch's merge commit (25be64cf, matched by the branch name), not at the PR's merge; the wall-clock above is the true one.
+- Keep-awake process 28470 stopped after this note.
