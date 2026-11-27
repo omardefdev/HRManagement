@@ -48,3 +48,22 @@ Finished (UTC): 2026-11-27T05:51:11Z
 
 ## Next step
 P2: the run read's revision/approvals/batch; GET payment-batches/{id}/orders; tests (shape, 404 across agencies, no account number, stance).
+
+## P2 — the reads an SQL-free cycle needs
+- `GET api/payroll/runs/{id}` (Payroll.RunRead, central-only): `revision`, `approvalsGiven` (different approvers of the present version),
+  `approvalsRequired` (SeparationOfDutiesService with the run's total, as the approval counts), `paymentBatchId` (the run's disbursement
+  batch, the posting's first; null before). Added at the end of `PayrollRunDetailsDto`.
+- `GET api/payroll/payment-batches/{id}/orders?page=` (Module.Payroll, central-only by the controller's stance; 500 a page, by employee id):
+  id, employeeId, salaryLineId, status, amount, holdReason, destinationPinned, fileSequence. No account number, no field named like one.
+- Nothing else missing (the read inventory): no new write, no migration.
+- Tests: `Pay059CycleReadsHttpTests` (PostgreSQL: shape, an earlier version's approval not counted, two required above 50,000,000, null
+  batch before the posting, the account number absent and no property named account/iban/beneficiary, page 2 empty, unknown 404, another
+  agency 404 on both, the auditor reads the run and is 403 on the orders) with Pay058DisbursementHttpTests and Lva057's reads: 4/4.
+  Architecture (PayrollWriteActions, WriteActionsHaveExplicitPolicy, OrgScopeCoverage, GatewayAuditorReach, GatewayApproverReach,
+  ModuleOverridesAreDeclared, Pay058SinglePaymentPath, InterfaceTextGuard): 303/303. Solution build 0 warnings; format clean.
+- Docs: `docs/PAYROLL_RULES.md` lists both reads for API clients, and the BlockRun refusal's names.
+Finished (UTC): 2026-11-27T05:59:43Z
+
+## Next step
+P3: scripts on the cancel API with their month from the class; testdata/acceptance/payroll-months.json + unit test; AcceptancePayrollMonths;
+AC-21/22/23 [RequiredAcceptance], windows, clean-up, classification.

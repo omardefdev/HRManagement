@@ -63,6 +63,60 @@ public sealed class PaymentBatchesApiController(IMediator mediator, PayrollDbCon
         });
     }
 
+    /// <summary>PLAN-59 (P-9): how many orders one page of <see cref="Orders"/> answers.</summary>
+    public const int OrdersPageSize = 500;
+
+    /// <summary>
+    /// PLAN-59 (P-9): the batch's orders by employee, in the order of their employee ids, a page at a time: each order's id, employee and
+    /// salary line, state, amount, hold reason, whether a destination is pinned on it, and the sequence of the bank file that carried it
+    /// (null until it is sent). Never an account number, and no field that names one. Another agency's batch is 404.
+    /// </summary>
+    [HttpGet("{id:guid}/orders")]
+    public async Task<IActionResult> Orders(Guid id, [FromQuery] int page = 1, CancellationToken ct = default)
+    {
+        if (!await db.PaymentBatches.AsNoTracking().AnyAsync(b => b.Id == id, ct))
+            return NotFound(new { error = PaymentBatchMessages.BatchNotFound });
+        page = Math.Max(1, page);
+        var orders = db.PaymentOrders.AsNoTracking().Where(o => o.PaymentBatchId == id);
+        var total = await orders.CountAsync(ct);
+        var sequences = await db.PaymentBatchFiles.AsNoTracking()
+            .Where(f => f.PaymentBatchId == id)
+            .ToDictionaryAsync(f => f.Id, f => f.Sequence, ct);
+        var rows = await orders
+            .OrderBy(o => o.EmployeeId).ThenBy(o => o.Id)
+            .Skip((page - 1) * OrdersPageSize).Take(OrdersPageSize)
+            .Select(o => new
+            {
+                o.Id,
+                o.EmployeeId,
+                o.SalaryLineId,
+                o.Status,
+                o.Amount,
+                o.HoldReason,
+                DestinationPinned = o.BeneficiaryIban != null,
+                o.PaymentBatchFileId,
+            })
+            .ToListAsync(ct);
+        return Ok(new
+        {
+            batchId = id,
+            total,
+            page,
+            pageSize = OrdersPageSize,
+            orders = rows.Select(o => new
+            {
+                id = o.Id,
+                employeeId = o.EmployeeId,
+                salaryLineId = o.SalaryLineId,
+                status = o.Status.ToString(),
+                amount = o.Amount,
+                holdReason = o.HoldReason,
+                destinationPinned = o.DestinationPinned,
+                fileSequence = o.PaymentBatchFileId is Guid file && sequences.TryGetValue(file, out var sequence) ? sequence : (int?)null,
+            }),
+        });
+    }
+
     /// <summary>§7: the channel acknowledged the sent orders — one act by the poster's role, with the channel's reference (400 without).</summary>
     [HttpPost("{id:guid}/ack")]
     [ValidateAntiForgeryToken]

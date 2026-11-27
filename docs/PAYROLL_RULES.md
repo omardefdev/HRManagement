@@ -318,7 +318,9 @@ Former confirmation items are bound in [GOV_002_LEGAL_DECISION_REGISTER.md](./GO
   release request.
 - **Service regime (D-PAY-4).** `Payroll:Blockers:Mode=HoldEmployee` (default): everyone is calculated and each employee HR.Core reports
   blocked gets a `REGIME-BLOCKER` hold of the run (released by four eyes once HR.Core no longer blocks him). `BlockRun` (an agency's
-  choice, the behaviour before PLAN-58) refuses the calculation **before** the run moves to «قيد الحساب».
+  choice, the behaviour before PLAN-58) refuses the calculation **before** the run moves to «قيد الحساب». Since PLAN-59 the refusal
+  names the blocked employees: the first ten (by id) by display name, else by id, each with HR.Core's reason code, then «و{n} آخرون»
+  (never a national number).
 - **Account verification (§6 rule 3).** Verifying an employee's new account re-pins his unsent `Draft`/`Held` orders and their lines to it
   and lifts their account holds, in the verification's transaction, with an `EntityAuditLog` line (`RepinnedOnAccountVerification`, ids
   only). It is the one exception to D-PAY-15's «a run keeps the account it pinned», for an order that has not left.
@@ -328,3 +330,12 @@ Former confirmation items are bound in [GOV_002_LEGAL_DECISION_REGISTER.md](./GO
   sent orders' sum) or a rejection is a request another person decides. The batch then reads `Settled` (paid) or `Rejected`.
 - **P-11.** A deduction or an adjustment taken by two runs calculating at once: the second's save fails on the row's version (`xmin`) and
   its calculation stops with an Arabic message; nothing of its batch is written.
+
+### The reads a cycle is checked by (PLAN-59, P-9)
+
+For API clients; both are reads, both 404 for another agency, neither carries an account number or a field named like one.
+
+| Read | Policy, stance | What it answers |
+|---|---|---|
+| `GET api/payroll/runs/{id}` | `Payroll.RunRead` (the module's users and the independent reviewer), central-only | the run and its lines as before, and at the end of the shape: `revision` (the present version), `approvalsGiven` (different approvers of that version), `approvalsRequired` (two above `Payroll:Approval:DualApprovalThreshold`), `paymentBatchId` (the posting's disbursement batch; `null` before the posting) |
+| `GET api/payroll/payment-batches/{id}/orders?page=` | `Module.Payroll`, central-only (not the reviewer's) | `{ batchId, total, page, pageSize (500), orders }`, each order in the order of its employee id: `id`, `employeeId`, `salaryLineId`, `status`, `amount`, `holdReason`, `destinationPinned` (whether an account is pinned on it), `fileSequence` (the bank file that carried it; `null` until sent) |
