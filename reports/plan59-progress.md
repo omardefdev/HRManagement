@@ -257,3 +257,38 @@ Finished (UTC): 2026-11-27T11:54:07Z
 - QA-066: prodlike-cycle limit 40 → 27 (1.5 × 17m25s); prodlike 55 kept (1.5 × 35m44s ≈ 54). Unit suite before the push: first run's
   test host crashed (known flake), rerun with --blame 7,253/7,253.
 - Pushed AcPay59VpsChecks.cs and the limit as one commit (a second CI run); the older server checks keep running beside it.
+- PR #60 second CI run 46006396762 on a8a3b831 (13:21–~14:30Z): **16/16 green**, CLEAN (prodlike-cycle 16m22s under its new 27,
+  prodlike 25m48s, prodlike-final 27m22s, lab-main 23m52s, meta 18m49s, CI 30m33s).
+- The first run's artifact acceptance-evidence (run 45994047230) downloaded to artifacts/plan59/pr-evidence (58 MB; the first try
+  timed out on the link): AC-PAY-59 Pass (2026-08, 1,102 lines, 276,109,392.27 — the same as locally; Z 439,000 → 500,000; 59b 409;
+  6 min 6 s, 5 gateway waits), AC-12, AC-21, AC-23 Pass.
+- Older server checks (start 12:28:51Z): known local-only failure AC_POL_47_vps_the_migration (FileNotFound artifacts/plan47/vps/
+  fingerprint-before.json, lost with the Windows machine), recorded, not chased.
+- Older server checks, first pass (12:28:51–18:05:30Z, 5 h 37 min): 64 of 83 reported — 56 passed, 8 failed (AC_POL_47 migration: the
+  lost local file; AC_PAY_55 screens, AC_WF_45, AC_OPS_36e: HttpClient 60 s timeouts from this machine's link; AC_IAM_52 branch
+  manager: «No such container: timeout» from the ssh helper; AC_LVA_57 small unit: «Connection closed by … port 22»; AC_UX_67 portal
+  and AC_IAM_53 screens: sign-in landed on chromewebdata/ (Chromium's error page)). A browser tour then hung silently (17:26–18:05Z);
+  the run was stopped by its PIDs (testhost 552475, vstest 552441). **Stop/mistake:** my clean-up of the browser processes used
+  pgrep -f, whose pattern matched my own shell and ended that command (the lesson of PLAN-53): no harm (no other process matched), the
+  browser processes were gone; from here on, ids only.
+- Rerun: the 19 unreported checks and the 8 failed, each alone under a 20-minute limit (artifacts/plan59/tools/rerun-each.sh), from 18:06:12Z.
+- Reruns alone (18:06–20:58Z, each under 20 min; the loop's first try stopped after one check because the test read the list from
+  stdin — fixed with < /dev/null): **20 of 27 passed**. Not passed: AC_POL_47_vps_the_migration (the lost local file, as since
+  PLAN-53); Server_services_log_the_repository_legal_pack_fingerprint (hr-core-web was restarted at 15:27:15Z by an earlier boot check
+  and its logs rotate at 3 × 10 MB, so its start-up line is gone; hr-contracts-web and hr-movements-web carry it); and five browser or
+  transport flakes from this machine — AC_LVA_57 attendance screens («No such container: timeout»), AC_PAY_58 new screens and AC_IAM_53
+  screens (net::ERR_NETWORK_CHANGED: the owner's dev container hrm-keycloak restarts every minute, 14,070 restarts, not touched),
+  AC_UX_67 destructive form (sign-in landed on chromewebdata/), AC_UX_67 every key page (hit the 20-min limit: the same tour hung the
+  first pass). Those five get one more run each (from 20:58:49Z), then the postings' clean-up again.
+- Retries once more (20:59–21:44:39Z): AC_LVA_57 attendance screens, AC_PAY_58 new screens, AC_IAM_53 screens, AC_UX_67 destructive
+  form passed; AC_UX_67 every key page hit the limit again (third time). The postings' clean-up passed. **Final: 80 of 83 older server
+  checks passed**; the three not passed are environmental (POL-47's lost file, the rotated start-up line, the hanging full-page tour).
+- Final smoke -RequireIntegrationWiring (21:45:46Z): 50/0/1. End picture: tag 8086ac8629af, 47 G free; batches, orders and arrears as
+  before; runs 21 and lines 3,400 — PLAN-56's checks' two cancelled 2028-09 runs and one calculation (425 lines, 425 REGIME-BLOCKER holds
+  on the cancelled run), as on every deploy. Committed evidence and test-rewritten outputs restored; a server replay report moved
+  under artifacts/plan59/vps.
+Finished (UTC): 2026-11-27T21:48:23Z
+
+## Next step
+P10: commit the server's record (P9 message) and the final report; push (docs only: the PR's green run is reused); merge #60 when green;
+main pulled; merge note on docs/plan-59-merge-note; stop keep-awake by PID.
