@@ -213,3 +213,18 @@ Finished (UTC): 2026-11-27T10:58:32Z
 
 ## Next step
 P7: commit the documents (runbook etc.), OPS_VPS_SINGLE_HOST PLAN-59 section (pre-server part), check origin/main; then P8 gates.
+
+## P7 — the runbook, the documents, main
+- docs/runbooks/payroll-monthly-cycle.md (new, Arabic): the fifteen steps (role, screen, API), the operator's cases (rejection, hold,
+  HoldEmployee/BlockRun blocker, no account, missing attendance), and what this plan found (G-PAY-11 order of runs, D-53-1, when Block
+  is safe and how to see it, the people a posting needs, G-PAY-21, STR-002 2027-01-31), cancellation by the API.
+- PILOT_DEPLOYMENT (each indicator tied to AC-PAY-59; D-PAY-21's «مكتملة»), PAYROLL_RUN_RESUME (scripts cancel by the API),
+  PAY_001_GAP_STUDY (G-PAY-05 «الحالة»: closed by PLAN-59; the PR run's link in the final report), CI_AND_TESTING (prodlike-cycle, the
+  registry, the moved classes, AC-22, ACCEPTANCE_PAYROLL_CYCLE_FROM), PAYROLL_RULES (the two reads, P2), OPS_VPS_SINGLE_HOST (PLAN-59's
+  section; the server's table comes in P9), the plan's Status and «ملاحظات التنفيذ والانحرافات».
+- origin/main: unchanged since 708d2004 (git fetch, 10:59:24Z): no merge needed.
+Finished (UTC): 2026-11-27T10:59:24Z
+
+## Next step
+P8: Release build; local CI steps (run-steps.sh --all in a fresh clone of HEAD, compiler servers off); plan035-prepush; then the release
+branch, the push, the PR; start P9 beside the checks.
