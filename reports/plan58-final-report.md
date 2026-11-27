@@ -243,8 +243,12 @@ All times UTC, 2026-11-26 unless marked. Started 11:50:02Z (the progress file's 
   its 35-minute limit, so the limits were raised by QA-066's rule (1.5 × measured: prod-like 55, prod-like-final 60). Run 45896991607
   (`64dfffff`, 21:16Z): the architecture rule «no return after a result», so the check was restructured. Run 45901561330 (`4a6f21ae`,
   21:57 → 22:59Z): 15/15 green, 62 min. Actions so far: 741 job-minutes (280 + 174 + 242 + the build's 45).
-- **The last CI wait:** the push of the PAY-54 query fix and these documents needs one more full run on the head before the merge (≈ 62
-  min, the only time the plan waited on CI). Its run, the merge and the final wall-clock are in the progress file's merge note.
+- **The last CI waits:** run 45914768450 (`b74faeef`, the PAY-54 query fix and these documents, 00:06Z on 2026-11-27): 14 of 15 green;
+  the prod-like stage failed on AC-IAM-52a (PLAN-52's class): «central-a's list does not show the ALEP record». The test picks a random
+  free day for its attendance record; it picked 2025-03-05, a day of a month AC-LVA-57 (PLAN-57, same stage) fills for every employee
+  of its tenant, and the list of one day shows its first 100 records with no order but the date. A collision of two test classes'
+  data, not of this plan's code: the day must now also hold fewer than half a page of records (the assertion unchanged). One more run on
+  the head; it, the merge and the final wall-clock are in the progress file's merge note.
 - **Local build and acceptance times:** baseline build 4 min 41 s; full unit suite 8 min 7 s; Testcontainers step 18 min; 16 service
   images one at a time 25 min; a prod-like stack 16 min to ready; the migrator image for least privilege 21 min.
 - **Stops:** one `BLOCKED` (above). No `WAITING-CI`. The context was compacted between turns, which is not a stop.

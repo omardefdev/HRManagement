@@ -291,3 +291,7 @@ Finished (UTC): 2026-11-27T00:04:45Z
 ## P11 — Docs, the final CI run, the merge
 - Docs updated: OPS_VPS_SINGLE_HOST.md (PLAN-58's section, the change table rows 1–8, what the checks leave), the final report
   (§12, §13, §16). The PAY-54 server check's query fix and the documents pushed; one more full CI run on the head before the merge.
+- CI run 45914768450 (b74faeef): 14/15; prodlike failed on AC-IAM-52a «central-a's list does not show the ALEP record». Cause: the
+  test's random free day was 2025-03-05, in a month AC-LVA-57 fills for every employee of its tenant (same stage), and one day's list
+  shows its first 100 records ordered by date only. Fixed in the test's day choice (fewer than half a page on that day); the
+  assertion is unchanged. Not this plan's code; possible since PLAN-57 put AC-LVA-57 in the prod-like main group.
