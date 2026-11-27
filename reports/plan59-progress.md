@@ -89,3 +89,18 @@ Finished (UTC): 2026-11-27T06:22:05Z
 
 ## Next step
 P4: rewrite Ac12PayrollSodTests on a calculated, validated run of D-PAY-22's month.
+
+## P4 — AC-12
+- `Ac12PayrollSodTests` rewritten, `[RequiredAcceptance]`: D-PAY-22's month on the main stack (`PayrollCycleDriver.CycleMonthAsync`:
+  the registry's candidates, the attendance-closed skip read by central-a, created by the processor); classify before calculating;
+  calculate + validate (ResultsFrozen); processor approve 403; a-payroll-multirole approve 403 with two payroll roles named; submit,
+  approve (+ a-payroll-approver-2 when required) → Approved with approvalsGiven = approvalsRequired (P-9's read); approver post 403;
+  poster post before review 400 = ReviewRequired's text; auditor opens, a-auditor-2 closes; poster posts → Posted with its batch.
+  `finally`: `CancelUnlessPostedAsync` (processor before review, approver after).
+- New `PayrollCycleDriver.cs`: `PayrollApi` (one person's client, captured calls) and the D-PAY-22 picker; extended in P5.
+- Acceptance project builds; solution build 0 warnings; format clean. (Run on the local main stack in P6.)
+Finished (UTC): 2026-11-27T06:25:51Z
+
+## Next step
+P5: AcPay59FullCycleTests + PayrollCycleDriver steps; ci-scope (cycle group, prodlike-cycle job, ci.yml, prodlike-final), the moved
+classes, ac-ownership.json; scripts/pay059-validate.ps1 with -SelfTest.
