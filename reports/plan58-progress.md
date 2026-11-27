@@ -271,3 +271,23 @@ Finished (UTC): 2026-11-26T18:33:10Z
   builds the images on GitHub Actions from the pushed release branch: the push comes before the server checks (deviation recorded).
 - AcPay58VpsChecks written (5 checks: migration and picture, removed paths 404, hradmin's conflict refusal audited, an arrears
   request rejected by the approver with nothing changed, the screens under the CSP); the report written before the local gates.
+- Local gates on the merged branch: ci-local (security scan's NuGet timeout; its steps rerun, summary 87 passed, 5 not run), the
+  Release build (found CS8629 as an error: `bc4703ce`), gitleaks clean. `release/plan-58` (`25be64cf`) pushed, PR #59.
+- GHCR build: `deploy.yml action=build` on `release/plan-58` (run 45889506130, 20:13:52–20:24:48Z): 17/17 images `25be64cf9fa8`.
+- Backup `/opt/hrm/backups/pre-plan58-20261126T201439Z` (verified); the read-only picture as at P0.
+- Deploy `scripts/vps/deploy.ps1 -Tag 25be64cf9fa8` (previous 0dd3564560b6), 20:25:30–20:31:19Z, first time; smoke 50/0/1 warn.
+- AC_PAY_58_vps_* 5/5 (20:33–20:44Z). Left: one rejected arrears adjustment request.
+- Older plans' checks (20:44:51–23:33:46Z): 72/78. The six: four PLAN-54/55/56 checks written for hradmin acting in payroll (now
+  refused, D-PAY-20; adapted in 64dfffff and 4a6f21ae), AC_POL_47 (the local cause PLAN-53 recorded), AC_WF_46 (a 5,000-line tail
+  of a log that grew 27,267 lines in 40 min).
+- PR #59 CI meanwhile: run 1 the prod-like stage at its 35-min limit (limits raised by QA-066's rule: 55 and 60); run 2 the
+  architecture rule «no return after a result» (restructured); run 3 (45901561330, 4a6f21ae) 15/15 green, 62 min.
+- Reruns on the demo (23:35–23:59Z): PAY-55, PAY-56 reversal and screens pass; PAY-54's cycle hit its own query (`||` with no
+  attestation is NULL, the row vanished): coalesced, then passed; AC_WF_46 passed alone after the 23:58:01 sweep.
+- Final smoke 23:59:41Z (`-RequireIntegrationWiring`): 50 pass, 0 fail, 1 warn. Demo up on 25be64cf9fa8, 54 G free.
+- Evidence the local runs rewrote (acceptance-evidence, testdata/*/out, a replay report) restored or moved under artifacts/.
+Finished (UTC): 2026-11-27T00:04:45Z
+
+## P11 — Docs, the final CI run, the merge
+- Docs updated: OPS_VPS_SINGLE_HOST.md (PLAN-58's section, the change table rows 1–8, what the checks leave), the final report
+  (§12, §13, §16). The PAY-54 server check's query fix and the documents pushed; one more full CI run on the head before the merge.

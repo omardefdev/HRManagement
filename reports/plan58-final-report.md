@@ -35,7 +35,11 @@ Progress, decisions and every stop: `reports/plan58-progress.md`. Baseline: `rep
 | `2c2999d2` | test(pay058): PostgreSQL proofs |
 | `84989574` | test(pay058): AC-PAY-58a..h, AC-24 and AC-25; review fixes; CI scope and ownership |
 | `f4afd0aa` | merge of `origin/main` (PR #58, GHCR release images) |
-| later | the server checks class, docs and this report (see `git log`) |
+| `09eeebb6` | test(pay058): the demo server's checks, the plan's status and deviations, and the final report |
+| `bc4703ce` | test(pay058): a nullable warning that is an error in Release |
+| `25be64cf` | merge of the plan's branch into `release/plan-58` (the tag deployed) |
+| `64dfffff`, `4a6f21ae` | fix(pay058): the prod-like stage's job limits by QA-066's rule; the older server checks meet `hradmin`'s conflict refusal |
+| later | the PAY-54 server check's query, the server's results, the timing (see `git log`) |
 
 ## 3. Decisions applied and deviations
 
@@ -152,11 +156,52 @@ commands, the removed paths; each with a planted case), `PayrollWriteActionsTest
 - Acceptance, local fresh stacks: AC-PAY-58 8/8 (twice); AC-PAY-54/55/56, AC-IAM-50..53, AC-LVA-57, AC-HCM-25 55/55; AC-UX-67 7/7;
   isolated 46/47 (AC-37b needs the E2E journey, CI-only); lab AC-21, 23, 24, 25, V2 catalog, AC-HCM-29 green, AC-12 Blocked (PLAN-59,
   as on main); AC-OPS-38 8/8; AC-TEN-48 502 twice (first test at the stack's start, before HR.Core was ready). Seeded counts 64/64.
-- **The evidence of record is the PR run's artifact** (link in §16 once the run is green).
+- **The evidence of record is the PR run's artifact** `acceptance-evidence`: the last green run on the PR's head. At the time of writing
+  [run 45901561330](https://github.com/omardefdev/HRManagement/actions/runs/45901561330) on `4a6f21ae` (15/15 green); the run on the
+  head that is merged (the PAY-54 server check's query fix and these documents) is named in the progress file's merge note.
 
 ## 13. The server
 
-*Filled in after the deploy: before and after, the change table and its undo, the backup, the checks, the rollback note.*
+- **The gate (P-17).** At P10 the demo ran `0dd3564560b6`, a commit of the owner's open PR #58 only. Stopped `BLOCKED` at
+  2026-11-26T18:34:41Z; the owner answered «ادمجه واكمل»: PR #58 (15/15 green, CLEAN) merged at 18:38:30Z (`34001753`), `main` merged into
+  the branch (P9). From then on `main` documents the GHCR path and that nothing is built on the server.
+- **Backup:** `/opt/hrm/backups/pre-plan58-20261126T201439Z` (700, files 600): `pg_dumpall.sql` 48,351,999 bytes with 17
+  `CREATE DATABASE` lines, `env.backup`, `SHA256SUMS` verified.
+- **Picture before the deploy** (read-only, the same as P0's): runs `16|f3e7fb6493ab266e0bf3cbbad17ab2d3`, lines
+  `2550|b2dbd262436b4eeda983509bcc3cc323`, batches `6|31924d4517c7a7d8112ac29885438542`, orders none, arrears
+  `15|747ae32f3066ecc513aa302862d79c82`; no hold, alert or funding decision; 61 G free.
+- **Build:** GitHub Actions `deploy.yml action=build` on `release/plan-58` (run 45889506130, 20:13:52Z, ~11 min): 17 of 17 images
+  `25be64cf9fa8`, Trivy-clean and signed.
+- **Deploy:** `scripts/vps/deploy.ps1 -Tag 25be64cf9fa8` (previous `0dd3564560b6`), first time, 277.7 s: pull 86, up 123,
+  bootstrap 54 (PAY058 migration), keycloak reconcile 12, healthy 18. Smoke: 50 pass, 0 fail, 1 warn (the client-side port check).
+  55 G free after it.
+- **This plan's checks** (`AcPay58VpsChecks`, 20:33–20:44Z): 5/5 — PAY058 recorded, its two tables under forced row security and the
+  money as in the picture; `partial-disburse`, the treasury file and its bundle 404; `hradmin`'s approve, post and process 403 naming
+  the pair, with RoleConflict lines in Payroll's security audit, nothing changed; an arrears adjustment asked by the processor (the
+  entry's own amounts) is in the approver's inbox and not the requester's, the requester cannot decide it, the approver rejects it with
+  a note, the entry unchanged; the inbox, the batches and a batch's page, a run's page, the holds' and alerts' pages under the enforced
+  CSP with no violation, no approver field, and the review records refused to `hradmin` (no auditor on the demo).
+- **What it left:** one rejected four-eyes request on an existing arrears entry. Nothing posted, funded, processed, settled or
+  calculated; no user added.
+- **Older plans' checks** (`AcOps36VpsBootTests` and `AcInt37VpsServerTests` without this plan's and 36j, 20:44:51–23:33:46Z): **72 of
+  78 passed**. Six did not:
+  - four PLAN-54/55/56 checks were written for `hradmin` acting in payroll, which this plan refuses (D-PAY-20). They were adapted to
+    assert the refusal and keep the rest of their meaning (`64dfffff`, `4a6f21ae`). Rerun on the demo: PAY-55 and both PAY-56 checks
+    passed; PAY-54's cycle found its own query: `||` with no attestation gives `NULL`, so the row vanished. It was fixed with
+    `coalesce`, and then passed;
+  - `AC_POL_47`: the local cause PLAN-53 recorded (it reads `artifacts/plan47/vps/fingerprint-before.json`, lost with the formatted
+    Windows machine);
+  - `AC_WF_46`: it reads the last 5,000 lines of `idcard-web`'s log, which grew by 27,267 lines in 40 minutes under the checks' traffic.
+    Run alone after a sweep (23:58:01Z), it passed.
+  Final smoke (`-RequireIntegrationWiring`, 23:59:41Z): 50 pass, 0 fail, 1 warn (the client-side port check). The demo is up on
+  `25be64cf9fa8` with 54 G free. What the older checks leave is what they leave on every deploy: three of PAY-56's runs in 2028-09,
+  cancelled (one calculation held the 425 employees `REGIME-BLOCKER` on that cancelled run: shown `Active`, holding nothing, §15);
+  versions under `LAW_50_2004_CHK54`, approved and never published or activated; rejected requests.
+- **Rollback:** `scripts/vps/deploy.ps1 -Rollback` (`0dd3564560b6` from GHCR). PLAN-57/#58's code cannot read an order stored `Held`
+  (written at a posting for a line without an account) or an arrears row `Voided`, and brings back the partial disbursement and the
+  treasury file: no posting, funding, sending or reversal while it runs; once such data exists the way back is a fix forward.
+- **What the demo needs before a posting:** a poster, a second approver (the agency's runs are above 50,000,000), two auditors, and its
+  service regimes classified (a calculation now holds all 425 employees `REGIME-BLOCKER`).
 
 ## 14. Changes for API clients and operators
 
@@ -181,7 +226,30 @@ commands, the removed paths; each with a planted case), `PayrollWriteActionsTest
 
 ## 16. Timing
 
-*Filled in at the end (total, active, CI waits, every stop, build/acceptance/deploy times, Actions minutes, `plan-timing.ps1`).*
+All times UTC, 2026-11-26 unless marked. Started 11:50:02Z (the progress file's first line).
+
+| Stretch | From → to | Duration |
+|---|---|---|
+| P0–P9 (baseline to green local gates, before the server) | 11:50:02 → 18:33:10 | 6 h 43 min |
+| **Stop 1 — `BLOCKED` at P10** (the demo ran a commit of the owner's open PR #58; P-17's «when» failed) | 18:34:41 → the owner's «ادمجه واكمل» 18:37 | ~3 min waiting on the owner |
+| Merge #58, merge `main` into the branch, the server checks written, the local gates again (ci-local 15 + 47 min, Release build, gitleaks) | 18:38:30 → 20:13 | 1 h 35 min |
+| GHCR build of `25be64cf9fa8` (Actions `deploy.yml action=build`, run 45889506130) | 20:13:52 → 20:24:48 | 11 min (45 job-minutes) |
+| Deploy (`deploy.ps1 -Tag 25be64cf9fa8`, first time) | 20:25:30 → 20:31:19 | 5 min 49 s |
+| This plan's server checks (5/5) | 20:33 → 20:44 | 11 min |
+| The older plans' server checks (78) | 20:44:51 → 23:33:46 | 2 h 49 min |
+| Reruns of the adapted checks, WF-46 after a sweep, smoke | 23:35 → 23:59:41 | 25 min |
+
+- **CI on PR #59, run alongside the server work** (no turn waited on it): run 45889447056 (`25be64cf`, 20:13Z): the prod-like stage hit
+  its 35-minute limit, so the limits were raised by QA-066's rule (1.5 × measured: prod-like 55, prod-like-final 60). Run 45896991607
+  (`64dfffff`, 21:16Z): the architecture rule «no return after a result», so the check was restructured. Run 45901561330 (`4a6f21ae`,
+  21:57 → 22:59Z): 15/15 green, 62 min. Actions so far: 741 job-minutes (280 + 174 + 242 + the build's 45).
+- **The last CI wait:** the push of the PAY-54 query fix and these documents needs one more full run on the head before the merge (≈ 62
+  min, the only time the plan waited on CI). Its run, the merge and the final wall-clock are in the progress file's merge note.
+- **Local build and acceptance times:** baseline build 4 min 41 s; full unit suite 8 min 7 s; Testcontainers step 18 min; 16 service
+  images one at a time 25 min; a prod-like stack 16 min to ready; the migrator image for least privilege 21 min.
+- **Stops:** one `BLOCKED` (above). No `WAITING-CI`. The context was compacted between turns, which is not a stop.
+- `pwsh -NoProfile -File scripts/plan-timing.ps1 -From 25 -To 67` before the merge: PLAN-58, 14 commits, first commit 14:55 Riyadh
+  (11:55Z), span 8 h 17 min to the release branch's merge commit; the merge note records it after the PR merge.
 
 ## 17. Readiness note
 
