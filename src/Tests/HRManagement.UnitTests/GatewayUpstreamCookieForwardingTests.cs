@@ -15,6 +15,11 @@ public class GatewayUpstreamCookieForwardingTests
     private const string BrowserCookies =
         ".AspNetCore.Cookies=abc; .AspNetCore.Antiforgery.xyz=token1; careers_session=CfDJ8-session; KEYCLOAK_SESSION=xyz";
 
+    // FIX-CAREERS-REF: a candidate's browser right after an apply — HR.Core's flash cookie (the reference number) beside the rest.
+    private const string BrowserCookiesWithFlash =
+        ".AspNetCore.Cookies=abc; .AspNetCore.Antiforgery.xyz=token1; .AspNetCore.Mvc.CookieTempDataProvider=CfDJ8-flash; "
+        + "careers_session=CfDJ8-session; KEYCLOAK_SESSION=xyz";
+
     [Fact]
     public void The_flash_message_cookie_passes_under_its_exact_name_only()
     {
@@ -87,11 +92,38 @@ public class GatewayUpstreamCookieForwardingTests
     [Fact]
     public void BuildUpstreamCookieHeader_on_the_careers_route_still_drops_every_other_cookie_name()
     {
+        // FIX-CAREERS-REF: the flash cookie's exact name left this list (it now crosses, see the next test); its near-names stay.
         var input =
-            "careers_session2=a; xcareers_session=b; Careers_Session=c; careers_session_old=d; .AspNetCore.Mvc.CookieTempDataProvider=e; "
+            "careers_session2=a; xcareers_session=b; Careers_Session=c; careers_session_old=d; x.AspNetCore.Mvc.CookieTempDataProvider=e; "
+            + ".AspNetCore.Mvc.CookieTempData=e2; .AspNetCore.Mvc.CookieTempDataProviderC1=e3; .aspnetcore.mvc.cookietempdataprovider=e4; "
             + ".AspNetCore.Cookies=f; .AspNetCore.Session=g; KEYCLOAK_SESSION=h; careers=i";
 
         Assert.Null(GatewayUpstreamCookieForwarding.BuildUpstreamCookieHeader(input, forwardCareersSession: true));
+    }
+
+    [Fact]
+    public void BuildUpstreamCookieHeader_on_the_careers_route_keeps_the_flash_message_cookie_under_its_exact_name_only()
+    {
+        // FIX-CAREERS-REF: HR.Core's flash cookie (scoped to /careers, no identity) carries the reference number to the
+        // confirmation page and the portal's refusals to the page they land on.
+        Assert.Equal(
+            ".AspNetCore.Antiforgery.xyz=token1; .AspNetCore.Mvc.CookieTempDataProvider=CfDJ8-flash; careers_session=CfDJ8-session",
+            GatewayUpstreamCookieForwarding.BuildUpstreamCookieHeader(BrowserCookiesWithFlash, forwardCareersSession: true));
+        Assert.Equal(
+            ".AspNetCore.Mvc.CookieTempDataProvider=flash",
+            GatewayUpstreamCookieForwarding.BuildUpstreamCookieHeader(
+                ".AspNetCore.Cookies=abc; .AspNetCore.Mvc.CookieTempDataProvider=flash; .AspNetCore.Mvc.CookieTempData=no; "
+                + "x.AspNetCore.Mvc.CookieTempDataProvider=no; KEYCLOAK_SESSION=no",
+                forwardCareersSession: true));
+    }
+
+    [Fact]
+    public void BuildUpstreamCookieHeader_off_the_careers_route_forwards_what_it_did_before_the_fix()
+    {
+        // FIX-CAREERS-REF (F-6): the staff routes keep antiforgery and the flash cookie, and never the candidate portal session.
+        Assert.Equal(
+            ".AspNetCore.Antiforgery.xyz=token1; .AspNetCore.Mvc.CookieTempDataProvider=CfDJ8-flash",
+            GatewayUpstreamCookieForwarding.BuildUpstreamCookieHeader(BrowserCookiesWithFlash, forwardCareersSession: false));
     }
 
     [Theory]
@@ -154,6 +186,43 @@ public class GatewayUpstreamCookieForwardingTests
         Assert.Null(signedIn.Authorization);
         Assert.Null(clientBearer.Authorization);
         Assert.Equal(".AspNetCore.Antiforgery.xyz=token1; careers_session=CfDJ8-session", signedIn.Cookie);
+    }
+
+    [Theory]
+    [InlineData("/careers/submitted")]
+    [InlineData("/careers/")]
+    [InlineData("/careers/a0000001-0000-4000-8000-000000000513")]
+    public async Task Transform_carries_the_flash_message_cookie_to_hr_core_on_the_careers_route_without_staff_credentials(string requestPath)
+    {
+        // FIX-CAREERS-REF: the request for the confirmation page (or the page a refusal lands on) reaches HR.Core with its flash
+        // cookie, even from a signed-in staff browser or with a client Bearer header, and with no Authorization header.
+        var signedIn = await RunTransformAsync(
+            "careers-public", "/careers/{**catch-all}", requestPath, BrowserCookiesWithFlash, accessToken: "staff-token");
+        var clientBearer = await RunTransformAsync(
+            "careers-public", "/careers/{**catch-all}", requestPath, BrowserCookiesWithFlash, incomingAuthorization: "Bearer client-token");
+
+        const string expected =
+            ".AspNetCore.Antiforgery.xyz=token1; .AspNetCore.Mvc.CookieTempDataProvider=CfDJ8-flash; careers_session=CfDJ8-session";
+        Assert.Equal(expected, signedIn.Cookie);
+        Assert.Equal(expected, clientBearer.Cookie);
+        Assert.Null(signedIn.Authorization);
+        Assert.Null(clientBearer.Authorization);
+    }
+
+    [Theory]
+    [InlineData("hr-core-ui", "/ui/hr-core/{**catch-all}", "/ui/hr-core/Employees")]
+    [InlineData("hr-core-api", "/api/hr-core/{**catch-all}", "/api/hr-core/employees")]
+    [InlineData("ess-ui", "/ui/ess/{**catch-all}", "/ui/ess/")]
+    public async Task Transform_on_the_staff_routes_forwards_exactly_what_it_did_before_the_fix(
+        string routeId,
+        string pathPattern,
+        string requestPath)
+    {
+        // FIX-CAREERS-REF (F-6): antiforgery and the flash cookie, never careers_session, and the staff token as before.
+        var signedIn = await RunTransformAsync(routeId, pathPattern, requestPath, BrowserCookiesWithFlash, accessToken: "staff-token");
+
+        Assert.Equal(".AspNetCore.Antiforgery.xyz=token1; .AspNetCore.Mvc.CookieTempDataProvider=CfDJ8-flash", signedIn.Cookie);
+        Assert.Equal("Bearer staff-token", signedIn.Authorization);
     }
 
     [Theory]

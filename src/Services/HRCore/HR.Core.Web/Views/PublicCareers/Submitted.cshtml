@@ -1,13 +1,31 @@
 @{
     ViewData["Title"] = "تم استلام الطلب";
     Layout = "_PublicLayout";
+    @* FIX-CAREERS-REF: the number arrives once, in the flash message of the apply; a reload, an expired cookie or a direct visit has none. *@
+    var reference = ViewBag.Reference as string;
+    var candidateMessages = ViewBag.CandidateMessagesConfigured is true;
 }
 <div class="careers-card text-center">
     <div class="card-body p-5">
-        <i class="fas fa-check-circle fa-3x mb-3 careers-success" aria-hidden="true"></i>
-        <h1 class="h3 careers-success fw-bold mb-3">تم استلام طلبك بنجاح</h1>
-        <p class="text-muted fs-5">احتفظ بالرقم المرجعي التالي لتتبّع حالة طلبك:</p>
-        <p class="h2 my-3"><span class="careers-badge"><bdi dir="ltr">@ViewBag.Reference</bdi></span></p>
+        @if (!string.IsNullOrWhiteSpace(reference))
+        {
+            <i class="fas fa-check-circle fa-3x mb-3 careers-success" aria-hidden="true"></i>
+            <h1 class="h3 careers-success fw-bold mb-3">تم استلام طلبك بنجاح</h1>
+            <p class="text-muted fs-5">احتفظ بالرقم المرجعي التالي لتتبّع حالة طلبك:</p>
+            <p class="h2 my-3"><span class="careers-badge" data-reference-number><bdi dir="ltr">@reference</bdi></span></p>
+            <p class="text-muted">يظهر هذا الرقم مرة واحدة فقط، فدوّنه أو احفظه الآن.</p>
+        }
+        else
+        {
+            <i class="fas fa-info-circle fa-3x mb-3 text-muted" aria-hidden="true"></i>
+            <h1 class="h3 fw-bold mb-3">لا يوجد رقم مرجعي لعرضه</h1>
+            <p class="text-muted fs-5" data-reference-unavailable>يظهر الرقم المرجعي مرة واحدة فقط بعد تقديم الطلب، ولا يُحفظ لعرضه لاحقاً.</p>
+            <p class="text-muted">إذا لم تحتفظ به، فيمكن لمكتب التوظيف في الجهة المعلنة عن الوظيفة مساعدتك في الوصول إلى طلبك.</p>
+            @if (candidateMessages)
+            {
+                <p class="text-muted">وإن وافقت على تلقي الإشعارات عند التقديم، فستصلك رسالة تتضمن الرقم المرجعي على وسيلة التواصل التي اخترتها.</p>
+            }
+        }
         <div class="mt-4">
             <a asp-action="Track" class="btn careers-btn-primary"><i class="fas fa-search ms-1" aria-hidden="true"></i> تتبّع الطلب</a>
             <a asp-action="Index" class="btn careers-btn-outline me-2">العودة للوظائف</a>

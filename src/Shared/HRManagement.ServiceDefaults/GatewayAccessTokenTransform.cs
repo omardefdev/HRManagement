@@ -11,8 +11,8 @@ namespace HRManagement.ServiceDefaults;
 
 /// <summary>
 /// Forwards the gateway OIDC access token to upstream module services (never on the anonymous careers route).
-/// Strips gateway OIDC/session cookies but preserves module antiforgery cookies for form POSTs
-/// (and, on the careers route only, the candidate portal <c>careers_session</c> cookie).
+/// Strips gateway OIDC/session cookies but preserves module antiforgery cookies for form POSTs and the module's flash message
+/// cookie (and, on the careers route only, the candidate portal <c>careers_session</c> cookie).
 /// </summary>
 public sealed class GatewayAccessTokenTransformProvider : ITransformProvider
 {
@@ -42,7 +42,8 @@ public sealed class GatewayAccessTokenTransformProvider : ITransformProvider
             }
         }
 
-        // HCM-030 (H5): the candidate portal session cookie reaches HR.Core on the careers route only.
+        // HCM-030 (H5): the candidate portal session cookie reaches HR.Core on the careers route only. FIX-CAREERS-REF: HR.Core's
+        // flash cookie (scoped to /careers there, no identity) crosses too, so the confirmation page shows the reference number.
         var forwardCareersSession = GatewayUpstreamCookieForwarding.IsCareersRoute(context.Route.RouteId, pathPattern);
 
         context.AddRequestTransform(async transformContext =>

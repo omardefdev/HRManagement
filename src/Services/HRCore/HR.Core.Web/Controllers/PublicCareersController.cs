@@ -358,10 +358,19 @@ public class PublicCareersController(
             "application/pdf", $"results-{view.Competition.Number}.pdf");
     }
 
+    /// <summary>
+    /// The confirmation page of both apply paths. FIX-CAREERS-REF: the reference number arrives once, in the flash message
+    /// written by <see cref="Apply"/> or <see cref="ApplyCompetition"/>; reading it here ends it, so a reload, an expired cookie or
+    /// a direct visit has none and the page says so. The number never goes into a URL or a log.
+    /// </summary>
     [HttpGet("submitted")]
-    public IActionResult Submitted()
+    public IActionResult Submitted(
+        [FromServices] IOptions<HRManagement.ServiceDefaults.Notifications.CandidateNotificationOptions> candidateMessages)
     {
-        ViewBag.Reference = TempData["Reference"];
+        ViewBag.Reference = TempData["Reference"] as string;
+        // The page promises a message with the number only when a provider can send one (not Provider=None, the demo's setting).
+        ViewBag.CandidateMessagesConfigured =
+            candidateMessages.Value.ProviderKind != HRManagement.ServiceDefaults.Notifications.CandidateNotificationProvider.None;
         return View();
     }
 

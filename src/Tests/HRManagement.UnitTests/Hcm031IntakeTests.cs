@@ -73,7 +73,10 @@ public sealed class Hcm031IntakeTests
 
         var result = await controller.ApplyCompetition(ApplyModel(competition, "0102030405", lines[1].Id, lines[0].Id));
 
-        Assert.Equal(nameof(PublicCareersController.Submitted), Assert.IsType<RedirectToActionResult>(result).ActionName);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(nameof(PublicCareersController.Submitted), redirect.ActionName);
+        // FIX-CAREERS-REF: the number reaches the confirmation page through the flash message only, never through its URL.
+        Assert.True(redirect.RouteValues is null || redirect.RouteValues.Count == 0);
         var application = await db.RecruitmentApplications.AsNoTracking().SingleAsync();
         Assert.Equal(competition.Id, application.CompetitionId);
         Assert.Null(application.RequisitionId);
@@ -85,6 +88,7 @@ public sealed class Hcm031IntakeTests
         var citizen = await db.CitizenApplications.AsNoTracking().SingleAsync();
         Assert.Null(citizen.RequisitionId);
         Assert.Equal(application.Id, citizen.PromotedRecruitmentApplicationId);
+        Assert.Equal(citizen.ReferenceNumber, controller.TempData["Reference"]);
         Assert.Contains(await db.RecruitmentApplicationEvents.AsNoTracking().ToListAsync(),
             e => e.RecruitmentApplicationId == application.Id && e.EventType == RecruitmentApplicationEventTypes.Received);
     }

@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using HRManagement.ServiceDefaults;
 using HRManagement.ServiceDefaults.Seeding;
+using HRManagement.SharedKernel;
 using HRManagement.SharedKernel.Legal;
 
 namespace HRManagement.AcceptanceTests;
@@ -15,8 +16,10 @@ namespace HRManagement.AcceptanceTests;
 /// review) and the three exam markers (a-exam-marker, -2, -3; role hr-exam-marker, exam numbers only).
 /// Fixtures come from <c>AcceptanceCompetitionPatch</c>: three approved requisitions for 31a, and competition
 /// <see cref="AcceptanceSeedIds.CompetitionNumber"/> at IntakeClosed with 120 admitted applicants for 31b–g (the journey
-/// mutates it; <c>scripts/acceptance-reset.ps1</c> re-arms it). Ids the UI shows only through TempData are read by SQL.
-/// Test-only SQL preconditions are documented at each use. No national id or score reaches a candidate message.
+/// mutates it; <c>scripts/acceptance-reset.ps1</c> re-arms it). Ids HR's screens show only through TempData are read by SQL;
+/// FIX-CAREERS-REF: a candidate's reference number is read from the confirmation page (AC-31a), and only checked against the
+/// database. Test-only SQL preconditions are documented at each use. No national id or score reaches a candidate message or the
+/// evidence.
 /// </summary>
 [RequiredAcceptance]
 public class AcHcm31CompetitionTests
@@ -33,6 +36,9 @@ public class AcHcm31CompetitionTests
     // AcceptanceCompetitionPatch: ObjectionWindowDays 7, ReconcileThreshold 10 (acceptance test data).
     private const int ObjectionWindowDays = 7;
     private const string ApplicantNamePrefix = "متقدم المسابقة";
+    // FIX-CAREERS-REF: the portal's refusals, shown on the page the candidate lands on (CompetitionIntakeService).
+    private const string DuplicateCompetitionMessage = "سبق تقديم طلب على هذه المسابقة بهذا الرقم الوطني.";
+    private const string ClosedCompetitionMessage = "التقديم على هذه المسابقة مغلق.";
 
     // ── AC-HCM-31a: competition from approved requisitions → approval (creator excluded) → announcement ─────────────
 
@@ -53,6 +59,10 @@ public class AcHcm31CompetitionTests
             2. Negative: a requisition already published (attached to the seeded competition) is refused.
             3. Submit → RECRUITMENT-COMPETITION-APPROVAL. Negative: the creator cannot approve. central-a2 then a-management-approver approve.
             4. Announce → one public posting; /careers/competitions/{id} shows the title and both lines; the requisitions are Published.
+            5. FIX-CAREERS-REF: an anonymous citizen applies on /careers/competitions/{id} through the gateway → the confirmation page's
+               badge shows his reference number (read from the page, then checked against the citizen row); a second apply with the
+               same national id is refused on the competition page («سبق تقديم طلب على هذه المسابقة…», shown once); an apply on the
+               seeded competition, whose intake is closed, is refused on its page («التقديم على هذه المسابقة مغلق.»). Nothing more saved.
             """);
 
         var grades = (await Sql(
@@ -114,7 +124,44 @@ public class AcHcm31CompetitionTests
         Assert.Contains("السطر الأول (قبول)", publicPage);
         Assert.Contains("السطر الثاني (قبول)", publicPage);
 
-        s.Recorder.WriteDbChecks(new { competitionId = id, lines, attached = drafts, status = "Announced" });
+        // FIX-CAREERS-REF: the competition apply path of the confirmation page, and two of the portal's refusals.
+        var citizen = new Ui(CreateAnonymousClient(), s.Recorder, "citizen", s.Tag);
+        var suffix = Guid.NewGuid().ToString("N")[..6];
+        var nationalId = "31" + Random.Shared.NextInt64(100_000_000, 999_999_999).ToString(CultureInfo.InvariantCulture);
+        var nationalIdHash = PiiMask.Sha256Hex(nationalId);
+        List<KeyValuePair<string, string>> ApplyForm(string competitionId, string postingId) =>
+        [
+            new("CompetitionId", competitionId), new("PublicJobPostingId", postingId), new("Preferences[0]", lines[0]),
+            new("FullName", $"مواطن بوابة المسابقة {suffix}"), new("NationalId", nationalId), new("Email", $"ac31a-{suffix}@test.sy"),
+            new("PreferredChannel", "Email"), new("NotificationConsent", "true"), new("PrivacyConsent", "true"), new("Website", string.Empty)
+        ];
+        var postingId = HiddenValue(publicPage, "PublicJobPostingId");
+        var confirmation = await citizen.PostAsync("31a-public-apply", "careers/competitions/apply", $"careers/competitions/{id}",
+            ApplyForm(id, postingId));
+        var shownReference = HRManagement.E2E.CareersConfirmationPage.RequireReference(confirmation, "31a");
+        var citizenRow = (await Sql(
+            "SELECT c.\"ReferenceNumber\" || '|' || a.\"CompetitionId\"::text FROM \"CitizenApplications\" c " +
+            "JOIN \"RecruitmentApplications\" a ON a.\"Id\"=c.\"PromotedRecruitmentApplicationId\" " +
+            $"WHERE c.\"NationalIdHash\"='{nationalIdHash}';")).Split('|');
+        Assert.True(citizenRow.Length == 2 && string.Equals(citizenRow[0], shownReference, StringComparison.Ordinal),
+            "31a: the confirmation page shows a reference number that is not the citizen row's.");
+        Assert.Equal(id, citizenRow[1]);
+        var duplicate = await citizen.PostAsync("31a-public-apply-duplicate", "careers/competitions/apply", $"careers/competitions/{id}",
+            ApplyForm(id, postingId));
+        Assert.Contains(title, duplicate);
+        Assert.Single(Regex.Matches(duplicate, Regex.Escape(DuplicateCompetitionMessage)));
+        Assert.True(HRManagement.E2E.CareersConfirmationPage.ReadReference(duplicate) is null, "31a: the duplicate apply reached a confirmation page.");
+        // The seeded competition's intake is closed: refused on its page. The token comes from the open competition's page.
+        var seeded = AcceptanceSeedIds.CompetitionId.ToString("D");
+        var seededTitle = await Sql($"SELECT \"Title\" FROM \"RecruitmentCompetitions\" WHERE \"Id\"='{seeded}';");
+        var closed = await citizen.PostAsync("31a-public-apply-closed", "careers/competitions/apply", $"careers/competitions/{id}",
+            ApplyForm(seeded, await Sql($"SELECT COALESCE(\"PublicJobPostingId\"::text,'') FROM \"RecruitmentCompetitions\" WHERE \"Id\"='{seeded}';")));
+        Assert.Contains(seededTitle, closed); // it lands on the seeded competition's own page
+        Assert.Single(Regex.Matches(closed, Regex.Escape(ClosedCompetitionMessage)));
+        Assert.True(HRManagement.E2E.CareersConfirmationPage.ReadReference(closed) is null, "31a: the closed apply reached a confirmation page.");
+        Assert.Equal(1, await Scalar($"SELECT COUNT(*) FROM \"CitizenApplications\" WHERE \"NationalIdHash\"='{nationalIdHash}';"));
+
+        s.Recorder.WriteDbChecks(new { competitionId = id, lines, attached = drafts, status = "Announced", publicApplications = 1 });
         s.Recorder.FlushTiming();
         s.Recorder.WriteResult("Pass");
     }
@@ -459,6 +506,14 @@ public class AcHcm31CompetitionTests
 
     private static string Details(string id) => $"ui/hr-core/Competitions/Details/{id}";
 
+    /// <summary>The value of a hidden form field of a page (the competition page's posting id).</summary>
+    private static string HiddenValue(string html, string name)
+    {
+        var field = Regex.Match(html, $@"<input type=""hidden"" name=""{Regex.Escape(name)}"" value=""([^""]*)""");
+        Assert.True(field.Success && field.Groups[1].Value.Length > 0, $"The page has no hidden field {name}.");
+        return field.Groups[1].Value;
+    }
+
     private static string SessionPage(string sessionId) => $"ui/hr-core/Competitions/ExamSession/{sessionId}";
 
     private static string OfferDetails(string offerId) => $"ui/hr-core/OfferLetters/Details/{offerId}";
@@ -542,6 +597,25 @@ public class AcHcm31CompetitionTests
 
         public async Task<string> PostAsync(string step, string path, string tokenPage, List<KeyValuePair<string, string>> fields)
         {
+            // FIX-CAREERS-REF: the portal's applies share a 30-per-minute window for all visitors; a 429 is retried after a pause
+            // (as AC-HCM-30's CitizenUi does), so it cannot pass for a missing confirmation page.
+            for (var attempt = 1; ; attempt++)
+            {
+                var (status, body) = await PostOnceAsync(step, path, tokenPage, fields);
+                if (status != HttpStatusCode.TooManyRequests || attempt == 4)
+                {
+                    Assert.True((int)status < 500, $"POST {path} as {persona} returned {(int)status}.");
+                    Assert.True(status is not (HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized), $"POST {path} as {persona} was denied.");
+                    return body;
+                }
+
+                await Task.Delay(TimeSpan.FromSeconds(20));
+            }
+        }
+
+        private async Task<(HttpStatusCode Status, string Body)> PostOnceAsync(
+            string step, string path, string tokenPage, List<KeyValuePair<string, string>> fields)
+        {
             var page = await FollowRedirectsAsync(await SendAsync(HttpMethod.Get, tokenPage));
             var pageHtml = await page.Content.ReadAsStringAsync();
             Assert.True(page.StatusCode == HttpStatusCode.OK, $"GET {tokenPage} as {persona} returned {(int)page.StatusCode}.");
@@ -554,11 +628,16 @@ public class AcHcm31CompetitionTests
             var redirect = posted.Headers.Location?.ToString();
             var resp = await FollowRedirectsAsync(posted);
             var body = await resp.Content.ReadAsStringAsync();
+            // FIX-CAREERS-REF: the citizen's national id is masked in the evidence, as in AC-HCM-30.
             recorder.CaptureHttp($"{tag}-{step}-{persona}", "POST", "/" + path, (int)resp.StatusCode,
-                new { fields = fields.Select(f => $"{f.Key}={f.Value}"), postStatus, redirect, final = resp.RequestMessage?.RequestUri?.AbsolutePath });
-            Assert.True((int)resp.StatusCode < 500, $"POST {path} as {persona} returned {(int)resp.StatusCode}.");
-            Assert.True(resp.StatusCode is not (HttpStatusCode.Forbidden or HttpStatusCode.Unauthorized), $"POST {path} as {persona} was denied.");
-            return WebUtility.HtmlDecode(body);
+                new
+                {
+                    fields = fields.Select(f => f.Key is "NationalId" ? $"{f.Key}=***" : f.Key is "Email" or "FullName" && persona == "citizen" ? $"{f.Key}=(set)" : $"{f.Key}={f.Value}"),
+                    postStatus,
+                    redirect,
+                    final = resp.RequestMessage?.RequestUri?.AbsolutePath
+                });
+            return (resp.StatusCode, WebUtility.HtmlDecode(body));
         }
     }
 }

@@ -5,6 +5,8 @@ namespace HRManagement.ServiceDefaults;
 /// Gateway OIDC/session cookies are stripped to avoid conflicting with JwtBearer upstream auth.
 /// HCM-030 (PLAN-30 H5): on the anonymous careers route only, the candidate portal cookie
 /// <see cref="CareersSessionCookieName"/> (exact name) is forwarded as well.
+/// FIX-CAREERS-REF: the flash message cookie crosses on the careers route too, so the candidate sees his reference number on
+/// the confirmation page and every refusal the portal reports.
 /// </summary>
 public static class GatewayUpstreamCookieForwarding
 {
@@ -13,6 +15,10 @@ public static class GatewayUpstreamCookieForwarding
     /// <summary>
     /// The MVC flash message cookie. Without it a refusal reported through TempData (a denied handover, a failed legal-hold check) is
     /// lost and the page reloads with no reason. It carries no identity, and only the service that wrote it can read it.
+    /// FIX-CAREERS-REF: forwarded on every route, the careers route included. There it is HR.Core's own cookie, written under
+    /// HR.Core's careers path base (<c>/careers</c>, so the browser keeps it apart from the staff pages' cookies), protected by
+    /// HR.Core's keys; it carries the candidate's reference number to the confirmation page and the portal's refusals to the
+    /// page they land on.
     /// </summary>
     public const string TempDataCookieName = ".AspNetCore.Mvc.CookieTempDataProvider";
 
@@ -26,8 +32,10 @@ public static class GatewayUpstreamCookieForwarding
         BuildUpstreamCookieHeader(cookieHeader, forwardCareersSession: false);
 
     /// <summary>
-    /// Keeps antiforgery cookies, plus the flash message cookie on staff routes or, when <paramref name="forwardCareersSession"/> is set (careers route), the cookie
-    /// named exactly <see cref="CareersSessionCookieName"/>. Every other cookie is dropped.
+    /// Keeps antiforgery cookies and the cookie named exactly <see cref="TempDataCookieName"/> on every route, plus, when
+    /// <paramref name="forwardCareersSession"/> is set (careers route), the cookie named exactly <see cref="CareersSessionCookieName"/>.
+    /// Every other cookie is dropped (near-names included). Staff credentials never ride on the careers route: the transform removes
+    /// <c>Authorization</c> there.
     /// </summary>
     public static string? BuildUpstreamCookieHeader(string? cookieHeader, bool forwardCareersSession)
     {
@@ -45,7 +53,7 @@ public static class GatewayUpstreamCookieForwarding
             var equalsIndex = trimmed.IndexOf('=');
             var name = equalsIndex >= 0 ? trimmed[..equalsIndex] : trimmed;
             if (name.StartsWith(AntiforgeryCookiePrefix, StringComparison.Ordinal)
-                || (!forwardCareersSession && string.Equals(name, TempDataCookieName, StringComparison.Ordinal))
+                || string.Equals(name, TempDataCookieName, StringComparison.Ordinal)
                 || (forwardCareersSession && string.Equals(name, CareersSessionCookieName, StringComparison.Ordinal)))
                 forwardedParts.Add(trimmed);
         }
