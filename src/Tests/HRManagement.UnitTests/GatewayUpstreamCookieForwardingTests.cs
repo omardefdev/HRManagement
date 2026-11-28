@@ -124,9 +124,6 @@ public class GatewayUpstreamCookieForwardingTests
         Assert.Equal(
             ".AspNetCore.Antiforgery.xyz=token1; .AspNetCore.Mvc.CookieTempDataProvider=CfDJ8-flash",
             GatewayUpstreamCookieForwarding.BuildUpstreamCookieHeader(BrowserCookiesWithFlash, forwardCareersSession: false));
-        Assert.Equal(
-            GatewayUpstreamCookieForwarding.BuildAntiforgeryCookieHeader(BrowserCookiesWithFlash),
-            GatewayUpstreamCookieForwarding.BuildUpstreamCookieHeader(BrowserCookiesWithFlash, forwardCareersSession: false));
     }
 
     [Theory]

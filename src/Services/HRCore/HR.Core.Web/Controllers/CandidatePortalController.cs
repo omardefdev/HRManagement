@@ -15,7 +15,8 @@ namespace HR.Core.Web.Controllers;
 /// (<see cref="CandidateOtpService"/>), then the <c>careers_session</c> cookie (<see cref="CandidatePortalSession"/>).
 /// Every signed-in action carries <see cref="CandidatePortalSessionAttribute"/> and reads the application only from
 /// <see cref="CandidatePortalHttpContextExtensions.GetCandidatePortal"/> — never from a route, query or form id.
-/// Anti-forgery on every POST; no TempData (the gateway drops its cookie); no PII in URLs or logs.
+/// Anti-forgery on every POST; no TempData (a message code in the URL instead; the gateway forwards HR.Core's flash cookie on
+/// <c>/careers</c> since FIX-CAREERS-REF, but this controller does not need it); no PII in URLs or logs.
 /// PLAN-30 I: «طلبي» and the candidate actions are in <see cref="CandidatePortalService"/> (session tenant, actor Candidate);
 /// a refused post shows the page again with the errors, a successful one redirects with a message code (<c>?done=</c>).
 /// </summary>
