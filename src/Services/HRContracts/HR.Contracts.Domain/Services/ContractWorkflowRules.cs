@@ -30,10 +30,19 @@ public static class ContractWorkflowRules
     public static bool CanTerminate(Contract? contract) =>
         contract is not null && contract.Status is ContractStatus.Active or ContractStatus.Pending;
 
-    public static void Terminate(Contract contract)
+    public const string EndBeforeStartMessage = "لا يُنهى العقد بتاريخ يسبق بدايته.";
+
+    /// <summary>
+    /// PLAN-60 (§5, G-SEP-04): a contract ends at a date — a separation's effective date — never before its start. Before, it was
+    /// terminated with no end date at a manual checklist step, before the effective date.
+    /// </summary>
+    public static void Terminate(Contract contract, DateOnly endDate)
     {
         if (!CanTerminate(contract))
             throw new InvalidOperationException($"Cannot terminate contract in status {contract.Status}.");
+        if (endDate < contract.StartDate)
+            throw new InvalidOperationException(EndBeforeStartMessage);
         contract.Status = ContractStatus.Terminated;
+        contract.EndDate = endDate;
     }
 }

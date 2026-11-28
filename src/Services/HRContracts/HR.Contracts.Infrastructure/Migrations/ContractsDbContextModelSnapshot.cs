@@ -721,12 +721,36 @@ namespace HR.Contracts.Infrastructure.Migrations
                         .HasMaxLength(128)
                         .HasColumnType("character varying(128)");
 
+                    b.Property<string>("CompletionMode")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("EvidenceFileId")
+                        .HasColumnType("uuid");
 
                     b.Property<string>("EvidenceRef")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime?>("ExceptionApprovedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ExceptionApprovedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ExceptionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<DateTime?>("ExceptionRequestedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ExceptionRequestedBy")
+                        .HasColumnType("uuid");
 
                     b.Property<bool>("IsCompleted")
                         .HasColumnType("boolean");
@@ -739,6 +763,10 @@ namespace HR.Contracts.Infrastructure.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<string>("OwnerRole")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<string>("PartyName")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
@@ -787,6 +815,9 @@ namespace HR.Contracts.Infrastructure.Migrations
                     b.Property<DateTime?>("CancelledAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<DateTime?>("CompletedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<Guid?>("ContractId")
                         .HasColumnType("uuid");
 
@@ -794,6 +825,15 @@ namespace HR.Contracts.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<Guid?>("CreatedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("DecidedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("DecidedBy")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("DecisionId")
                         .HasColumnType("uuid");
 
                     b.Property<string>("Documents")
@@ -805,7 +845,16 @@ namespace HR.Contracts.Infrastructure.Migrations
                     b.Property<Guid>("EmployeeId")
                         .HasColumnType("uuid");
 
+                    b.Property<DateTime?>("ExecutedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("ExecutedBy")
+                        .HasColumnType("uuid");
+
                     b.Property<bool>("IsCancelled")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsLegacyDraft")
                         .HasColumnType("boolean");
 
                     b.Property<string>("PayrollRegimeCode")
@@ -814,6 +863,10 @@ namespace HR.Contracts.Infrastructure.Migrations
 
                     b.Property<string>("Reason")
                         .HasColumnType("text");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
 
                     b.Property<bool>("SeparationEventPublished")
                         .HasColumnType("boolean");
@@ -827,6 +880,20 @@ namespace HR.Contracts.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)");
+
+                    b.Property<int>("SubmissionNo")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SubmittedBy")
+                        .HasColumnType("uuid");
+
                     b.Property<Guid>("TenantId")
                         .HasColumnType("uuid");
 
@@ -836,9 +903,31 @@ namespace HR.Contracts.Infrastructure.Migrations
                     b.Property<Guid?>("UpdatedBy")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("WorkflowCode")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<Guid?>("WorkflowInstanceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<uint>("xmin")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("xid")
+                        .HasColumnName("xmin");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ContractId");
+
+                    b.HasIndex("DecisionId");
+
+                    b.HasIndex("Status", "SubmittedAt");
+
+                    b.HasIndex("TenantId", "EmployeeId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_SeparationRecords_Tenant_Employee_Open")
+                        .HasFilter("\"Status\" IN ('Draft', 'PendingApproval', 'Approved', 'Executing', 'AwaitingIntervention')");
 
                     b.ToTable("SeparationRecords");
                 });
@@ -890,6 +979,9 @@ namespace HR.Contracts.Infrastructure.Migrations
                     b.Property<Guid?>("RequisitionId")
                         .HasColumnType("uuid");
 
+                    b.Property<Guid?>("SeparationRecordId")
+                        .HasColumnType("uuid");
+
                     b.Property<string>("State")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -910,6 +1002,11 @@ namespace HR.Contracts.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("SeparationRecordId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_ServiceTransactions_SeparationRecordId")
+                        .HasFilter("\"SeparationRecordId\" IS NOT NULL");
 
                     b.HasIndex("TenantId", "RecruitmentApplicationId");
 
@@ -1190,6 +1287,8 @@ namespace HR.Contracts.Infrastructure.Migrations
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("EntityType", "TenantId");
 
                     b.ToTable("AuditLogs");
                 });
@@ -1698,7 +1797,14 @@ namespace HR.Contracts.Infrastructure.Migrations
                         .HasForeignKey("ContractId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("HR.Contracts.Domain.Entities.AdministrativeDecision", "Decision")
+                        .WithMany()
+                        .HasForeignKey("DecisionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Contract");
+
+                    b.Navigation("Decision");
                 });
 
             modelBuilder.Entity("HR.Contracts.Domain.Entities.ServiceTransactionStateHistory", b =>

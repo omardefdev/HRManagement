@@ -2,6 +2,7 @@ using System.Net;
 using System.Text.Json;
 using HR.Contracts.Application.Abstractions;
 using HRManagement.ServiceDefaults;
+using HRManagement.SharedKernel.Enums;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -30,14 +31,27 @@ public sealed class HttpEmployeeLifecycleGate(
     public const string NotFoundMessage = "الموظف غير موجود في السجل المركزي.";
     public const string UnverifiedMessage = "تعذّر التحقق من الحجز القانوني — لم يُنفَّذ الإجراء.";
     public const string LegalHoldMessage = "الموظف تحت حجز قانوني (Legal Hold) — لا يمكن تنفيذ الفصل.";
+    public const string StatusUnverifiedMessage = "تعذّر التحقق من حالة خدمة الموظف — لم يُنفَّذ الإجراء.";
 
+    /// <summary>PLAN-60 (G-SEP-11): the employee's service has ended; the message names the status in Arabic.</summary>
+    public static string TerminalStatusMessage(EmploymentStatus status) =>
+        $"انتهت خدمة الموظف (الحالة: {DisplayName(status)}) — لا يُفتح له سجل فصل.";
+
+    /// <summary>PLAN-60: at creation and at submission, the same call reads the hold and the status (the answer carries both).</summary>
     public Task<(bool Allowed, string? Error)> AssertCanStartSeparationAsync(Guid employeeId, CancellationToken ct) =>
-        CheckAsync(employeeId, ct);
+        CheckAsync(employeeId, checkStatus: true, ct);
 
+    /// <summary>At the execution the employee is still in service until the parties act: the hold alone is read.</summary>
     public Task<(bool Allowed, string? Error)> AssertCanPublishSeparationAsync(Guid employeeId, CancellationToken ct) =>
-        CheckAsync(employeeId, ct);
+        CheckAsync(employeeId, checkStatus: false, ct);
 
-    private async Task<(bool Allowed, string? Error)> CheckAsync(Guid employeeId, CancellationToken ct)
+    private static string DisplayName(EmploymentStatus status) =>
+        typeof(EmploymentStatus).GetField(status.ToString())
+            ?.GetCustomAttributes(typeof(System.ComponentModel.DataAnnotations.DisplayAttribute), false)
+            .OfType<System.ComponentModel.DataAnnotations.DisplayAttribute>()
+            .FirstOrDefault()?.GetName() ?? status.ToString();
+
+    private async Task<(bool Allowed, string? Error)> CheckAsync(Guid employeeId, bool checkStatus, CancellationToken ct)
     {
         try
         {
@@ -59,7 +73,21 @@ public sealed class HttpEmployeeLifecycleGate(
                 return (false, UnverifiedMessage);
             }
 
-            return hold.GetBoolean() ? (false, LegalHoldMessage) : (true, null);
+            if (hold.GetBoolean())
+                return (false, LegalHoldMessage);
+            if (!checkStatus)
+                return (true, null);
+
+            // D-S2S-4: an answer without the status refuses, as an answer without the hold does.
+            if (!doc.RootElement.TryGetProperty("status", out var status) || status.ValueKind != JsonValueKind.String)
+            {
+                logger.LogError("Lifecycle check gave no status for {EmployeeId}; refused", employeeId);
+                return (false, StatusUnverifiedMessage);
+            }
+
+            return EmploymentStatusTerminal.IsTerminalName(status.GetString(), out var terminal)
+                ? (false, TerminalStatusMessage(terminal))
+                : (true, null);
         }
         catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {

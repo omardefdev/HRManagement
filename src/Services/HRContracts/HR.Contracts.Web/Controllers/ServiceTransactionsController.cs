@@ -74,12 +74,21 @@ public class ServiceTransactionsController : Controller
         return View(txn);
     }
 
+    public const string SeparationTransactionOwnedMessage = "الحالة يملكها سجل الفصل";
+
     [HttpPost, ValidateAntiForgeryToken]
     [Authorize(Policy = HrManagementPolicies.HrContractsApprove)]
     public async Task<IActionResult> Advance(Guid id, ServiceTransactionState nextState, string? reason)
     {
         var txn = await _repo.GetServiceTransactionAsync(id, default);
         if (txn is null) return NotFound();
+
+        // PLAN-60 (G-SEP-11): a separation's transaction follows its record's status; it is never moved by hand.
+        if (txn.TransactionType == ServiceTransactionType.Separation)
+        {
+            TempData["Error"] = SeparationTransactionOwnedMessage;
+            return RedirectToAction(nameof(Details), new { id });
+        }
 
         try
         {

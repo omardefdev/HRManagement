@@ -6,7 +6,7 @@
                         ?? new Dictionary<Guid, string>();
     var separationTypeFilter = ViewBag.SeparationTypeFilter as SeparationType?;
     var filterEmployeeId = ViewBag.EmployeeId as Guid?;
-    var eventPublished = ViewBag.EventPublished as bool?;
+    var statusFilter = ViewBag.StatusFilter as SeparationStatus?;
 }
 <div class="card">
     <div class="card-header d-flex justify-content-between align-items-center">
@@ -34,10 +34,12 @@
                 </select>
             </div>
             <div class="col-auto">
-                <select name="eventPublished" class="form-select form-select-sm">
-                    <option value="">حالة النشر</option>
-                    <option value="true" selected="@(eventPublished == true ? "selected" : null)">تم النشر</option>
-                    <option value="false" selected="@(eventPublished == false ? "selected" : null)">لم يُنشر</option>
+                <select name="status" class="form-select form-select-sm" aria-label="الحالة">
+                    <option value="">كل الحالات</option>
+                    @foreach (var st in Enum.GetValues<SeparationStatus>())
+                    {
+                        <option value="@st" selected="@(statusFilter == st ? "selected" : null)">@Html.HrEnumDisplay(st)</option>
+                    }
                 </select>
             </div>
             <div class="col-auto"><button type="submit" class="btn btn-outline-primary btn-sm"><i class="fas fa-filter"></i> تصفية</button></div>
@@ -45,7 +47,7 @@
     </div>
     <div class="card-body p-0 border-top-0 pt-0">
         <table class="table table-striped mb-0">
-            <thead><tr><th>الموظف</th><th>النوع</th><th>النفاذ</th><th>حدث</th><th></th></tr></thead>
+            <thead><tr><th>الموظف</th><th>النوع</th><th>النفاذ</th><th>الحالة</th><th></th></tr></thead>
             <tbody>
                 @foreach (var r in Model)
                 {
@@ -53,13 +55,16 @@
                         <td>@await Html.PartialAsync("_EmployeeDisplayName", new EmployeeDisplayNameModel(r.EmployeeId, employeeNames.GetValueOrDefault(r.EmployeeId)))</td>
                         <td>@Html.HrEnumDisplay(r.SeparationType)</td>
                         <td>@Html.HrDate(r.EffectiveDate)</td>
-                        <td>
-                            @if (r.SeparationEventPublished) { <span class="badge bg-success">تم النشر</span> }
-                            else { <span class="badge bg-secondary">لم يُنشر</span> }
-                        </td>
+                        <td><partial name="_SeparationStatusBadge" model="r" /></td>
                         <td><a asp-action="Details" asp-route-id="@r.Id" class="btn btn-info btn-xs" aria-label="تفاصيل"><i aria-hidden="true" class="fas fa-eye"></i></a>
-                            <a asp-action="Edit" asp-route-id="@r.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
-                            <button type="button" class="btn btn-danger btn-xs" data-bs-toggle="modal" data-bs-target="#deleteModal" data-delete-url="@Url.Action("Delete", new { id = r.Id })" aria-label="حذف"><i aria-hidden="true" class="fas fa-trash"></i></button>
+                            @if (r.Status == SeparationStatus.Draft)
+                            {
+                                <a asp-action="Edit" asp-route-id="@r.Id" class="btn btn-warning btn-xs" aria-label="تعديل"><i aria-hidden="true" class="fas fa-edit"></i></a>
+                            }
+                            @if (HR.Contracts.Domain.Services.SeparationWorkflowRules.IsCancellable(r.Status))
+                            {
+                                <a asp-action="Details" asp-route-id="@r.Id" asp-fragment="cancel" class="btn btn-danger btn-xs" aria-label="إلغاء بسبب"><i aria-hidden="true" class="fas fa-ban"></i></a>
+                            }
                         </td>
                     </tr>
                 }

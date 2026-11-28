@@ -53,7 +53,31 @@ public class ServiceTransaction : AuditableEntity
     /// </summary>
     public string? PendingContractTerms { get; set; }
 
+    /// <summary>
+    /// PLAN-60 (G-SEP-11): the separation record this transaction belongs to. Every lookup of a separation's transaction goes by it, and
+    /// its state is moved only with the record's status (<c>SeparationStatusSync</c>), never by hand.
+    /// </summary>
+    public Guid? SeparationRecordId { get; set; }
+
     public ICollection<ServiceTransactionStateHistory> StateHistory { get; set; } = new List<ServiceTransactionStateHistory>();
+
+    /// <summary>Whether <see cref="MoveTo"/> accepts <paramref name="next"/> from <paramref name="current"/>.</summary>
+    public static bool CanMove(ServiceTransactionState current, ServiceTransactionState next) =>
+        AllowedTransitions.TryGetValue(current, out var allowed) && allowed.Contains(next);
+
+    /// <summary>
+    /// PLAN-60: a history row for an event of the owning record that leaves the transaction's state as it is (for instance a separation
+    /// waiting for an intervention while its transaction stays Executing), so every transition of the record has its row and its actor.
+    /// </summary>
+    public void AppendHistory(Guid? byUserId, string reason) =>
+        StateHistory.Add(new ServiceTransactionStateHistory
+        {
+            TransactionId = Id,
+            FromState = State,
+            ToState = State,
+            ChangedBy = byUserId,
+            Reason = reason
+        });
 
     public void MoveTo(ServiceTransactionState nextState, Guid? byUserId, string? reason = null)
     {

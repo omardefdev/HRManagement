@@ -328,45 +328,51 @@ public class AdvancePolicyRules_CalculateInstallmentsTests
 
 public class SeparationWorkflowRulesTests
 {
-    private static SeparationRecord MakeRecord(bool published = false) =>
-        new() { EmployeeId = Guid.NewGuid(), EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow), SeparationEventPublished = published };
+    // PLAN-60: the record's flags are derived from its status; a record reaches a status through the state machine only.
+    private static SeparationRecord MakeRecord(SeparationStatus status = SeparationStatus.Draft)
+    {
+        var record = new SeparationRecord { EmployeeId = Guid.NewGuid(), EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow) };
+        SeparationTestJourney.MoveTo(record, status);
+        return record;
+    }
 
     private static List<SeparationChecklist> MakeChecklist(bool allCompleted)
     {
-        return Enum.GetValues<SeparationStep>().Select(s => new SeparationChecklist
+        return SeparationChecklistDefaults.CreateForRecord(Guid.NewGuid()).Select(s =>
         {
-            SeparationRecordId = Guid.NewGuid(),
-            Step = s,
-            IsCompleted = allCompleted,
-            CompletedAt = allCompleted ? DateTime.UtcNow : null
+            s.IsCompleted = allCompleted;
+            s.CompletedAt = allCompleted ? DateTime.UtcNow : null;
+            return s;
         }).ToList();
     }
 
     [Fact]
-    public void CanComplete_AllStepsCompleted_ReturnsTrue() =>
-        Assert.True(SeparationWorkflowRules.CanComplete(MakeRecord(), MakeChecklist(true)));
+    public void PreExecution_AllStepsCompleted_NothingOpen() =>
+        Assert.Empty(SeparationWorkflowRules.GetOpenPreExecutionSteps(MakeChecklist(true)));
 
     [Fact]
-    public void CanComplete_NotAllStepsCompleted_ReturnsFalse() =>
-        Assert.False(SeparationWorkflowRules.CanComplete(MakeRecord(), MakeChecklist(false)));
+    public void PreExecution_NotAllStepsCompleted_TheDecisionAndTheNotificationAreOpen() =>
+        Assert.Equal([SeparationStep.DecisionIssued, SeparationStep.EmployeeNotified],
+            SeparationWorkflowRules.GetOpenPreExecutionSteps(MakeChecklist(false)).Select(s => s.Step));
 
     [Fact]
-    public void CanComplete_AlreadyPublished_ReturnsFalse() =>
-        Assert.False(SeparationWorkflowRules.CanComplete(MakeRecord(published: true), MakeChecklist(true)));
+    public void Execution_AlreadyExecuted_IsNotAllowedAgain() =>
+        Assert.False(SeparationWorkflowRules.CanTransition(MakeRecord(SeparationStatus.Executing).Status, SeparationStatus.Executing));
 
     [Fact]
-    public void CanComplete_EmptyChecklist_ReturnsFalse() =>
-        Assert.False(SeparationWorkflowRules.CanComplete(MakeRecord(), new List<SeparationChecklist>()));
+    public void PreExecution_EmptyChecklist_CountsTheMissingItemsAsOpen() =>
+        Assert.Equal(2, SeparationWorkflowRules.GetOpenPreExecutionSteps([]).Count);
 
     [Fact]
-    public void CanComplete_OnlyOptionalPendingSteps_ReturnsTrue()
+    public void PreExecution_OptionalPendingStep_IsNotOpen()
     {
         var steps = MakeChecklist(true);
-        steps[1].IsRequired = false;
-        steps[1].IsCompleted = false;
-        steps[1].CompletedAt = null;
+        var notification = steps.Single(s => s.Step == SeparationStep.EmployeeNotified);
+        notification.IsRequired = false;
+        notification.IsCompleted = false;
+        notification.CompletedAt = null;
 
-        Assert.True(SeparationWorkflowRules.CanComplete(MakeRecord(), steps));
+        Assert.Empty(SeparationWorkflowRules.GetOpenPreExecutionSteps(steps));
     }
 
     [Fact]
@@ -386,40 +392,44 @@ public class SeparationWorkflowRulesTests
     }
 
     [Fact]
-    public void CanCancel_NotPublished_ReturnsTrue() =>
-        Assert.True(SeparationWorkflowRules.CanCancel(MakeRecord()));
+    public void Cancel_Draft_IsAllowed() =>
+        Assert.True(SeparationWorkflowRules.IsCancellable(MakeRecord().Status));
 
     [Fact]
-    public void CanCancel_Published_ReturnsFalse() =>
-        Assert.False(SeparationWorkflowRules.CanCancel(MakeRecord(published: true)));
+    public void Cancel_Executed_IsRefusedWithPlan63sMessage()
+    {
+        var record = MakeRecord(SeparationStatus.Executing);
+        Assert.False(SeparationWorkflowRules.IsCancellable(record.Status));
+        Assert.Equal(SeparationWorkflowRules.ExecutingCancelMessage,
+            SeparationWorkflowRules.RefusalFor(record.Status, SeparationStatus.Cancelled));
+    }
 
     [Fact]
-    public void GetNextPendingStep_ReturnsPending()
+    public void GetIncompleteRequiredSteps_ReturnsPendingInStepOrder()
     {
         var steps = MakeChecklist(true);
         steps[2].IsCompleted = false;
-        var next = SeparationWorkflowRules.GetNextPendingStep(steps);
+        var next = SeparationWorkflowRules.GetIncompleteRequiredSteps(steps).FirstOrDefault();
         Assert.NotNull(next);
         Assert.Equal(steps[2].Step, next.Step);
     }
 
     [Fact]
-    public void GetNextPendingStep_AllCompleted_ReturnsNull()
-    {
-        var next = SeparationWorkflowRules.GetNextPendingStep(MakeChecklist(true));
-        Assert.Null(next);
-    }
+    public void GetIncompleteRequiredSteps_AllCompleted_ReturnsNone() =>
+        Assert.Empty(SeparationWorkflowRules.GetIncompleteRequiredSteps(MakeChecklist(true)));
 
     [Fact]
-    public void GetNextPendingStep_SkipsOptionalPendingStep()
+    public void GetIncompleteRequiredSteps_SkipsOptionalAndExceptedSteps()
     {
         var steps = MakeChecklist(true);
         steps[1].IsRequired = false;
         steps[1].IsCompleted = false;
         steps[2].IsCompleted = false;
         steps[2].CompletedAt = null;
+        steps[3].IsCompleted = false;
+        steps[3].ExceptionApprovedAt = DateTime.UtcNow;
 
-        var next = SeparationWorkflowRules.GetNextPendingStep(steps);
+        var next = SeparationWorkflowRules.GetIncompleteRequiredSteps(steps).FirstOrDefault();
 
         Assert.NotNull(next);
         Assert.Equal(steps[2].Step, next!.Step);

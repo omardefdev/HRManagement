@@ -33,5 +33,7 @@ public class SeparationRecordCreateViewModel
 public class SeparationRecordEditViewModel : SeparationRecordCreateViewModel
 {
     public Guid Id { get; set; }
-    public bool SeparationEventPublished { get; set; }
+
+    /// <summary>Shown only: PLAN-60 never takes a status from a form.</summary>
+    public SeparationStatus Status { get; set; }
 }

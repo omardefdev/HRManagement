@@ -382,7 +382,7 @@ public class AcQa34PushableBaselineTests
             "ContractLifecycleIntegrationTests.UpdateAndDeleteSeparation_AfterPublish_AreBlocked",
             "Fun002SeparationRecordIntegrationTests.Publish_FutureEffectiveDate_Rejected",
             "Fun002SeparationRecordIntegrationTests.Publish_LegalHold_Rejected",
-            "Int003ProcessSagaTests.DOM001_Publish_DoesNotAutoComplete_ContractTerminated",
+            "Int003ProcessSagaTests.DOM001_Execute_EndsTheContract_AtTheEffectiveDate_AndCompletesItsItem",
             "EndToEndReleaseWorkflowSmokeIntegrationTests.ReleaseWorkflow_Contract_Leave_PayrollPost_Separation_ChainSucceeds"
         ];
         string[] regimeCases =

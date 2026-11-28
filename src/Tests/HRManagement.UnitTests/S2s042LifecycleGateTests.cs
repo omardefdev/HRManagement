@@ -54,10 +54,59 @@ public class S2s042LifecycleGateTests
     [MemberData(nameof(Steps))]
     public async Task No_hold_allows(string step)
     {
-        var (allowed, error) = await Check(Gate(_ => Json("""{"legalHold":false}""")), step);
+        var (allowed, error) = await Check(Gate(_ => Json("""{"legalHold":false,"status":"Active"}""")), step);
 
         Assert.True(allowed);
         Assert.Null(error);
+    }
+
+    // PLAN-60 (G-SEP-11): the same answer carries the employee's status; a terminal one refuses a new record, by its Arabic name.
+    [Theory]
+    [InlineData("Resigned", "مستقيل")]
+    [InlineData("Terminated", "منتهي")]
+    [InlineData("Retired", "متقاعد")]
+    [InlineData("Deceased", "متوفى")]
+    public async Task A_terminal_status_refuses_a_new_record_and_names_the_status(string status, string arabic)
+    {
+        var gate = Gate(_ => Json($$"""{"legalHold":false,"status":"{{status}}"}"""));
+
+        var (allowed, error) = await gate.AssertCanStartSeparationAsync(Guid.NewGuid(), CancellationToken.None);
+        Assert.False(allowed);
+        Assert.Contains(arabic, error);
+
+        // At the execution the employee is still in service until the parties act: the hold alone is read there.
+        Assert.True((await gate.AssertCanPublishSeparationAsync(Guid.NewGuid(), CancellationToken.None)).Allowed);
+    }
+
+    [Theory]
+    [InlineData("Active")]
+    [InlineData("OnLeave")]
+    [InlineData("Seconded")]
+    [InlineData("Suspended")]
+    [InlineData("PendingActivation")]
+    public async Task A_status_in_service_allows_a_new_record(string status) =>
+        Assert.True((await Gate(_ => Json($$"""{"legalHold":false,"status":"{{status}}"}"""))
+            .AssertCanStartSeparationAsync(Guid.NewGuid(), CancellationToken.None)).Allowed);
+
+    [Theory]
+    [InlineData("""{"legalHold":false}""")]
+    [InlineData("""{"legalHold":false,"status":null}""")]
+    [InlineData("""{"legalHold":false,"status":3}""")]
+    public async Task An_answer_without_the_status_refuses_a_new_record(string body)
+    {
+        var (allowed, error) = await Gate(_ => Json(body)).AssertCanStartSeparationAsync(Guid.NewGuid(), CancellationToken.None);
+
+        Assert.False(allowed);
+        Assert.Equal(HttpEmployeeLifecycleGate.StatusUnverifiedMessage, error);
+    }
+
+    [Fact]
+    public void The_terminal_names_equal_hr_cores_rule()
+    {
+        foreach (var status in Enum.GetValues<HRManagement.SharedKernel.Enums.EmploymentStatus>())
+            Assert.Equal(
+                HR.Core.Domain.Services.EmploymentStatusRules.IsTerminal(status),
+                HRManagement.SharedKernel.Enums.EmploymentStatusTerminal.IsTerminal(status));
     }
 
     [Theory]
@@ -163,15 +212,28 @@ public class S2s042LifecycleGateTests
     public async Task The_real_gate_starts_anywhere() =>
         await StartupCheck(Gate(_ => Json("{}")), "Production").RunAsync(CancellationToken.None);
 
+    // PLAN-60 (§6): one creation path. The factory takes the gate; every entry goes through the factory.
+    [Fact]
+    public void The_one_creation_path_takes_the_gate() =>
+        Assert.Contains(typeof(SeparationRecordFactory).GetConstructors().Single().GetParameters(),
+            p => p.ParameterType == typeof(IEmployeeLifecycleGate));
+
     [Theory]
     [InlineData(typeof(CreateSeparationRecordHandler))]
     [InlineData(typeof(HR.Contracts.Application.Features.InboundEvents.ProcessSeparationRequestHandler))]
-    [InlineData(typeof(HR.Contracts.Web.Controllers.SeparationWizardController))]
-    public void Every_path_that_creates_a_separation_takes_the_gate(Type creator)
-    {
-        var parameters = creator.GetConstructors().Single().GetParameters();
+    public void Every_handler_that_creates_a_separation_takes_the_factory(Type creator) =>
+        Assert.Contains(creator.GetConstructors().Single().GetParameters(), p => p.ParameterType == typeof(SeparationRecordFactory));
 
-        Assert.Contains(parameters, p => p.ParameterType == typeof(IEmployeeLifecycleGate));
+    [Theory]
+    [InlineData("SeparationWizardController.cs")]
+    [InlineData("SeparationRecordsController.cs")]
+    public void Every_form_that_creates_a_separation_sends_the_create_command(string controller)
+    {
+        var path = Directory.GetFiles(Path.Combine(HRManagement.TestSupport.RepoPaths.Root, "src", "Services", "HRContracts"), controller,
+            SearchOption.AllDirectories).Single(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}"));
+        var source = System.IO.File.ReadAllText(path);
+        Assert.Contains("new CreateSeparationRecordCommand(", source);
+        Assert.DoesNotMatch(@"new SeparationRecord\b(?!\w)", source);
     }
 
     [Fact]
@@ -184,9 +246,7 @@ public class S2s042LifecycleGateTests
             .Select(Path.GetFileName)
             .Order(StringComparer.Ordinal);
 
-        // A new one takes the gate and joins this list. DemoContractsSeeder writes demo data at start-up, not a user action.
-        Assert.Equal(
-            ["DemoContractsSeeder.cs", "InboundEventCommands.cs", "SeparationRecordHandlers.cs", "SeparationWizardController.cs"],
-            creators);
+        // PLAN-60: the factory is the one creation path. DemoContractsSeeder writes demo data at start-up, not a user action.
+        Assert.Equal(["DemoContractsSeeder.cs", "SeparationRecordFactory.cs"], creators);
     }
 }

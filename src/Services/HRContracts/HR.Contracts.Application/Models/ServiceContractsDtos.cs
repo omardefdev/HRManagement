@@ -52,6 +52,7 @@ public record ProbationRecordDto(
     DateOnly? DecisionDate,
     string? Notes);
 
+/// <summary>What a separation form gives. PLAN-60: never an approver, a status or the published flag — those are the server's.</summary>
 public record SeparationRecordDto(
     Guid? Id,
     Guid EmployeeId,
@@ -59,6 +60,4 @@ public record SeparationRecordDto(
     SeparationType SeparationType,
     DateOnly EffectiveDate,
     string? Reason,
-    Guid? ApprovedBy,
-    string? Documents,
-    bool SeparationEventPublished);
+    string? Documents);

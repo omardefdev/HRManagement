@@ -1,0 +1,21 @@
+@model HR.Contracts.Domain.Entities.SeparationRecord
+@using HR.Contracts.Domain.Enums
+@{
+    // PLAN-60 (P-11): the record's status, and the mark of a record the SEP060 backfill set to Draft.
+    var css = Model.Status switch
+    {
+        SeparationStatus.Draft => "bg-secondary",
+        SeparationStatus.PendingApproval => "bg-warning text-dark",
+        SeparationStatus.Approved => "bg-primary",
+        SeparationStatus.Rejected => "bg-danger",
+        SeparationStatus.Executing => "bg-info text-dark",
+        SeparationStatus.AwaitingIntervention => "bg-danger",
+        SeparationStatus.Completed => "bg-success",
+        _ => "bg-dark"
+    };
+}
+<span class="badge @css">@Html.HrEnumDisplay(Model.Status)</span>
+@if (Model.IsLegacyDraft && Model.Status == SeparationStatus.Draft)
+{
+    <span class="badge bg-light text-dark border">سجل قديم — يتطلب اعتماداً</span>
+}
