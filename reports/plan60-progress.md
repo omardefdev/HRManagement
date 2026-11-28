@@ -254,3 +254,18 @@ asserted the old rule). The ContractLifecycle override tests → `StepException_
 - Finished P7 (UTC): 2026-11-28T07:09:05Z
 - Next step: P8 — the Release build, the local CI steps in a fresh clone, the pre-push check, `release/plan-60`, the push, the PR.
 
+## P8 — local gates, the release branch, the PR
+
+- Testcontainers: P6's run (06:20:01Z → 06:33:15Z, 344/345) stands — only documents and reports changed since.
+- Release build `-warnaserror`: 0 warnings, 0 errors (276 s).
+- Local CI steps in a fresh clone of `6e67076c` (`/home/omar/plan60-ci-clone`, compiler servers off; `run-steps.sh --all`, 07:25:38Z →
+  08:04:57Z, 39 min 19 s): **87 passed, 0 failed, 5 not run and named** (Integration tests (Testcontainers): run natively, 344/1;
+  Coverage gate, Install ReportGenerator, Generate coverage report: they follow it; Verify Docker builds: images built here one at a
+  time). Unit 7,478, architecture 444, integration (in-memory) 688 passed and 4 skipped. A first start on `f233bc84` was stopped by its
+  process group after 37 s, because the PR's description had to be committed first (the pre-push check compares the summary's commit
+  with HEAD).
+- `plan035-prepush.ps1` (08:05Z): gitleaks, actionlint, cilocal (the five named by `-AllowNotRun`), forbidden, nonprod, signatures — PASS.
+- `release/plan-60` = `origin/main` `96c9594d` + the feature merged `--no-ff` (`8e022f91`, tree identical to `6e67076c`). **One push**
+  08:06:54Z. PR #61 opened 08:07:06Z (https://github.com/omardefdev/HRManagement/pull/61). The app's PR tools did not answer (their hook
+  timed out), so the checks are read with `gh`.
+
