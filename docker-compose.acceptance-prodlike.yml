@@ -66,6 +66,11 @@ services:
       Contracts__AllowDefaultContractTypeFallback: "false"
       # PLAN-49: as HR.Contracts' Production file. Every leave action asks HR.Core, which records its decision.
       PolicyEngine__Contracts.Leave: "Shadow"
+      # PLAN-60 (P-7, P-12): the separation sweep on PLAN-46's shared keys. StaleAfterMinutes is 5 here, not 2: AC-SEP-60i withdraws a
+      # record about three minutes after its submission (two approvals in HR.Core, the outcome queue purged, this service restarted)
+      # and must meet it still pending; with 2 the first sweep cycle could apply its outcome first.
+      WorkflowApproval__Sweep__IntervalMinutes: "1"
+      WorkflowApproval__Sweep__StaleAfterMinutes: "5"
 
   hr-gateway:
     environment:
