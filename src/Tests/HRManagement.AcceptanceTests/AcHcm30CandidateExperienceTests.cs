@@ -17,7 +17,9 @@ namespace HRManagement.AcceptanceTests;
 /// messages and one-time codes read from the FileDrop folder (<c>artifacts/acceptance/candidate-notifications</c>,
 /// docs/COM_001_NOTIFICATIONS.md). Fixtures come from <c>AcceptanceCandidateExperiencePatch</c> (requisition with criteria
 /// and required documents, the backfill rows, the retention pair and its held twin); the offer journey creates its own
-/// requisition through the UI (as AC-HCM-27..29). Ids and references the UI shows only through TempData are read by SQL.
+/// requisition through the UI (as AC-HCM-27..29). FIX-CAREERS-REF: the gateway forwards HR.Core's flash cookie on <c>/careers</c>,
+/// so the candidate's reference number is read from the confirmation page's badge (AC-30a), and only checked against the database;
+/// the ids HR's screens show only through TempData, and the numbers of the steps that do not prove the page, are read by SQL.
 /// Test-only SQL preconditions are documented at each use. One-time codes and national ids never reach the evidence.
 /// </summary>
 [RequiredAcceptance]
@@ -40,6 +42,8 @@ public class AcHcm30CandidateExperienceTests
     private const string NeutralOtpMessage = "إذا كانت البيانات صحيحة فسيصلك رمز تحقق على وسيلة التواصل المسجلة.";
     private const string LockedMessage = "تم إيقاف الدخول مؤقتاً بسبب تكرار إدخال رمز خاطئ. يرجى المحاولة لاحقاً.";
     private const string NotAcceptedLabel = "غير مقبول";
+    // PublicCareersController.Apply: a second application on the same requisition with the same national id.
+    private const string DuplicateApplicationMessage = "تم تقديم طلب سابق لنفس الوظيفة بهذا الرقم الوطني.";
     private const string AppealOpenText = "يمكنك الاستئناف";
     private const string AppealClosedText = "انتهت مدة الاستئناف";
     private const string AppealButton = "تقديم الاستئناف";
@@ -73,6 +77,9 @@ public class AcHcm30CandidateExperienceTests
             1. AC-30a: a citizen applies on the seeded requisition REQ-2026-A-CX01 through the gateway (/careers/{posting}) with email +
                notification consent (documents: AC-30c) → RecruitmentApplication Submitted at once, IntakeChannel Public, linked to the
                citizen row; central-a sees it in RecruitmentApplications?RequisitionId=….
+               FIX-CAREERS-REF: the confirmation page's badge shows the reference number (read from the page, then checked against the
+               citizen row); a reload of the page shows it no more and says so; a second apply with the same national id is refused
+               with «تم تقديم طلب سابق لنفس الوظيفة بهذا الرقم الوطني.» on the posting page it lands on, and nothing is saved.
             2. AC-30b: central-a rejects with a note. The citizen signs in on /careers/my (reference + national id → one-time code read
                from the FileDrop file of key otp:{challengeId}:Email) → «غير مقبول» and «يمكنك الاستئناف حتى …»; /careers/track shows
                «غير مقبول».
@@ -81,9 +88,24 @@ public class AcHcm30CandidateExperienceTests
 
         // AC-30a
         var citizen = NewCitizen("a");
-        var apply = await s.Citizen("30a").ApplyAsync("30a-apply", CxPosting, citizen, []);
-        Assert.Equal("/careers/submitted", apply.FinalPath);
+        var applicant = s.Citizen("30a");
+        var apply = await applicant.ApplyAsync("30a-apply", CxPosting, citizen, []);
+        Assert.Equal(CareersConfirmationPage.Path, apply.FinalPath);
+        // FIX-CAREERS-REF: the number is the one the candidate reads on the page, through the gateway; the database only confirms it.
+        var shownReference = CareersConfirmationPage.RequireReference(apply.Body, "30a");
         var row = await RequireCitizenRowAsync(citizen);
+        Assert.True(string.Equals(row.Reference, shownReference, StringComparison.Ordinal),
+            "30a: the confirmation page shows a reference number that is not the citizen row's.");
+        row = row with { Reference = shownReference };
+        var reload = await applicant.GetAsync("30a-confirmation-reload", "careers/submitted");
+        Assert.True(CareersConfirmationPage.ReadReference(reload) is null, "30a: a reload of the confirmation page shows the number again.");
+        Assert.Contains(CareersConfirmationPage.UnavailableMarker, reload);
+        Assert.Contains(CareersConfirmationPage.UnavailableText, reload);
+        // A refused apply: the same national id on the same requisition again → the refusal on the posting page, nothing saved.
+        var duplicate = await applicant.ApplyAsync("30a-apply-duplicate", CxPosting, citizen, []);
+        Assert.Equal($"/careers/{CxPosting}", duplicate.FinalPath);
+        Assert.Contains(DuplicateApplicationMessage, duplicate.Body);
+        Assert.Equal(1, await CitizenRowCountAsync(citizen));
         Assert.Equal($"{AppSubmitted}|Public|{CxRequisition}", await Sql(
             $"SELECT \"Status\"::text || '|' || \"IntakeChannel\" || '|' || \"RequisitionId\" FROM \"RecruitmentApplications\" WHERE \"Id\"='{row.ApplicationId}';"));
         var list = await s.Central.GetAsync("30a-hr-list", $"ui/hr-core/RecruitmentApplications?RequisitionId={CxRequisition}&SearchTerm={Uri.EscapeDataString(citizen.FullName)}");
@@ -684,7 +706,10 @@ public class AcHcm30CandidateExperienceTests
             "طلب الشاغر REQ-2026-A-CX01 الخاص بالخطة 30 غير مُهيّأ أو غير منشور — أعد بناء hr-core-web (AcceptanceCandidateExperiencePatch) أو أعد تهيئة البيئة",
             "The PLAN-30 requisition REQ-2026-A-CX01 is not seeded or not published — rebuild hr-core-web (AcceptanceCandidateExperiencePatch) or reset the stack.");
 
-    /// <summary>The citizen row (by national-id hash) and its linked recruitment application; the reference is TempData-only in the UI.</summary>
+    /// <summary>
+    /// The citizen row (by national-id hash) and its linked recruitment application. The reference is the row's: AC-30a reads it from
+    /// the confirmation page first and checks it against this one (FIX-CAREERS-REF); the other steps take it from here.
+    /// </summary>
     private static async Task<CitizenRow> RequireCitizenRowAsync(Citizen citizen)
     {
         var row = await Sql(
@@ -1008,6 +1033,16 @@ public class AcHcm30CandidateExperienceTests
         private readonly Dictionary<string, string> _cookies = new(StringComparer.Ordinal);
 
         public bool HasCookie(string name) => _cookies.ContainsKey(name);
+
+        /// <summary>A GET through the gateway (redirects followed); returns the HTML-decoded page. The page is not written to evidence.</summary>
+        public async Task<string> GetAsync(string step, string path)
+        {
+            using var resp = await FollowRedirectsAsync(await SendAsync(HttpMethod.Get, path));
+            recorder.CaptureHttp($"{tag}-{step}-citizen", "GET", "/" + path, (int)resp.StatusCode,
+                new { final = resp.RequestMessage?.RequestUri?.AbsolutePath });
+            Assert.True(resp.StatusCode == HttpStatusCode.OK, $"GET {path} returned {(int)resp.StatusCode}.");
+            return WebUtility.HtmlDecode(await resp.Content.ReadAsStringAsync());
+        }
 
         public async Task<PostResult> ApplyAsync(
             string step, string postingId, Citizen citizen, IReadOnlyList<(string Field, string FileName, string ContentType, byte[] Bytes)> files)

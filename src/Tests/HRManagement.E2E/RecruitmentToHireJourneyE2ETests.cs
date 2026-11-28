@@ -56,7 +56,8 @@ internal static class RecruitmentJourney
            of the approval is refused by the server (G-04, PLAN-25) — the instance stays at step 1.
         2. br1-mgr step 1 → a-management-approver step 2 → Approved → publish with a closing date 10 days ahead.
         3. Refusal: with the closing date moved to yesterday (test-only SQL, restored) the citizen's application is refused.
-           Citizen applies on /careers with profile, consent and a PDF CV (File.Storage + ClamAV) → CitizenApplication + RecruitmentApplication.
+           Citizen applies on /careers with profile, consent and a PDF CV (File.Storage + ClamAV) → CitizenApplication + RecruitmentApplication;
+           the confirmation page shows the reference number, read from the page and only checked against the database (FIX-CAREERS-REF).
         4. central-a: screen → COI → shortlist → interview (scheduled ahead, moved into the past by test-only SQL as in AC-HCM-26) →
            attended → scores by central-a and br1-mgr → Assessed → rank 1 → Ranked (no committee: RequiresCommitteeApproval=false).
            Refusal: an offer for the not-yet-ranked application is refused.
@@ -177,12 +178,17 @@ internal static class RecruitmentJourney
         }
 
         var applied = await citizenUi.PostAsync("3-apply", "careers/apply", $"careers/{posting}", apply, [("CvFile", "cv.pdf", "application/pdf", Pdf)]);
-        Assert.Equal("/careers/submitted", applied.FinalPath);
+        Assert.Equal(CareersConfirmationPage.Path, applied.FinalPath);
+        // FIX-CAREERS-REF: the candidate's number is the one the confirmation page shows through the gateway; the database only
+        // confirms it, and the rest of the journey (the portal sign-in) uses the page's number.
+        var reference = CareersConfirmationPage.RequireReference(applied.Body, "3-apply");
         var citizenRow = (await WaitForAsync(() => CoreSql(
                 "SELECT \"Id\" || '|' || \"ReferenceNumber\" || '|' || COALESCE(\"PromotedRecruitmentApplicationId\"::text,'') FROM \"CitizenApplications\" " +
                 $"WHERE \"NationalIdHash\"='{Sha256Hex(nationalId)}';"), r => r.Split('|').Length == 3 && r.Split('|')[2].Length > 0,
             TimeSpan.FromSeconds(30), "citizen application")).Split('|');
-        var (citizen, reference, app) = (citizenRow[0], citizenRow[1], citizenRow[2]);
+        var (citizen, app) = (citizenRow[0], citizenRow[2]);
+        Assert.True(string.Equals(citizenRow[1], reference, StringComparison.Ordinal),
+            "3-apply: the confirmation page shows a reference number that is not the citizen row's.");
         Assert.Equal("1", await CoreSql($"SELECT COUNT(*) FROM \"CandidateDocuments\" WHERE \"RecruitmentApplicationId\"='{app}';"));
         var appPage = $"ui/hr-core/RecruitmentApplications/Details/{app}";
 
