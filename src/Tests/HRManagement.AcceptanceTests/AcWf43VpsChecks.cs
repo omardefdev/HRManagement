@@ -30,9 +30,10 @@ public partial class AcOps36VpsBootTests
         var recorder = StartWf43("vps-definitions", "Demo server: the backfill matches the before-picture, the health report names the invalid definitions, the realm has workflow-admin");
 
         // PLAN-46: the four orphans are retired, and the card and the discipline run a second version (their first one retired).
+        // PLAN-60: the separation's two chains are seeded and published (version 1): 12 → 14, and both require distinct approvers.
         var byStatus = Sql("hr_core_db", "select \"Status\", \"IsPublished\", count(*) from \"WorkflowDefinitions\" group by 1, 2 order by 1, 2");
-        Assert.Equal(["Published|t|12", "Retired|f|9"], byStatus);
-        Assert.Equal(["ASSET-ASSIGN-APPROVAL", "ASSET-LOSS-APPROVAL", "DISCIPLINARY-APPROVAL"], Sql("hr_core_db", "select distinct \"Code\" from \"WorkflowDefinitions\" where \"RequireDistinctApprovers\" order by 1"));
+        Assert.Equal(["Published|t|14", "Retired|f|9"], byStatus);
+        Assert.Equal(["ASSET-ASSIGN-APPROVAL", "ASSET-LOSS-APPROVAL", "DISCIPLINARY-APPROVAL", "SEPARATION-APPROVAL", "SEPARATION-APPROVAL-SENSITIVE"], Sql("hr_core_db", "select distinct \"Code\" from \"WorkflowDefinitions\" where \"RequireDistinctApprovers\" order by 1"));
 
         // PLAN-46: no published definition fails the validator any more, so the start-up health report names none.
         var (code, logs) = Sh($"docker logs {ContainerOf("hr-core-web")} 2>&1 | grep -a 'fails validation' | grep -ao 'definition [A-Z-]* v[0-9]*' | sort -u; true");

@@ -273,7 +273,8 @@ public class G3SeparationMidSagaFailureIntegrationTests
 
     {
 
-        db.SeparationRecords.Add(new SeparationRecord
+        // PLAN-60: an executed record, through the state machine.
+        var record = new SeparationRecord
 
         {
 
@@ -285,11 +286,11 @@ public class G3SeparationMidSagaFailureIntegrationTests
 
             SeparationType = SeparationType.Resignation,
 
-            EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow),
+            EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow)
 
-            SeparationEventPublished = true
-
-        });
+        };
+        SeparationTestJourney.MoveTo(record, SeparationStatus.Executing);
+        db.SeparationRecords.Add(record);
 
 
 

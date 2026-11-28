@@ -673,57 +673,72 @@ public class AcS2s42TrustBoundaryTests
         {
             ["EmployeeId"] = employee,
             ["SeparationType"] = "Resignation",
-            ["EffectiveDate"] = DateTime.UtcNow.Date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
+            ["EffectiveDate"] = SeparationJourney.Iso(SeparationJourney.TodayInDamascus()),
             ["Reason"] = "AC-S2S-42h"
         });
 
     private static Task<long> SeparationsAsync(string employee) =>
         Count("hr_contracts_db", $"SELECT COUNT(*) FROM \"SeparationRecords\" WHERE \"EmployeeId\"='{employee}';");
 
-    private static Task<HttpResponseMessage> PublishAsync(HttpClient http, string record) =>
-        PostUiFormAsync(http, $"ui/hr-contracts/SeparationRecords/Details/{record}", $"ui/hr-contracts/SeparationRecords/PublishSeparation/{record}");
+    private static async Task<Guid> SeparationOfAsync(string employee) =>
+        Guid.Parse(await Sql("hr_contracts_db", $"SELECT \"Id\" FROM \"SeparationRecords\" WHERE \"EmployeeId\"='{employee}';"));
 
-    private static Task<string> PublishedAsync(string record) =>
-        Sql("hr_contracts_db", $"SELECT \"SeparationEventPublished\" FROM \"SeparationRecords\" WHERE \"Id\"='{record}';");
+    /// <summary>
+    /// PLAN-60: the record's way to its execution, by the screens: the maker submits it, central-a and the management approver approve it
+    /// from HR.Core's inbox, the checker issues the decision and completes the notification. Only the execution's own checks remain.
+    /// </summary>
+    private static async Task ReadyToExecuteAsync(EvidenceRecorder r, ScreenSession maker, ScreenSession checker, Guid record)
+    {
+        var instance = await SeparationJourney.SubmitAsync(maker, record);
+        await SeparationJourney.ApproveStandardAsync(instance, r);
+        await SeparationJourney.AwaitStatusAsync(record, "Approved");
+        await SeparationJourney.IssueDecisionAsync(checker, record);
+        await SeparationJourney.CompleteItemAsync(checker, record, "EmployeeNotified", "AC-S2S-42h-NOTICE");
+    }
 
     [SkippableFact]
-    public async Task Ac42h_The_legal_hold_gate_refuses_at_creation_and_publication_also_when_it_cannot_check()
+    public async Task Ac42h_The_legal_hold_gate_refuses_at_creation_and_execution_also_when_it_cannot_check()
     {
-        var r = Recorder("42h", "Creation and publication pass without a hold, stop with one, and stop when HR.Core is down", "a-contracts-maker, a-contracts-checker");
+        var r = Recorder("42h", "Creation and execution pass without a hold, stop with one, and stop when HR.Core is down",
+            "a-contracts-maker, central-a, a-management-approver, a-contracts-checker");
         AcceptanceGate.RequireEnabled(r);
         await StackReadyAsync();
-        using var maker = await UiClientAsync("a-contracts-maker");
-        using var checker = await UiClientAsync("a-contracts-checker");
+        using var makerHttp = await UiClientAsync("a-contracts-maker");
+        using var maker = await ScreenSession.OpenAsync("a-contracts-maker", r);
+        using var checker = await ScreenSession.OpenAsync("a-contracts-checker", r);
 
         var free = await FreeEmployeeAsync();
         AcceptanceGate.RequireData(r, Guid.TryParse(free, out _), "لا يوجد موظف بلا انفصال", "No law50 employee of agency A without a separation (scripts/acceptance-reset.ps1).");
-        await CreateSeparationAsync(maker, free);
+        await CreateSeparationAsync(makerHttp, free);
         Assert.Equal(1, await SeparationsAsync(free));
-        var record = await Sql("hr_contracts_db", $"SELECT \"Id\" FROM \"SeparationRecords\" WHERE \"EmployeeId\"='{free}';");
+        var record = await SeparationOfAsync(free);
 
-        // The wizard made the checklist. The operator's steps and the seed's empty regime are not what this scenario tests.
+        // The seed's empty regime is not what this scenario tests (setup by psql). The record's status, items, decision and approval
+        // are the screens' (PLAN-60: no SQL writes them).
         await Sql("hr_core_db", $"UPDATE \"EmploymentRecords\" SET \"LegalRegimeId\"='law50' WHERE \"EmployeeId\"='{free}' AND \"EndDate\" IS NULL; SELECT 1;");
-        await Sql("hr_contracts_db", $"UPDATE \"SeparationChecklists\" SET \"IsCompleted\"=true WHERE \"SeparationRecordId\"='{record}'; SELECT 1;");
-        await PublishAsync(checker, record);
-        var detailsAfterPublish = await checker.GetAsync($"ui/hr-contracts/SeparationRecords/Details/{record}");
-        Assert.True(await PublishedAsync(record) == "t", Alerts(WebUtility.HtmlDecode(await detailsAfterPublish.Content.ReadAsStringAsync())));
+        await ReadyToExecuteAsync(r, maker, checker, record);
+        var executed = await SeparationJourney.ExecuteAsync(checker, record);
+        var executedStatus = await SeparationJourney.StatusAsync(record);
+        Assert.True(executedStatus is "Executing" or "AwaitingIntervention" or "Completed", $"{executedStatus} {executed.Alerts}");
 
         var held = await FreeEmployeeAsync();
         await Sql("hr_core_db", $"UPDATE \"Employees\" SET \"LegalHold\"=true, \"LegalHoldReason\"='AC-S2S-42h' WHERE \"Id\"='{held}'; SELECT 1;");
-        string outageRecord;
+        Guid outageRecord;
+        string underHold;
         try
         {
-            var created = await CreateSeparationAsync(maker, held);
+            var created = await CreateSeparationAsync(makerHttp, held);
             Assert.Contains("حجز قانوني", WebUtility.HtmlDecode(await created.Content.ReadAsStringAsync()), StringComparison.Ordinal);
             Assert.Equal(0, await SeparationsAsync(held));
 
-            // A record made before the hold cannot be published under it.
+            // A record made and approved before the hold cannot be executed under it.
             await Sql("hr_core_db", $"UPDATE \"Employees\" SET \"LegalHold\"=false WHERE \"Id\"='{held}'; SELECT 1;");
-            await CreateSeparationAsync(maker, held);
-            outageRecord = await Sql("hr_contracts_db", $"SELECT \"Id\" FROM \"SeparationRecords\" WHERE \"EmployeeId\"='{held}';");
+            await CreateSeparationAsync(makerHttp, held);
+            outageRecord = await SeparationOfAsync(held);
+            await ReadyToExecuteAsync(r, maker, checker, outageRecord);
             await Sql("hr_core_db", $"UPDATE \"Employees\" SET \"LegalHold\"=true WHERE \"Id\"='{held}'; SELECT 1;");
-            await PublishAsync(checker, outageRecord);
-            Assert.Equal("f", await PublishedAsync(outageRecord));
+            underHold = (await SeparationJourney.ExecuteAsync(checker, outageRecord, "execute-under-hold")).Alerts;
+            Assert.Equal("Approved", await SeparationJourney.StatusAsync(outageRecord));
         }
         finally
         {
@@ -731,28 +746,32 @@ public class AcS2s42TrustBoundaryTests
         }
 
         await StopAsync("hr-core-web");
-        string page;
-        string publishedDuringOutage;
+        ScreenPage duringOutage;
+        string statusDuringOutage;
         try
         {
-            await PublishAsync(checker, outageRecord);
-            publishedDuringOutage = await PublishedAsync(outageRecord);
-            var details = await checker.GetAsync($"ui/hr-contracts/SeparationRecords/Details/{outageRecord}");
-            page = WebUtility.HtmlDecode(await details.Content.ReadAsStringAsync());
+            duringOutage = await SeparationJourney.ExecuteAsync(checker, outageRecord, "execute-hr-core-down");
+            statusDuringOutage = await SeparationJourney.StatusAsync(outageRecord);
         }
         finally
         {
             await StartAsync("hr-core-web");
         }
 
-        Assert.Equal("f", publishedDuringOutage);
-        Assert.Contains("تعذّر التحقق من الحجز القانوني", page, StringComparison.Ordinal);
+        Assert.Equal("Approved", statusDuringOutage);
+        Assert.True(duringOutage.Says("تعذّر التحقق من الحجز القانوني"), duringOutage.Alerts);
 
-        r.WriteScenarioDbChecks(new { free, record, held, outageRecord, publishedDuringOutage });
+        // The record that was never executed is cancelled with a reason (PLAN-60's cancellation by status).
+        var leftovers = await SeparationJourney.CancelLeftoversAsync(r, outageRecord);
+        Assert.Empty(leftovers);
+
+        r.WriteScenarioDbChecks(new { free, record, executedStatus, held, outageRecord, underHold, statusDuringOutage, cancelled = true });
         r.WriteScenarioSteps(
-            "1. An employee with no hold: creation passes; publication passes once the checklist is complete and the record names law50 (setup by psql).\n" +
-            "2. Negative: LegalHold=true: creation is refused and no record exists; a record made before the hold cannot be published.\n" +
-            "3. Negative: hr-core-web stopped: publication is refused with the failure message and the record stays unpublished.");
+            "1. An employee with no hold: creation passes; the record is submitted by the maker, approved from HR.Core's inbox (central-a, " +
+            "a-management-approver), its decision issued and its notification completed by the checker, and the execution passes once the " +
+            "employee names law50 (the regime set by psql; nothing of the record is).\n" +
+            "2. Negative: LegalHold=true: creation is refused and no record exists; a record made and approved before the hold cannot be executed.\n" +
+            "3. Negative: hr-core-web stopped: the execution is refused with the failure message and the record stays Approved; it is then cancelled.");
         r.WriteResult("Pass");
     }
 

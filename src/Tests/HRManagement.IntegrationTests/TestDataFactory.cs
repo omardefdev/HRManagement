@@ -97,8 +97,7 @@ public static class TestDataFactory
             EmployeeId = employeeId,
             ContractId = contractId,
             SeparationType = SeparationType.Resignation,
-            EffectiveDate = new DateOnly(2026, 6, 30),
-            SeparationEventPublished = false
+            EffectiveDate = new DateOnly(2026, 6, 30)
         };
 
     public static EmployeePayProfile CreateActivePayProfile(Guid employeeId, decimal baseSalary = 10000m) =>

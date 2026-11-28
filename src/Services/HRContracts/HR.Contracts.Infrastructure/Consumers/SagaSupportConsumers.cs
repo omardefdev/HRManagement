@@ -1,4 +1,7 @@
+using HR.Contracts.Application.Abstractions;
+using HR.Contracts.Application.Features.SeparationRecords;
 using HR.Contracts.Domain.Enums;
+using HR.Contracts.Domain.Services;
 using HR.Contracts.Infrastructure.Data;
 using HR.Contracts.Infrastructure.Sagas;
 using HRManagement.MessageContracts.Commands;
@@ -53,67 +56,102 @@ public class ProcessInterventionRequestedConsumer(
 /// record of work that never completed. Archival now depends on the saga's own success signal.
 /// </para>
 /// </summary>
-public class SeparationSagaFinalizedConsumer(ContractsDbContext db) : IConsumer<ISeparationSagaFinalized>
+public class SeparationSagaFinalizedConsumer(
+    ContractsDbContext db,
+    IContractsRepository repository,
+    ILogger<SeparationSagaFinalizedConsumer> logger) : IConsumer<ISeparationSagaFinalized>
 {
+    public const string CompletedReason = "اكتملت رحلة الفصل: أقرّت جميع الأطراف الإلزامية (النظام)";
+
+    /// <summary>
+    /// PLAN-60 (§5): a successful saga completes the record — <c>Executing</c> (or <c>AwaitingIntervention</c> resumed) → <c>Completed</c> —
+    /// and its own transaction, found by <c>SeparationRecordId</c>, follows. The saga's row is the parties' truth: an item of a party it
+    /// counts as done is completed here if its acknowledgement has not been stamped yet, so <c>Completed</c> always means every mandatory
+    /// party acknowledged. The actor is the system (null), named in the reason.
+    /// </summary>
     public async Task Consume(ConsumeContext<ISeparationSagaFinalized> context)
     {
         var message = context.Message;
-        var record = await db.SeparationRecords.FirstOrDefaultAsync(
-            r => r.Id == message.SeparationRecordId, context.CancellationToken);
-        if (record is null)
-            return;
-
         if (!message.Success)
         {
-            // Compensated or abandoned: leave the transaction where the saga left it so the
-            // failure stays visible instead of being archived away.
+            // Compensated or abandoned: the record stays where it is, visible (PLAN-63 owns the compensation).
             return;
         }
 
-        record.SeparationEventPublished = true;
-
-        var tx = await db.ServiceTransactions
-            .OrderByDescending(x => x.CreatedAt)
-            .FirstOrDefaultAsync(
-                x => x.EmployeeId == record.EmployeeId
-                     && x.TransactionType == ServiceTransactionType.Separation,
-                context.CancellationToken);
-
-        if (tx is not null)
+        var record = await db.SeparationRecords.FirstOrDefaultAsync(r => r.Id == message.SeparationRecordId, context.CancellationToken);
+        if (record is null || record.Status == SeparationStatus.Completed)
+            return;
+        if (record.Status is not (SeparationStatus.Executing or SeparationStatus.AwaitingIntervention))
         {
-            if (tx.State == ServiceTransactionState.Executing)
-                tx.MoveTo(ServiceTransactionState.PostProcessing, null, null);
-            if (tx.State == ServiceTransactionState.PostProcessing)
-                tx.MoveTo(ServiceTransactionState.Completed, null, "All separation parties completed");
-            if (tx.State == ServiceTransactionState.Completed)
-                tx.MoveTo(ServiceTransactionState.Archived, null, "Separation archived after saga finalized");
+            logger.LogWarning("Separation {RecordId} finalized while {Status}; left as it is.", record.Id, record.Status);
+            return;
         }
 
+        var saga = await db.SeparationSagaStates.AsNoTracking()
+            .FirstOrDefaultAsync(x => x.SeparationRecordId == record.Id, context.CancellationToken);
+        var acknowledged = (saga?.CompletedParties ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var items = await db.SeparationChecklists
+            .Where(c => c.SeparationRecordId == record.Id && c.CompletionMode == SeparationStepCompletionMode.PartyAck && !c.IsCompleted)
+            .ToListAsync(context.CancellationToken);
+        foreach (var item in items.Where(i => acknowledged.Contains(i.PartyName, StringComparer.OrdinalIgnoreCase)))
+        {
+            item.IsCompleted = true;
+            item.CompletedAt = DateTime.UtcNow;
+            item.SourceSystem = item.PartyName;
+            item.EvidenceRef ??= $"saga:{item.PartyName}";
+        }
+
+        if (record.Status == SeparationStatus.AwaitingIntervention)
+            await SeparationStatusSync.TransitionAsync(
+                repository, record, SeparationStatus.Executing, null, "استئناف آلي عند اكتمال الأطراف (النظام)", context.CancellationToken);
+        await SeparationStatusSync.TransitionAsync(
+            repository, record, SeparationStatus.Completed, null, CompletedReason, context.CancellationToken);
         await db.SaveChangesAsync(context.CancellationToken);
     }
 }
 
-/// <summary>FUN-002-B: stamp PayrollSettled checklist evidence from Payroll party ACK.</summary>
-public class SeparationPartyCompletedChecklistConsumer(ContractsDbContext db) : IConsumer<ISeparationPartyCompleted>
+/// <summary>
+/// PLAN-60 (§4): a party's acknowledgement of the execution completes its own PartyAck item — IsCompleted, the party's evidence, the party
+/// as the source, no person (CompletedBy null is allowed here only). It generalises FUN-002-B's PayrollSettled stamp to the seven parties.
+/// Only while the record is executing (or waiting for an intervention) and its saga is not compensating: a compensation's acknowledgement
+/// completes nothing.
+/// </summary>
+public class SeparationPartyAckChecklistConsumer(
+    ContractsDbContext db,
+    ILogger<SeparationPartyAckChecklistConsumer> logger) : IConsumer<ISeparationPartyCompleted>
 {
     public async Task Consume(ConsumeContext<ISeparationPartyCompleted> context)
     {
         var m = context.Message;
-        if (!string.Equals(m.Party, ProcessParties.Payroll, StringComparison.OrdinalIgnoreCase))
-            return;
-        if (string.IsNullOrWhiteSpace(m.EvidenceRef))
+        if (SeparationChecklistDefaults.StepForParty(m.Party) is not SeparationStep step)
             return;
 
-        var step = await db.SeparationChecklists.FirstOrDefaultAsync(
-            c => c.SeparationRecordId == m.SeparationRecordId
-                 && c.Step == HR.Contracts.Domain.Enums.SeparationStep.PayrollSettled,
-            context.CancellationToken);
-        if (step is null)
+        var record = await db.SeparationRecords.AsNoTracking()
+            .FirstOrDefaultAsync(r => r.Id == m.SeparationRecordId, context.CancellationToken);
+        if (record is null || record.Status is not (SeparationStatus.Executing or SeparationStatus.AwaitingIntervention))
             return;
 
-        step.EvidenceRef = m.EvidenceRef;
-        if (string.IsNullOrWhiteSpace(step.SourceSystem))
-            step.SourceSystem = "PayrollParty";
+        var saga = await db.SeparationSagaStates.AsNoTracking()
+            .Where(s => s.SeparationRecordId == m.SeparationRecordId)
+            .Select(s => s.CurrentState)
+            .FirstOrDefaultAsync(context.CancellationToken);
+        if (saga is "Compensating" or "Cancelled")
+        {
+            logger.LogInformation("Separation {RecordId}: {Party}'s acknowledgement of a compensation completes no item.", m.SeparationRecordId, m.Party);
+            return;
+        }
+
+        var item = await db.SeparationChecklists.FirstOrDefaultAsync(
+            c => c.SeparationRecordId == m.SeparationRecordId && c.Step == step, context.CancellationToken);
+        if (item is null || item.IsCompleted || item.CompletionMode != SeparationStepCompletionMode.PartyAck)
+            return;
+
+        item.IsCompleted = true;
+        item.CompletedAt = DateTime.UtcNow;
+        item.CompletedBy = null;
+        item.EvidenceRef = string.IsNullOrWhiteSpace(m.EvidenceRef) ? $"ack:{m.Party}" : m.EvidenceRef;
+        item.SourceSystem = m.Party;
         await db.SaveChangesAsync(context.CancellationToken);
     }
 }
@@ -131,11 +169,7 @@ public class ContractsSeparationPartyConsumer(
 
         if (m.Compensate)
         {
-            var record = await db.SeparationRecords.FindAsync([m.SeparationRecordId], context.CancellationToken);
-            if (record is not null)
-                record.SeparationEventPublished = false;
-
-            await db.SaveChangesAsync(context.CancellationToken);
+            // PLAN-60: the record's status follows its own transitions; undoing an execution is PLAN-63's compensation.
             await context.Publish<ISeparationPartyCompleted>(new
             {
                 m.SeparationRecordId,

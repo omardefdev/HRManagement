@@ -17,8 +17,17 @@ namespace HR.Contracts.Web.Controllers;
 [OrgScopeCentralOnly("saga repair: the agency's process interventions")]
 public class ProcessInterventionsController(
     ContractsDbContext db,
-    IPublishEndpoint publish) : ControllerBase
+    IPublishEndpoint publish,
+    HR.Contracts.Application.Abstractions.IContractsRepository repository) : ControllerBase
 {
+    public const string SeparationCancelRefusedMessage = HR.Contracts.Domain.Services.SeparationWorkflowRules.ExecutingCancelMessage;
+
+    /// <summary>PLAN-60: the token the two POSTs validate (they now write a separation record's status, or refuse it).</summary>
+    [HttpGet("antiforgery")]
+    public HRManagement.ServiceDefaults.Messaging.MessagingRepairAntiforgery Antiforgery(
+        [FromServices] Microsoft.AspNetCore.Antiforgery.IAntiforgery antiforgery) =>
+        HRManagement.ServiceDefaults.Messaging.MessagingRepairAntiforgery.Issue(antiforgery, HttpContext);
+
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<object>>> List(
         [FromQuery] string? sagaType = null,
@@ -56,6 +65,7 @@ public class ProcessInterventionsController(
 
     [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost("{id:guid}/resume")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Resume(Guid id, CancellationToken ct)
     {
         var item = await db.ProcessInterventions.FirstOrDefaultAsync(i => i.Id == id, ct);
@@ -65,6 +75,12 @@ public class ProcessInterventionsController(
 
         if (item.SagaType == SagaTypeNames.Separation)
         {
+            // PLAN-60 (§5): the record waiting for the intervention executes again, by this person.
+            var record = await db.SeparationRecords.FirstOrDefaultAsync(r => r.Id == item.CorrelationId, ct);
+            if (record is { Status: HR.Contracts.Domain.Enums.SeparationStatus.AwaitingIntervention })
+                await HR.Contracts.Application.Features.SeparationRecords.SeparationStatusSync.TransitionAsync(
+                    repository, record, HR.Contracts.Domain.Enums.SeparationStatus.Executing, Actor(), "استئناف بعد تدخل بشري", ct);
+
             await publish.Publish<IResumeSeparationSaga>(new
             {
                 SeparationRecordId = item.CorrelationId,
@@ -92,6 +108,7 @@ public class ProcessInterventionsController(
 
     [Authorize(Policy = HrManagementPolicies.HrContractsWrite)]
     [HttpPost("{id:guid}/cancel")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Cancel(Guid id, [FromBody] CancelRequest? body, CancellationToken ct)
     {
         var item = await db.ProcessInterventions.FirstOrDefaultAsync(i => i.Id == id, ct);
@@ -99,17 +116,11 @@ public class ProcessInterventionsController(
         if (item.Status != ProcessInterventionStatuses.Open)
             return BadRequest("التدخل ليس مفتوحاً");
 
+        // PLAN-60 (§5): cancelling an executing separation is PLAN-63's compensation path; a hire's cancellation stays as it was.
         if (item.SagaType == SagaTypeNames.Separation)
-        {
-            await publish.Publish<ICancelSeparationSaga>(new
-            {
-                SeparationRecordId = item.CorrelationId,
-                Reason = body?.Reason ?? "إلغاء من المشغّل",
-                CorrelationId = CorrelationIdFlow.Get(),
-                TenantId = TenantIdFlow.Get()
-            }, ct);
-        }
-        else if (item.SagaType == SagaTypeNames.Hire)
+            return Conflict(SeparationCancelRefusedMessage);
+
+        if (item.SagaType == SagaTypeNames.Hire)
         {
             await publish.Publish<ICancelHireSaga>(new
             {
@@ -127,6 +138,12 @@ public class ProcessInterventionsController(
         item.ResolutionNotes = body?.Reason;
         await db.SaveChangesAsync(ct);
         return Ok(new { cancelled = true });
+    }
+
+    private Guid? Actor()
+    {
+        var value = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+        return Guid.TryParse(value, out var actor) ? actor : null;
     }
 
     public sealed class CancelRequest

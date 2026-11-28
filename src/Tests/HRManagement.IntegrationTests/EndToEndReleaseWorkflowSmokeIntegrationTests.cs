@@ -102,28 +102,16 @@ public class EndToEndReleaseWorkflowSmokeIntegrationTests
         }
 
         contract.Status = ContractStatus.Active;
-        var separation = TestDataFactory.CreateSeparationRecord(employeeId, contract.Id);
-        contractsDb.SeparationRecords.Add(separation);
         await contractsDb.SaveChangesAsync();
 
-        // DOM-001: publish requires all required checklist steps completed
-        contractsDb.SeparationChecklists.AddRange(
-            SeparationChecklistDefaults.CreateForRecord(separation.Id).Select(step =>
-            {
-                step.IsCompleted = true;
-                step.CompletedAt = DateTime.UtcNow;
-                step.CompletedBy = Guid.NewGuid();
-                step.EvidenceRef = $"evidence:{step.Step}";
-                step.SourceSystem = "ReleaseWorkflowSmoke";
-                return step;
-            }));
-        await contractsDb.SaveChangesAsync();
-
+        // PLAN-60: the separation the product's way — created, approved in the engine, its decision and the employee's notification,
+        // then executed (the publication's successor).
         using (var mediatorScope = scope.Provider.CreateScope())
         {
-            var mediator = mediatorScope.ServiceProvider.GetRequiredService<IMediator>();
-            var (sepOk, sepError) = await mediator.Send(new PublishSeparationCommand(separation.Id));
-            Assert.True(sepOk, sepError ?? "PublishSeparation failed without error message");
+            var separationId = await SeparationJourneyDriver.ReadyToExecuteAsync(
+                mediatorScope.ServiceProvider, employeeId, contract.Id, new DateOnly(2026, 6, 30));
+            var (sepOk, sepError) = await SeparationJourneyDriver.ExecuteAsync(mediatorScope.ServiceProvider, separationId);
+            Assert.True(sepOk, sepError ?? "ExecuteSeparation failed without error message");
         }
 
         await IntegrationTestHelpers.AssertConsumedAsync<ISeparationCompleted>(scope.Harness);

@@ -20,6 +20,10 @@ public interface IContractsRepository
     IQueryable<SeparationChecklist> SeparationChecklists { get; }
     IQueryable<HireChecklist> HireChecklists { get; }
 
+    /// <summary>PLAN-60: the local copy of each employee's unit (the approval's inbox scope). None by default (test doubles).</summary>
+    IQueryable<HRManagement.SharedKernel.Entities.EmployeeOrgUnitSnapshot> EmployeeOrgUnitSnapshots =>
+        Enumerable.Empty<HRManagement.SharedKernel.Entities.EmployeeOrgUnitSnapshot>().AsQueryable();
+
     Task<LeaveRequest?> GetLeaveRequestAsync(Guid id, CancellationToken ct);
     Task<AdvanceRequest?> GetAdvanceRequestAsync(Guid id, CancellationToken ct);
     Task<AdministrativeDecision?> GetAdministrativeDecisionAsync(Guid id, CancellationToken ct);

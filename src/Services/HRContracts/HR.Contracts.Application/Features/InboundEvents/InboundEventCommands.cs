@@ -439,11 +439,11 @@ public class ProcessJobChangeRequestedHandler(
 
 public class ProcessSeparationRequestHandler(
     IContractsRepository repository,
-    ICodeGenerationClient codeClient,
-    IEmployeeLifecycleGate lifecycleGate) : IRequestHandler<ProcessSeparationRequestCommand>
+    SeparationRecordFactory factory) : IRequestHandler<ProcessSeparationRequestCommand>
 {
     public async Task Handle(ProcessSeparationRequestCommand request, CancellationToken cancellationToken)
     {
+        // The same request already recorded (employee, date, type, not executed) is this entry's idempotency.
         var existing = await repository.SeparationRecords
             .AnyAsync(r => r.EmployeeId == request.EmployeeId
                 && r.EffectiveDate == request.EffectiveDate
@@ -452,33 +452,16 @@ public class ProcessSeparationRequestHandler(
         if (existing)
             return;
 
-        // PLAN-42 (G-SEP-12): no record under a legal hold, or when the hold cannot be checked. The message fails and stays in the
-        // broker's retry and error path, so it is neither lost nor acted on.
-        var (allowed, holdError) = await lifecycleGate.AssertCanStartSeparationAsync(request.EmployeeId, cancellationToken);
-        if (!allowed)
-            throw new InvalidOperationException(holdError);
-
-        var entity = new SeparationRecord
-        {
-            EmployeeId = request.EmployeeId,
-            SeparationType = request.SeparationType,
-            EffectiveDate = request.EffectiveDate,
-            Reason = request.Reason,
-            Documents = request.Documents,
-            SeparationEventPublished = false
-        };
-        await repository.AddAsync(entity, cancellationToken);
-        var transaction = new ServiceTransaction
-        {
-            EmployeeId = request.EmployeeId,
-            TransactionType = ServiceTransactionType.Separation,
-            Notes = "Inbound separation request"
-        };
-        await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
-        await repository.AddAsync(transaction, cancellationToken);
-        await repository.SaveChangesAsync(cancellationToken);
-        await SeparationRecordSupport.SeedChecklistAsync(repository, entity.Id, cancellationToken);
-        await repository.SaveChangesAsync(cancellationToken);
+        // PLAN-60 (§6): the one creation path — the employee (exists, service not ended, no legal hold; PLAN-42's gate, fail-closed),
+        // no other open record, the contract his. A refusal throws, as PLAN-42's hold does: the message stays in the broker's retry and
+        // error path, neither lost nor acted on. No person created the record: its CreatedBy stays empty (P-7).
+        var created = await factory.CreateAsync(
+            new SeparationRecordDraft(
+                request.EmployeeId, null, request.SeparationType, request.EffectiveDate, request.Reason, request.Documents,
+                "Inbound separation request"),
+            cancellationToken);
+        if (!created.Success)
+            throw new InvalidOperationException(created.Error);
     }
 }
 

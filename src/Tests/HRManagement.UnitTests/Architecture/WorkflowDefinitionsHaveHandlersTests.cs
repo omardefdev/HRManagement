@@ -23,8 +23,8 @@ public sealed class WorkflowDefinitionsHaveHandlersTests
     {
         ["CardRequest"] = new("IDCard", "CardRequestApprovalOutcomeConsumer"),
         ["DisciplinaryAction"] = new("Compliance", "DisciplinaryApprovalOutcomeConsumer"),
-        // PLAN-60 writes SeparationApprovalOutcomeConsumer in HR.Contracts, seeds the two codes, and removes PendingPlan.
-        ["SeparationRecord"] = new("HR.Contracts", "SeparationApprovalOutcomeConsumer", PendingPlan: "PLAN-60")
+        // PLAN-60: SeparationApprovalOutcomeConsumer in HR.Contracts applies SEPARATION-APPROVAL and SEPARATION-APPROVAL-SENSITIVE.
+        ["SeparationRecord"] = new("HR.Contracts", "SeparationApprovalOutcomeConsumer")
     };
 
     private static string RepoRoot
@@ -221,13 +221,15 @@ public sealed class WorkflowDefinitionsHaveHandlersTests
     [Fact]
     public async Task The_rule_check_finds_the_triggers_of_before_PLAN_49_and_none_after_its_change_sets()
     {
-        // A database of before the plan: R-HIRE-START, R-TRF and R-TKT fire codes whose types nobody handles, and R-SEP-START a
-        // type whose consumer a later plan writes. The change sets leave none of them in an effective version.
+        // A database of before the plan: R-HIRE-START, R-TRF and R-TKT fire codes whose types nobody handles. R-SEP-START fired a
+        // SeparationRecord code, whose consumer PLAN-60 wrote, so it is no longer an orphan by type. The change sets leave none of them in
+        // an effective version.
         await using var db = await SeededAsync();
         await HRManagement.UnitTests.Pol049LegacyPolicyData.SeedAsync(db);
 
         var before = await OrphanTriggersAsync(db);
-        foreach (var key in new[] { "R-HIRE-START", "R-TRF", "R-TKT", "R-SEP-START" })
+        Assert.DoesNotContain(before, o => o.Contains(" R-SEP-START ", StringComparison.Ordinal));
+        foreach (var key in new[] { "R-HIRE-START", "R-TRF", "R-TKT" })
             Assert.Contains(before, o => o.Contains($" {key} ", StringComparison.Ordinal));
 
         await PolicyEngineSeeder.SeedAsync(db);

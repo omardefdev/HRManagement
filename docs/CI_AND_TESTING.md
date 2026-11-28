@@ -385,6 +385,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/ci-local.ps1 -SkipTe
   `prodlike-final` تنتظرها. وفي `order[]` تلي `s2s42`، فالتشغيل بلا `-Stage` يعطيها مكدساً جديداً أيضاً. محلياً:
   `acceptance-job.ps1 -Stage prodLike:cycle`. شهرها من `ACCEPTANCE_PAYROLL_CYCLE_FROM` (`yyyy-MM`؛ الافتراضي قبل 12 شهراً من اليوم بتوقيت
   دمشق): أول شهر منتهٍ بلا تشغيل اعتيادي حي ولا حضور مغلق في الجهة A، فثلاثة تنفيذات متتالية على مكدس واحد تأخذ ثلاثة أشهر متتالية.
+- **AC-SEP-60 (PLAN-60):** صنفان مطلوبان. `AcSep60SeparationGovernanceTests` (السيناريوهات a..h) في `prodLike[]` المجموعة `main`:
+  الإنشاء والتقديم، والاعتماد من صندوق العمل في HR.Core (`central-a` ثم `a-management-approver`، والحساس عبر `a-compliance`)، والقرار
+  `DEC-SEP`، وتبليغ الموظف، والتنفيذ، والرفض، والاستثناء من شخصين، وسلامة السجل. و`AcSep60OutcomeSweepTests` (السيناريو i) في
+  `prodLike[]` المجموعة `isolated`، كل صنف وحده في تشغيله، لأنه **يوقف `hr-contracts-web` ويفرغ طابور نتائجه** ليثبت أن المصالحة
+  (`WorkflowApproval:Sweep`، مهلة `StaleAfterMinutes` = 5 لهذه الخدمة في ملف prod-like) تطبّق نتيجة فاتها الحدث، وأن السحب بعد انتهاء
+  الاعتماد يطبّق نتيجته ولا يعيد السجل مسودة. **العزل:** كل سيناريو يفصل نسخة جديدة من الشخصية القالب `a-leaver` (`hr-employee`، الجهة A،
+  المقر) عبر `AcceptanceLeaverFixture.CreateAsync`: موظف بشاشة `Employees/Create` في HR.Core (`central-a`) في وحدة القالب، ونظام خدمته
+  مصنّف بالشرط المسبق المعلن لأصناف الرواتب (`AcceptancePayrollRegime.ClassifyRecordsAddedSinceTheSeedAsync`، لأن شاشة الإنشاء لا تفتح
+  استثناء نظام يُحل من `ServiceRegimeExceptions/Resolve`، والتنفيذ يتحقق من نظام الموظف النافذ)، وعقد **معلّق** من شاشة `Contracts/Create`
+  (`a-contracts-maker`) لا يُفعَّل: لا شاشة تضبط درجة العقد وراتبه، والتفعيل بدونهما يترك حجز المراجعة PAY029-NOSAL في الجهة A، وهو ما
+  تمنعه قاعدة عزل AC-PAY-58؛ فلا ملف أجر ولا أثر في الرواتب، والتنفيذ ينهي العقد المعلّق بتاريخ النفاذ كما ينهي النشط. هذا انحراف مسجّل
+  عن P-12. لا كتابة SQL في الصنفين ولا في الأداة إلا ذلك الاستدعاء المسمّى، ويحرسه `scripts/sep060-validate.ps1`. كل نسخة لا تُنفَّذ تُلغى بسبب في
+  `finally`، وكل نسخة اعتماد تنتهي. PLAN-61..64 توسّع الأداة ولا تعدّل الشخصية المشتركة. يُعاد الصنفان على المكدّس نفسه بلا إعادة ضبط.
 - **أشهر الرواتب في القبول (PLAN-59):** `testdata/acceptance/payroll-months.json` يسجّل أشهر كل صنف في الجهة A لكل مكدس (البذرة،
   AC-LVA-57 وملفه، AC-IAM-53، AC-PAY-54..58، AC-12 وAC-PAY-59 بقاعدة D-PAY-22، نافذة AC-21 ‏2024-01..06 ونافذة AC-22 ‏2024-07..12،
   وقاعدة AC-23 «الشهر الجاري + 2»، وAC-24 وAC-25 في lab). `AcceptancePayrollMonths` يجد شهر الصنف بإنشاء التشغيل (201) أو بلقاء رفض

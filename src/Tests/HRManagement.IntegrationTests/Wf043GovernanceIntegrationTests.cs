@@ -110,7 +110,7 @@ public sealed class Wf043GovernanceIntegrationTests(PgRabbitFixture fixture)
         Assert.All(rows.Where(d => d.IsPublished), d => Assert.Equal(WorkflowDefinitionStatus.Published, d.Status));
         Assert.Equal(WorkflowDefinitionStatus.Retired, rows.Single(d => d.Code == "RECRUITMENT-HIRE").Status);
         // PLAN-46: discipline needs two different people too.
-        Assert.Equal([AssignmentCode, "ASSET-LOSS-APPROVAL", "DISCIPLINARY-APPROVAL"], rows.Where(d => d.RequireDistinctApprovers).Select(d => d.Code).Order(StringComparer.Ordinal));
+        Assert.Equal([AssignmentCode, "ASSET-LOSS-APPROVAL", "DISCIPLINARY-APPROVAL", "SEPARATION-APPROVAL", "SEPARATION-APPROVAL-SENSITIVE"], rows.Where(d => d.RequireDistinctApprovers).Select(d => d.Code).Order(StringComparer.Ordinal));
     }
 
     [Trait("Category", "Testcontainers")]

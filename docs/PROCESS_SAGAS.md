@@ -54,7 +54,17 @@ Configurable via `Sagas:Separation|Hire|Transfer|Secondment:MandatoryParties`.
 
 ## DOM-001 gate
 
-`PublishSeparation` no longer auto-completes `ContractTerminated`. Completing that checklist step terminates the contract with `CompletedBy` + evidence.
+PLAN-60 replaced the publication with the execution (`ExecuteSeparationCommand`), and it is the only path that starts the separation saga
+(`HrContractsSeparationPostPoliciesTests` finds any other call of `StartSeparationSagaAsync`). It runs only on an `Approved` record with its
+numbered decision (`DEC-SEP-YYYY-#####`), its pre-execution items done or excepted (the decision, the employee's notification), the
+effective date reached in Damascus's time, no legal hold and a valid service regime. In one save with the outbox it ends the contract at the
+effective date (`ContractWorkflowRules.Terminate(contract, endDate)`), completes `ContractTerminated` as a System item, moves the record to
+`Executing` with its actor and its transaction along, and stages `IStartSeparationSaga`. No person completes `ContractTerminated` by hand.
+
+The record's status follows the saga: a party's fault or timeout (`IProcessInterventionRequested`) → `AwaitingIntervention`; Resume →
+`Executing`; `ISeparationSagaFinalized(Success)` → `Completed` (the transaction by `SeparationRecordId`, every party's item acknowledged).
+Each acknowledgement completes its PartyAck item (`SeparationPartyAckChecklistConsumer`); a compensation's completes nothing. Cancelling an
+executing separation (the interventions' cancel included) is refused until PLAN-63's compensation path.
 
 ## Metrics (`HRManagement.Saga`)
 

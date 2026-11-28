@@ -32,6 +32,30 @@ public class Fun002JourneyMatrixTests
         Assert.Contains(steps, s => s.GetProperty("id").GetString() == "AccountDisabled"
                                     && s.GetProperty("service").GetString() == "Auth.Directory");
     }
+
+    // PLAN-60 (P-9): the matrix and the code agree both ways — every SeparationStep has its item with the same mode, party, owner and SLA,
+    // and every item that names a step names one that exists.
+    [Fact]
+    public void Matrix_and_checklist_defaults_agree_both_ways()
+    {
+        using var doc = JsonDocument.Parse(System.IO.File.ReadAllText(ResolveMatrixPath()));
+        var items = doc.RootElement.GetProperty("steps").EnumerateArray()
+            .Where(s => s.GetProperty("separationStep").ValueKind == JsonValueKind.String)
+            .ToDictionary(s => s.GetProperty("separationStep").GetString()!, s => s);
+
+        foreach (var step in Enum.GetValues<SeparationStep>())
+        {
+            Assert.True(items.TryGetValue(step.ToString(), out var item), $"{step} has no item in the matrix.");
+            Assert.Equal(SeparationChecklistDefaults.ModeFor(step).ToString(), item.GetProperty("completionMode").GetString());
+            Assert.Equal(SeparationChecklistDefaults.PartyFor(step),
+                item.GetProperty("party").ValueKind == JsonValueKind.Null ? null : item.GetProperty("party").GetString());
+            var (owner, sla) = SeparationChecklistDefaults.GovernanceFor(step);
+            Assert.Equal((owner, sla), (item.GetProperty("ownerRole").GetString()!, item.GetProperty("slaHours").GetInt32()));
+        }
+
+        Assert.All(items.Keys, key => Assert.True(Enum.TryParse<SeparationStep>(key, out _), $"{key} is not a SeparationStep."));
+        Assert.Equal(Enum.GetValues<SeparationStep>().Length, items.Count);
+    }
 }
 
 public class Fun002ChecklistGovernanceTests
@@ -54,11 +78,13 @@ public class Fun002ChecklistGovernanceTests
             EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(7)),
             SeparationType = SeparationType.Resignation
         };
-        Assert.True(SeparationWorkflowRules.CanCancel(record));
-        SeparationWorkflowRules.SoftCancel(record, "اختبار");
+        // PLAN-60: a cancellation is a transition with a reason; the record stays, with its flag, and moves no further.
+        Assert.True(SeparationWorkflowRules.IsCancellable(record.Status));
+        SeparationWorkflowRules.Transition(record, SeparationStatus.Cancelled, Guid.NewGuid(), "اختبار");
         Assert.True(record.IsCancelled);
-        Assert.False(SeparationWorkflowRules.CanCancel(record));
-        Assert.False(SeparationWorkflowRules.CanComplete(record, []));
+        Assert.Equal("اختبار", record.CancellationReason);
+        Assert.False(SeparationWorkflowRules.IsCancellable(record.Status));
+        Assert.Empty(SeparationWorkflowRules.NextStatuses(record.Status));
     }
 
     [Fact]
@@ -70,7 +96,7 @@ public class Fun002ChecklistGovernanceTests
             EffectiveDate = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(3)),
             SeparationType = SeparationType.Resignation
         };
-        Assert.False(SeparationWorkflowRules.IsEffectiveDateReached(record));
+        Assert.False(SeparationWorkflowRules.IsEffectiveDateReached(record, DateOnly.FromDateTime(DateTime.UtcNow)));
         Assert.True(SeparationWorkflowRules.IsEffectiveDateReached(record, record.EffectiveDate));
     }
 

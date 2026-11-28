@@ -105,7 +105,7 @@ public static class AcceptancePersonaCatalog
         [TenantDefaults.DefaultCode] = 5,
         // PLAN-46: a-idcard-2. PLAN-51: a-ess-supervisory, a-ess-approver. PLAN-54: a-payroll-approver-2.
         // PLAN-58: a-payroll-multirole (the conflict fixture), a-auditor-2.
-        ["AGENCY-A"] = 49,
+        ["AGENCY-A"] = 50,
         ["AGENCY-B"] = 8,
         ["AGENCY-C"] = 4
     };

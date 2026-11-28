@@ -21,4 +21,7 @@ public static class AdvisoryLockKeys
     public const long DisciplinaryApprovalSweep = 4_001_012;
     /// <summary>PLAN-53: Payroll, the activation of the scheduled salary changes that are due.</summary>
     public const long PayProfileChangeActivation = 4_001_013;
+
+    /// <summary>PLAN-60: one replica per cycle sweeps the separation approvals HR.Contracts missed (WorkflowApprovalSweepJob).</summary>
+    public const long SeparationApprovalSweep = 4_001_014;
 }

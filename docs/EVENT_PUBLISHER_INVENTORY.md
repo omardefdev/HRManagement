@@ -107,12 +107,12 @@ outbox on every receive endpoint.
 | `IAdvanceApproved` | `ApproveAdvanceRequestHandler` | SingleSave |
 | `IConfirmationApproved` | `CreateProbationRecordHandler` | SingleSave |
 | `IJobUpdateApplied` | `CreateAdministrativeDecisionHandler` | SingleSave |
-| `ISeparationStepCompleted` | `CompleteSeparationChecklistStepHandler` | SingleSave |
+| `ISeparationStepCompleted` | `CompleteManualStepHandler` (PLAN-60: a manual item completed with its evidence) | SingleSave |
 | `IContractActivated` | `ActivateContractHandler` | SingleSave |
 | `ICommencementRecorded` | `CreateCommencementRecordHandler` | OutboxUnitOfWork |
 | `IStartHireSaga` | `PublishHireCaseHandler` | OutboxUnitOfWork |
-| `IStartSeparationSaga` | `PublishSeparationHandler` | SingleSave |
-| `ICancelSeparationSaga` | `CancelSeparationHandler`, `ProcessInterventionsController` | SingleSave |
+| `IStartSeparationSaga` | `ExecuteSeparationHandler` (PLAN-60: the execution alone, in the save that ends the contract and moves the record to `Executing`) | SingleSave |
+| `ICancelSeparationSaga` | none until PLAN-63 (PLAN-60: `CancelSeparationHandler` cancels a record before its execution only, and the interventions' Cancel refuses a separation; `IEventPublisher.CancelSeparationSagaAsync` stays for PLAN-63's compensation) | — |
 | `IResumeSeparationSaga`, `IResumeHireSaga`, `ICancelHireSaga` | `ProcessInterventionsController` | SingleSave |
 | `IProcessInterventionRequested` | `HireCommencementWatcher` (hosted service) | SingleSave |
 | `IProcessInterventionRequested` | `ProcessCandidateAcceptedHandler` (from `CandidateAcceptedConsumer`, `EmployeeOfferAcceptedConsumer`) | ConsumerOutbox |

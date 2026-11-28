@@ -2,25 +2,17 @@
 @{ ViewData["Title"] = "تعديل إنهاء خدمة"; }
 <div class="card">
     <div class="card-header"><h3 class="card-title">تعديل سجل الفصل</h3></div>
-    @if (Model.SeparationEventPublished)
-    {
-        <div class="alert alert-info m-3 mb-0">تم نشر حدث الفصل؛ يُنصح بعدم تغيير البيانات الحرجة دون تنسيق مع الأنظمة الأخرى.</div>
-    }
+    <div class="alert alert-info m-3 mb-0">الحالة: @Html.HrEnumDisplay(Model.Status). يُعدَّل السجل وهو مسودة فقط، ولا يتغير الموظف ولا العقد بعد إكمال أي بند.</div>
     <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="Id" />
         <div class="card-body">
             <div asp-validation-summary="ModelOnly" class="alert alert-danger"></div>
             <div class="mb-3"><label asp-for="EmployeeId" class="form-label"></label><select asp-for="EmployeeId" class="form-select" data-hr-picker="employee" data-placeholder="ابحث عن موظف..."><option value="">— اختر موظف —</option></select></div>
-            <div class="mb-3"><label asp-for="ContractId" class="form-label"></label><select asp-for="ContractId" asp-items="Model.Contracts" class="form-control"><option value="">— بدون —</option></select></div>
+            <div class="mb-3"><label asp-for="ContractId" class="form-label"></label><select asp-for="ContractId" asp-items="Model.Contracts" class="form-control" data-hr-employee-contracts="@Url.Action("EmployeeContracts", "SeparationRecords")" data-hr-employee-source="EmployeeId"><option value="">— بدون عقد —</option></select><div class="form-text">عقود الموظف المختار النشطة أو قيد الانتظار فقط.</div></div>
             <div class="mb-3"><label asp-for="SeparationType" class="form-label"></label><select asp-for="SeparationType" class="form-control" asp-items="Html.HrEnumSelectList<SeparationType>()"></select></div>
             <div class="mb-3"><label asp-for="EffectiveDate" class="form-label"></label><input asp-for="EffectiveDate" class="form-control" type="date" /></div>
             <div class="mb-3"><label asp-for="Reason" class="form-label"></label><textarea asp-for="Reason" class="form-control" rows="2"></textarea></div>
-            <div class="mb-3">
-                <label class="form-label">المعتمد</label>
-                <div class="form-control-plaintext">@Html.HrUserName((object?)ViewBag.ApprovedBy)</div>
-                <div class="form-text">يُسجَّل المعتمد من هوية الجلسة عند الاعتماد.</div>
-            </div>
             <div class="mb-3"><label asp-for="Documents" class="form-label"></label><textarea asp-for="Documents" class="form-control" rows="2"></textarea></div>
         </div>
         <div class="card-footer">
@@ -29,4 +21,4 @@
         </div>
     </form>
 </div>
-@section Scripts { <partial name="_ValidationScriptsPartial" /> }
+@section Scripts { <partial name="_ValidationScriptsPartial" /><script src="~/js/separation-contracts.js" asp-append-version="true"></script> }
