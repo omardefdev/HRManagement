@@ -269,3 +269,45 @@ asserted the old rule). The ContractLifecycle override tests → `StepException_
   08:06:54Z. PR #61 opened 08:07:06Z (https://github.com/omardefdev/HRManagement/pull/61). The app's PR tools did not answer (their hook
   timed out), so the checks are read with `gh`.
 
+## P9 — the demo server
+
+- SSH with host-key checking on; the pinned ED25519 key `SHA256:qWIfQls882KM/nQ99yV/WFU2Wk08t6DIb8o+pUMGsto` matched. The running tag
+  `8086ac8629af` is on `origin/main`; 46 G free (P-18: ≥ 15).
+- **Backup** 08:18:32Z: `/opt/hrm/backups/pre-plan60-20261128T081832Z` (700/600): `pg_dumpall.sql` 63,913,311 bytes, 17 `CREATE DATABASE`,
+  `env.backup`, `SHA256SUMS` verified. **The picture** again (`picture-pre-deploy.txt`): as P0's (only the disk line moved; P0's run had
+  named the pay profiles' table wrongly, this one has their checksum). No record P-5 would cancel while its saga started: no Stop.
+- The older checks' picture values taken **before the deploy** by running their read-only picture checks on the old tag (LVA-57, PAY-54,
+  -55, -56, -58, -59; `older.env`). **Deviation (machine rule):** the first of those runs was wrapped in `timeout 590` (the notes forbid a
+  limit on a server check: a cut check skips its clean-up); those six only read, nothing was left open, and the two the limit cut were
+  rerun detached.
+- **GHCR build** of `release/plan-60` (run 46125280397, 08:19:34Z → 08:32:43Z, 13 min 9 s): 17 of 17 images, tag `8e022f910a36`.
+- **Deploy** `scripts/vps/deploy.ps1 -Tag 8e022f910a36` (08:55:50Z → 09:02:25Z, 6 min 35 s, first attempt): pull 109 s, up 148 s,
+  bootstrap 61 s (SEP060 applied by the table owner), Keycloak reconcile 20 s (0 changes), healthy 17 s; smoke 50 pass, 0 fail, 1 warn.
+- `Server_services_log_the_repository_legal_pack_fingerprint` right after: Pass.
+- **`AcSep60VpsChecks`** (09:58:26Z → 10:03:55Z): **5/5** — the release (the tag on every container, all healthy, SEP060 the last contracts
+  migration); the backfill as predicted (`Draft|t|10`, `Executing|f|16`, no PLAN-60 cancellation, the partial index, 260 items = 10 per
+  record: 26 Manual, 182 PartyAck, 52 System, 1 link, `FORCE` on the four tables); the two chains with D-SEP-4's steps and distinct
+  approvers; Payroll's six checksums, the contracts and the employees by status as in the picture; one Resignation (record
+  `353ad7fc-7824-46e2-8d06-23e332710382`, instance `e7145339-…`) created and submitted by e2e-maker-contracts, approved by e2e-delegate-hr
+  (step 2 next) and e2e-checker-mgmt → `Approved` (instance `Completed`, no decision) → cancelled with «PLAN-60 server check»; no
+  separation instance in progress.
+- `sep060-report-unlinked.ps1 -Server`: 27 records (26 and the check's), 25 without a transaction; 10 Separation transactions, 8 without a
+  record.
+- **The older server checks** (PLAN-36..59: `AcOps36VpsBootTests` and its partials, `AcInt37VpsServerTests`; 36j excepted; each alone, no
+  time limit; 10:50:08Z → 13:50:34Z, 3 h 0 min): 78 of 86, then three rerun alone and passed (13:51:32Z → 13:56:12Z): the realm sync
+  (its `tail -1` reads the reconcile's last line, and the reconcile printed «reconcile: 0 changes» one line before its end that time),
+  PAY-58's screens (`ERR_NETWORK_CHANGED` from this machine), UX-67's destructive form (the confirm dialog's 10 s). **81 of 86.** The five:
+  - PAY-54, PAY-58 and PAY-59's pictures: overtaken in the chain by checks that write by design — AC-OPS-38's leave adds two System
+    adjustments (12:05:56Z, 12:06:13Z), PAY-56's checks two cancelled 2028-09 runs (12:40:08Z, 12:46:32Z) with their 425 lines, three
+    more adjustments 13:04–13:43Z. Every row from before the deploy kept its value: the runs `21|8da67ec2…`, the lines `3400|b242a825…`,
+    110 System adjustments — the pre-deploy picture (`after-deploy-payroll.txt`). AC-SEP-60's own picture check, run right after the
+    deploy and before them, matched all six Payroll checksums;
+  - `AC_POL_47` the migration: reads `artifacts/plan47/vps/fingerprint-before.json`, lost with the Windows machine (since PLAN-53);
+  - `AC_POL_49` the migration: two policy-template drafts (`IDCard.Lifecycle` 2026-11-27 19:58:07Z, `Core.Recruitment` 21:25:22Z) left by
+    PLAN-59's server-check run, before this deploy (a PLAN-67 draft requisition of 19:48:23Z too). Not removed: demo data outside this
+    plan; named in `OPS_VPS_SINGLE_HOST.md`.
+- The committed evidence the server suites rewrote restored with git; today's MSG-040 replay report moved under `artifacts/plan60/vps/`.
+- The PR's checks: all 16 green on `8e022f91` and again on `2e1c12ff` (pushed 10:51:05Z: the server checks class). **QA-066's limit:**
+  the prodlike stage took 39 min 57 s and 32 min 14 s on the two runs (55 min limit): raised to 60 (1.5 × 40).
+- Finished P9 (UTC): 2026-11-28T13:58:44Z
+
