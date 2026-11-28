@@ -174,4 +174,41 @@ asserted the old rule). The ContractLifecycle override tests → `StepException_
      history is not rewritten.
 - Tests after the fixes: unit (separation filters) 280/280; SQLite integration 160 passed, 11 skipped (Testcontainers-only); Testcontainers
   `Sep060*` 48/48 (the race test needed its own setup fixed once: its side contexts must be the host's tenant-less ones).
+- Fixes committed `46314a05`; hr-contracts-web rebuilt from it (67 s), the migrator `hr-migrate:local` through `docker compose build`
+  (02:23:43Z → 02:42:12Z, 18.5 min); the superseded migrator image and this build's regular cache removed (12 → 21 GB free). The other 15
+  service images are from `92f0c997`, whose service code is the same as `46314a05`'s outside HR.Contracts.
+- **Prod-like stack 1** (`acceptance-reset.ps1`, then `acceptance-up.ps1 -Profile ProdLike -NoBuild -RequireCleanBaseline`): ready in
+  694 s (02:43:22Z → 02:54:56Z); its verification Pass (DATA-AUTH 71, DATA-DIRECTORY 62, DATA-SEPARATION 86, DATA-EMP and DATA-CONTRACT
+  1,617, SEED-03); the sweep's keys on hr-contracts-web (`IntervalMinutes` 1, `StaleAfterMinutes` 5).
+- **The seeded statuses:** 56 `Executing` and 30 legacy `Draft` (every item with its mode: 10 per record). P0's 57/29 was wrong — the
+  seeder loops per agency (72, 10 and 4 records: 24 + 4 + 2 multiples of 3 unpublished); every record's status is the backfill's rule on
+  its own flag.
+- **AC-SEP-60a..h run 1** (02:56:11Z → 02:57:43Z): 8/8. b: `DEC-SEP-2026-00003`, executed `Executing`, the contract `Terminated` at
+  2026-11-28, the saga `Completed` with the seven parties; the second copy refused before the decision and before the date (2026-11-29).
+  c: the maker's approval page and post both 403 (the module policy), the instance in progress at step 1; his decision refused by the
+  issuer rule. d: `Step3Execute` and `Execute` 403 through the gateway. e, f (the exception by the checker, then executed and `Completed`),
+  g (`Rejected` with its reason, no saga), h (`SEPARATION-APPROVAL-SENSITIVE`; central-a on the compliance step: no form, the post refused
+  «هذه الخطوة تتطلب دور «compliance»», still step 2). Approvals reached the record 129–204 ms after the last step.
+- g found more than expected: the copy has a pay profile — Payroll's inactive placeholder made at the employee's creation (no grade,
+  salary 0, `IsActive` false). g now compares the profile row's checksum before and after the rejection, and records it.
+- **Run 2** (02:59:54Z → 03:01:22Z): 7/8 — d failed at its submission: HR.Core refused the approval title «…ولا يتضمن رقماً طويلاً»,
+  because the copy's random hex suffix held a long run of digits (a test-data defect; real names hold none). Its draft was tracked and
+  cancelled by the cleanup. The fixture's suffix is now letters only.
+- **Run 3** (03:02:09Z → 03:03:40Z), the second whole run on the same stack: **8/8**.
+- **The rest of `main` on the same stack** (17 classes, 03:03:52Z → 03:17:59Z): **86/86**, none skipped — AC-SEP-60's copies,
+  contracts, pay profiles, accounts and executed separations met by every other class of the group.
+- **AC-SEP-60i run 1** (03:18:14Z → 03:18:49Z): failed at the withdrawal of B. **A defect of PLAN-46, found here:** HR.Core's
+  `WorkflowExternalInstancesController` carries `[ValidateAntiForgeryToken]` on the class (so that a later POST is protected), which applies
+  to GETs too; PLAN-43's two POSTs opt out, PLAN-46's `GET {id}/external-status` did not. Every owner's status read answered 400
+  («the required antiforgery cookie … is not present»): the separation panel's approval state, a withdrawal that finds the instance ended
+  (it gave PLAN-46's «وستُطبّق نتيجته قريباً» instead of applying the outcome), the cancellation's withdraw-first step on an ended
+  instance, and the sweep — for every owner (AC-WF-46 never reads the status, so it went unseen). Fix: `[IgnoreAntiforgeryToken]` on the
+  GET, as on the POSTs (the policy needs a client_credentials token no browser holds); a unit test pins every action's opt-out and the
+  class's check. The run's cleanup could not cancel A and B (their withdrawal met the same 400): left `PendingApproval` with ended
+  instances on stack 1, recorded, gone with its `down -v`.
+- `sep060-report-unlinked.ps1` on stack 1: 116 records, 86 without a transaction (the 86 seeded ones), 54 Separation transactions, 24
+  without a record (seeded). Counts after the runs: employees 1,651 (+34: the 33 copies and AC-IAM-50b's), contracts 1,650 (+33),
+  accounts 104 and directory entries 95 (+33: Auth.Directory makes one per new employee), pay profiles 1,524 (+35 placeholders).
+- Stack 1 brought down with its volumes (`acceptance-reset.ps1`, 5 s) to rebuild hr-core-web: with the stack up the machine had 3 GB of
+  memory left and two unit builds were killed by their time limits.
 

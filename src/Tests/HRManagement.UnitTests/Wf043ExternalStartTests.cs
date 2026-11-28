@@ -458,6 +458,21 @@ public sealed class Wf043ExternalStartTests
             m => m.Name == "Start");
     }
 
+    [Fact]
+    public void Every_service_action_opts_out_of_the_class_antiforgery_check_and_the_class_keeps_it()
+    {
+        // PLAN-60: [ValidateAntiForgeryToken] on the class applies to GETs as well; PLAN-46's status read had no opt-out and every
+        // owner's call answered 400 (no antiforgery cookie on a service call). The class keeps the check, so a new POST is protected
+        // until it opts out on purpose.
+        var controller = typeof(WorkflowExternalInstancesController);
+        Assert.NotNull(controller.GetCustomAttribute<Microsoft.AspNetCore.Mvc.ValidateAntiForgeryTokenAttribute>());
+        var actions = controller.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Where(m => m.GetCustomAttributes().OfType<Microsoft.AspNetCore.Mvc.Routing.HttpMethodAttribute>().Any())
+            .ToList();
+        Assert.Equal(["Cancel", "ExternalStatus", "Start"], actions.Select(m => m.Name).Order());
+        Assert.All(actions, m => Assert.NotNull(m.GetCustomAttribute<Microsoft.AspNetCore.Mvc.IgnoreAntiforgeryTokenAttribute>()));
+    }
+
     [Theory]
     [InlineData("/api/hr-core/api/workflow-instances", HrManagementPolicies.WorkflowExternalStart)]
     [InlineData("/api/hr-core/api/workflow-instances/", HrManagementPolicies.WorkflowExternalStart)]

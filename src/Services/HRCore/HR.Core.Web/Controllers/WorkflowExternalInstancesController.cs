@@ -12,8 +12,10 @@ namespace HR.Core.Web.Controllers;
 /// PLAN-43 (G-WF-05): the start and the withdrawal of an approval, for the service that owns the type. Who may call is the policy;
 /// which type it owns is <see cref="ExternalApprovalService"/>.
 /// <para>
-/// The class demands an antiforgery token, so a POST added here later is protected by default. Both actions opt out: the policy
+/// The class demands an antiforgery token, so a POST added here later is protected by default. Every action opts out: the policy
 /// needs a client_credentials token, which no browser holds, so there is no ambient credential a forged request could ride on.
+/// <c>[ValidateAntiForgeryToken]</c> on a class applies to its GETs too (unlike the automatic filter): PLAN-60 found PLAN-46's status
+/// read refused with 400 for every owner (the panels' approval state, a withdrawal that finds the instance ended, the sweep).
 /// </para>
 /// </summary>
 [ApiController]
@@ -49,6 +51,7 @@ public sealed class WorkflowExternalInstancesController(ExternalApprovalService 
 
     /// <summary>PLAN-46: for the service that owns the type and started the instance; anyone else gets the 404 of an unknown id.</summary>
     [HttpGet("{id:guid}/external-status")]
+    [IgnoreAntiforgeryToken]
     public async Task<IActionResult> ExternalStatus(Guid id, CancellationToken ct) =>
         await approvals.GetStatusAsync(id, Caller(), ct) is { } status ? Ok(status) : NotFound();
 

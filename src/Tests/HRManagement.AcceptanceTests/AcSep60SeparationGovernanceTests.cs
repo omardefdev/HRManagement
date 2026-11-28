@@ -519,8 +519,16 @@ public class AcSep60SeparationGovernanceTests
             $"SELECT (SELECT count(*) FROM \"EmployeePayProfiles\" WHERE \"EmployeeId\"='{id}')::text || '|' || " +
             $"(SELECT count(*) FROM \"EndOfServiceSettlements\" WHERE \"EmployeeId\"='{id}')::text || '|' || " +
             $"(SELECT count(*) FROM \"PayrollAdjustments\" WHERE \"EmployeeId\"='{id}')::text || '|' || " +
-            $"(SELECT count(*) FROM \"PaymentHolds\" WHERE \"EmployeeId\"='{id}')::text;");
+            $"(SELECT count(*) FROM \"PaymentHolds\" WHERE \"EmployeeId\"='{id}')::text || '|' || " +
+            // The profile rows themselves: a checksum, so «unchanged» means not touched at all (its UpdatedAt included).
+            $"COALESCE((SELECT md5(string_agg(row_to_json(p)::text, '' ORDER BY p.\"Id\")) FROM \"EmployeePayProfiles\" p WHERE p.\"EmployeeId\"='{id}'), '-');");
     }
+
+    /// <summary>The copy's profile: active|salary|grade (Payroll's placeholder at the employee's creation is inactive, salary 0, no grade).</summary>
+    private static Task<string> ProfileAsync(Guid employee) =>
+        ReadAsync(Payroll,
+            "SELECT COALESCE(string_agg(\"IsActive\"::text || '|' || \"BaseSalary\"::text || '|' || COALESCE(\"PayGradeId\"::text, '-'), ','), '-') " +
+            $"FROM \"EmployeePayProfiles\" WHERE \"EmployeeId\"='{employee:D}';");
 
     /// <summary>What Payroll wrote for agency A since <paramref name="since"/>: settlements|adjustments|holds (no other class runs beside).</summary>
     private static Task<string> AgencyPayrollWritesAsync(DateTime since)
@@ -540,8 +548,9 @@ public class AcSep60SeparationGovernanceTests
         s.Steps("""
             1. Fixture: a copy. a-contracts-maker creates and submits a Resignation; central-a approves step 1 from his inbox.
             2. Negative: a-management-approver rejects step 2 from his inbox with a reason → the record Rejected with that reason, within
-               30 seconds; no saga row; Payroll's rows for the copy (pay profiles, settlements, adjustments, holds) as they were (the copy's
-               contract is pending: it has no profile, P-12's deviation), nothing written by Payroll for agency A since the submission
+               30 seconds; no saga row; Payroll's rows for the copy as they were — its profile untouched (a checksum of the row; the copy's
+               contract is pending, so it is Payroll's inactive placeholder: P-12's deviation), no settlement, adjustment or hold —, nothing
+               written by Payroll for agency A since the submission
                (settlements, adjustments, holds), and the contract untouched.
             3. Cleanup: the rejected record is cancelled with a reason by a-contracts-checker.
             """);
@@ -569,6 +578,7 @@ public class AcSep60SeparationGovernanceTests
             Assert.Equal(0, await SagasOfAsync(record.Value));
             var payrollAfter = await PayrollFootprintAsync(copy.EmployeeId);
             Assert.Equal(payrollBefore, payrollAfter);
+            var profile = await ProfileAsync(copy.EmployeeId);
             // And nothing for anyone in the agency: no settlement, adjustment or hold written since the submission.
             var agencyWrites = await AgencyPayrollWritesAsync(since);
             Assert.Equal("0|0|0", agencyWrites);
@@ -587,9 +597,10 @@ public class AcSep60SeparationGovernanceTests
                 {
                     before = payrollBefore,
                     after = payrollAfter,
-                    columns = "profiles|settlements|adjustments|holds",
+                    columns = "profiles|settlements|adjustments|holds|profile rows md5",
+                    profile,
                     agencyWritesSinceTheSubmission = agencyWrites,
-                    note = "the copy's contract is pending (P-12's recorded deviation): it has no profile to stay active"
+                    note = "the copy's contract is pending (P-12's recorded deviation): its profile is Payroll's inactive placeholder, untouched"
                 },
                 contract = "Pending"
             };

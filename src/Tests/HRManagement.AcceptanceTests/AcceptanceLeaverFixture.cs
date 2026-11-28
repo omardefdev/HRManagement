@@ -64,7 +64,9 @@ internal static class AcceptanceLeaverFixture
         AcceptanceGate.RequireData(recorder, Guid.TryParse(typeText, out var contractType),
             $"نوع العقد {ContractTypeCode} غير موجود", $"Contract type {ContractTypeCode} is missing (scripts/acceptance-reset.ps1).");
 
-        var suffix = Guid.NewGuid().ToString("N")[..8];
+        // Letters only: the name reaches HR.Core's approval title, which refuses a long number (no national number in a title), and a
+        // hex suffix can hold six digits in a row.
+        var suffix = string.Concat(Guid.NewGuid().ToString("N")[..8].Select(c => (char)('a' + Convert.ToInt32(c.ToString(), 16))));
         var label = $"{Marker}-{suffix}";
         var today = SeparationJourney.TodayInDamascus();
         var start = new DateOnly(today.Year, today.Month, 1).AddMonths(-2);
