@@ -1,30 +1,48 @@
 {
   "card": "FUN-002",
-  "version": 1,
+  "version": 2,
   "steps": [
     {
       "id": "SeparationDecision",
-      "separationStep": null,
+      "separationStep": "DecisionIssued",
+      "completionMode": "System",
+      "party": null,
       "mandatory": true,
       "ownerRole": "hr-contracts",
       "slaHours": 24,
-      "evidenceType": "SeparationRecord.Id",
+      "evidenceType": "AdministrativeDecision.DecisionNumber (DEC-SEP-YYYY-#####)",
+      "service": "HR.Contracts",
+      "event": null
+    },
+    {
+      "id": "EmployeeNotified",
+      "separationStep": "EmployeeNotified",
+      "completionMode": "Manual",
+      "party": null,
+      "mandatory": true,
+      "ownerRole": "hr-contracts",
+      "slaHours": 48,
+      "evidenceType": "manual:reference-or-file",
       "service": "HR.Contracts",
       "event": null
     },
     {
       "id": "ContractTerminated",
       "separationStep": "ContractTerminated",
+      "completionMode": "System",
+      "party": null,
       "mandatory": true,
       "ownerRole": "hr-contracts",
       "slaHours": 48,
-      "evidenceType": "Contract.Terminated",
+      "evidenceType": "Contract.Terminated (EndDate = EffectiveDate)",
       "service": "HR.Contracts",
       "event": null
     },
     {
       "id": "PayrollSettled",
       "separationStep": "PayrollSettled",
+      "completionMode": "PartyAck",
+      "party": "Payroll",
       "mandatory": true,
       "ownerRole": "payroll",
       "slaHours": 72,
@@ -35,6 +53,8 @@
     {
       "id": "CardRevoked",
       "separationStep": "CardRevoked",
+      "completionMode": "PartyAck",
+      "party": "IDCard",
       "mandatory": true,
       "ownerRole": "idcard",
       "slaHours": 48,
@@ -45,6 +65,8 @@
     {
       "id": "AccountDisabled",
       "separationStep": "AccountDisabled",
+      "completionMode": "PartyAck",
+      "party": "Auth.Directory",
       "mandatory": true,
       "ownerRole": "auth-directory",
       "slaHours": 24,
@@ -55,6 +77,8 @@
     {
       "id": "AssetsReturned",
       "separationStep": "AssetsReturned",
+      "completionMode": "PartyAck",
+      "party": "Admin.Logistics",
       "mandatory": true,
       "ownerRole": "admin-logistics",
       "slaHours": 72,
@@ -64,7 +88,9 @@
     },
     {
       "id": "ITAccessRevoked",
-      "separationStep": null,
+      "separationStep": "ItAccessRevoked",
+      "completionMode": "PartyAck",
+      "party": "IT.Infra",
       "mandatory": true,
       "ownerRole": "it-infra",
       "slaHours": 48,
@@ -73,8 +99,22 @@
       "event": "IExecuteSeparationParty"
     },
     {
+      "id": "HrCoreUpdated",
+      "separationStep": "HrCoreUpdated",
+      "completionMode": "PartyAck",
+      "party": "HR.Core",
+      "mandatory": true,
+      "ownerRole": "hr-core",
+      "slaHours": 24,
+      "evidenceType": "party:HR.Core",
+      "service": "HR.Core",
+      "event": "IExecuteSeparationParty"
+    },
+    {
       "id": "Archived",
       "separationStep": "Archived",
+      "completionMode": "PartyAck",
+      "party": "Records.Archive",
       "mandatory": true,
       "ownerRole": "records-archive",
       "slaHours": 24,
@@ -85,6 +125,8 @@
     {
       "id": "SeparationCompleted",
       "separationStep": null,
+      "completionMode": null,
+      "party": null,
       "mandatory": true,
       "ownerRole": "hr-contracts",
       "slaHours": 1,
