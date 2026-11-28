@@ -240,3 +240,17 @@ asserted the old rule). The ContractLifecycle override tests → `StepException_
 - Next step: P7 — the documents (the gap study's three status lines, `OPS_VPS_SINGLE_HOST.md`'s PLAN-60 section with the rollback note,
   the plan's Status and notes), the final report's draft, `main` merged if it moved.
 
+## P7 — the documents
+
+- `docs/FUN_002_SEPARATION_GAP_STUDY.md`: the status lines of G-SEP-01, G-SEP-04 and G-SEP-11 (they name the PR run's `AC-SEP-60`
+  evidence folder; the run's link goes in the final report and the merge note).
+- `docs/OPS_VPS_SINGLE_HOST.md`: PLAN-60's section — what changes for the demo's users, the migration and its backfill, the rollback and
+  what the previous tag leaves behind, and HR.Core's status read fixed (the backup, the numbers and the change table follow in P9).
+- `docs/EVENT_PUBLISHER_INVENTORY.md` (in P6): the separation's publishers after PLAN-60.
+- The plan: `Status: Implemented — 2026-11-28`, and «ملاحظات التنفيذ والانحرافات».
+- `reports/plan60-final-report.md`: the draft up to the server's section.
+- `origin/main` has not moved since `96c9594d` (fetched): no merge.
+- The app's file-write hook timed out twice; the report was written through the shell.
+- Finished P7 (UTC): 2026-11-28T07:09:05Z
+- Next step: P8 — the Release build, the local CI steps in a fresh clone, the pre-push check, `release/plan-60`, the push, the PR.
+
