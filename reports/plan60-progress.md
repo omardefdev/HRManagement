@@ -211,4 +211,32 @@ asserted the old rule). The ContractLifecycle override tests → `StepException_
   accounts 104 and directory entries 95 (+33: Auth.Directory makes one per new employee), pay profiles 1,524 (+35 placeholders).
 - Stack 1 brought down with its volumes (`acceptance-reset.ps1`, 5 s) to rebuild hr-core-web: with the stack up the machine had 3 GB of
   memory left and two unit builds were killed by their time limits.
+- Fix committed `49ed7614`; hr-core-web rebuilt from it (168 s, no stack up); the old image removed by id.
+- **Prod-like stack 2** (04:20:32Z → 04:31:35Z, 663 s; its verification Pass). **Deviation (P-2):** started with a one-minute load of
+  13.8 on 8 CPUs (the hr-core-web build had just ended); it came up at the first attempt. Its end went unseen for 19 minutes: a monitor's
+  second `grep` lacked `--line-buffered` (every stage is line-buffered since).
+- **The isolated classes on stack 2, each alone** (04:51:01Z → 05:07:24Z): AC-SEP-60a..h on the fixed HR.Core 8/8 (63 s); **AC-SEP-60i
+  run 1 1/1** (5 min 28 s: two outcomes queued while hr-contracts-web was down 18 s and purged; its start-up 6.5 s; B withdrawn 18 s after
+  its submission → «انتهى مسار الاعتماد قبل السحب: طُبّقت نتيجته «معتمد»», `Approved`; the forged outcome for C ignored and logged with its
+  instance id, C withdrawn → `Draft`, its instance `Cancelled`; **A approved by the sweep 317 s after its submission**, 396 s allowed);
+  **AC-SEP-60i run 2 1/1** (5 min 30 s; B at 17 s; A swept at 318 s of 394); AC-WF-46 9/9; AC-WF-45 8/8 (CustodyJourney changed); the
+  prod-like journey (`RecruitmentToHireJourneyProdLikeE2ETests`) 1/1; AC-INT-37 8/8.
+- **s2s42** (overlays `docker-compose.acceptance-s2s42.yml` and `-wf46.yml`, hr-core-web, admin-logistics-web and idcard-web recreated, as
+  the job's `Add-StageOverlay`): `AcS2s42TrustBoundaryTests` 8/9 — **AC-S2S-42h passed on the new path** (40 s); 42i fails here only for
+  want of `kubectl` (P-14's known local-only failure, recorded, not chased); `AcWf46PolicyOrphanTests` 1/1. Stack 2 brought down with
+  its volumes.
+- **leastpriv** (`scripts/ci/acceptance-job.ps1 -Profile ProdLike -Stage prodLike:leastpriv -NoBuild`, 05:32:54Z → 05:42:05Z): its stack
+  178 s, `AcOps38FirstBootTests` and `AcTen48LeastPrivilegeTests` **9/9** (4 min 56 s). AC-OPS-38a: hr_contracts_db owned by
+  `hr_contracts_migrator`, its service connected as `hr_contracts_app`, healthy on SEP060's schema; a second migrator run applies nothing
+  (38b) — SEP060 applied as the migrator under forced row security. The job tore its stack down (no `hrm-leastpriv` container or volume
+  left); no committed evidence rewritten.
+- **The full Testcontainers step on the host** (CI's filter `Category=Testcontainers&Category!=ObjectStorage`, 06:20:01Z → 06:33:15Z):
+  **344 passed, 1 skipped** (`Ops038BootstrapIdempotencyTests`, gated on its own image run; AC-OPS-38b proved the same on the leastpriv
+  stack), 13 min 10 s. No Testcontainers container left.
+- `scripts/sep060-validate.ps1` Pass; `-SelfTest` 21 planted defects refused. The committed evidence untouched (every local run wrote
+  under `artifacts/plan60/runs/`).
+- Measured for QA-066's rule (P8): AC-SEP-60a..h ≈ 1.5 min in `main`; AC-SEP-60i ≈ 5.5 min in `isolated`.
+- Finished P6 (UTC): 2026-11-28T06:33:42Z
+- Next step: P7 — the documents (the gap study's three status lines, `OPS_VPS_SINGLE_HOST.md`'s PLAN-60 section with the rollback note,
+  the plan's Status and notes), the final report's draft, `main` merged if it moved.
 
