@@ -5,6 +5,7 @@ using HRManagement.ServiceDefaults.CodeGeneration;
 using HRManagement.ServiceDefaults.Integration;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace HR.Contracts.Application.Features.SeparationRecords;
@@ -23,11 +24,13 @@ public class IssueSeparationDecisionHandler(
     ICodeGenerationClient codeClient,
     IHrCoreLookupClient hrCoreLookup,
     SeparationClock clock,
-    IOptions<SeparationOptions> options) : IRequestHandler<IssueSeparationDecisionCommand, IssueSeparationDecisionResult>
+    IOptions<SeparationOptions> options,
+    ILogger<IssueSeparationDecisionHandler>? logger = null) : IRequestHandler<IssueSeparationDecisionCommand, IssueSeparationDecisionResult>
 {
     public const string DecisionTypeCode = "SEP";
     public const string NotApprovedMessage = "يُصدر قرار إنهاء الخدمة لسجل معتمد فقط.";
-    public const string IssuerIsCreatorMessage = "لا يُصدر منشئُ سجل الفصل قرارَه: يصدره صاحب صلاحية آخر.";
+    public const string IssuerIsCreatorMessage = "لا يُصدر منشئُ سجل الفصل ولا مقدّمُه للاعتماد قرارَه: يصدره صاحب صلاحية آخر.";
+    public const string LostRaceMessage = "صدر قرار هذا السجل للتو من مستخدم آخر.";
     public const string NoIssuerMessage = "تعذّر تحديد المستخدم الحالي — لم يُصدر القرار.";
 
     public async Task<IssueSeparationDecisionResult> Handle(IssueSeparationDecisionCommand request, CancellationToken cancellationToken)
@@ -45,7 +48,8 @@ public class IssueSeparationDecisionHandler(
             return new(false, NotApprovedMessage, null, false);
         if (request.IssuerId is not Guid issuer || issuer == Guid.Empty)
             return new(false, NoIssuerMessage, null, false);
-        if (options.Value.Decision.IssuerMustDifferFromCreator && record.CreatedBy == issuer)
+        // The issuer rule excludes the creator and the submitter alike (an inbound record has no creator: its submitter stands in).
+        if (options.Value.Decision.IssuerMustDifferFromCreator && (record.CreatedBy == issuer || record.SubmittedBy == issuer))
             return new(false, IssuerIsCreatorMessage, null, false);
 
         var (ok, number, error) = await CodeGenerationGateway.GenerateOrErrorAsync(
@@ -78,7 +82,26 @@ public class IssueSeparationDecisionHandler(
             item.SourceSystem = "HRContracts";
         }
 
-        await repository.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await repository.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // Two issuances at once: the record's xmin lets one through. The other answers with the winner's decision instead of a
+            // 500; the number it took stays unused (logged, so the register can note the gap).
+            logger?.LogWarning("Separation {RecordId}: a concurrent issuance won; decision number {Number} was generated and not used.",
+                record.Id, number);
+            repository.Remove(decision);
+            await repository.ReloadAsync(record, cancellationToken);
+            if (item is not null)
+                await repository.ReloadAsync(item, cancellationToken);
+            if (record.DecisionId is Guid winnerId
+                && await repository.AdministrativeDecisions.FirstOrDefaultAsync(d => d.Id == winnerId, cancellationToken) is { } winner)
+                return new(true, null, winner, AlreadyIssued: true);
+            return new(false, LostRaceMessage, null, false);
+        }
+
         return new(true, null, decision, AlreadyIssued: false);
     }
 

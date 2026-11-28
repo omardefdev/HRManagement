@@ -153,15 +153,20 @@ public static class SeparationWorkflowRules
 
     /// <summary>
     /// PLAN-60 (P-5, after a rollback): the previous tag moves only the old flags. A record whose flags and status disagree — cancelled
-    /// while open, published while not yet executed, or open with no employee — is put back in line by the backfill's rules; any other
+    /// while open, started while not yet executed, executing while its saga has ended, or open with no employee — is put back in line
+    /// by the backfill's rules; any other
     /// record is left as it is. Returns whether the record changed. <c>SeparationStatusReconciler</c> runs it at start-up.
     /// </summary>
     public static bool ReconcileFromLegacyFlags(SeparationRecord record, string? sagaState)
     {
         ArgumentNullException.ThrowIfNull(record);
+        var started = record.SeparationEventPublished || sagaState is not null;
         var disagrees =
             (record.IsCancelled && record.Status != SeparationStatus.Cancelled)
-            || (record.SeparationEventPublished && !IsExecutedOrLater(record.Status) && record.Status != SeparationStatus.Cancelled)
+            || (started && !record.IsCancelled && !IsExecutedOrLater(record.Status) && record.Status != SeparationStatus.Cancelled)
+            // The previous tag ended the saga (completed, or compensated and the flag reset) without moving the status.
+            || (sagaState is "Completed" or "Cancelled"
+                && record.Status is SeparationStatus.Executing or SeparationStatus.AwaitingIntervention)
             || (record.EmployeeId == Guid.Empty && record.Status == SeparationStatus.Draft);
         if (!disagrees)
             return false;
@@ -191,7 +196,8 @@ public static class SeparationWorkflowRules
     {
         if (isCancelled)
             return (SeparationStatus.Cancelled, null);
-        if (published)
+        // Started: published, or with a saga row (the old compensation reset the flag but kept the row).
+        if (published || sagaState is not null)
         {
             var fromSaga = sagaState switch
             {

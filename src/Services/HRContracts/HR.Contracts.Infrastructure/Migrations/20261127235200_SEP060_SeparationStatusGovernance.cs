@@ -36,7 +36,8 @@ namespace HR.Contracts.Infrastructure.Migrations
                 -- Rule 1: a cancelled record is Cancelled.
                 UPDATE "SeparationRecords" SET "Status" = 'Cancelled', "IsLegacyDraft" = false WHERE "IsCancelled";
 
-                -- Rule 2: a published record, by its saga's state; no row, AwaitingParties, Compensating or Faulted is Executing.
+                -- Rule 2: a record whose saga started (published, or with a saga row: the old compensation reset the flag), by its saga's
+                -- state; no row, AwaitingParties, Compensating or Faulted is Executing. A compensated saga (Cancelled) cancels its record.
                 UPDATE "SeparationRecords" r
                 SET "Status" = COALESCE((
                         SELECT CASE s."CurrentState"
@@ -49,16 +50,19 @@ namespace HR.Contracts.Infrastructure.Migrations
                         ORDER BY s."UpdatedAt" DESC
                         LIMIT 1), 'Executing'),
                     "IsLegacyDraft" = false
-                WHERE NOT r."IsCancelled" AND r."SeparationEventPublished";
+                WHERE NOT r."IsCancelled"
+                  AND (r."SeparationEventPublished"
+                       OR EXISTS (SELECT 1 FROM "SeparationSagaStates" s WHERE s."SeparationRecordId" = r."Id"));
                 UPDATE "SeparationRecords"
                 SET "IsCancelled" = true,
                     "CancelledAt" = COALESCE("CancelledAt", now()),
                     "CancellationReason" = COALESCE("CancellationReason", 'إلغاء رحلة الفصل')
                 WHERE "Status" = 'Cancelled' AND NOT "IsCancelled";
 
-                -- Rule 3: the rest is a Draft that must pass the approval, marked as an older record.
-                UPDATE "SeparationRecords" SET "Status" = 'Draft', "IsLegacyDraft" = true
-                WHERE NOT "IsCancelled" AND NOT "SeparationEventPublished";
+                -- Rule 3: the rest (never started) is a Draft that must pass the approval, marked as an older record.
+                UPDATE "SeparationRecords" r SET "Status" = 'Draft', "IsLegacyDraft" = true
+                WHERE NOT r."IsCancelled" AND NOT r."SeparationEventPublished"
+                  AND NOT EXISTS (SELECT 1 FROM "SeparationSagaStates" s WHERE s."SeparationRecordId" = r."Id");
 
                 -- Rule 4: a record with no employee can never be approved.
                 UPDATE "SeparationRecords"

@@ -68,11 +68,17 @@ public static class SeparationStatusReconciler
     /// <summary>One tenant (the caller sets it in <see cref="TenantIdFlow"/>). Saves the statuses, then the items and the links.</summary>
     public static async Task<SeparationReconcileResult> ReconcileAsync(ContractsDbContext db, CancellationToken ct = default)
     {
-        // Rules 1 and 2 (and 4): a record cancelled while open, published while not yet executed, or a draft with no employee.
+        // Rules 1 and 2 (and 4): a record cancelled while open, started (published, or with a saga row) while not yet executed,
+        // executing while its saga has ended, or a draft with no employee. ReconcileFromLegacyFlags judges each by its latest saga row.
         var executedOrLater = new[] { SeparationStatus.Executing, SeparationStatus.AwaitingIntervention, SeparationStatus.Completed };
+        var running = new[] { SeparationStatus.Executing, SeparationStatus.AwaitingIntervention };
         var disagreeing = await db.SeparationRecords
             .Where(r => (r.IsCancelled && r.Status != SeparationStatus.Cancelled)
-                        || (r.SeparationEventPublished && !executedOrLater.Contains(r.Status) && r.Status != SeparationStatus.Cancelled)
+                        || ((r.SeparationEventPublished || db.SeparationSagaStates.Any(s => s.SeparationRecordId == r.Id))
+                            && !r.IsCancelled && !executedOrLater.Contains(r.Status) && r.Status != SeparationStatus.Cancelled)
+                        || (running.Contains(r.Status)
+                            && db.SeparationSagaStates.Any(s => s.SeparationRecordId == r.Id
+                                                                && (s.CurrentState == "Completed" || s.CurrentState == "Cancelled")))
                         || (r.EmployeeId == Guid.Empty && r.Status == SeparationStatus.Draft))
             .ToListAsync(ct);
         var records = 0;

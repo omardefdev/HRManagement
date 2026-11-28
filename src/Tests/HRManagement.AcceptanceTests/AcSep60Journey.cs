@@ -84,7 +84,8 @@ internal sealed class ScreenSession : IDisposable
             if (item is not null && !open.Contains($"data-sep-form-step=\"{item}\"", StringComparison.Ordinal))
                 continue;
 
-            var url = WebUtility.HtmlDecode(Regex.Match(open, @"action=""([^""]+)""").Groups[1].Value);
+            // \s: the panel's own data-sep-action="..." also contains 'action="' (the tag helper writes the real one after it).
+            var url = WebUtility.HtmlDecode(Regex.Match(open, @"\saction=""([^""]+)""").Groups[1].Value);
             var fields = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (Match input in Regex.Matches(form.Value, @"<input\b[^>]*type=""hidden""[^>]*>", RegexOptions.IgnoreCase))
             {
@@ -282,12 +283,15 @@ internal static class SeparationJourney
     };
 
     /// <summary>The maker's record on <c>SeparationRecords/Create</c>; its id (the create redirects to the list) read back by the copy.</summary>
-    public static async Task<Guid> CreateAsync(ScreenSession maker, LeaverCopy copy, string type, DateOnly effective, string step = "create")
+    public static async Task<Guid> CreateAsync(ScreenSession maker, LeaverCopy copy, string type, DateOnly effective, string step = "create",
+        ICollection<Guid>? track = null)
     {
         var page = await maker.PostAsync(step, "ui/hr-contracts/SeparationRecords/Create", "ui/hr-contracts/SeparationRecords/Create",
             RecordFields(copy.EmployeeId, copy.ContractId, type, effective, $"AC-SEP-60 {copy.Label}"));
         var id = await OpenRecordOfAsync(copy.EmployeeId);
         Assert.True(id is not null, $"No separation record for {copy.Label}: {(int)page.Status} {page.Alerts} {ValidationErrors(page.Html)}");
+        // The isolation rule: the record is known to the cleanup from its creation, whatever fails after.
+        track?.Add(id!.Value);
         return id!.Value;
     }
 
@@ -369,9 +373,9 @@ internal static class SeparationJourney
 
     /// <summary>A record created, submitted and approved through both standard steps: Approved.</summary>
     public static async Task<(Guid Record, Guid Instance)> ApprovedAsync(ScreenSession maker, LeaverCopy copy, DateOnly effective,
-        EvidenceRecorder recorder, string type = "Resignation")
+        EvidenceRecorder recorder, ICollection<Guid> track, string type = "Resignation")
     {
-        var record = await CreateAsync(maker, copy, type, effective);
+        var record = await CreateAsync(maker, copy, type, effective, track: track);
         var instance = await SubmitAsync(maker, record);
         await ApproveStandardAsync(instance, recorder);
         await AwaitStatusAsync(record, "Approved");
@@ -415,6 +419,14 @@ internal static class SeparationJourney
     public static Task<long> SagasOfAsync(Guid record) =>
         CountAsync(Contracts, $"SELECT count(*) FROM \"SeparationSagaStates\" WHERE \"SeparationRecordId\"='{record:D}';");
 
+    /// <summary>The saga's row after an execution: it appears once HR.Contracts consumes its own outbox message, so it is polled.</summary>
+    public static Task<long> SagaStartedAsync(Guid record) =>
+        CustodyJourney.PollAsync(() => SagasOfAsync(record), 1, TimeSpan.FromSeconds(30));
+
+    /// <summary>The decision's number: DEC-SEP-&lt;year&gt;-#####, the year HR.Core's counter reads (UTC's; Damascus's differs on 31 December evening).</summary>
+    public static bool IsDecisionNumber(string number, DateOnly today) =>
+        Regex.IsMatch(number, $"^DEC-SEP-({today.Year}|{DateTime.UtcNow.Year})-\\d{{5}}$");
+
     /// <summary>
     /// The saga's end on this stack, recorded (the parties' truth is PLAN-62's): the record's status once it leaves Executing, or after
     /// the window, with the saga's state and the parties it waits for, completed, or last faulted.
@@ -440,6 +452,9 @@ internal static class SeparationJourney
     /// The isolation rule: every record the scenario did not execute is cancelled with a reason by the checker (a pending one is withdrawn
     /// by the cancellation first), and its instance has ended. Answers what could not be cleaned, for the test to assert after its body.
     /// </summary>
+    public static Task<List<string>> CancelLeftoversAsync(EvidenceRecorder recorder, IEnumerable<Guid> records) =>
+        CancelLeftoversAsync(recorder, records.Select(r => (Guid?)r).ToArray());
+
     public static async Task<List<string>> CancelLeftoversAsync(EvidenceRecorder recorder, params Guid?[] records)
     {
         var problems = new List<string>();

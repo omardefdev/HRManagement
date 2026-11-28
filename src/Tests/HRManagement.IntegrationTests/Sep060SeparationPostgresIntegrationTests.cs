@@ -119,6 +119,16 @@ public sealed partial class Sep060SeparationPostgresIntegrationTests(PostgreSqlF
         var employee = Guid.NewGuid();
         var kept = await Sep060MigrationPostgreSqlTests.RecordAsync(admin, Tenant, employee, published: true, createdAt: DateTime.UtcNow.AddDays(-5));
         var duplicate = await Sep060MigrationPostgreSqlTests.RecordAsync(admin, Tenant, employee, published: false);
+        // P6's review (finding 5): the old compensation reset the flag and kept the saga row. A compensated saga cancels its record (not
+        // a legacy draft to execute again), a saga still compensating keeps it Executing, and a newer live draft of the same employee
+        // stays open (the compensated record is not open, so it is no duplicate's keeper).
+        var compensatedEmployee = Guid.NewGuid();
+        var compensated = await Sep060MigrationPostgreSqlTests.RecordAsync(admin, Tenant, compensatedEmployee, published: false,
+            createdAt: DateTime.UtcNow.AddDays(-9));
+        await Sep060MigrationPostgreSqlTests.SagaAsync(admin, Tenant, compensated, "Cancelled");
+        var newerDraft = await Sep060MigrationPostgreSqlTests.RecordAsync(admin, Tenant, compensatedEmployee, published: false);
+        var compensating = await Sep060MigrationPostgreSqlTests.RecordAsync(admin, Tenant, Guid.NewGuid(), published: false);
+        await Sep060MigrationPostgreSqlTests.SagaAsync(admin, Tenant, compensating, "Compensating");
 
         await using (var db = Db(admin))
             await db.Database.MigrateAsync();
@@ -132,6 +142,11 @@ public sealed partial class Sep060SeparationPostgresIntegrationTests(PostgreSqlF
         Assert.Equal(SeparationStatus.Executing, statuses[kept]);
         Assert.Equal(SeparationStatus.Cancelled, statuses[duplicate]);
         Assert.True((await read.SeparationRecords.AsNoTracking().SingleAsync(r => r.Id == draft)).IsLegacyDraft);
+        Assert.Equal(SeparationStatus.Cancelled, statuses[compensated]);
+        var compensatedRow = await read.SeparationRecords.AsNoTracking().SingleAsync(r => r.Id == compensated);
+        Assert.True(compensatedRow.IsCancelled && !compensatedRow.IsLegacyDraft);
+        Assert.Equal(SeparationStatus.Draft, statuses[newerDraft]);
+        Assert.Equal(SeparationStatus.Executing, statuses[compensating]);
     }
 }
 
@@ -226,5 +241,64 @@ public sealed partial class Sep060SeparationPostgresIntegrationTests
             FROM "SeparationRecords" r JOIN "Contracts" c ON c."Id" = r."ContractId" WHERE r."Id" = '{second}'
             """));
         Assert.NotEqual(contract, secondContract);
+    }
+}
+
+/// <summary>
+/// PLAN-60 (P6's review, finding 7): two issuances of one record's decision at once. The record's <c>xmin</c> lets one through; the other
+/// answers with the winner's decision instead of a 500, and its own number is never saved.
+/// </summary>
+public sealed partial class Sep060SeparationPostgresIntegrationTests
+{
+    [Trait("Category", "Testcontainers")]
+    [SkippableFact]
+    public async Task Of_two_concurrent_issuances_the_loser_answers_with_the_winners_decision_and_saves_nothing()
+    {
+        Skip.IfNot(RealInfra.IsEnabled);
+        var connection = await MigratedAsync("race");
+        var codes = new HRManagement.TestSupport.CodeGeneration.FakeCodeGenerationClient();
+        var services = new Microsoft.Extensions.DependencyInjection.ServiceCollection();
+        services.AddLogging();
+        services.AddDbContext<ContractsDbContext>(o => o.UseNpgsql(connection));
+        services.AddSingleton(Moq.Mock.Of<HR.Contracts.Application.Abstractions.IExecutionContextAccessor>(a => a.SourceSystem == "HRContracts"));
+        services.AddSingleton(Moq.Mock.Of<HR.Contracts.Application.Abstractions.IEventPublisher>());
+        services.AddContractsApplicationForTests();
+        services.AddSingleton<HRManagement.ServiceDefaults.CodeGeneration.ICodeGenerationClient>(codes);
+        await using var provider = services.BuildServiceProvider();
+
+        var employee = Guid.NewGuid();
+        var record = await SeparationJourneyDriver.CreateAsync(provider, employee, null, new DateOnly(2026, 11, 1));
+        await SeparationJourneyDriver.ApproveAsync(provider, record);
+
+        // The winner: while the loser's number is generated, another issuance links its decision (and so moves the row's xmin). The
+        // side contexts are the host's own (no tenant context), so they see the record the host created.
+        ContractsDbContext Plain() => new(new DbContextOptionsBuilder<ContractsDbContext>().UseNpgsql(connection).Options);
+        var winner = Guid.NewGuid();
+        codes.GenerateHandler = _ =>
+        {
+            codes.GenerateHandler = null;
+            using var other = Plain();
+            var row = other.SeparationRecords.Single(r => r.Id == record);
+            other.AdministrativeDecisions.Add(new AdministrativeDecision
+            {
+                Id = winner,
+                TenantId = row.TenantId,
+                DecisionNumber = "DEC-SEP-2026-00001",
+                Subject = "الفائز"
+            });
+            row.DecisionId = winner;
+            other.SaveChanges();
+            return new HRManagement.SharedKernel.CodeGeneration.CodeGenerationResult { Code = "DEC-SEP-2026-00002" };
+        };
+
+        var result = await SeparationJourneyDriver.InScopeAsync(provider, sp => sp.GetRequiredService<MediatR.IMediator>()
+            .Send(new HR.Contracts.Application.Features.SeparationRecords.IssueSeparationDecisionCommand(record, SeparationJourneyDriver.Checker, "المدقق")));
+
+        Assert.True(result.Success, result.Error);
+        Assert.True(result.AlreadyIssued);
+        Assert.Equal(winner, result.Decision!.Id);
+        await using var read = Plain();
+        Assert.Equal(winner, (await read.SeparationRecords.AsNoTracking().SingleAsync(r => r.Id == record)).DecisionId);
+        Assert.False(await read.AdministrativeDecisions.AsNoTracking().AnyAsync(d => d.DecisionNumber == "DEC-SEP-2026-00002"));
     }
 }

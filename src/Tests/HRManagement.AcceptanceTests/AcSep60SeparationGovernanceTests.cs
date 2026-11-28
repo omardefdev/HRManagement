@@ -51,12 +51,13 @@ public class AcSep60SeparationGovernanceTests
         var template = await AcceptanceLeaverFixture.TemplateFingerprintAsync();
         var copy = await AcceptanceLeaverFixture.CreateAsync(Template, s.Recorder);
         Guid? record = null;
+        var created = new List<Guid>();
         List<string> leftovers;
         object checks;
         try
         {
             using var maker = await ScreenSession.OpenAsync(Maker, s.Recorder);
-            record = await CreateAsync(maker, copy, "Resignation", TodayInDamascus().AddDays(7));
+            record = await CreateAsync(maker, copy, "Resignation", TodayInDamascus().AddDays(7), track: created);
             var draft = await StateAsync(record.Value);
             Assert.Equal(("Draft", (Guid?)null), draft);
             s.Before(new { copy.Label, record, draft.Status });
@@ -90,7 +91,7 @@ public class AcSep60SeparationGovernanceTests
         }
         finally
         {
-            leftovers = await CancelLeftoversAsync(s.Recorder, record);
+            leftovers = await CancelLeftoversAsync(s.Recorder, created);
         }
 
         Assert.Empty(leftovers);
@@ -127,19 +128,20 @@ public class AcSep60SeparationGovernanceTests
         var early = await AcceptanceLeaverFixture.CreateAsync(Template, s.Recorder);
         Guid? executed = null;
         Guid? waiting = null;
+        var created = new List<Guid>();
         List<string> leftovers;
         object checks;
         try
         {
             using var maker = await ScreenSession.OpenAsync(Maker, s.Recorder);
             using var checker = await ScreenSession.OpenAsync(Checker, s.Recorder);
-            (executed, _) = await ApprovedAsync(maker, due, today, s.Recorder);
-            (waiting, _) = await ApprovedAsync(maker, early, today.AddDays(1), s.Recorder);
+            (executed, _) = await ApprovedAsync(maker, due, today, s.Recorder, created);
+            (waiting, _) = await ApprovedAsync(maker, early, today.AddDays(1), s.Recorder, created);
             s.Before(new { due = due.Label, early = early.Label, executed, waiting, status = "Approved", today = Iso(today) });
 
             // Copy 1: the decision, the notification, the execution.
             var number = await IssueDecisionAsync(checker, executed.Value);
-            Assert.Matches(new Regex($"^DEC-SEP-{today.Year}-\\d{{5}}$"), number);
+            Assert.True(IsDecisionNumber(number, today), number);
             Assert.StartsWith("true|", await ItemAsync(executed.Value, "DecisionIssued"));
             var evidence = $"AC-SEP-60-NOTICE-{due.Label}";
             await CompleteItemAsync(checker, executed.Value, "EmployeeNotified", evidence);
@@ -153,7 +155,7 @@ public class AcSep60SeparationGovernanceTests
             Assert.True(atOnce is "Executing" or "AwaitingIntervention" or "Completed", $"After the execution: {atOnce} {execution.Alerts}");
             Assert.Equal((await PersonaIdAsync(Checker)).ToString("D"), (await ActorsAsync(executed.Value)).ExecutedBy);
             Assert.Equal($"Terminated|{Iso(today)}", await ContractAsync(due.ContractId));
-            Assert.Equal(1, await SagasOfAsync(executed.Value));
+            Assert.Equal(1, await SagaStartedAsync(executed.Value));
             var sagaEnd = await SagaEndAsync(executed.Value, SagaWindow);
 
             // Copy 2: before the decision, then before the date.
@@ -200,7 +202,7 @@ public class AcSep60SeparationGovernanceTests
         }
         finally
         {
-            leftovers = await CancelLeftoversAsync(s.Recorder, waiting);
+            leftovers = await CancelLeftoversAsync(s.Recorder, created);
         }
 
         Assert.Empty(leftovers);
@@ -231,12 +233,13 @@ public class AcSep60SeparationGovernanceTests
         var template = await AcceptanceLeaverFixture.TemplateFingerprintAsync();
         var copy = await AcceptanceLeaverFixture.CreateAsync(Template, s.Recorder);
         Guid? record = null;
+        var created = new List<Guid>();
         List<string> leftovers;
         object checks;
         try
         {
             using var maker = await ScreenSession.OpenAsync(Maker, s.Recorder);
-            record = await CreateAsync(maker, copy, "Resignation", TodayInDamascus().AddDays(7));
+            record = await CreateAsync(maker, copy, "Resignation", TodayInDamascus().AddDays(7), track: created);
             var instance = await SubmitAsync(maker, record.Value);
             s.Before(new { copy.Label, record, instance, status = "PendingApproval", step = 1 });
 
@@ -273,7 +276,7 @@ public class AcSep60SeparationGovernanceTests
         }
         finally
         {
-            leftovers = await CancelLeftoversAsync(s.Recorder, record);
+            leftovers = await CancelLeftoversAsync(s.Recorder, created);
         }
 
         Assert.Empty(leftovers);
@@ -302,13 +305,14 @@ public class AcSep60SeparationGovernanceTests
         var template = await AcceptanceLeaverFixture.TemplateFingerprintAsync();
         var copy = await AcceptanceLeaverFixture.CreateAsync(Template, s.Recorder);
         Guid? record = null;
+        var created = new List<Guid>();
         List<string> leftovers;
         object checks;
         try
         {
             using var maker = await ScreenSession.OpenAsync(Maker, s.Recorder);
             using var checker = await ScreenSession.OpenAsync(Checker, s.Recorder);
-            (record, _) = await ApprovedAsync(maker, copy, TodayInDamascus(), s.Recorder);
+            (record, _) = await ApprovedAsync(maker, copy, TodayInDamascus(), s.Recorder, created);
             await IssueDecisionAsync(checker, record.Value);
             await CompleteItemAsync(checker, record.Value, "EmployeeNotified", $"AC-SEP-60-NOTICE-{copy.Label}");
             s.Before(new { copy.Label, record, status = "Approved", decision = "issued", employeeNotified = "completed" });
@@ -337,7 +341,7 @@ public class AcSep60SeparationGovernanceTests
         }
         finally
         {
-            leftovers = await CancelLeftoversAsync(s.Recorder, record);
+            leftovers = await CancelLeftoversAsync(s.Recorder, created);
         }
 
         Assert.Empty(leftovers);
@@ -367,13 +371,14 @@ public class AcSep60SeparationGovernanceTests
         var first = await AcceptanceLeaverFixture.CreateAsync(Template, s.Recorder);
         var second = await AcceptanceLeaverFixture.CreateAsync(Template, s.Recorder);
         Guid? record = null;
+        var created = new List<Guid>();
         List<string> leftovers;
         object checks;
         try
         {
             using var maker = await ScreenSession.OpenAsync(Maker, s.Recorder);
             var effective = TodayInDamascus().AddDays(7);
-            record = await CreateAsync(maker, first, "Resignation", effective);
+            record = await CreateAsync(maker, first, "Resignation", effective, track: created);
             s.Before(new { first = first.Label, second = second.Label, record, openRecordsOfTheFirst = 1 });
 
             const string create = "ui/hr-contracts/SeparationRecords/Create";
@@ -414,7 +419,7 @@ public class AcSep60SeparationGovernanceTests
         }
         finally
         {
-            leftovers = await CancelLeftoversAsync(s.Recorder, record);
+            leftovers = await CancelLeftoversAsync(s.Recorder, created);
         }
 
         Assert.Empty(leftovers);
@@ -444,13 +449,14 @@ public class AcSep60SeparationGovernanceTests
         var today = TodayInDamascus();
         var copy = await AcceptanceLeaverFixture.CreateAsync(Template, s.Recorder);
         Guid? record = null;
+        var created = new List<Guid>();
         List<string> leftovers;
         object checks;
         try
         {
             using var maker = await ScreenSession.OpenAsync(Maker, s.Recorder);
             using var checker = await ScreenSession.OpenAsync(Checker, s.Recorder);
-            (record, _) = await ApprovedAsync(maker, copy, today, s.Recorder);
+            (record, _) = await ApprovedAsync(maker, copy, today, s.Recorder, created);
             var number = await IssueDecisionAsync(checker, record.Value);
             s.Before(new { copy.Label, record, status = "Approved", decision = number });
 
@@ -475,7 +481,7 @@ public class AcSep60SeparationGovernanceTests
             var atOnce = await StatusAsync(record.Value);
             Assert.True(atOnce is "Executing" or "AwaitingIntervention" or "Completed", $"After the execution: {atOnce} {execution.Alerts}");
             Assert.Equal($"Terminated|{Iso(today)}", await ContractAsync(copy.ContractId));
-            Assert.Equal(1, await SagasOfAsync(record.Value));
+            Assert.Equal(1, await SagaStartedAsync(record.Value));
             var sagaEnd = await SagaEndAsync(record.Value, SagaWindow);
 
             checks = new
@@ -494,7 +500,7 @@ public class AcSep60SeparationGovernanceTests
         }
         finally
         {
-            leftovers = await CancelLeftoversAsync(s.Recorder, record);
+            leftovers = await CancelLeftoversAsync(s.Recorder, created);
         }
 
         Assert.Empty(leftovers);
@@ -516,6 +522,15 @@ public class AcSep60SeparationGovernanceTests
             $"(SELECT count(*) FROM \"PaymentHolds\" WHERE \"EmployeeId\"='{id}')::text;");
     }
 
+    /// <summary>What Payroll wrote for agency A since <paramref name="since"/>: settlements|adjustments|holds (no other class runs beside).</summary>
+    private static Task<string> AgencyPayrollWritesAsync(DateTime since)
+    {
+        var tenant = HRManagement.ServiceDefaults.AcceptanceSeedIds.AgencyAId.ToString("D");
+        var at = since.ToString("yyyy-MM-dd HH:mm:ss.ffffff", System.Globalization.CultureInfo.InvariantCulture);
+        string Count(string table) => $"(SELECT count(*) FROM \"{table}\" WHERE \"TenantId\"='{tenant}' AND \"CreatedAt\" >= '{at}')::text";
+        return ReadAsync(Payroll, $"SELECT {Count("EndOfServiceSettlements")} || '|' || {Count("PayrollAdjustments")} || '|' || {Count("PaymentHolds")};");
+    }
+
     [SkippableFact]
     public async Task Ac60g_A_rejection_with_its_reason_leaves_no_saga_and_payroll_unchanged()
     {
@@ -526,19 +541,22 @@ public class AcSep60SeparationGovernanceTests
             1. Fixture: a copy. a-contracts-maker creates and submits a Resignation; central-a approves step 1 from his inbox.
             2. Negative: a-management-approver rejects step 2 from his inbox with a reason → the record Rejected with that reason, within
                30 seconds; no saga row; Payroll's rows for the copy (pay profiles, settlements, adjustments, holds) as they were (the copy's
-               contract is pending: it has no profile, P-12's deviation), and the contract untouched.
+               contract is pending: it has no profile, P-12's deviation), nothing written by Payroll for agency A since the submission
+               (settlements, adjustments, holds), and the contract untouched.
             3. Cleanup: the rejected record is cancelled with a reason by a-contracts-checker.
             """);
         var template = await AcceptanceLeaverFixture.TemplateFingerprintAsync();
         var copy = await AcceptanceLeaverFixture.CreateAsync(Template, s.Recorder);
         Guid? record = null;
+        var created = new List<Guid>();
         List<string> leftovers;
         object checks;
         try
         {
             using var maker = await ScreenSession.OpenAsync(Maker, s.Recorder);
-            record = await CreateAsync(maker, copy, "Resignation", TodayInDamascus().AddDays(7));
+            record = await CreateAsync(maker, copy, "Resignation", TodayInDamascus().AddDays(7), track: created);
             var payrollBefore = await PayrollFootprintAsync(copy.EmployeeId);
+            var since = DateTime.UtcNow;
             s.Before(new { copy.Label, record, payroll = payrollBefore });
 
             var instance = await SubmitAsync(maker, record.Value);
@@ -551,6 +569,9 @@ public class AcSep60SeparationGovernanceTests
             Assert.Equal(0, await SagasOfAsync(record.Value));
             var payrollAfter = await PayrollFootprintAsync(copy.EmployeeId);
             Assert.Equal(payrollBefore, payrollAfter);
+            // And nothing for anyone in the agency: no settlement, adjustment or hold written since the submission.
+            var agencyWrites = await AgencyPayrollWritesAsync(since);
+            Assert.Equal("0|0|0", agencyWrites);
             Assert.Equal("Pending|", await ContractAsync(copy.ContractId));
 
             checks = new
@@ -562,13 +583,20 @@ public class AcSep60SeparationGovernanceTests
                 rejectedWithinMs = delayMs,
                 rejectionReason = actors.RejectionReason,
                 sagas = 0,
-                payroll = new { before = payrollBefore, after = payrollAfter, columns = "profiles|settlements|adjustments|holds" },
+                payroll = new
+                {
+                    before = payrollBefore,
+                    after = payrollAfter,
+                    columns = "profiles|settlements|adjustments|holds",
+                    agencyWritesSinceTheSubmission = agencyWrites,
+                    note = "the copy's contract is pending (P-12's recorded deviation): it has no profile to stay active"
+                },
                 contract = "Pending"
             };
         }
         finally
         {
-            leftovers = await CancelLeftoversAsync(s.Recorder, record);
+            leftovers = await CancelLeftoversAsync(s.Recorder, created);
         }
 
         Assert.Empty(leftovers);
@@ -597,12 +625,13 @@ public class AcSep60SeparationGovernanceTests
         var template = await AcceptanceLeaverFixture.TemplateFingerprintAsync();
         var copy = await AcceptanceLeaverFixture.CreateAsync(Template, s.Recorder);
         Guid? record = null;
+        var created = new List<Guid>();
         List<string> leftovers;
         object checks;
         try
         {
             using var maker = await ScreenSession.OpenAsync(Maker, s.Recorder);
-            record = await CreateAsync(maker, copy, "Disciplinary", TodayInDamascus().AddDays(7));
+            record = await CreateAsync(maker, copy, "Disciplinary", TodayInDamascus().AddDays(7), track: created);
             var instance = await SubmitAsync(maker, record.Value);
             var pending = await InstanceAsync(instance);
             Assert.Equal((SensitiveCode, 1), (pending.Code, pending.Step));
@@ -645,7 +674,7 @@ public class AcSep60SeparationGovernanceTests
         }
         finally
         {
-            leftovers = await CancelLeftoversAsync(s.Recorder, record);
+            leftovers = await CancelLeftoversAsync(s.Recorder, created);
         }
 
         Assert.Empty(leftovers);

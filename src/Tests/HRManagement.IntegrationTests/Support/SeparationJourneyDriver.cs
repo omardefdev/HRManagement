@@ -21,7 +21,7 @@ public static class SeparationJourneyDriver
     public static readonly Guid Authority = Guid.Parse("60d00000-0000-4000-8000-0000000000a3");
     public static readonly Guid Checker = Guid.Parse("60d00000-0000-4000-8000-0000000000a4");
 
-    private static async Task<T> InScopeAsync<T>(IServiceProvider services, Func<IServiceProvider, Task<T>> work)
+    public static async Task<T> InScopeAsync<T>(IServiceProvider services, Func<IServiceProvider, Task<T>> work)
     {
         await using var scope = services.CreateAsyncScope();
         return await work(scope.ServiceProvider);

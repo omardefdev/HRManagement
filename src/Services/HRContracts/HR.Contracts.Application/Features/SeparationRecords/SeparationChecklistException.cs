@@ -42,7 +42,7 @@ public static class SeparationChecklistRules
     public const string EvidenceRequiredMessage = "الدليل مطلوب: مرجع من خمسة أحرف على الأقل أو ملف مرفق.";
     public const string ReasonTooShortMessage = "سبب الاستثناء إلزامي، عشرون حرفاً على الأقل.";
     public const string NoRequestMessage = "لا يوجد طلب استثناء مفتوح لهذا البند.";
-    public const string SecondPersonMessage = "يعتمد الاستثناءَ شخصٌ ثانٍ: لا الطالب ولا منشئ سجل الفصل.";
+    public const string SecondPersonMessage = "يعتمد الاستثناءَ شخصٌ ثانٍ: لا الطالب ولا منشئ سجل الفصل ولا مقدّمه للاعتماد.";
     public const string AlreadyDoneMessage = "البند مكتمل أو مستثنى مسبقاً.";
     public const string ItemMissingMessage = "البند غير موجود في قائمة الإخلاء.";
 
@@ -150,7 +150,7 @@ public class ApproveStepExceptionHandler(IContractsRepository repository) : IReq
             return (false, SeparationChecklistRules.AlreadyDoneMessage);
         if (item.ExceptionRequestedBy is not Guid requester)
             return (false, SeparationChecklistRules.NoRequestMessage);
-        if (approver == requester || approver == record.CreatedBy)
+        if (approver == requester || approver == record.CreatedBy || approver == record.SubmittedBy)
             return (false, SeparationChecklistRules.SecondPersonMessage);
 
         item.ExceptionApprovedBy = approver;

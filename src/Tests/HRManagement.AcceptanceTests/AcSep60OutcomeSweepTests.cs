@@ -115,15 +115,16 @@ public class AcSep60OutcomeSweepTests
         var copyC = await AcceptanceLeaverFixture.CreateAsync(Template, s.Recorder);
         var copyB = await AcceptanceLeaverFixture.CreateAsync(Template, s.Recorder);
         Guid? a = null, b = null, c = null;
+        var created = new List<Guid>();
         List<string> leftovers;
         object checks;
         try
         {
             using var maker = await ScreenSession.OpenAsync(Maker, s.Recorder);
             var effective = TodayInDamascus().AddDays(7);
-            a = await CreateAsync(maker, copyA, "Resignation", effective, "create-a");
-            c = await CreateAsync(maker, copyC, "Resignation", effective, "create-c");
-            b = await CreateAsync(maker, copyB, "Resignation", effective, "create-b");
+            a = await CreateAsync(maker, copyA, "Resignation", effective, "create-a", created);
+            c = await CreateAsync(maker, copyC, "Resignation", effective, "create-c", created);
+            b = await CreateAsync(maker, copyB, "Resignation", effective, "create-b", created);
             var instanceA = await SubmitAsync(maker, a.Value, "submit-a");
             var instanceC = await SubmitAsync(maker, c.Value, "submit-c");
             var instanceB = await SubmitAsync(maker, b.Value, "submit-b");
@@ -217,7 +218,7 @@ public class AcSep60OutcomeSweepTests
         }
         finally
         {
-            leftovers = await CancelLeftoversAsync(s.Recorder, a, b, c);
+            leftovers = await CancelLeftoversAsync(s.Recorder, created);
         }
 
         Assert.Empty(leftovers);

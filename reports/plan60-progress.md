@@ -127,3 +127,51 @@ asserted the old rule). The ContractLifecycle override tests → `StepException_
 - Next step: P6 — disk and memory, the images one at a time, `acceptance-reset.ps1`, the prod-like stack, AC-SEP-60 twice, the main group,
   the isolated classes, s2s42, leastpriv, the seeded counts, `down -v`, the full Testcontainers step, the independent review.
 
+## P6 — local acceptance and the independent review (in progress)
+
+- Started (UTC): 2026-11-28T01:40:25Z. Images: the 16 services one at a time from `92f0c997` (PLAN-58's helper, kept outside the tree),
+  1,291 s (01:40:34Z → 02:02:34Z), every one rebuilt; disk 21 → 19 GB free; the 15 superseded images of this repository removed by id.
+- Two read-only subagents beside the build: a reference check of the new acceptance code against the source (24 min) and the
+  independent review of `916a9e26..HEAD` (17 min).
+- **Reference check:** one blocker — the rendered-form lookup's `action="` regex matched inside the panel's own `data-sep-action="…"`
+  (the tag helper writes the real `action` after it), so every rendered post would have gone to `/submit`, `/withdraw`… at the root:
+  anchored on whitespace. Two timing risks fixed: the saga row appears when HR.Contracts consumes its own outbox message (polled, 30 s);
+  the decision's year is HR.Core's counter's (UTC) — either year accepted. Everything else (tables, columns, stored enum forms, fields,
+  routes, rendered forms per persona and state, the Arabic fragments, the inbox links, the redirect shapes, the seed facts, the queue
+  `hr-contracts-web-separation-approval-outcome`) matched the source.
+- **Independent review:** no high; 2 medium, 1 low-medium, 5 low. Handled:
+  1. *(medium) after a rollback, the previous tag and the four new items:* verified — EF 10 does not read an unknown enum name as the
+     default, it throws («Cannot convert string value … to any value in the mapped enum»). So PLAN-59's tag, after a rollback, cannot
+     load the whole checklist of a record holding one of the four items: its separation wizard (steps 2–4) and its publication fail on
+     such a record (which also keeps it from executing that record outside the approval); its list, its record page, its step-filtered
+     reads and the records it creates keep working. **Deviation from P-5/P-18's «that tag runs on this schema»:** true for the columns
+     and every other path, not for those pages; a park-and-restore of the four items around a rollback was weighed and not built (an ops
+     table, its grants and a script for a rollback the plan already calls not advised). `Sep060RollbackMappingTests` pins the behaviour;
+     `docs/OPS_VPS_SINGLE_HOST.md` (P7) states it as what a rollback leaves behind.
+  2. *(medium) the fixture's deviation:* kept, with its reason made precise: the only screen path that gives a contract a grade and a
+     salary is a recruitment offer (the hire wizard provisions the pending contract from the accepted offer's terms), and each such hire
+     takes one of the 40 `AC33-POOL` positions every recruitment class shares; P-14's runs of AC-SEP-60 alone need about 26 copies (a..h
+     twice, i twice), so that path would empty the pool and break «repeatable on one stack without a reset». Consequence stated: AC-SEP-60g
+     cannot show «the copy's profile still active» (the copy has none); it now also proves that Payroll wrote nothing for agency A
+     (settlements, adjustments, holds) since the submission. The regime's SQL write stays the named allowance of `sep060-validate.ps1`.
+  3. *(low-medium) after a rollback, an old-tag cancellation sets the flag only:* the open-record index still counts that record until
+     this tag's reconciler runs (a new record of that employee is refused meanwhile, a 500 on the old Create), and an old-tag cancel of a
+     pending record leaves its engine instance in the inbox (an approval of it is ignored: the record is no longer pending). Documented
+     with finding 1 (fix forward).
+  4. *(low) acceptance isolation on a failure path:* every scenario now keeps the ids it creates from the moment of creation
+     (`CreateAsync(track:)`, `ApprovedAsync(track)`) and the cleanup takes them all, executed ones skipped by their status.
+  5. *(low, latent) the backfill and a compensated saga:* the old compensation reset the flag and kept the saga row, so rule 3 made the
+     record a legacy draft. Rules 2 and 3 now key on «started» as rule 5 already did (published, or a saga row): a compensated saga cancels
+     its record, one still compensating keeps it Executing, a newer live draft of the employee stays open; `LegacyStatus` and the
+     reconciler follow (it also applies the saga's end to a record the previous tag left Executing). Planted cases added to the backfill
+     test and the unit rules. No such data exists on the demo or in the seed.
+  6. *(low) the issuer and the exception's approver when the record has no creator:* the submitter is now excluded as well, as in the
+     engine's exclusions (P-7) and the review brief; unit tests with and without a creator.
+  7. *(low) two concurrent issuances:* the loser now answers with the winner's decision (reloaded after the `xmin` conflict) instead of
+     a 500, and logs the number it generated and did not use; a PostgreSQL test reproduces the race.
+  8. *(low, process) AC-QA-34e's list and the renamed test:* the list changed in `cf348a0f` (P1's file group) and the test was renamed in
+     `d983f4cd` (P4's), not in one commit as P-13 asks and as this record said; at HEAD they agree. The record is corrected here; the
+     history is not rewritten.
+- Tests after the fixes: unit (separation filters) 280/280; SQLite integration 160 passed, 11 skipped (Testcontainers-only); Testcontainers
+  `Sep060*` 48/48 (the race test needed its own setup fixed once: its side contexts must be the host's tenant-less ones).
+

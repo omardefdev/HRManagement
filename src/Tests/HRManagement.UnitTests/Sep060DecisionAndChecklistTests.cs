@@ -31,6 +31,17 @@ internal static class Sep060Approved
         return await h.ReadAsync(record.Id);
     }
 
+    /// <summary>Created by <paramref name="creator"/> (none: an inbound record), submitted by <paramref name="submitter"/>, approved.</summary>
+    public static async Task<SeparationRecord> ApprovedBySubmitterAsync(Sep060ApprovalHarness h, Guid? creator, Guid submitter)
+    {
+        var record = await h.DraftAsync(creator);
+        var instance = (await h.SubmitAsync(record.Id, submitter)).InstanceId!.Value;
+        var authority = Guid.NewGuid();
+        await h.ApplyAsync(FakeWorkflowApprovalClient.Outcome("SeparationRecord", record.Id, instance, WorkflowApprovalOutcomes.Approved,
+            Sep060ApprovalHarness.Tenant, authority, decisions: [new WorkflowStepDecisionDto(2, "hr-management-approver", authority, "Approved", DateTime.UtcNow)]));
+        return await h.ReadAsync(record.Id);
+    }
+
     public static Task<T> SendAsync<T>(Sep060ApprovalHarness h, IRequest<T> request) =>
         h.InScopeAsync(sp => sp.GetRequiredService<IMediator>().Send(request));
 
@@ -91,6 +102,24 @@ public sealed class Sep060DecisionTests
         Assert.Equal((false, IssueSeparationDecisionHandler.IssuerIsCreatorMessage), (refused.Success, refused.Error));
         Assert.Empty(h.Codes.Requests);
         Assert.Null((await h.ReadAsync(record.Id)).DecisionId);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task The_submitter_never_issues_the_decision_either_with_or_without_a_creator(bool hasCreator)
+    {
+        // P6's review (finding 6): an inbound record has no creator; its submitter stands in, as in the engine's exclusions.
+        await using var h = new Sep060ApprovalHarness();
+        var submitter = Guid.NewGuid();
+        var record = await Sep060Approved.ApprovedBySubmitterAsync(h, hasCreator ? Guid.NewGuid() : null, submitter);
+        Assert.Equal(SeparationStatus.Approved, record.Status);
+
+        var refused = await Sep060Approved.SendAsync(h, new IssueSeparationDecisionCommand(record.Id, submitter, null));
+
+        Assert.Equal((false, IssueSeparationDecisionHandler.IssuerIsCreatorMessage), (refused.Success, refused.Error));
+        Assert.Empty(h.Codes.Requests);
+        Assert.True((await Sep060Approved.SendAsync(h, new IssueSeparationDecisionCommand(record.Id, Guid.NewGuid(), null))).Success);
     }
 
     [Fact]
@@ -201,6 +230,23 @@ public sealed class Sep060ChecklistModeTests
         foreach (var actor in new Guid?[] { null, Guid.Empty })
             Assert.Equal((false, SeparationChecklistRules.NoActorMessage),
                 await Sep060Approved.SendAsync(h, new CompleteManualStepCommand(record.Id, SeparationStep.EmployeeNotified, "دليل كافٍ", null, null, actor, null)));
+    }
+
+    [Fact]
+    public async Task The_submitter_of_a_record_no_person_created_does_not_approve_its_exception()
+    {
+        // P6's review (finding 6): the submitter stands in for the missing creator.
+        await using var h = new Sep060ApprovalHarness();
+        var submitter = Guid.NewGuid();
+        var record = await Sep060Approved.ApprovedBySubmitterAsync(h, null, submitter);
+        Assert.True((await Sep060Approved.SendAsync(h, new RequestStepExceptionCommand(
+            record.Id, SeparationStep.EmployeeNotified, "الموظف مسافر ولا يمكن تبليغه قبل النفاذ", Guid.NewGuid()))).Success);
+
+        Assert.Equal((false, SeparationChecklistRules.SecondPersonMessage), await Sep060Approved.SendAsync(h,
+            new ApproveStepExceptionCommand(record.Id, SeparationStep.EmployeeNotified, submitter)));
+        Assert.False((await Sep060Approved.ItemAsync(h, record.Id, SeparationStep.EmployeeNotified)).IsExcepted);
+        Assert.True((await Sep060Approved.SendAsync(h, new ApproveStepExceptionCommand(
+            record.Id, SeparationStep.EmployeeNotified, Guid.NewGuid()))).Success);
     }
 
     [Fact]

@@ -199,6 +199,9 @@ public sealed class Sep060SeparationStateMachineTests
     [InlineData(false, true, "Faulted", SeparationStatus.Executing)]
     [InlineData(false, true, null, SeparationStatus.Executing)]
     [InlineData(false, false, null, SeparationStatus.Draft)]
+    // P6's review (finding 5): the old compensation reset the flag and kept the saga row; the row says the saga started.
+    [InlineData(false, false, "Cancelled", SeparationStatus.Cancelled)]
+    [InlineData(false, false, "Compensating", SeparationStatus.Executing)]
     public void The_legacy_rules_give_each_combination_its_status(bool cancelled, bool published, string? saga, SeparationStatus expected) =>
         Assert.Equal(expected, SeparationWorkflowRules.LegacyStatus(cancelled, published, Guid.NewGuid(), saga).Status);
 
@@ -226,9 +229,10 @@ public sealed class Sep060SeparationStateMachineTests
     [Fact]
     public void The_reconciler_touches_only_a_record_whose_flags_and_status_disagree()
     {
-        // In line: left as it is.
+        // In line: left as it is. A record not yet executed has no saga row under this tag; an executed one has a running saga.
         foreach (var status in Enum.GetValues<SeparationStatus>())
-            Assert.False(SeparationWorkflowRules.ReconcileFromLegacyFlags(RecordIn(status), "AwaitingParties"), status.ToString());
+            Assert.False(SeparationWorkflowRules.ReconcileFromLegacyFlags(RecordIn(status),
+                SeparationWorkflowRules.IsExecutedOrLater(status) ? "AwaitingParties" : null), status.ToString());
 
         // The previous tag published a draft (flag only): back in line by its saga's state.
         var back = RecordIn(SeparationStatus.Draft);
@@ -242,6 +246,21 @@ public sealed class Sep060SeparationStateMachineTests
         typeof(SeparationRecord).GetProperty(nameof(SeparationRecord.IsCancelled))!.SetValue(cancelled, true);
         Assert.True(SeparationWorkflowRules.ReconcileFromLegacyFlags(cancelled, null));
         Assert.Equal(SeparationStatus.Cancelled, cancelled.Status);
+
+        // P6's review (finding 5): the previous tag compensated a saga it had started from a draft and reset the flag: the saga row
+        // says it started, and its compensation cancels the record (never a draft to execute again).
+        var compensatedDraft = RecordIn(SeparationStatus.Draft);
+        Assert.True(SeparationWorkflowRules.ReconcileFromLegacyFlags(compensatedDraft, "Cancelled"));
+        Assert.Equal((SeparationStatus.Cancelled, true), (compensatedDraft.Status, compensatedDraft.IsCancelled));
+
+        // The previous tag ended the saga of a record this tag had executed, without moving the status: the saga's end is applied.
+        var finished = RecordIn(SeparationStatus.Executing);
+        Assert.True(SeparationWorkflowRules.ReconcileFromLegacyFlags(finished, "Completed"));
+        Assert.Equal(SeparationStatus.Completed, finished.Status);
+        var compensated = RecordIn(SeparationStatus.AwaitingIntervention);
+        Assert.True(SeparationWorkflowRules.ReconcileFromLegacyFlags(compensated, "Cancelled"));
+        Assert.Equal(SeparationStatus.Cancelled, compensated.Status);
+        Assert.False(SeparationWorkflowRules.ReconcileFromLegacyFlags(compensated, "Cancelled"));
     }
 
     // ── The linked transaction follows the record along its own table (P-4); no row is added to that table.
