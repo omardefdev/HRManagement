@@ -331,13 +331,18 @@ public sealed class ScopedIndexHost : IAsyncDisposable
         var today = DateOnly.FromDateTime(DateTime.UtcNow);
         for (var i = 1; i <= count; i++)
         {
-            contracts.SeparationRecords.Add(new SeparationRecord
+            // PLAN-60: one employee holds at most one open separation (a partial unique index), so the newer rows are cancelled ones,
+            // through the state machine. The list shows every status, so the page-size cap still meets them.
+            var separation = new SeparationRecord
             {
                 EmployeeId = employeeId,
                 Contract = contract,
                 SeparationType = SeparationType.Resignation,
                 EffectiveDate = today.AddDays(i)
-            });
+            };
+            HR.Contracts.Domain.Services.SeparationWorkflowRules.Transition(
+                separation, SeparationStatus.Cancelled, null, "PLAN-034: سجل أحدث للاختبار");
+            contracts.SeparationRecords.Add(separation);
             contracts.ProbationRecords.Add(new ProbationRecord
             {
                 EmployeeId = employeeId,

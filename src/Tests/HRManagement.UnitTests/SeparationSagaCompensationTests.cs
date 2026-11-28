@@ -23,15 +23,17 @@ public class SeparationSagaCompensationTests
             TenantId = tenantId,
             EmployeeId = employeeId,
             SeparationType = SeparationType.Resignation,
-            EffectiveDate = new DateOnly(2026, 8, 1),
-            SeparationEventPublished = false
+            EffectiveDate = new DateOnly(2026, 8, 1)
         };
+        // PLAN-60: an executed record, through the state machine.
+        SeparationTestJourney.MoveTo(record, SeparationStatus.Executing);
         db.SeparationRecords.Add(record);
         var txn = new ServiceTransaction
         {
             TenantId = tenantId,
             EmployeeId = employeeId,
-            TransactionType = ServiceTransactionType.Separation
+            TransactionType = ServiceTransactionType.Separation,
+            SeparationRecordId = record.Id
         };
         txn.MoveTo(ServiceTransactionState.Submitted, null);
         txn.MoveTo(ServiceTransactionState.UnderReview, null);
@@ -47,11 +49,15 @@ public class SeparationSagaCompensationTests
         var context = Mock.Of<ConsumeContext<ISeparationSagaFinalized>>(c =>
             c.Message == message && c.CancellationToken == CancellationToken.None);
 
-        await new SeparationSagaFinalizedConsumer(db).Consume(context);
+        await new SeparationSagaFinalizedConsumer(
+                db, new HR.Contracts.Infrastructure.Repositories.ContractsRepository(db),
+                Microsoft.Extensions.Logging.Abstractions.NullLogger<SeparationSagaFinalizedConsumer>.Instance)
+            .Consume(context);
 
+        // A failed saga leaves the record and its transaction where they are: Executing, not archived, not completed.
         var refreshed = await db.ServiceTransactions.SingleAsync();
         Assert.Equal(ServiceTransactionState.Executing, refreshed.State);
-        Assert.False((await db.SeparationRecords.SingleAsync()).SeparationEventPublished);
+        Assert.Equal(SeparationStatus.Executing, (await db.SeparationRecords.SingleAsync()).Status);
     }
 
     private static ContractsDbContext CreateDb(Guid tenantId)

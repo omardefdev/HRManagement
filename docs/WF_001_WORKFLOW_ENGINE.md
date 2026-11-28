@@ -222,8 +222,16 @@ with PLAN-60) gets it approved in this engine through one contract, with the nam
 
 **The owners today.** IDCard: `CardRequestApprovalService`, `CardRequestApprovalOutcomeConsumer`, `CardRequestApprovalStore`.
 Compliance: `DisciplinaryApprovalService`, `DisciplinaryApprovalOutcomeConsumer`, `DisciplinaryApprovalStore`.
-`WorkflowDefinitionsHaveHandlersTests` finds each consumer by reflection as an `IConsumer<IWorkflowOutcomeDecided>`; PLAN-60 adds
-`SeparationRecord → SeparationApprovalOutcomeConsumer` and removes its pending mark.
+HR.Contracts (PLAN-60): `SeparationApprovalService`, `SeparationApprovalOutcomeConsumer`, `SeparationApprovalOwnerStore` (lock `4_001_014`).
+`WorkflowDefinitionsHaveHandlersTests` finds each consumer by reflection as an `IConsumer<IWorkflowOutcomeDecided>`; `SeparationRecord`'s
+entry has no pending mark any more.
+
+**The separation's two chains (PLAN-60, D-SEP-4)** are seeded by `WorkflowPackSeeder` as version 1 (`f0050018` and `f0050019`), owned by
+HR.Contracts, with distinct approvers, and raised back by `EnsureCrossServiceChainsAsync` if a later version loses a role:
+`SEPARATION-APPROVAL` — HR's review (`hr-core`), then the authority (`hr-management-approver`); `SEPARATION-APPROVAL-SENSITIVE`, for the
+types of `Separation:Approval:SensitiveTypes` (Disciplinary, Judicial) — `hr-core`, `compliance`, `hr-management-approver`. A submission
+excludes the record's creator and its submitter (a record no person created — an inbound request, the seed — excludes the submitter, and the
+subject employee through `SubjectEmployeeId`). `SEPARATION-WIZARD` stays retired.
 
 ## API Endpoints
 

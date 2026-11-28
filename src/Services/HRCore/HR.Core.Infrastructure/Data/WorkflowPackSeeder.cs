@@ -72,7 +72,16 @@ public static class WorkflowPackSeeder
             (1, "مراجعة HR", "hr-core"), (2, "اعتماد إداري", "hr-management-approver")),
         new(Guid.Parse("f0050017-0017-4000-8000-000000000017"), "RECRUITMENT-RESULTS-APPROVAL", "اعتماد نتائج مسابقة", "CompetitionResultVersion",
             "HCM-031: competition results — committee then HR director; distinct approvers, never the person who computed the draft",
-            (1, "لجنة المسابقة", "hr-core"), (2, "اعتماد مدير HR", "hr-management-approver"))
+            (1, "لجنة المسابقة", "hr-core"), (2, "اعتماد مدير HR", "hr-management-approver")),
+        // PLAN-60 (D-SEP-4): the separation's approval, owned by HR.Contracts (SeparationApprovalOutcomeConsumer). Seeded as version 1: a
+        // code with no published version cannot be raised (EnsureVersionAsync throws), and SeedAsync adds a missing code to every
+        // existing database at its next start, inside the tenant.
+        new(Guid.Parse("f0050018-0018-4000-8000-000000000018"), "SEPARATION-APPROVAL", "اعتماد إنهاء خدمة", "SeparationRecord",
+            "PLAN-60: separation (end of service) — HR's review, then the authority; distinct approvers, never the creator or the submitter",
+            (1, "مراجعة الموارد البشرية", "hr-core"), (2, "اعتماد صاحب الصلاحية", "hr-management-approver")),
+        new(Guid.Parse("f0050019-0019-4000-8000-000000000019"), "SEPARATION-APPROVAL-SENSITIVE", "اعتماد إنهاء خدمة حساس", "SeparationRecord",
+            "PLAN-60: disciplinary or judicial separation — HR's review, compliance, then the authority; distinct approvers",
+            (1, "مراجعة الموارد البشرية", "hr-core"), (2, "مراجعة الامتثال", "compliance"), (3, "اعتماد صاحب الصلاحية", "hr-management-approver"))
     ];
 
     /// <summary>
@@ -97,7 +106,10 @@ public static class WorkflowPackSeeder
     {
         "ASSET-ASSIGN-APPROVAL",
         "ASSET-LOSS-APPROVAL",
-        "DISCIPLINARY-APPROVAL"
+        "DISCIPLINARY-APPROVAL",
+        // PLAN-60: one person never takes two steps of one separation.
+        "SEPARATION-APPROVAL",
+        "SEPARATION-APPROVAL-SENSITIVE"
     };
 
     public static async Task SeedAsync(HRCoreDbContext db, CancellationToken ct = default)
@@ -352,13 +364,39 @@ public static class WorkflowPackSeeder
         }
     ];
 
+    /// <summary>PLAN-60 (D-SEP-4): HR's review, then the authority.</summary>
+    public static IReadOnlyList<WorkflowStepSnapshot> SeparationChain { get; } =
+    [
+        new WorkflowStepSnapshot { Level = 1, Name = "مراجعة الموارد البشرية", StepType = WorkflowStepType.Approval, RoleRequired = HrManagementRoles.HrCore },
+        new WorkflowStepSnapshot
+        {
+            Level = 2, Name = "اعتماد صاحب الصلاحية", StepType = WorkflowStepType.Approval, RoleRequired = HrManagementRoles.HrManagementApprover
+        }
+    ];
+
+    /// <summary>PLAN-60 (D-SEP-4): a disciplinary or judicial separation adds compliance between them.</summary>
+    public static IReadOnlyList<WorkflowStepSnapshot> SensitiveSeparationChain { get; } =
+    [
+        new WorkflowStepSnapshot { Level = 1, Name = "مراجعة الموارد البشرية", StepType = WorkflowStepType.Approval, RoleRequired = HrManagementRoles.HrCore },
+        new WorkflowStepSnapshot { Level = 2, Name = "مراجعة الامتثال", StepType = WorkflowStepType.Approval, RoleRequired = HrManagementRoles.Compliance },
+        new WorkflowStepSnapshot
+        {
+            Level = 3, Name = "اعتماد صاحب الصلاحية", StepType = WorkflowStepType.Approval, RoleRequired = HrManagementRoles.HrManagementApprover
+        }
+    ];
+
     /// <summary>
     /// PLAN-46: raises the card and the discipline to their chains at every start, inside the tenant (a migration sees no row under forced
     /// row security). As with custody, a later version with the same roles is left alone: <c>workflow-admin</c> may have renamed a step.
+    /// PLAN-60 adds the separation's two chains: a later version that lost one of D-SEP-4's roles is raised back.
     /// </summary>
     public static async Task EnsureCrossServiceChainsAsync(HRCoreDbContext db, CancellationToken ct = default)
     {
-        foreach (var (code, chain) in new[] { ("ID-CARD-ISSUANCE", CardChain), ("DISCIPLINARY-APPROVAL", DisciplinaryChain) })
+        foreach (var (code, chain) in new[]
+                 {
+                     ("ID-CARD-ISSUANCE", CardChain), ("DISCIPLINARY-APPROVAL", DisciplinaryChain),
+                     ("SEPARATION-APPROVAL", SeparationChain), ("SEPARATION-APPROVAL-SENSITIVE", SensitiveSeparationChain)
+                 })
         {
             var latest = (await db.WorkflowDefinitions
                     .NationalOnly()

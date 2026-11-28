@@ -44,6 +44,28 @@ public class SoDForgedApproverTests
         }
     }
 
+    // PLAN-60 (P-10): no action of the two separation controllers takes a parameter named like an approver's id — the old
+    // OverrideChecklistStep took «approvedBy» from the form. The actor of every act is the session's.
+    [Theory]
+    [InlineData(typeof(SeparationRecordsController))]
+    [InlineData(typeof(SeparationWizardController))]
+    public void No_separation_action_takes_an_approvers_id(Type controllerType)
+    {
+        var offenders = controllerType.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly)
+            .SelectMany(m => m.GetParameters().Select(p => (Method: m.Name, Parameter: p.Name ?? string.Empty)))
+            .Where(x => System.Text.RegularExpressions.Regex.IsMatch(x.Parameter,
+                "^(approvedBy|approverId|approver|secondApprover|decidedBy|completedBy|submittedBy|issuerId|executedBy)$",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase))
+            .Select(x => $"{x.Method}({x.Parameter})")
+            .ToList();
+        Assert.Empty(offenders);
+
+        // Nor a bound model property of that kind (a view model posted by the forms).
+        foreach (var model in new[] { typeof(HR.Contracts.Web.ViewModels.SeparationRecordCreateViewModel), typeof(HR.Contracts.Web.ViewModels.SeparationRecordEditViewModel) })
+            Assert.DoesNotContain(model.GetProperties(), p => p.Name.Contains("Approved", StringComparison.OrdinalIgnoreCase)
+                                                              || p.Name.Contains("Approver", StringComparison.OrdinalIgnoreCase));
+    }
+
     [Fact]
     public async Task TransferApprove_IgnoresForgedFormField_UsesTokenOnly()
     {

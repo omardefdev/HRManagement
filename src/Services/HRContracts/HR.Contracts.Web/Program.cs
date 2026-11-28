@@ -47,6 +47,11 @@ builder.Services.AddHrContractsInfrastructure(builder.Configuration);
 builder.Services.AddHrCodeGeneration(builder.Configuration);
 // PLAN-46: the cross-service approval contract (start, withdraw, status) with HR.Core.
 builder.Services.AddWorkflowApprovalClient(builder.Configuration);
+builder.Services.AddScoped<HR.Contracts.Web.ViewModels.SeparationPanelBuilder>();
+// PLAN-60 (P-7): the owner-side sweep of separation approvals, on PLAN-46's shared WorkflowApproval:Sweep keys.
+builder.Services.AddWorkflowApprovalSweep<HR.Contracts.Infrastructure.Workflow.SeparationApprovalOwnerStore>(builder.Configuration);
+builder.Services.Configure<HR.Contracts.Application.Features.SeparationRecords.SeparationOptions>(
+    builder.Configuration.GetSection(HR.Contracts.Application.Features.SeparationRecords.SeparationOptions.SectionName));
 builder.Services.AddHrFileReferenceClient(builder.Configuration);
 builder.Services.AddHrCoreLookupClient(builder.Configuration);
 builder.Services.AddHrCoreActiveRegimeClient(builder.Configuration);
@@ -124,6 +129,9 @@ using (var scope = app.Services.CreateScope())
         HRManagement.ServiceDefaults.TenantIdFlow.Set(null);
     }
 }
+
+// PLAN-60 (P-5): after a rollback to PLAN-59's tag and back, the records it wrote are put back in line with their status.
+await HR.Contracts.Infrastructure.Services.SeparationStatusReconciler.RunAsync(app.Services, app.Logger);
 
 if (!app.Environment.IsDevelopment())
 {

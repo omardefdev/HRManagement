@@ -25,9 +25,10 @@
                 </div>
                 <div class="col-md-6 mb-3">
                     <label asp-for="ContractId" class="form-label"></label>
-                    <select asp-for="ContractId" asp-items="Model.Contracts" class="form-select">
+                    <select asp-for="ContractId" asp-items="Model.Contracts" class="form-select" data-hr-employee-contracts="@Url.Action("EmployeeContracts", "SeparationRecords")" data-hr-employee-source="EmployeeId">
                         <option value="">— بدون عقد —</option>
                     </select>
+                    <div class="form-text">عقود الموظف المختار النشطة أو قيد الانتظار فقط.</div>
                 </div>
                 <div class="col-md-4 mb-3">
                     <label asp-for="SeparationType" class="form-label"></label>
@@ -46,3 +47,4 @@
         </form>
     </div>
 </div>
+@section Scripts { <script src="~/js/separation-contracts.js" asp-append-version="true"></script> }

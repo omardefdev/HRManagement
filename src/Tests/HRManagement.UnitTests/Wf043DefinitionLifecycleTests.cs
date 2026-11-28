@@ -333,7 +333,7 @@ public sealed class Wf043DefinitionLifecycleTests
         Assert.All(all.Where(d => d.IsPublished), d => Assert.Equal(WorkflowDefinitionStatus.Published, d.Status));
         Assert.Equal(WorkflowDefinitionStatus.Retired, all.Single(d => d.Code == "RECRUITMENT-HIRE").Status);
         // PLAN-46: discipline needs two different people too.
-        Assert.Equal(["ASSET-ASSIGN-APPROVAL", "ASSET-LOSS-APPROVAL", "DISCIPLINARY-APPROVAL"], all.Where(d => d.RequireDistinctApprovers).Select(d => d.Code).Order(StringComparer.Ordinal));
+        Assert.Equal(["ASSET-ASSIGN-APPROVAL", "ASSET-LOSS-APPROVAL", "DISCIPLINARY-APPROVAL", "SEPARATION-APPROVAL", "SEPARATION-APPROVAL-SENSITIVE"], all.Where(d => d.RequireDistinctApprovers).Select(d => d.Code).Order(StringComparer.Ordinal));
     }
 
     [Fact]

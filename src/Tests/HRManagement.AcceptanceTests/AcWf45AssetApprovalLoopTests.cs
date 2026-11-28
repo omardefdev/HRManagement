@@ -134,6 +134,21 @@ internal static class CustodyJourney
         return after;
     }
 
+    /// <summary>PLAN-60: the link the inbox gives, opened and rejected from there with a reason (the page's reject form).</summary>
+    public static async Task<string> RejectFromInboxAsync(string persona, Guid instance, string reason, EvidenceRecorder recorder)
+    {
+        using var http = await AcS2s42TrustBoundaryTests.UiClientAsync(persona);
+        var (status, inbox) = await OpenAsync(http, "ui/hr-core/WorkInbox");
+        recorder.CaptureHttp($"inbox-{persona}", "GET", "/ui/hr-core/WorkInbox", (int)status);
+        Assert.True(status == HttpStatusCode.OK, $"{persona} inbox: {(int)status}");
+        var link = $"/{ApprovalPage(instance)}";
+        Assert.True(inbox.Contains(link, StringComparison.OrdinalIgnoreCase), $"{persona} has no {link} in the inbox.");
+
+        var after = await PostFormAsync(http, ApprovalPage(instance), RejectAction, new Dictionary<string, string> { ["Comments"] = reason });
+        recorder.CaptureHttp($"reject-{persona}", "POST", $"/ui/hr-core/WorkflowApprovals/RejectWorkflow/{instance:D}", 200, new { reason });
+        return after;
+    }
+
     public static async Task<(Guid Assignment, Guid Instance)> AssignmentOfAsync(Guid asset)
     {
         var row = await ScalarAsync("admin_db", $"SELECT \"Id\" || ',' || coalesce(\"WorkflowInstanceId\"::text,'') FROM \"AssetAssignments\" WHERE \"AssetId\"='{asset:D}' AND \"ReturnedAt\" IS NULL;");

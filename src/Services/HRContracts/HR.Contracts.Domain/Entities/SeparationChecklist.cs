@@ -45,5 +45,31 @@ public class SeparationChecklist : BaseEntity
     [MaxLength(128)]
     public string? CompletedByName { get; set; }
 
+    // ── PLAN-60 (§4): how the item is completed, and the two-person exception.
+
+    [Display(Name = "نمط الإكمال")]
+    public SeparationStepCompletionMode CompletionMode { get; set; } = SeparationStepCompletionMode.Manual;
+
+    /// <summary>The saga party whose acknowledgement completes a <see cref="SeparationStepCompletionMode.PartyAck"/> item.</summary>
+    [MaxLength(64)]
+    public string? PartyName { get; set; }
+
+    /// <summary>An uploaded file given as the evidence of a manual item.</summary>
+    public Guid? EvidenceFileId { get; set; }
+
+    public Guid? ExceptionRequestedBy { get; set; }
+
+    public DateTime? ExceptionRequestedAt { get; set; }
+
+    [MaxLength(1000)]
+    public string? ExceptionReason { get; set; }
+
+    public Guid? ExceptionApprovedBy { get; set; }
+
+    public DateTime? ExceptionApprovedAt { get; set; }
+
+    /// <summary>A second person approved an exception: the item counts as done for the execution, without being completed.</summary>
+    public bool IsExcepted => ExceptionApprovedAt is not null;
+
     public virtual SeparationRecord? SeparationRecord { get; set; }
 }

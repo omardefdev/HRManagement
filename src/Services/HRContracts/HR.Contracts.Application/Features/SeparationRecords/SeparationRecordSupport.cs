@@ -18,14 +18,24 @@ internal static class SeparationRecordSupport
             await repository.AddAsync(item, ct);
     }
 
-    public static async Task TerminateLinkedContractAsync(IContractsRepository repository, SeparationRecord record, CancellationToken ct)
+    /// <summary>
+    /// PLAN-60 (§5): the execution ends the linked contract at the separation's effective date. Returns an error when that date is before
+    /// the contract's start; nothing to do when there is no contract, or it already ended.
+    /// </summary>
+    public static async Task<(Contract? Contract, string? Error)> TerminateLinkedContractAsync(
+        IContractsRepository repository, SeparationRecord record, CancellationToken ct)
     {
         if (!record.ContractId.HasValue)
-            return;
+            return (null, null);
 
         var contract = await repository.GetContractAsync(record.ContractId.Value, ct);
-        if (contract is not null && ContractWorkflowRules.CanTerminate(contract))
-            ContractWorkflowRules.Terminate(contract);
+        if (contract is null || !ContractWorkflowRules.CanTerminate(contract))
+            return (contract, null);
+        if (record.EffectiveDate < contract.StartDate)
+            return (contract, $"تاريخ النفاذ ({record.EffectiveDate:yyyy-MM-dd}) يسبق بداية العقد ({contract.StartDate:yyyy-MM-dd}).");
+
+        ContractWorkflowRules.Terminate(contract, record.EffectiveDate);
+        return (contract, null);
     }
 
     public static async Task<int> ComputeAnnualLeaveRemainingAsync(

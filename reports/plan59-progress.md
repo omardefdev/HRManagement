@@ -292,3 +292,22 @@ Finished (UTC): 2026-11-27T21:48:23Z
 ## Next step
 P10: commit the server's record (P9 message) and the final report; push (docs only: the PR's green run is reused); merge #60 when green;
 main pulled; merge note on docs/plan-59-merge-note; stop keep-awake by PID.
+
+## Merge note
+Merged by agent on owner instruction (UTC): 2026-11-27T22:06:27Z
+- PR: https://github.com/omardefdev/HRManagement/pull/60 (`release/plan-59` → `main`), `gh pr merge 60 --merge` on the owner's standing
+  instruction. Checks on the merged head a9a6a15a: 16/16 green (CI, CodeQL, Gitleaks, E2E, Acceptance and its stage jobs — the stages
+  reused run 46006396762's tested tree), merge state CLEAN.
+- Every check result: run 45994047230 on 8086ac86 16/16 green (the evidence of record: its artifact `acceptance-evidence`, AC-PAY-59,
+  AC-12, AC-21, AC-23 Pass); run 46006396762 on a8a3b831 16/16 green (prodlike-cycle 16m22s under its new 27-minute limit); a9a6a15a
+  (documents only) reused it, CodeQL ran and passed.
+- Merge commit: 96c9594da7a4. Local `main` fast-forwarded to it and equal to `origin/main`.
+- Post-merge run 46074554228 (push, 22:06:29Z): success — the dedupe job found the tested tree (2 jobs succeeded, 7 skipped).
+- Demo server: on 8086ac8629af (healthy; smoke 50/0/1 at 21:45:46Z). What came after that tag is a server-check class, a CI limit and
+  documents only.
+- Timing: started 2026-11-27T05:19:45Z, merged 2026-11-27T22:06:27Z: **16 h 46 min wall-clock**. No stop: no turn ended, no
+  BLOCKED, no WAITING-CI, no usage limit, no sleep. The two CI runs overlapped the server work (no time waited on CI alone); the
+  last wait was the documents' CodeQL, 21:48–22:06Z (18 min). The longest stretch was the older server checks, 9 h 16 min
+  (12:28:51–21:44:39Z) with one silent hang (39 min) and the reruns one at a time.
+- Actions: 564 job-minutes (289 + 227 + the GHCR build's 48) and the documents' CodeQL.
+- Keep-awake process 3066561 stopped after this note; the local CI clone /home/omar/plan59-ci-clone removed.

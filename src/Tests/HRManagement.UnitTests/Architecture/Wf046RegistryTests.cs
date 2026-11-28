@@ -53,13 +53,9 @@ public sealed class Wf046RegistryEnforcedTests
         {
             foreach (var code in type.AllowedWorkflowCodes)
             {
+                // PLAN-60: every code of every registered type is seeded, the separation's two included.
                 var definition = published.Where(d => d.Code == code).MaxBy(d => d.Version);
-                if (definition is null)
-                {
-                    // Only the separation codes have no seed here: PLAN-60 seeds them, and until then a start answers DefinitionMissing.
-                    Assert.Equal(ExternalApprovalTypes.SeparationRecordEntityType, type.EntityType);
-                    continue;
-                }
+                Assert.True(definition is not null, $"{code} ({type.EntityType}) is not seeded.");
 
                 Assert.Equal(type.EntityType, definition.DomainEntityType);
                 Assert.Empty(WorkflowDefinitionCatalog.Validate(definition));

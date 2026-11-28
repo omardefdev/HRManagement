@@ -56,6 +56,23 @@ public class AcInt37ProductionWiringTests
         return id;
     }
 
+    /// <summary>
+    /// PLAN-60 (G-SEP-11): a separation names the employee's own contract; with several active or pending contracts the choice is
+    /// required, so the newest active one is passed. Empty when he has none or one (the creation chooses it).
+    /// </summary>
+    private static async Task<string> SeparationContractAsync(string employee)
+    {
+        var contracts = (await Db("hr_contracts_db",
+                $"SELECT COALESCE(string_agg(\"Id\"::text, ',' ORDER BY \"Status\" = 'Active' DESC, \"StartDate\" DESC), '') FROM \"Contracts\" " +
+                $"WHERE \"EmployeeId\"='{employee}' AND \"Status\" IN ('Active','Pending');"))
+            .Split(',', StringSplitOptions.RemoveEmptyEntries);
+        return contracts.Length > 1 ? contracts[0] : "";
+    }
+
+    /// <summary>PLAN-60: what a terminal employment status is in hr_core_db (stored as a number), for the employee filters.</summary>
+    private static string TerminalStatuses => string.Join(",",
+        HRManagement.SharedKernel.Enums.EmploymentStatusTerminal.Statuses.Select(st => ((int)st).ToString(CultureInfo.InvariantCulture)));
+
     /// <summary>The code was issued by HR.Core: exactly one CodeIssuances row of the kind.</summary>
     private static async Task AssertIssuedAsync(string step, string code, string kind)
     {
@@ -88,8 +105,10 @@ public class AcInt37ProductionWiringTests
             "SELECT COALESCE(string_agg(DISTINCT x::text, ','), '') FROM (SELECT \"EmployeeId\" x FROM \"SeparationRecords\" " +
             "UNION SELECT \"EmployeeId\" FROM \"LeaveRequests\" UNION SELECT \"EmployeeId\" FROM \"AdvanceRequests\") u;");
         var exclude = string.Join(",", used.Split(',', StringSplitOptions.RemoveEmptyEntries).Select(id => $"'{id}'").DefaultIfEmpty("'00000000-0000-0000-0000-000000000000'"));
+        // PLAN-60 (G-SEP-11): a separation is refused for an employee whose service ended or who is under a legal hold.
         var employee = await Db("hr_core_db",
-            $"SELECT \"Id\" FROM \"Employees\" WHERE \"TenantId\"='{TenantA}' AND \"Id\" NOT IN ({exclude}) ORDER BY \"CreatedAt\" LIMIT 1;");
+            $"SELECT \"Id\" FROM \"Employees\" WHERE \"TenantId\"='{TenantA}' AND \"Id\" NOT IN ({exclude}) " +
+            $"AND \"CurrentStatus\" NOT IN ({TerminalStatuses}) AND NOT \"LegalHold\" ORDER BY \"CreatedAt\" LIMIT 1;");
         AcceptanceGate.RequireData(s.Recorder, Guid.TryParse(employee, out _),
             "لا يوجد موظف بلا طلبات", "No agency-A employee without leave/separation records left (scripts/acceptance-reset.ps1).");
         var start = DateTime.UtcNow.AddSeconds(-1);
@@ -105,8 +124,8 @@ public class AcInt37ProductionWiringTests
             [new("EmployeeId", employee), new("Amount", "1000"), new("Reason", "AC-INT-37a")]);
         var separationHtml = await maker.PostAsync("separation", "ui/hr-contracts/SeparationWizard/Step1", "ui/hr-contracts/SeparationWizard/Step1",
         [
-            new("EmployeeId", employee), new("SeparationType", "Resignation"), new("EffectiveDate", day.AddDays(30).ToString("yyyy-MM-dd")),
-            new("Reason", "AC-INT-37a")
+            new("EmployeeId", employee), new("ContractId", await SeparationContractAsync(employee)), new("SeparationType", "Resignation"),
+            new("EffectiveDate", day.AddDays(30).ToString("yyyy-MM-dd")), new("Reason", "AC-INT-37a")
         ]);
 
         var rows = (await Db("hr_contracts_db",
@@ -348,7 +367,8 @@ public class AcInt37ProductionWiringTests
     private static Task<string> ArchiveReferenceAsync(string leaveId) =>
         Db("archive_db", $"SELECT \"ReferenceNumber\" FROM \"ArchiveItems\" WHERE \"Title\" LIKE '%[{Guid.Parse(leaveId):N}]%' LIMIT 1;");
 
-    private static HttpClient RabbitClient()
+    /// <summary>The acceptance broker's management API (basic auth from the environment or the git-ignored .env). PLAN-60's AC-SEP-60i reads and purges a queue with it.</summary>
+    internal static HttpClient RabbitClient()
     {
         var user = Environment.GetEnvironmentVariable("RABBITMQ_DEFAULT_USER") ?? DotEnv("RABBITMQ_DEFAULT_USER") ?? "guest";
         var pass = Environment.GetEnvironmentVariable("RABBITMQ_DEFAULT_PASS") ?? DotEnv("RABBITMQ_DEFAULT_PASS") ?? "guest";
@@ -454,9 +474,18 @@ public class AcInt37ProductionWiringTests
         var start = DateTime.UtcNow.AddSeconds(-1);
         var day = DateTime.UtcNow.Date.AddDays(60);
         await s["a-contracts-maker"].PostAsync("resignation", "ui/hr-contracts/SeparationWizard/Step1", "ui/hr-contracts/SeparationWizard/Step1",
-            [new("EmployeeId", employee), new("SeparationType", "Resignation"), new("EffectiveDate", day.ToString("yyyy-MM-dd")), new("Reason", "AC-INT-37e")]);
+        [
+            new("EmployeeId", employee), new("ContractId", await SeparationContractAsync(employee)), new("SeparationType", "Resignation"),
+            new("EffectiveDate", day.ToString("yyyy-MM-dd")), new("Reason", "AC-INT-37e")
+        ]);
         Assert.Equal(1, await DbCount("hr_contracts_db",
             $"SELECT COUNT(*) FROM \"SeparationRecords\" WHERE \"EmployeeId\"='{employee}' AND \"CreatedAt\" >= '{Since(start)}';"));
+        // PLAN-60: one open record per employee; the scenario cancels the draft it made, with a reason, so that it repeats on one stack.
+        var resignation = await Db("hr_contracts_db",
+            $"SELECT \"Id\" FROM \"SeparationRecords\" WHERE \"EmployeeId\"='{employee}' AND \"CreatedAt\" >= '{Since(start)}' ORDER BY \"CreatedAt\" DESC LIMIT 1;");
+        await s["a-contracts-maker"].PostAsync("resignation-cancel", $"ui/hr-contracts/SeparationRecords/Cancel/{resignation}",
+            $"ui/hr-contracts/SeparationRecords/Details/{resignation}", [new("reason", "AC-INT-37e: سجل اختبار يُلغى ليتكرر السيناريو")]);
+        Assert.Equal("Cancelled", await Db("hr_contracts_db", $"SELECT \"Status\" FROM \"SeparationRecords\" WHERE \"Id\"='{resignation}';"));
 
         var orgUnits = (await Db("hr_core_db",
             $"SELECT string_agg(\"Id\"::text, ',' ORDER BY \"Code\") FROM (SELECT \"Id\",\"Code\" FROM \"OrgUnits\" WHERE \"TenantId\"='{TenantA}' LIMIT 2) o;")).Split(',');

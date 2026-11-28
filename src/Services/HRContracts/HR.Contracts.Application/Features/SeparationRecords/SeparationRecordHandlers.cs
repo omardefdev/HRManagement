@@ -16,24 +16,13 @@ namespace HR.Contracts.Application.Features.SeparationRecords;
 /// employees' rows — applied before the page limit, so a branch user's list is not cut to the tenant's newest rows.</summary>
 public record GetSeparationRecordsQuery(IReadOnlyCollection<Guid>? EmployeeIds = null) : IRequest<IReadOnlyList<SeparationRecord>>;
 public record GetSeparationRecordByIdQuery(Guid Id) : IRequest<SeparationRecord?>;
-public record CreateSeparationRecordCommand(SeparationRecordDto Model) : IRequest<Guid>;
-public record UpdateSeparationRecordCommand(Guid Id, SeparationRecordDto Model) : IRequest<bool>;
-public record DeleteSeparationRecordCommand(Guid Id) : IRequest<bool>;
-public record PublishSeparationCommand(Guid Id) : IRequest<(bool Success, string? Error)>;
-public record CancelSeparationCommand(Guid Id, string? Reason = null) : IRequest<(bool Success, string? Error)>;
-public record CompleteSeparationChecklistStepCommand(
-    Guid SeparationRecordId,
-    HR.Contracts.Domain.Enums.SeparationStep Step,
-    string? Notes,
-    Guid? CompletedBy = null,
-    string? EvidenceRef = null,
-    string? SourceSystem = null) : IRequest<(bool Success, string? Error)>;
-public record OverrideSeparationChecklistStepCommand(
-    Guid SeparationRecordId,
-    HR.Contracts.Domain.Enums.SeparationStep Step,
-    string Reason,
-    Guid OverriddenBy,
-    Guid ApprovedBy) : IRequest<(bool Success, string? Error)>;
+public record CreateSeparationRecordCommand(SeparationRecordDto Model, string? TransactionNote = null) : IRequest<SeparationRecordCreateResult>;
+public record UpdateSeparationRecordCommand(Guid Id, SeparationRecordDto Model) : IRequest<(bool Success, string? Error)>;
+/// <summary>PLAN-60 (§5): the execution replaces the publication — only on an approved record, with its decision and items, on Damascus's date.</summary>
+public record ExecuteSeparationCommand(Guid Id, Guid? ActorUserId) : IRequest<(bool Success, string? Error)>;
+
+/// <summary>PLAN-60 (§5): a cancellation needs a reason, and runs from Draft, PendingApproval or Approved only. A record is never deleted.</summary>
+public record CancelSeparationCommand(Guid Id, string? Reason, Guid? ActorUserId) : IRequest<(bool Success, string? Error)>;
 
 public class GetSeparationRecordsHandler(IContractsRepository repository) : IRequestHandler<GetSeparationRecordsQuery, IReadOnlyList<SeparationRecord>>
 {
@@ -60,118 +49,126 @@ public class GetSeparationRecordByIdHandler(IContractsRepository repository) : I
             .FirstOrDefaultAsync(s => s.Id == request.Id, cancellationToken);
 }
 
-public class CreateSeparationRecordHandler(
-    IContractsRepository repository,
-    ICodeGenerationClient codeClient,
-    IEmployeeLifecycleGate lifecycleGate) : IRequestHandler<CreateSeparationRecordCommand, Guid>
+public class CreateSeparationRecordHandler(SeparationRecordFactory factory)
+    : IRequestHandler<CreateSeparationRecordCommand, SeparationRecordCreateResult>
 {
-    public async Task<Guid> Handle(CreateSeparationRecordCommand request, CancellationToken cancellationToken)
+    /// <summary>PLAN-60 (§6): the form's entry goes through the one factory, like the wizard's and the inbound requests'.</summary>
+    public Task<SeparationRecordCreateResult> Handle(CreateSeparationRecordCommand request, CancellationToken cancellationToken)
     {
         var vm = request.Model;
-        // PLAN-42 (G-SEP-12): before anything is saved, and before an official number is spent.
-        var (allowed, holdError) = await lifecycleGate.AssertCanStartSeparationAsync(vm.EmployeeId, cancellationToken);
-        if (!allowed)
-            throw new FluentValidation.ValidationException(holdError);
-
-        var entity = new SeparationRecord
-        {
-            EmployeeId = vm.EmployeeId,
-            ContractId = vm.ContractId,
-            SeparationType = vm.SeparationType,
-            EffectiveDate = vm.EffectiveDate,
-            Reason = string.IsNullOrWhiteSpace(vm.Reason) ? null : vm.Reason.Trim(),
-            ApprovedBy = vm.ApprovedBy,
-            Documents = string.IsNullOrWhiteSpace(vm.Documents) ? null : vm.Documents.Trim(),
-            SeparationEventPublished = false
-        };
-        await repository.AddAsync(entity, cancellationToken);
-        var transaction = new ServiceTransaction
-        {
-            EmployeeId = vm.EmployeeId,
-            TransactionType = ServiceTransactionType.Separation,
-            Notes = "تسجيل إنهاء خدمة"
-        };
-        await ServiceTransactionReferenceSupport.ApplyReferenceAsync(transaction, codeClient, cancellationToken);
-        await repository.AddAsync(transaction, cancellationToken);
-        await repository.SaveChangesAsync(cancellationToken);
-        await SeparationRecordSupport.SeedChecklistAsync(repository, entity.Id, cancellationToken);
-        await repository.SaveChangesAsync(cancellationToken);
-        return entity.Id;
+        return factory.CreateAsync(
+            new SeparationRecordDraft(vm.EmployeeId, vm.ContractId, vm.SeparationType, vm.EffectiveDate, vm.Reason, vm.Documents,
+                request.TransactionNote ?? "تسجيل إنهاء خدمة"),
+            cancellationToken);
     }
 }
 
-public class UpdateSeparationRecordHandler(IContractsRepository repository) : IRequestHandler<UpdateSeparationRecordCommand, bool>
+public class UpdateSeparationRecordHandler(IContractsRepository repository, SeparationRecordFactory factory)
+    : IRequestHandler<UpdateSeparationRecordCommand, (bool Success, string? Error)>
 {
-    public async Task<bool> Handle(UpdateSeparationRecordCommand request, CancellationToken cancellationToken)
-    {
-        var entity = await repository.GetSeparationRecordAsync(request.Id, cancellationToken);
-        if (entity is null) return false;
-        if (entity.SeparationEventPublished) return false;
-        if (entity.IsCancelled) return false;
-        var vm = request.Model;
-        entity.EmployeeId = vm.EmployeeId;
-        entity.ContractId = vm.ContractId;
-        entity.SeparationType = vm.SeparationType;
-        entity.EffectiveDate = vm.EffectiveDate;
-        entity.Reason = string.IsNullOrWhiteSpace(vm.Reason) ? null : vm.Reason.Trim();
-        entity.ApprovedBy = vm.ApprovedBy;
-        entity.Documents = string.IsNullOrWhiteSpace(vm.Documents) ? null : vm.Documents.Trim();
-        await repository.SaveChangesAsync(cancellationToken);
-        return true;
-    }
-}
+    public const string NotDraftMessage = "يُعدَّل سجل الفصل وهو مسودة فقط.";
+    public const string SubjectLockedMessage = "لا يتغير الموظف ولا العقد بعد إكمال أي بند من قائمة الإخلاء أو استثنائه.";
 
-public class DeleteSeparationRecordHandler(IContractsRepository repository, IEventPublisher eventPublisher)
-    : IRequestHandler<DeleteSeparationRecordCommand, bool>
-{
-    public async Task<bool> Handle(DeleteSeparationRecordCommand request, CancellationToken cancellationToken)
-    {
-        // FUN-002: never hard-delete — route through soft-cancel.
-        var (ok, _) = await new CancelSeparationHandler(repository, eventPublisher)
-            .Handle(new CancelSeparationCommand(request.Id, "حذف إداري → soft-cancel"), cancellationToken);
-        return ok;
-    }
-}
-
-public class PublishSeparationHandler(
-    IContractsRepository repository,
-    IEventPublisher eventPublisher,
-    IEmployeeLifecycleGate lifecycleGate,
-    IHrCoreActiveRegimeClient activeRegimeClient) : IRequestHandler<PublishSeparationCommand, (bool Success, string? Error)>
-{
-    public async Task<(bool Success, string? Error)> Handle(PublishSeparationCommand request, CancellationToken cancellationToken)
+    /// <summary>
+    /// PLAN-60 (§6): the substance is locked. Edits only in Draft; once an item is completed or excepted, the employee and the contract no
+    /// longer change; a changed employee or contract is checked as a creation is. The status, the published flag and the old approver are
+    /// never taken from a form.
+    /// </summary>
+    public async Task<(bool Success, string? Error)> Handle(UpdateSeparationRecordCommand request, CancellationToken cancellationToken)
     {
         var entity = await repository.GetSeparationRecordAsync(request.Id, cancellationToken);
         if (entity is null) return (false, null);
-        if (entity.IsCancelled) return (false, "سجل الفصل ملغى — لا يمكن النشر.");
-        if (entity.SeparationEventPublished) return (false, "تم إشعار الأنظمة المرتبطة مسبقاً");
+        if (entity.Status != SeparationStatus.Draft) return (false, NotDraftMessage);
 
-        if (!SeparationWorkflowRules.IsEffectiveDateReached(entity))
-            return (false, $"تاريخ النفاذ ({entity.EffectiveDate:yyyy-MM-dd}) لم يحن بعد — لا يمكن بدء رحلة الفصل.");
+        var vm = request.Model;
+        var subjectChanged = vm.EmployeeId != entity.EmployeeId || vm.ContractId != entity.ContractId;
+        if (subjectChanged)
+        {
+            var touched = await repository.SeparationChecklists.AnyAsync(
+                c => c.SeparationRecordId == entity.Id && (c.IsCompleted || c.ExceptionApprovedAt != null), cancellationToken);
+            if (touched)
+                return (false, SubjectLockedMessage);
 
-        var (holdOk, holdError) = await lifecycleGate.AssertCanPublishSeparationAsync(entity.EmployeeId, cancellationToken);
-        if (!holdOk)
-            return (false, holdError);
+            var check = await factory.CheckSubjectAsync(vm.EmployeeId, vm.ContractId, entity.Id, cancellationToken);
+            if (!check.Success)
+                return (false, check.Error);
+            entity.EmployeeId = vm.EmployeeId;
+            entity.ContractId = check.ContractId;
 
-        await SeparationRecordSupport.SeedChecklistAsync(repository, entity.Id, cancellationToken);
+            var transaction = await repository.ServiceTransactions
+                .FirstOrDefaultAsync(t => t.SeparationRecordId == entity.Id, cancellationToken);
+            if (transaction is not null)
+                transaction.EmployeeId = vm.EmployeeId;
+        }
+
+        entity.SeparationType = vm.SeparationType;
+        entity.EffectiveDate = vm.EffectiveDate;
+        entity.Reason = string.IsNullOrWhiteSpace(vm.Reason) ? null : vm.Reason.Trim();
+        entity.Documents = string.IsNullOrWhiteSpace(vm.Documents) ? null : vm.Documents.Trim();
+        try
+        {
+            await repository.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex) when (SeparationRecordFactory.IsOpenRecordViolation(ex))
+        {
+            return (false, SeparationRecordFactory.OpenRecordMessage);
+        }
+
+        return (true, null);
+    }
+}
+
+public class ExecuteSeparationHandler(
+    IContractsRepository repository,
+    IEventPublisher eventPublisher,
+    IEmployeeLifecycleGate lifecycleGate,
+    IHrCoreActiveRegimeClient activeRegimeClient,
+    SeparationClock clock) : IRequestHandler<ExecuteSeparationCommand, (bool Success, string? Error)>
+{
+    public const string NotApprovedMessage = "لا يُنفَّذ الفصل قبل اعتماده في محرك سير العمل.";
+    public const string AlreadyExecutedMessage = "نُفِّذ هذا الفصل مسبقاً — بدأت رحلة الأطراف.";
+    public const string NoDecisionMessage = "لا يُنفَّذ الفصل دون قرار إداري مرقّم: أصدر القرار أولاً.";
+    public const string NoActorMessage = "تعذّر تحديد المستخدم الحالي — لم يُنفَّذ الفصل.";
+
+    public static string NotYetMessage(DateOnly effective, DateOnly today) =>
+        $"تاريخ النفاذ ({effective:yyyy-MM-dd}) لم يحن بعد بتوقيت دمشق (اليوم {today:yyyy-MM-dd}) — لا يُنفَّذ الفصل قبله.";
+
+    /// <summary>
+    /// PLAN-60 (§5, D-SEP-6): the order of the checks is the plan's — the status, the decision, the pre-execution items, the effective
+    /// date in Damascus, the legal hold (PLAN-42, fail-closed), the service regime. Then one save: the contract ended at the effective date,
+    /// its item (System), <c>Executing</c> with its actor, the transaction moved, and <c>IStartSeparationSaga</c> in the outbox — all or
+    /// nothing. No other path starts the saga.
+    /// </summary>
+    public async Task<(bool Success, string? Error)> Handle(ExecuteSeparationCommand request, CancellationToken cancellationToken)
+    {
+        if (request.ActorUserId is not Guid actor || actor == Guid.Empty)
+            return (false, NoActorMessage);
+
+        var entity = await repository.GetSeparationRecordAsync(request.Id, cancellationToken);
+        if (entity is null) return (false, null);
+        if (SeparationWorkflowRules.IsExecutedOrLater(entity.Status))
+            return (false, AlreadyExecutedMessage);
+        if (entity.Status != SeparationStatus.Approved)
+            return (false, NotApprovedMessage);
+
+        if (entity.DecisionId is not Guid decisionId
+            || !await repository.AdministrativeDecisions.AnyAsync(d => d.Id == decisionId, cancellationToken))
+            return (false, NoDecisionMessage);
 
         var checklists = await repository.SeparationChecklists
             .Where(c => c.SeparationRecordId == entity.Id)
             .ToListAsync(cancellationToken);
+        var open = SeparationWorkflowRules.GetOpenPreExecutionSteps(checklists);
+        if (open.Count > 0)
+            return (false, $"لا يمكن تنفيذ الفصل: بنود لم تُكمل بعد: {string.Join("، ", open.Select(o => SeparationWorkflowRules.DisplayName(o.Step)))}");
 
-        // DOM-001 / INT-003: do NOT auto-complete ContractTerminated (or any step).
-        // Contract termination happens when the operator completes that checklist step with evidence.
+        var today = clock.Today;
+        if (!SeparationWorkflowRules.IsEffectiveDateReached(entity, today))
+            return (false, NotYetMessage(entity.EffectiveDate, today));
 
-        if (!SeparationWorkflowRules.CanComplete(entity, checklists))
-        {
-            var incompleteSteps = SeparationWorkflowRules.GetIncompleteRequiredSteps(checklists)
-                .Select(step => step.Step.ToString())
-                .ToArray();
-            var summary = incompleteSteps.Length == 0
-                ? "هناك خطوات إلزامية لم تُكمل بعد."
-                : $"هناك خطوات إلزامية لم تُكمل بعد: {string.Join(", ", incompleteSteps)}";
-            return (false, $"لا يمكن نشر الفصل: {summary}");
-        }
+        var (holdOk, holdError) = await lifecycleGate.AssertCanPublishSeparationAsync(entity.EmployeeId, cancellationToken);
+        if (!holdOk)
+            return (false, holdError);
 
         if (string.IsNullOrWhiteSpace(entity.SourceLegalRegimeId))
         {
@@ -189,6 +186,22 @@ public class PublishSeparationHandler(
             entity.PayrollRegimeCode = payrollCode;
         }
 
+        // The contract ends at the effective date, and its item is the service's own (System).
+        var (contract, contractError) = await SeparationRecordSupport.TerminateLinkedContractAsync(repository, entity, cancellationToken);
+        if (contractError is not null)
+            return (false, contractError);
+        var contractItem = checklists.FirstOrDefault(c => c.Step == SeparationStep.ContractTerminated);
+        if (contractItem is not null && !contractItem.IsCompleted)
+        {
+            contractItem.IsCompleted = true;
+            contractItem.CompletedAt = clock.UtcNow;
+            contractItem.CompletedBy = actor;
+            contractItem.SourceSystem = "HRContracts";
+            contractItem.EvidenceRef = contract is null
+                ? "لا عقد مرتبط بسجل الفصل"
+                : $"contract:{contract.Id:D}:end:{entity.EffectiveDate:yyyy-MM-dd}";
+        }
+
         var remainingLeaveDays = await SeparationRecordSupport.ComputeAnnualLeaveRemainingAsync(
             repository, entity.EmployeeId, entity.EffectiveDate, cancellationToken);
 
@@ -202,144 +215,50 @@ public class PublishSeparationHandler(
             remainingLeaveDays: remainingLeaveDays,
             sourceLegalRegimeId: entity.SourceLegalRegimeId,
             payrollRegimeCode: entity.PayrollRegimeCode);
-        entity.SeparationEventPublished = true;
 
-        // The transaction advances to Executing because the saga has started; it must not be
-        // archived here. Archiving at publication time declared the separation finished before a
-        // single party had acknowledged, so a party failing afterwards left an archived record of
-        // work that never completed. SeparationSagaFinalizedConsumer archives it once every party
-        // has succeeded.
-        var tx = await repository.ServiceTransactions
-            .OrderByDescending(x => x.CreatedAt)
-            .FirstOrDefaultAsync(x => x.EmployeeId == entity.EmployeeId && x.TransactionType == ServiceTransactionType.Separation, cancellationToken);
-        if (tx is not null)
-        {
-            if (tx.State == ServiceTransactionState.Draft) tx.MoveTo(ServiceTransactionState.Submitted, null, null);
-            if (tx.State == ServiceTransactionState.Submitted) tx.MoveTo(ServiceTransactionState.UnderReview, null, null);
-            if (tx.State == ServiceTransactionState.UnderReview) tx.MoveTo(ServiceTransactionState.InProcess, null, null);
-            if (tx.State == ServiceTransactionState.InProcess) tx.MoveTo(ServiceTransactionState.PendingApproval, null, null);
-            if (tx.State == ServiceTransactionState.PendingApproval) tx.MoveTo(ServiceTransactionState.Approved, null, null);
-            if (tx.State == ServiceTransactionState.Approved) tx.MoveTo(ServiceTransactionState.Executing, null, null);
-        }
+        // The record's transition moves its own transaction, with the actor (P-4).
+        await SeparationStatusSync.TransitionAsync(
+            repository, entity, SeparationStatus.Executing, actor, "تنفيذ الفصل", cancellationToken);
 
         await repository.SaveChangesAsync(cancellationToken);
         return (true, null);
     }
 }
 
-public class CompleteSeparationChecklistStepHandler(IContractsRepository repository, IEventPublisher eventPublisher)
-    : IRequestHandler<CompleteSeparationChecklistStepCommand, (bool Success, string? Error)>
-{
-    public async Task<(bool Success, string? Error)> Handle(
-        CompleteSeparationChecklistStepCommand request,
-        CancellationToken cancellationToken)
-    {
-        var record = await repository.GetSeparationRecordAsync(request.SeparationRecordId, cancellationToken);
-        if (record is null) return (false, null);
-
-        var step = await repository.SeparationChecklists
-            .FirstOrDefaultAsync(c => c.SeparationRecordId == request.SeparationRecordId && c.Step == request.Step, cancellationToken);
-        if (step is null) return (false, "خطوة غير موجودة");
-        if (step.IsCompleted) return (true, null);
-        if (record.SeparationEventPublished)
-            return (false, "لا يمكن تعديل قائمة الفصل بعد نشر حدث الإنهاء.");
-        if (record.IsCancelled)
-            return (false, "سجل الفصل ملغى.");
-
-        if (string.IsNullOrWhiteSpace(request.EvidenceRef) && string.IsNullOrWhiteSpace(request.Notes))
-            return (false, "الدليل (Evidence) مطلوب لإكمال خطوة قائمة الفصل.");
-
-        if (request.CompletedBy == Guid.Empty)
-            return (false, "معرّف المنفّذ مطلوب لإكمال خطوة قائمة الفصل.");
-
-        // DOM-001: terminating the linked contract is an explicit ContractTerminated step action.
-        if (request.Step == SeparationStep.ContractTerminated)
-            await SeparationRecordSupport.TerminateLinkedContractAsync(repository, record, cancellationToken);
-
-        step.IsCompleted = true;
-        step.CompletedAt = DateTime.UtcNow;
-        step.CompletedBy = request.CompletedBy;
-        step.EvidenceRef = string.IsNullOrWhiteSpace(request.EvidenceRef) ? request.Notes?.Trim() : request.EvidenceRef?.Trim();
-        step.SourceSystem = string.IsNullOrWhiteSpace(request.SourceSystem) ? "HRContracts" : request.SourceSystem.Trim();
-        step.Notes = string.IsNullOrWhiteSpace(request.Notes) ? null : request.Notes.Trim();
-
-        await eventPublisher.PublishSeparationStepCompletedAsync(
-            record.Id,
-            record.EmployeeId,
-            request.Step.ToString(),
-            request.Notes,
-            cancellationToken);
-        await repository.SaveChangesAsync(cancellationToken);
-
-        return (true, null);
-    }
-}
-
-public class OverrideSeparationChecklistStepHandler(IContractsRepository repository)
-    : IRequestHandler<OverrideSeparationChecklistStepCommand, (bool Success, string? Error)>
-{
-    public async Task<(bool Success, string? Error)> Handle(
-        OverrideSeparationChecklistStepCommand request,
-        CancellationToken cancellationToken)
-    {
-        if (request.OverriddenBy == request.ApprovedBy)
-            return (false, "يتطلب الاستثناء موافقة مزدوجة من شخصين مختلفين.");
-        if (string.IsNullOrWhiteSpace(request.Reason))
-            return (false, "سبب الاستثناء إلزامي.");
-
-        var record = await repository.GetSeparationRecordAsync(request.SeparationRecordId, cancellationToken);
-        if (record is null) return (false, null);
-        if (record.SeparationEventPublished)
-            return (false, "لا يمكن تعديل قائمة الفصل بعد نشر حدث الإنهاء.");
-
-        var step = await repository.SeparationChecklists
-            .FirstOrDefaultAsync(c => c.SeparationRecordId == request.SeparationRecordId && c.Step == request.Step, cancellationToken);
-        if (step is null) return (false, "خطوة غير موجودة");
-        if (step.IsCompleted) return (true, null);
-
-        var now = DateTime.UtcNow;
-        var reason = request.Reason.Trim();
-        step.IsCompleted = true;
-        step.CompletedAt = now;
-        step.CompletedBy = request.OverriddenBy;
-        step.EvidenceRef = $"OVERRIDE:{reason}";
-        step.SourceSystem = "Override";
-        step.Notes = $"Override approved by {request.ApprovedBy}: {reason}";
-
-        await repository.SaveChangesAsync(cancellationToken);
-        return (true, null);
-    }
-}
-
-public class CancelSeparationHandler(IContractsRepository repository, IEventPublisher eventPublisher)
+public class CancelSeparationHandler(IContractsRepository repository, SeparationApprovalService approvals)
     : IRequestHandler<CancelSeparationCommand, (bool Success, string? Error)>
 {
+    public const string ReasonRequiredMessage = "سبب الإلغاء إلزامي.";
+
+    /// <summary>
+    /// PLAN-60 (§5): from Draft, PendingApproval or Approved only, with a reason; the transaction follows. From PendingApproval the
+    /// engine's instance is withdrawn first: when it had ended, its outcome is applied and the request is judged again on the status that
+    /// results. From Approved no saga exists, and a decision already issued stays linked, as history. After the execution: PLAN-63.
+    /// </summary>
     public async Task<(bool Success, string? Error)> Handle(CancelSeparationCommand request, CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(request.Reason))
+            return (false, ReasonRequiredMessage);
+        var reason = request.Reason.Trim();
+
         var entity = await repository.GetSeparationRecordAsync(request.Id, cancellationToken);
         if (entity is null) return (false, null);
+        if (SeparationWorkflowRules.RefusalFor(entity.Status, SeparationStatus.Cancelled) is { } refusal)
+            return (false, refusal);
 
-        if (!SeparationWorkflowRules.CanCancel(entity))
-            return (false, "لا يمكن إلغاء سجل الفصل بعد النفاذ أو بعد اكتمال لا رجعة فيه.");
-
-        var wasPublished = entity.SeparationEventPublished;
-        SeparationWorkflowRules.SoftCancel(entity, request.Reason);
-
-        if (wasPublished)
+        if (entity.Status == SeparationStatus.PendingApproval)
         {
-            await eventPublisher.CancelSeparationSagaAsync(
-                entity.Id,
-                entity.CancellationReason ?? "إلغاء قبل النفاذ",
-                cancellationToken);
+            var withdrawn = await approvals.WithdrawAsync(entity, request.ActorUserId, reason, cancellationToken);
+            if (!withdrawn.Success && withdrawn.Error is not null)
+                return (false, withdrawn.Error);
+
+            // Withdrawn (back to Draft), or the instance had ended and its outcome was applied: judged again on what the record is now.
+            await repository.ReloadAsync(entity, cancellationToken);
+            if (SeparationWorkflowRules.RefusalFor(entity.Status, SeparationStatus.Cancelled) is { } after)
+                return (false, after);
         }
 
-        var tx = await repository.ServiceTransactions
-            .OrderByDescending(x => x.CreatedAt)
-            .FirstOrDefaultAsync(x => x.EmployeeId == entity.EmployeeId
-                && x.TransactionType == ServiceTransactionType.Separation, cancellationToken);
-        if (tx is not null && tx.State != ServiceTransactionState.Cancelled)
-            tx.MoveTo(ServiceTransactionState.Cancelled, null, "إلغاء سجل الفصل");
-
+        await SeparationStatusSync.TransitionAsync(repository, entity, SeparationStatus.Cancelled, request.ActorUserId, reason, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
         return (true, null);
     }

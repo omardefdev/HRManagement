@@ -29,6 +29,8 @@ namespace HR.Contracts.Web.Controllers;
 public class AdministrativeDecisionsController : Controller
 
 {
+    public const string LinkedToSeparationMessage = "قرار إنهاء خدمة مرتبط بسجل فصل: لا يُعدَّل ولا يُحذف بعد إصداره.";
+
 
     private readonly IMediator _mediator;
 
@@ -177,6 +179,12 @@ public class AdministrativeDecisionsController : Controller
     {
 
         if (vm.Id != id) return BadRequest();
+        // PLAN-60 (§3): a decision that ended a person's service is never changed after its issue.
+        if (await _db.SeparationRecords.AnyAsync(r => r.DecisionId == id))
+        {
+            TempData["Warning"] = LinkedToSeparationMessage;
+            return RedirectToAction(nameof(Index));
+        }
 
         // PLAN-52 (review 3, D-52-1): a restricted user's decision names an employee of his scope (the filter checked it); without one it
         // would be central, out of his reach: refused, so he neither writes a central decision nor moves one to the centre.
@@ -238,6 +246,13 @@ public class AdministrativeDecisionsController : Controller
     public async Task<IActionResult> Delete(Guid id)
 
     {
+
+        // PLAN-60 (§3): nor deleted — the separation record's link and its history need it.
+        if (await _db.SeparationRecords.AnyAsync(r => r.DecisionId == id))
+        {
+            TempData["Warning"] = LinkedToSeparationMessage;
+            return RedirectToAction(nameof(Index));
+        }
 
         var entity = await _db.AdministrativeDecisions.FindAsync(id);
 

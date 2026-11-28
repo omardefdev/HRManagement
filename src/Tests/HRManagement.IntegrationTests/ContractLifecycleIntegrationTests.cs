@@ -95,24 +95,24 @@ public class ContractLifecycleIntegrationTests
         }
     }
 
+    // PLAN-60: the four separation tests that AC-QA-34e counts by name keep their names and their meaning; the record reaches its status
+    // the product's way (SeparationJourneyDriver: the factory, the engine's outcome, the decision, the notification), and the publication
+    // they name is now the execution.
     [Fact]
     public async Task PublishSeparation_AlreadyPublished_ReturnsError()
     {
         var (scope, spy, db) = await CreateContractsHandlerScopeAsync();
         using (scope)
         {
-            var employeeId = Guid.NewGuid();
-            var separation = TestDataFactory.CreateSeparationRecord(employeeId);
-            separation.SeparationEventPublished = true;
-            db.SeparationRecords.Add(separation);
-            await db.SaveChangesAsync();
+            var id = await SeparationJourneyDriver.ReadyToExecuteAsync(scope.ServiceProvider, Guid.NewGuid(), null, new DateOnly(2026, 6, 30));
+            Assert.True((await SeparationJourneyDriver.ExecuteAsync(scope.ServiceProvider, id)).Success);
+            var executed = spy.SeparationCompletedCount;
 
-            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            var (success, error) = await mediator.Send(new PublishSeparationCommand(separation.Id));
+            var (success, error) = await SeparationJourneyDriver.ExecuteAsync(scope.ServiceProvider, id);
 
             Assert.False(success);
             Assert.Contains("مسبقاً", error ?? string.Empty);
-            Assert.Equal(0, spy.SeparationCompletedCount);
+            Assert.Equal(executed, spy.SeparationCompletedCount);
         }
     }
 
@@ -126,36 +126,26 @@ public class ContractLifecycleIntegrationTests
             var employeeId = Guid.NewGuid();
             var contract = TestDataFactory.CreatePendingContract(employeeId, contractType);
             contract.Status = ContractStatus.Active;
-            var separation = TestDataFactory.CreateSeparationRecord(employeeId, contract.Id);
             db.ContractTypes.Add(contractType);
             db.Contracts.Add(contract);
-            db.SeparationRecords.Add(separation);
             await db.SaveChangesAsync();
-            db.SeparationChecklists.AddRange(
-                SeparationChecklistDefaults.CreateForRecord(separation.Id).Select(step =>
-                {
-                    step.IsCompleted = true;
-                    step.CompletedAt = DateTime.UtcNow;
-                    step.CompletedBy = Guid.NewGuid();
-                    step.EvidenceRef = $"evidence:{step.Step}";
-                    step.SourceSystem = "Test";
-                    return step;
-                }));
-            await db.SaveChangesAsync();
+            var id = await SeparationJourneyDriver.ReadyToExecuteAsync(scope.ServiceProvider, employeeId, contract.Id, new DateOnly(2026, 6, 30));
 
-            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            var (firstSuccess, firstError) = await mediator.Send(new PublishSeparationCommand(separation.Id));
-            Assert.True(firstSuccess);
+            var (firstSuccess, firstError) = await SeparationJourneyDriver.ExecuteAsync(scope.ServiceProvider, id);
+            Assert.True(firstSuccess, firstError);
             Assert.Null(firstError);
             Assert.Equal(1, spy.SeparationCompletedCount);
 
-            var (secondSuccess, _) = await mediator.Send(new PublishSeparationCommand(separation.Id));
+            var (secondSuccess, _) = await SeparationJourneyDriver.ExecuteAsync(scope.ServiceProvider, id);
             Assert.False(secondSuccess);
             Assert.Equal(1, spy.SeparationCompletedCount);
 
             db.ChangeTracker.Clear();
-            var stored = await db.SeparationRecords.FindAsync(separation.Id);
-            Assert.True(stored!.SeparationEventPublished);
+            var stored = await db.SeparationRecords.FindAsync(id);
+            Assert.Equal(SeparationStatus.Executing, stored!.Status);
+            Assert.True(stored.SeparationEventPublished);
+            var ended = await db.Contracts.FindAsync(contract.Id);
+            Assert.Equal((ContractStatus.Terminated, (DateOnly?)new DateOnly(2026, 6, 30)), (ended!.Status, ended.EndDate));
         }
     }
 
@@ -165,40 +155,22 @@ public class ContractLifecycleIntegrationTests
         var (scope, spy, db) = await CreateContractsHandlerScopeAsync();
         using (scope)
         {
-            var contractType = TestDataFactory.CreateContractType();
-            var employeeId = Guid.NewGuid();
-            var contract = TestDataFactory.CreatePendingContract(employeeId, contractType);
-            contract.Status = ContractStatus.Active;
-            var separation = TestDataFactory.CreateSeparationRecord(employeeId, contract.Id);
-            db.ContractTypes.Add(contractType);
-            db.Contracts.Add(contract);
-            db.SeparationRecords.Add(separation);
-            await db.SaveChangesAsync();
+            // PLAN-60: the employee's notification is a pre-execution item; the parties' items only follow the execution.
+            var id = await SeparationJourneyDriver.ReadyToExecuteAsync(
+                scope.ServiceProvider, Guid.NewGuid(), null, new DateOnly(2026, 6, 30), notify: false);
 
-            var checklist = SeparationChecklistDefaults.CreateForRecord(separation.Id).ToList();
-            foreach (var step in checklist.Where(c => c.Step != SeparationStep.AccountDisabled))
-            {
-                step.IsCompleted = true;
-                step.CompletedAt = DateTime.UtcNow;
-                step.CompletedBy = Guid.NewGuid();
-                step.EvidenceRef = $"evidence:{step.Step}";
-                step.SourceSystem = "Test";
-            }
-            db.SeparationChecklists.AddRange(checklist);
-            await db.SaveChangesAsync();
-
-            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            var (success, error) = await mediator.Send(new PublishSeparationCommand(separation.Id));
+            var (success, error) = await SeparationJourneyDriver.ExecuteAsync(scope.ServiceProvider, id);
 
             Assert.False(success);
-            Assert.Contains("AccountDisabled", error ?? string.Empty);
+            Assert.Contains("تبليغ الموظف", error ?? string.Empty);
             Assert.Equal(0, spy.SeparationCompletedCount);
 
             db.ChangeTracker.Clear();
             var storedChecklist = await db.SeparationChecklists
-                .Where(c => c.SeparationRecordId == separation.Id)
+                .Where(c => c.SeparationRecordId == id)
                 .ToListAsync();
-            Assert.Contains(storedChecklist, c => c.Step == SeparationStep.AccountDisabled && !c.IsCompleted);
+            Assert.Contains(storedChecklist, c => c.Step == SeparationStep.EmployeeNotified && !c.IsCompleted);
+            Assert.Equal(SeparationStatus.Approved, (await db.SeparationRecords.SingleAsync(r => r.Id == id)).Status);
         }
     }
 
@@ -208,101 +180,71 @@ public class ContractLifecycleIntegrationTests
         var (scope, _, db) = await CreateContractsHandlerScopeAsync();
         using (scope)
         {
-            var employeeId = Guid.NewGuid();
-            var separation = TestDataFactory.CreateSeparationRecord(employeeId);
-            db.SeparationRecords.Add(separation);
-            await db.SaveChangesAsync();
-            db.SeparationChecklists.AddRange(SeparationChecklistDefaults.CreateForRecord(separation.Id));
-            await db.SaveChangesAsync();
-
+            var id = await SeparationJourneyDriver.CreateAsync(scope.ServiceProvider, Guid.NewGuid(), null, new DateOnly(2026, 6, 30));
             var actorId = Guid.NewGuid();
             var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            var (success, error) = await mediator.Send(new CompleteSeparationChecklistStepCommand(
-                separation.Id,
-                SeparationStep.CardRevoked,
-                "badge returned",
-                actorId,
-                "badge:123",
-                "HRContracts"));
+            // PLAN-60 (§4): a manual item, by the signed-in user, with evidence.
+            var (success, error) = await mediator.Send(new CompleteManualStepCommand(
+                id, SeparationStep.EmployeeNotified, "notice:123", null, "notice handed over", actorId, null));
 
             Assert.True(success);
             Assert.Null(error);
 
             db.ChangeTracker.Clear();
-            var step = await db.SeparationChecklists.FirstAsync(c =>
-                c.SeparationRecordId == separation.Id && c.Step == SeparationStep.CardRevoked);
+            var step = await db.SeparationChecklists.FirstAsync(c => c.SeparationRecordId == id && c.Step == SeparationStep.EmployeeNotified);
             Assert.True(step.IsCompleted);
             Assert.Equal(actorId, step.CompletedBy);
-            Assert.Equal("badge:123", step.EvidenceRef);
+            Assert.Equal("notice:123", step.EvidenceRef);
             Assert.Equal("HRContracts", step.SourceSystem);
-            Assert.Equal("badge returned", step.Notes);
+            Assert.Equal("notice handed over", step.Notes);
         }
     }
 
+    // PLAN-60 (§4): the old override took its second approver as a GUID from the form. An exception is now two requests from two
+    // sessions: the requester never approves his own.
     [Fact]
-    public async Task OverrideSeparationChecklistStep_RequiresDualApproval()
+    public async Task StepException_RequiresASecondPerson()
     {
-        var (scope, _, db) = await CreateContractsHandlerScopeAsync();
+        var (scope, _, _) = await CreateContractsHandlerScopeAsync();
         using (scope)
         {
-            var employeeId = Guid.NewGuid();
-            var separation = TestDataFactory.CreateSeparationRecord(employeeId);
-            db.SeparationRecords.Add(separation);
-            await db.SaveChangesAsync();
-            db.SeparationChecklists.AddRange(SeparationChecklistDefaults.CreateForRecord(separation.Id));
-            await db.SaveChangesAsync();
-
+            var id = await SeparationJourneyDriver.CreateAsync(scope.ServiceProvider, Guid.NewGuid(), null, new DateOnly(2026, 6, 30));
             var actorId = Guid.NewGuid();
             var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            var (success, error) = await mediator.Send(new OverrideSeparationChecklistStepCommand(
-                separation.Id,
-                SeparationStep.AssetsReturned,
-                "manual override",
-                actorId,
-                actorId));
+            Assert.True((await mediator.Send(new RequestStepExceptionCommand(
+                id, SeparationStep.EmployeeNotified, "الموظف خارج البلاد ولا يمكن تبليغه حالياً", actorId))).Success);
+            var (success, error) = await mediator.Send(new ApproveStepExceptionCommand(id, SeparationStep.EmployeeNotified, actorId));
 
             Assert.False(success);
-            Assert.Contains("موافقة مزدوجة", error ?? string.Empty);
+            Assert.Equal(SeparationChecklistRules.SecondPersonMessage, error);
         }
     }
 
     [Fact]
-    public async Task OverrideSeparationChecklistStep_StoresOverrideEvidence()
+    public async Task StepException_ApprovedByASecondPerson_IsExceptedNotCompleted()
     {
         var (scope, _, db) = await CreateContractsHandlerScopeAsync();
         using (scope)
         {
-            var employeeId = Guid.NewGuid();
-            var separation = TestDataFactory.CreateSeparationRecord(employeeId);
-            db.SeparationRecords.Add(separation);
-            await db.SaveChangesAsync();
-            db.SeparationChecklists.AddRange(SeparationChecklistDefaults.CreateForRecord(separation.Id));
-            await db.SaveChangesAsync();
-
+            var id = await SeparationJourneyDriver.CreateAsync(scope.ServiceProvider, Guid.NewGuid(), null, new DateOnly(2026, 6, 30));
             var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            var actorId = Guid.NewGuid();
-            var approverId = Guid.NewGuid();
-            var (success, error) = await mediator.Send(new OverrideSeparationChecklistStepCommand(
-                separation.Id,
-                SeparationStep.AssetsReturned,
-                "missing document",
-                actorId,
-                approverId));
+            var requester = Guid.NewGuid();
+            var approver = Guid.NewGuid();
+            Assert.True((await mediator.Send(new RequestStepExceptionCommand(
+                id, SeparationStep.EmployeeNotified, "الموظف خارج البلاد ولا يمكن تبليغه حالياً", requester))).Success);
+            var (success, error) = await mediator.Send(new ApproveStepExceptionCommand(id, SeparationStep.EmployeeNotified, approver));
 
-            Assert.True(success);
-            Assert.Null(error);
-
+            Assert.True(success, error);
             db.ChangeTracker.Clear();
-            var step = await db.SeparationChecklists.FirstAsync(c =>
-                c.SeparationRecordId == separation.Id && c.Step == SeparationStep.AssetsReturned);
-            Assert.True(step.IsCompleted);
-            Assert.Equal(actorId, step.CompletedBy);
-            Assert.Equal("OVERRIDE:missing document", step.EvidenceRef);
-            Assert.Equal("Override", step.SourceSystem);
-            Assert.Contains(approverId.ToString(), step.Notes ?? string.Empty);
+            var step = await db.SeparationChecklists.FirstAsync(c => c.SeparationRecordId == id && c.Step == SeparationStep.EmployeeNotified);
+            Assert.False(step.IsCompleted);
+            Assert.True(step.IsExcepted);
+            Assert.Equal((requester, approver), (step.ExceptionRequestedBy!.Value, step.ExceptionApprovedBy!.Value));
         }
     }
 
+    // PLAN-60: «Delete» is gone (a record is never deleted); its successor, the cancellation, is refused after the execution as the
+    // edit is — the name is AC-QA-34e's.
     [Fact]
     public async Task UpdateAndDeleteSeparation_AfterPublish_AreBlocked()
     {
@@ -313,42 +255,22 @@ public class ContractLifecycleIntegrationTests
             var employeeId = Guid.NewGuid();
             var contract = TestDataFactory.CreatePendingContract(employeeId, contractType);
             contract.Status = ContractStatus.Active;
-            var separation = TestDataFactory.CreateSeparationRecord(employeeId, contract.Id);
             db.ContractTypes.Add(contractType);
             db.Contracts.Add(contract);
-            db.SeparationRecords.Add(separation);
             await db.SaveChangesAsync();
-            db.SeparationChecklists.AddRange(
-                SeparationChecklistDefaults.CreateForRecord(separation.Id).Select(step =>
-                {
-                    step.IsCompleted = true;
-                    step.CompletedAt = DateTime.UtcNow;
-                    step.CompletedBy = Guid.NewGuid();
-                    step.EvidenceRef = $"evidence:{step.Step}";
-                    step.SourceSystem = "Test";
-                    return step;
-                }));
-            await db.SaveChangesAsync();
-
-            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            var publish = await mediator.Send(new PublishSeparationCommand(separation.Id));
-            Assert.True(publish.Success);
+            var id = await SeparationJourneyDriver.ReadyToExecuteAsync(scope.ServiceProvider, employeeId, contract.Id, new DateOnly(2026, 6, 30));
+            Assert.True((await SeparationJourneyDriver.ExecuteAsync(scope.ServiceProvider, id)).Success);
             Assert.Equal(1, spy.SeparationCompletedCount);
 
-            var update = await mediator.Send(new UpdateSeparationRecordCommand(separation.Id, new HR.Contracts.Application.Models.SeparationRecordDto(
-                separation.Id,
-                separation.EmployeeId,
-                separation.ContractId,
-                separation.SeparationType,
-                separation.EffectiveDate,
-                "changed",
-                separation.ApprovedBy,
-                separation.Documents,
-                true)));
-            var delete = await mediator.Send(new DeleteSeparationRecordCommand(separation.Id));
+            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+            var update = await mediator.Send(new UpdateSeparationRecordCommand(id, new HR.Contracts.Application.Models.SeparationRecordDto(
+                id, employeeId, contract.Id, SeparationType.Resignation, new DateOnly(2026, 6, 30), "changed", null)));
+            var cancel = await mediator.Send(new CancelSeparationCommand(id, "إلغاء بعد التنفيذ", Guid.NewGuid()));
 
-            Assert.False(update);
-            Assert.False(delete);
+            Assert.False(update.Success);
+            Assert.Equal(UpdateSeparationRecordHandler.NotDraftMessage, update.Error);
+            Assert.False(cancel.Success);
+            Assert.Equal(SeparationWorkflowRules.ExecutingCancelMessage, cancel.Error);
         }
     }
 

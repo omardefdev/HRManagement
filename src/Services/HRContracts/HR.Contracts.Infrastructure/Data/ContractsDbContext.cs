@@ -9,6 +9,14 @@ namespace HR.Contracts.Infrastructure.Data;
 
 public class ContractsDbContext : TenantAwareDbContext
 {
+    /// <summary>PLAN-60 (§6): at most one open separation record per employee; its violation reads «يوجد سجل فصل مفتوح لهذا الموظف».</summary>
+    public const string SeparationRecordOpenIndexName = "IX_SeparationRecords_Tenant_Employee_Open";
+
+    public const string SeparationRecordOpenIndexFilter =
+        "\"Status\" IN ('Draft', 'PendingApproval', 'Approved', 'Executing', 'AwaitingIntervention')";
+
+    public const string ServiceTransactionSeparationIndexName = "IX_ServiceTransactions_SeparationRecordId";
+
     public ContractsDbContext(DbContextOptions<ContractsDbContext> options, ITenantContext? tenantContext = null)
         : base(options, tenantContext)
     {
@@ -117,6 +125,23 @@ public class ContractsDbContext : TenantAwareDbContext
             entity.Property(e => e.CancellationReason).HasMaxLength(500);
             entity.Property(e => e.SourceLegalRegimeId).HasMaxLength(50);
             entity.Property(e => e.PayrollRegimeCode).HasMaxLength(50);
+
+            // PLAN-60 (§1, §6): the status as text, the decision's link, the concurrency token, and one open record per employee.
+            entity.Property(e => e.Status)
+                  .HasConversion<string>()
+                  .HasMaxLength(32);
+            entity.Property(e => e.WorkflowCode).HasMaxLength(64);
+            entity.Property(e => e.RejectionReason).HasMaxLength(1000);
+            entity.HasOne(e => e.Decision)
+                  .WithMany()
+                  .HasForeignKey(e => e.DecisionId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(e => new { e.TenantId, e.EmployeeId })
+                  .IsUnique()
+                  .HasFilter(SeparationRecordOpenIndexFilter)
+                  .HasDatabaseName(SeparationRecordOpenIndexName);
+            entity.HasIndex(e => new { e.Status, e.SubmittedAt });
+            entity.ConfigureOptimisticConcurrency(this);
         });
 
         modelBuilder.Entity<LeaveRequest>(entity =>
@@ -171,6 +196,11 @@ public class ContractsDbContext : TenantAwareDbContext
             // FUN-029: explicit recruitment lineage.
             entity.HasIndex(e => new { e.TenantId, e.RecruitmentApplicationId });
             entity.Property(e => e.PendingContractTerms).HasMaxLength(2000);
+            // PLAN-60 (§6): a separation's transaction is found by its record, and each record has one.
+            entity.HasIndex(e => e.SeparationRecordId)
+                  .IsUnique()
+                  .HasFilter("\"SeparationRecordId\" IS NOT NULL")
+                  .HasDatabaseName(ServiceTransactionSeparationIndexName);
         });
 
         modelBuilder.Entity<ContractTypeRegimeMap>(entity =>
@@ -249,6 +279,13 @@ public class ContractsDbContext : TenantAwareDbContext
             entity.Property(e => e.OwnerRole).HasMaxLength(64);
             entity.Property(e => e.CompletedByName).HasMaxLength(128);
             entity.HasIndex(e => new { e.SeparationRecordId, e.Step }).IsUnique();
+            // PLAN-60 (§4): the completion mode as text, the party, and the two-person exception.
+            entity.Property(e => e.CompletionMode)
+                  .HasConversion<string>()
+                  .HasMaxLength(16);
+            entity.Property(e => e.PartyName).HasMaxLength(64);
+            entity.Property(e => e.ExceptionReason).HasMaxLength(1000);
+            entity.Ignore(e => e.IsExcepted);
         });
 
         modelBuilder.Entity<HireChecklist>(entity =>
@@ -265,6 +302,10 @@ public class ContractsDbContext : TenantAwareDbContext
             entity.Property(e => e.CompletedByName).HasMaxLength(128);
             entity.HasIndex(e => new { e.ServiceTransactionId, e.Step }).IsUnique();
         });
+
+        // PLAN-60 (P-7): the separation sweep lists its tenants from the audit log, outside row security, as the card's and the
+        // discipline's do.
+        modelBuilder.Entity<EntityAuditLog>().HasIndex(l => new { l.EntityType, l.TenantId });
 
         modelBuilder.ConfigureMassTransitOutbox();
         modelBuilder.ConfigureIdempotencyRecords();

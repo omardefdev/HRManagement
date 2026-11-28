@@ -490,7 +490,7 @@ public static class DemoContractsSeeder
             var effective = today.AddDays(-rng.Next(30, 365));
             var sepType = sepTypes[n % sepTypes.Length];
 
-            db.SeparationRecords.Add(new SeparationRecord
+            var record = new SeparationRecord
             {
                 Id = sepId,
                 TenantId = TenantId,
@@ -508,32 +508,27 @@ public static class DemoContractsSeeder
                     SeparationType.Disciplinary => "فصل تأديبي",
                     _ => "إنهاء خدمة"
                 },
-                ApprovedBy = DemoSeedIds.EmployeeId(0),
-                SeparationEventPublished = n % 3 != 0,
                 CreatedAt = effective.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc),
                 UpdatedAt = now,
-            });
+            };
+            // PLAN-60 (P-13): the seed's records are written as the SEP060 backfill leaves an older record — published ones Executing (no
+            // saga row), the others a legacy Draft that needs an approval — with no approver, and every item with its completion mode.
+            SeparationWorkflowRules.ApplyLegacyBackfill(record, wasPublished: n % 3 != 0, sagaState: null);
+            db.SeparationRecords.Add(record);
 
             foreach (var step in SeparationChecklistDefaults.DefaultSteps)
             {
-                var (owner, sla) = SeparationChecklistDefaults.GovernanceFor(step);
-                var completed = step <= SeparationStep.PayrollSettled || n % 2 == 0;
-                db.SeparationChecklists.Add(new SeparationChecklist
-                {
-                    Id = DemoSeedIds.Named($"sep-check-{n}-{(int)step}"),
-                    TenantId = TenantId,
-                    SeparationRecordId = sepId,
-                    Step = step,
-                    IsCompleted = completed,
-                    CompletedAt = completed ? now.AddDays(-rng.Next(1, 20)) : null,
-                    CompletedBy = completed ? DemoSeedIds.EmployeeId(0) : null,
-                    IsRequired = true,
-                    SourceSystem = "HRContracts",
-                    OwnerRole = owner,
-                    SlaHours = sla,
-                    CreatedAt = now,
-                    UpdatedAt = now,
-                });
+                var item = SeparationChecklistDefaults.Create(sepId, step);
+                // The six older items as before; the four PLAN-60 items are open, as the backfill adds them to an open record.
+                var completed = step <= SeparationStep.Archived && (step <= SeparationStep.PayrollSettled || n % 2 == 0);
+                item.Id = DemoSeedIds.Named($"sep-check-{n}-{(int)step}");
+                item.TenantId = TenantId;
+                item.IsCompleted = completed;
+                item.CompletedAt = completed ? now.AddDays(-rng.Next(1, 20)) : null;
+                item.CompletedBy = completed ? DemoSeedIds.EmployeeId(0) : null;
+                item.CreatedAt = now;
+                item.UpdatedAt = now;
+                db.SeparationChecklists.Add(item);
             }
         }
 

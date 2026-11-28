@@ -9,6 +9,7 @@ namespace HR.Contracts.Infrastructure.Repositories;
 public class ContractsRepository(ContractsDbContext db) : IContractsRepository
 {
     public IQueryable<LeaveRequest> LeaveRequests => db.LeaveRequests;
+    public IQueryable<HRManagement.SharedKernel.Entities.EmployeeOrgUnitSnapshot> EmployeeOrgUnitSnapshots => db.EmployeeOrgUnitSnapshots;
     public IQueryable<AdvanceRequest> AdvanceRequests => db.AdvanceRequests;
     public IQueryable<AdministrativeDecision> AdministrativeDecisions => db.AdministrativeDecisions;
     public IQueryable<CommencementRecord> CommencementRecords => db.CommencementRecords;
