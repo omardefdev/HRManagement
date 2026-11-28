@@ -71,3 +71,59 @@ asserted the old rule). The ContractLifecycle override tests → `StepException_
 - Next step: P5 — the persona `a-leaver`, `AcceptanceLeaverFixture`, `AcSep60SeparationGovernanceTests` (a..h) and
   `AcSep60OutcomeSweepTests` (i), `Sep060ServicePolicyHttpTests`, the older acceptance classes (AC-INT-37a/e, AC-S2S-42h), CI scope,
   `sep060-validate.ps1` and `sep060-report-unlinked.ps1`.
+
+## P5 — notes for a resume (acceptance facts, from a read-only map of the helpers, 2026-11-28)
+
+- Session helper: `RecruitmentAcceptance.StartAsync(ac, key, scenario, personas...)` → `s["persona"].PostAsync(step, path, tokenPage,
+  fields)` / `PostWithStatusAsync` / `GetAsync`; `s.Steps`, `s.Checks`, `s.Recorder.WriteResult`. UI client:
+  `AcS2s42TrustBoundaryTests.UiClientAsync(persona)`. psql reads: `AcceptanceMessagingHelper.QueryAcceptancePostgresTextAsync/ScalarAsync`.
+- Inbox: `CustodyJourney.ApproveFromInboxAsync(persona, instance, recorder)`; reject = `CustodyJourney.PostFormAsync(http,
+  ApprovalPage(instance), RejectAction, {Comments})`. Forged outcome: `CrossServiceJourney.PublishOutcomeAsync` (AC-WF-46; hard-codes its
+  code/role) and `AcceptanceMessagingHelper.ConnectBusAsync()`. RabbitMQ management: `RABBITMQ_MANAGEMENT_URL` (default
+  http://localhost:15683), purge = `DELETE api/queues/%2F/{queue}/contents` (none in the repo yet). `AcS2s42.StartAsync` waits for HR.Core's
+  ready only: AC-SEP-60i waits for hr-contracts' own `/health/ready` (direct port 6220).
+- Screens: `ui/hr-core/Employees/Create` (NationalId, FirstName, MiddleName, LastName, BirthDate, Gender, MaritalStatus, PrimaryOrgUnitId,
+  HireDate, Cadre; 302 → `/Employees/Details/{id}`); `ui/hr-contracts/Contracts/Create` (EmployeeId, ContractTypeId, StartDate, EndDate,
+  ProbationMonths, Terms; type `AGENCY-A-ACC-LAW50-PERM`).
+- **Deviation (P-12's fixture):** `Employees/Create` opens no regime exception, so `ServiceRegimeExceptions/Resolve` has nothing to resolve,
+  and no screen sets a contract's grade or salary (an activation by the screens always leaves a PAY029-NOSAL review hold, which AC-PAY-58's
+  isolation rule forbids a class to leave in agency A). The copy is therefore: an employee by `Employees/Create` (central-a), in the
+  template's unit; its regime classified by the payroll classes' sanctioned precondition `AcceptancePayrollRegime.
+  ClassifyRecordsAddedSinceTheSeedAsync` (the regime gate is not what AC-SEP-60 proves); a **Pending** contract by `Contracts/Create`
+  (a-contracts-maker), never activated — no pay profile, no hold, no payroll footprint. The execution ends a pending contract as it ends an
+  active one. PLAN-64 (the settlement) extends the fixture when it needs a paid profile.
+- a-leaver: HQ ordinal 30 (Active), `AGENCY-A` 49 → 50, `DATA-AUTH` 70 → 71.
+
+## P5 — acceptance, the older classes, CI, the scripts
+
+- **Written:** `AcceptanceLeaverFixture` (the copy as recorded above: `Employees/Create` by central-a in the template's unit, the regime by
+  the payroll classes' precondition, a Pending contract by `Contracts/Create`, then a read until HR.Contracts holds the copy's unit for
+  the org scope; a fingerprint of the template's rows that every scenario asserts unchanged); `AcSep60Journey.cs` (a cookie-keeping
+  screen session — the flash message reaches the page — that posts the form a page renders by its `data-sep-action`, or an action with a
+  page's token; the per-scenario evidence; the separation's steps; the cleanup that cancels every record not executed, with a reason, and
+  checks its instance ended); `AcSep60SeparationGovernanceTests` a..h and `AcSep60OutcomeSweepTests` i, both `[RequiredAcceptance]`;
+  `CustodyJourney.RejectFromInboxAsync` beside `ApproveFromInboxAsync`; AC-INT-37's RabbitMQ management client made internal for i.
+- **AC-SEP-60c:** the maker opens step 1's approval page and posts its approval with no token if the page refuses him; the layer that
+  answered (the module policy, HR.Core's action policy, the antiforgery check, or the engine's role) is recorded, and the instance's
+  state (in progress, step 1) is what the test asserts (P-12).
+- **AC-SEP-60d:** on a record ready to execute (approved, decision issued, notification completed, effective today), so only the policy
+  stands before the execution: `Step3Execute` and `Execute` through the gateway → 403 each.
+- **AC-S2S-42h on the new path:** creation through the wizard as before; the record submitted by the maker, approved from the inbox
+  (central-a, a-management-approver), its decision issued and its notification completed by the checker; the execution meets the hold
+  and the HR.Core outage. psql writes only the employee's regime and hold (not the record's status, items, decision or approval); the
+  never-executed record is cancelled at the end. The test is renamed `..._at_creation_and_execution_...` (no list names it).
+- **Seeded counts:** the persona a-leaver has an employee, so the acceptance seed adds one directory entry: `DATA-DIRECTORY` 61 → 62
+  (as PLAN-46/51/58 raised it per employee-linked persona); `DATA-AUTH` 70 → 71.
+- **`sep060-validate.ps1`:** its UPDATE pattern missed C#'s escaped quote (`UPDATE \"Table\"`), the seeder check could not cross the
+  descriptions' `;`, and `$Matches` was overwritten inside the codes loop — all three fixed; the no-SQL rule now also refuses calls of
+  SQL-writing helpers but one named allowance (the fixture's single `ClassifyRecordsAddedSinceTheSeedAsync`). `-SelfTest`: 21 planted
+  defects refused, the repository passes. `sep060-report-unlinked.ps1` parses (it runs against a stack in P6 and the server in P9).
+- **Results:** `dotnet build HRManagement.slnx -warnaserror` 0/0; the acceptance project offline 79 passed, 369 skipped (the AC-SEP-60
+  scenarios skip without a stack), `AcceptanceCiScopeTests` and `AcceptanceV2CatalogTests` among the passed; unit (realm render,
+  separation POST policies, persona catalog) 42/42; Testcontainers `Sep060ServicePolicyHttpTests` 1/1; whitespace verified on every
+  changed C# file, no BOM.
+- `docs/CI_AND_TESTING.md` corrected to the fixture as built (it described the screens P-12 planned).
+- Finished P5 (UTC): 2026-11-28T01:38:41Z
+- Next step: P6 — disk and memory, the images one at a time, `acceptance-reset.ps1`, the prod-like stack, AC-SEP-60 twice, the main group,
+  the isolated classes, s2s42, leastpriv, the seeded counts, `down -v`, the full Testcontainers step, the independent review.
+

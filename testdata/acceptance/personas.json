@@ -292,6 +292,23 @@
       "enabled": true
     },
     {
+      "id": "a-leaver",
+      "username": "acc-a-leaver",
+      "passwordEnv": "ACCEPTANCE_A_LEAVER_PASSWORD",
+      "roles": [
+        "hr-employee"
+      ],
+      "tenantCode": "AGENCY-A",
+      "tenantId": "a0000001-0000-4000-8000-000000000001",
+      "employeeSiteCode": "HQ",
+      "employeeOrdinal": 30,
+      "purpose": "PLAN-60: the leaver template of AC-SEP-60 and PLAN-61..65 - never separated itself; AcceptanceLeaverFixture copies its unit and grade into a new employee for each scenario that separates someone",
+      "scenarios": [
+        "AC-SEP-60"
+      ],
+      "enabled": true
+    },
+    {
       "id": "a-movements",
       "username": "acc-a-movements",
       "passwordEnv": "ACCEPTANCE_A_MOVEMENTS_PASSWORD",

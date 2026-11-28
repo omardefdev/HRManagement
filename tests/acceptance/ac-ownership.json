@@ -96,6 +96,7 @@
     "AC-QA-41": { "ownerPlan": "PLAN-41", "provesClaim": true, "legacyContractOnly": false, "reason": "Asserts the evidence of the run itself: profile, image sources, source, validator." },
     "AC-WF-23": { "ownerPlan": "PLAN-23", "provesClaim": true, "legacyContractOnly": false, "reason": "Asserts the work inbox actions on seeded items." },
     "HCM-01": { "ownerPlan": "PLAN-65", "provesClaim": false, "legacyContractOnly": true, "reason": "A steps file with no writer class: nothing runs it." },
+    "AC-SEP-60": { "ownerPlan": "PLAN-60", "provesClaim": true, "legacyContractOnly": false, "reason": "PLAN-60 (SEP-A): a separation is executed from the interface only on an approved, numbered decision: the state machine on the server, the approval through HR.Core's engine (the creator never approves), the DEC-SEP decision and the employee's notification before the execution, the record's integrity, the outcome sweep. a..h in prodLike main; i isolated (it stops hr-contracts-web)." },
     "HCM-06-DSAR": { "ownerPlan": "PLAN-65", "provesClaim": false, "legacyContractOnly": false, "reason": "Same shape as AC-27: PLAN-65 strengthens it." }
   }
 }
