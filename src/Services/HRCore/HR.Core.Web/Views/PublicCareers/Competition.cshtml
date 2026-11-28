@@ -44,10 +44,7 @@
         _ => documentFieldIds.TryGetValue(key, out var inputId) ? inputId : null
     };
 }
-@if (TempData["Error"] is string topError)
-{
-    <div class="alert alert-danger" role="alert">@topError</div>
-}
+@* FIX-CAREERS-REF: a refusal (a closed intake, a duplicate application) is shown once, by _PublicLayout, above this card. *@
 <div class="careers-card mb-4">
     <div class="card-body">
         <h1 class="card-title careers-posting-title">@competition.Title</h1>

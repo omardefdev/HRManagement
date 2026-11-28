@@ -38,6 +38,31 @@ Prompt: `docs/acceptance-plans/execution/FIX-CAREERS-REF-AGENT-PROMPT.md`. Branc
   `_PublicLayout` prints it too, so once the flash crosses, a competition refusal would show twice. F1 removes the view's copy.
 - Finished F0 (UTC): 2026-11-28T15:49:30Z
 
+## F1 — The fix and its tests
+
+- **The gateway** (`GatewayUpstreamCookieForwarding.BuildUpstreamCookieHeader`): the flash cookie's exact name now passes on every
+  route, the careers route included; `careers_session` still on the careers route only; every other cookie dropped. The transform is
+  unchanged (it still removes `Authorization` on the careers route); its comment says why the flash cookie may cross.
+- **The confirmation page** (`PublicCareersController.Submitted`, `Views/PublicCareers/Submitted.cshtml`): the badge holds the
+  number read once from the flash; without one, no badge but «لا يمكن عرض الرقم المرجعي مرة أخرى», the number is shown once, the
+  agency's recruitment office can help, and — only when `Notifications:Candidate:Provider` is not `None` (read through
+  `[FromServices] IOptions<CandidateNotificationOptions>`, so the controller's constructor and its tests are untouched) — a consenting
+  candidate also receives the number by message. Both apply paths redirect to the same page with no route value.
+- **The competition page:** its own `TempData["Error"]` alert removed (the layout shows the refusal once).
+- **Tests:** `GatewayUpstreamCookieForwardingTests` (the pinned careers drop test changed: the flash's exact name left its list, its
+  near-names `x.AspNetCore.Mvc.CookieTempDataProvider`, `.AspNetCore.Mvc.CookieTempData`, `…ProviderC1`, lower case joined it; new:
+  the careers route keeps the three names, the staff routes forward what they did, the transform carries the flash to HR.Core with
+  no `Authorization` from a signed-in staff browser or a client Bearer); `FixCareersRefConfirmationPageTests` (the posting apply
+  hands the number through the flash only, never the URL; the page's flag for each provider value); `Hcm031IntakeTests` (the
+  competition apply likewise); `Ux067PortalRoutingTests` (HR.Core in process: the page renders the number from a flash cookie the
+  gateway filter forwards and ends it, `path=/careers`; without it, no badge and the message; a refusal in the flash shown once).
+- Debug build `-warnaserror` 484 s, 0 warnings; Release build `-warnaserror` 484 s, 0 warnings.
+- Gateway, careers and competition unit tests 884/884; the portal's in-process tests 12/12; the architecture tests 444/444
+  (`InterfaceTextGuardTests` among them); the whole unit suite **7,493/7,493** (653 s; its rewritten `testdata/*/out` restored);
+  `dotnet format --verify-no-changes` on the changed files: clean (310 s). Gitleaks (pinned image, `--no-git`) on the changed files:
+  no leaks.
+- Finished F1 (UTC): 2026-11-28T16:19:00Z
+
 ## Server changes (with undo)
 
 (none yet)
@@ -45,7 +70,8 @@ Prompt: `docs/acceptance-plans/execution/FIX-CAREERS-REF-AGENT-PROMPT.md`. Branc
 ## Durations
 
 - Lab stack start (F0, no build): 905 s.
+- F1: Debug build 484 s; Release build 484 s; unit suite 653 s; format check 310 s.
 
 ## Next step
 
-F1: the fix (written in the tree, not yet committed), then the builds and the unit, integration and guard tests.
+F2: the images hr-gateway and hr-core-web from the F1 commit (one at a time), then the lab stack and its classes.
