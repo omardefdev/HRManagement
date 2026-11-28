@@ -20,38 +20,40 @@ namespace HRManagement.IntegrationTests;
 [Collection("IntegrationSerial")]
 public class Int003ProcessSagaTests
 {
+    // PLAN-60 (§5): DOM-001 kept the contract's end out of the publication, as a manual step with evidence completed before it. The
+    // execution now ends the contract itself, at the effective date, and completes its item (System) in the same save; no person
+    // completes it by hand any more. The renamed test changes AC-QA-34e's list in the same commit.
     [Fact]
-    public async Task DOM001_Publish_DoesNotAutoComplete_ContractTerminated()
+    public async Task DOM001_Execute_EndsTheContract_AtTheEffectiveDate_AndCompletesItsItem()
     {
         var (scope, spy, db) = await ContractLifecycleIntegrationTests_CreateScope();
         using (scope)
         {
             var employeeId = Guid.NewGuid();
-            var separation = TestDataFactory.CreateSeparationRecord(employeeId);
-            db.SeparationRecords.Add(separation);
+            var contractType = TestDataFactory.CreateContractType();
+            var contract = TestDataFactory.CreatePendingContract(employeeId, contractType);
+            contract.Status = ContractStatus.Active;
+            contract.StartDate = new DateOnly(2025, 1, 1);
+            db.ContractTypes.Add(contractType);
+            db.Contracts.Add(contract);
             await db.SaveChangesAsync();
-            var checklist = SeparationChecklistDefaults.CreateForRecord(separation.Id).ToList();
-            foreach (var step in checklist.Where(c => c.Step != SeparationStep.ContractTerminated))
-            {
-                step.IsCompleted = true;
-                step.CompletedAt = DateTime.UtcNow;
-                step.CompletedBy = Guid.NewGuid();
-                step.EvidenceRef = "ev";
-                step.SourceSystem = "Test";
-            }
-            db.SeparationChecklists.AddRange(checklist);
-            await db.SaveChangesAsync();
+            var effective = new DateOnly(2026, 6, 30);
+            var id = await SeparationJourneyDriver.ReadyToExecuteAsync(scope.ServiceProvider, employeeId, contract.Id, effective);
+            Assert.False((await db.SeparationChecklists.AsNoTracking().SingleAsync(c =>
+                c.SeparationRecordId == id && c.Step == SeparationStep.ContractTerminated)).IsCompleted);
 
-            var mediator = scope.ServiceProvider.GetRequiredService<MediatR.IMediator>();
-            var (success, error) = await mediator.Send(new PublishSeparationCommand(separation.Id));
-            Assert.False(success);
-            Assert.Contains("ContractTerminated", error ?? "");
+            var (success, error) = await SeparationJourneyDriver.ExecuteAsync(scope.ServiceProvider, id);
+            Assert.True(success, error);
 
             db.ChangeTracker.Clear();
             var contractStep = await db.SeparationChecklists.FirstAsync(c =>
-                c.SeparationRecordId == separation.Id && c.Step == SeparationStep.ContractTerminated);
-            Assert.False(contractStep.IsCompleted);
-            Assert.Equal(0, spy.SeparationSagaStartedCount);
+                c.SeparationRecordId == id && c.Step == SeparationStep.ContractTerminated);
+            Assert.True(contractStep.IsCompleted);
+            Assert.Equal(SeparationJourneyDriver.Checker, contractStep.CompletedBy);
+            Assert.Equal(SeparationStepCompletionMode.System, contractStep.CompletionMode);
+            var ended = await db.Contracts.SingleAsync(c => c.Id == contract.Id);
+            Assert.Equal((ContractStatus.Terminated, (DateOnly?)effective), (ended.Status, ended.EndDate));
+            Assert.Equal(1, spy.SeparationSagaStartedCount);
         }
     }
 

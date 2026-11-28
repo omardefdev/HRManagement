@@ -47,7 +47,7 @@ public class Fun002SeparationRecordIntegrationTests
         {
             var id = await SeedOpenSeparationAsync(db, DateOnly.FromDateTime(DateTime.UtcNow));
             var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            var (ok, err) = await mediator.Send(new CancelSeparationCommand(id, "اختبار"));
+            var (ok, err) = await mediator.Send(new CancelSeparationCommand(id, "اختبار", Guid.NewGuid()));
             Assert.True(ok);
             Assert.Null(err);
 
@@ -65,9 +65,8 @@ public class Fun002SeparationRecordIntegrationTests
         using (scope)
         {
             var future = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(10));
-            var id = await SeedOpenSeparationAsync(db, future, completeChecklist: true);
-            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            var (ok, err) = await mediator.Send(new PublishSeparationCommand(id));
+            var id = await SeparationJourneyDriver.ReadyToExecuteAsync(scope.ServiceProvider, Guid.NewGuid(), null, future);
+            var (ok, err) = await SeparationJourneyDriver.ExecuteAsync(scope.ServiceProvider, id);
             Assert.False(ok);
             Assert.Contains("النفاذ", err ?? "");
             Assert.Equal(0, spy.SeparationSagaStartedCount);
@@ -80,9 +79,8 @@ public class Fun002SeparationRecordIntegrationTests
         var (scope, spy, db) = await CreateScopeAsync(new BlockHoldGate());
         using (scope)
         {
-            var id = await SeedOpenSeparationAsync(db, DateOnly.FromDateTime(DateTime.UtcNow), completeChecklist: true);
-            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            var (ok, err) = await mediator.Send(new PublishSeparationCommand(id));
+            var id = await SeparationJourneyDriver.ReadyToExecuteAsync(scope.ServiceProvider, Guid.NewGuid(), null, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)));
+            var (ok, err) = await SeparationJourneyDriver.ExecuteAsync(scope.ServiceProvider, id);
             Assert.False(ok);
             Assert.Contains("Legal Hold", err ?? "", StringComparison.OrdinalIgnoreCase);
             Assert.Equal(0, spy.SeparationSagaStartedCount);
@@ -97,9 +95,8 @@ public class Fun002SeparationRecordIntegrationTests
         var (scope, spy, db) = await CreateScopeAsync(activeRegimes: regimes);
         using (scope)
         {
-            var id = await SeedOpenSeparationAsync(db, DateOnly.FromDateTime(DateTime.UtcNow), completeChecklist: true);
-            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            var (ok, err) = await mediator.Send(new PublishSeparationCommand(id));
+            var id = await SeparationJourneyDriver.ReadyToExecuteAsync(scope.ServiceProvider, Guid.NewGuid(), null, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)));
+            var (ok, err) = await SeparationJourneyDriver.ExecuteAsync(scope.ServiceProvider, id);
             Assert.True(ok, err);
             Assert.Equal(1, spy.SeparationSagaStartedCount);
             Assert.Single(regimes.Requests);
@@ -107,6 +104,7 @@ public class Fun002SeparationRecordIntegrationTests
             db.ChangeTracker.Clear();
             var record = await db.SeparationRecords.SingleAsync(r => r.Id == id);
             Assert.Equal(FakeHrCoreActiveRegimeClient.Law50, record.SourceLegalRegimeId);
+            Assert.Equal(SeparationStatus.Executing, record.Status);
             Assert.True(record.SeparationEventPublished);
         }
     }
@@ -117,9 +115,8 @@ public class Fun002SeparationRecordIntegrationTests
         var (scope, spy, db) = await CreateScopeAsync(activeRegimes: new FakeHrCoreActiveRegimeClient(FakeRegimeMode.NoRegime));
         using (scope)
         {
-            var id = await SeedOpenSeparationAsync(db, DateOnly.FromDateTime(DateTime.UtcNow), completeChecklist: true);
-            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            var (ok, err) = await mediator.Send(new PublishSeparationCommand(id));
+            var id = await SeparationJourneyDriver.ReadyToExecuteAsync(scope.ServiceProvider, Guid.NewGuid(), null, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)));
+            var (ok, err) = await SeparationJourneyDriver.ExecuteAsync(scope.ServiceProvider, id);
             Assert.False(ok);
             Assert.Equal(ServiceRegimeSeparationRules.RegimeRulesNotFoundMessage, err);
             Assert.Equal(0, spy.SeparationSagaStartedCount);
@@ -136,35 +133,36 @@ public class Fun002SeparationRecordIntegrationTests
         var (scope, spy, db) = await CreateScopeAsync(activeRegimes: new FakeHrCoreActiveRegimeClient(FakeRegimeMode.Unavailable));
         using (scope)
         {
-            var id = await SeedOpenSeparationAsync(db, DateOnly.FromDateTime(DateTime.UtcNow), completeChecklist: true);
-            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            await Assert.ThrowsAsync<HttpRequestException>(() => mediator.Send(new PublishSeparationCommand(id)));
+            var id = await SeparationJourneyDriver.ReadyToExecuteAsync(scope.ServiceProvider, Guid.NewGuid(), null, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)));
+            await Assert.ThrowsAsync<HttpRequestException>(() => SeparationJourneyDriver.ExecuteAsync(scope.ServiceProvider, id));
             Assert.Equal(0, spy.SeparationSagaStartedCount);
             db.ChangeTracker.Clear();
             Assert.False((await db.SeparationRecords.SingleAsync(r => r.Id == id)).SeparationEventPublished);
         }
     }
 
+    // PLAN-60 (§1, rule 2): before, an executed record was cancelled while its date was in the future and its saga compensated. An
+    // executing separation is never cancelled here: undoing it is PLAN-63's compensation path.
     [Fact]
-    public async Task Cancel_AfterPublish_PreEffective_PublishesCancelSaga()
+    public async Task Cancel_after_the_execution_is_refused_until_PLAN63()
     {
         var (scope, spy, db) = await CreateScopeAsync();
         using (scope)
         {
-            var future = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(5));
-            var id = await SeedOpenSeparationAsync(db, future, completeChecklist: true);
-            var record = await db.SeparationRecords.SingleAsync(r => r.Id == id);
-            record.SeparationEventPublished = true;
-            await db.SaveChangesAsync();
+            var id = await SeparationJourneyDriver.ReadyToExecuteAsync(scope.ServiceProvider, Guid.NewGuid(), null, DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-1)));
+            Assert.True((await SeparationJourneyDriver.ExecuteAsync(scope.ServiceProvider, id)).Success);
 
             var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
-            var (ok, _) = await mediator.Send(new CancelSeparationCommand(id, "قبل النفاذ"));
-            Assert.True(ok);
-            Assert.Equal(1, spy.SeparationSagaCancelledCount);
-            Assert.Equal(id, spy.LastCancelledSeparationRecordId);
+            var (ok, err) = await mediator.Send(new CancelSeparationCommand(id, "قبل النفاذ", Guid.NewGuid()));
+            Assert.False(ok);
+            Assert.Equal(SeparationWorkflowRules.ExecutingCancelMessage, err);
+            Assert.Equal(0, spy.SeparationSagaCancelledCount);
+            Assert.Equal(1, spy.SeparationSagaStartedCount);
 
             db.ChangeTracker.Clear();
-            Assert.True((await db.SeparationRecords.SingleAsync(r => r.Id == id)).IsCancelled);
+            var stored = await db.SeparationRecords.SingleAsync(r => r.Id == id);
+            Assert.False(stored.IsCancelled);
+            Assert.Equal(SeparationStatus.Executing, stored.Status);
         }
     }
 
@@ -172,6 +170,7 @@ public class Fun002SeparationRecordIntegrationTests
         ContractsDbContext db,
         DateOnly effectiveDate,
         bool completeChecklist = false)
+    // completeChecklist is kept for the draft's own items only; a record is approved through SeparationJourneyDriver.
     {
         var record = new SeparationRecord
         {
@@ -179,6 +178,9 @@ public class Fun002SeparationRecordIntegrationTests
             SeparationType = SeparationType.Resignation,
             EffectiveDate = effectiveDate
         };
+        // PLAN-60: a record ready for the execution is approved (through the state machine) with its pre-execution items done.
+        if (completeChecklist)
+            SeparationTestJourney.MoveTo(record, SeparationStatus.Approved);
         db.SeparationRecords.Add(record);
         foreach (var item in SeparationChecklistDefaults.CreateForRecord(record.Id))
         {

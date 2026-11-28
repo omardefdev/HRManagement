@@ -1,0 +1,215 @@
+@model HR.Contracts.Web.ViewModels.SeparationPanelModel
+@using HR.Contracts.Domain.Enums
+@{
+    // PLAN-60 (P-11): the record's status, its approval in HR.Core's inbox, its decision, its clearance items by mode, and the actions
+    // its status allows. HR.Contracts has no approval button: the approval is taken in HR.Core's work inbox.
+    var r = Model.Record;
+    var approvalState = Model.Approval?.Status switch
+    {
+        "InProgress" => "جارٍ",
+        "Approved" => "معتمد",
+        "Rejected" => "مرفوض",
+        "Cancelled" => "مسحوب",
+        _ => "غير معروف"
+    };
+}
+<div class="card mb-3" data-sep-panel="status">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h5 class="mb-0">الحالة: <partial name="~/Views/SeparationRecords/_SeparationStatusBadge.cshtml" model="r" /></h5>
+        @if (r.Status == SeparationStatus.Rejected && !string.IsNullOrWhiteSpace(r.RejectionReason))
+        {
+            <span class="text-danger">سبب الرفض: @r.RejectionReason</span>
+        }
+    </div>
+    <div class="card-body">
+        <dl class="row mb-0">
+            <dt class="col-sm-3">المنشئ</dt>
+            <dd class="col-sm-9" data-sep-field="creator">
+                @if (r.CreatedBy is not null)
+                {
+                    @Html.HrUserName(r.CreatedBy)
+                }
+                else
+                {
+                    <span>طلب وارد من نظام آخر أو من البيانات الأولية — لا منشئ من الأشخاص</span>
+                }
+            </dd>
+            <dt class="col-sm-3">مسار الاعتماد</dt>
+            <dd class="col-sm-9" data-sep-field="approval">
+                @if (Model.Approval is { } approval)
+                {
+                    <span>@approvalState</span>
+                    @if (!string.IsNullOrWhiteSpace(approval.CurrentStepName))
+                    {
+                        <span> — الخطوة الحالية: @approval.CurrentStepName</span>
+                    }
+                    <a href="@approval.ApprovalUrl" class="ms-2" data-sep-link="approval">فتح الاعتماد في صندوق العمل</a>
+                }
+                else if (Model.ApprovalUnavailable)
+                {
+                    <span class="text-warning">تعذّر الوصول إلى محرك الاعتماد الآن.</span>
+                }
+                else
+                {
+                    <span>لم يُقدَّم للاعتماد بعد.</span>
+                }
+            </dd>
+            <dt class="col-sm-3">القرار الإداري</dt>
+            <dd class="col-sm-9" data-sep-field="decision">
+                @if (Model.Decision is { } decision)
+                {
+                    <a asp-controller="AdministrativeDecisions" asp-action="Index" asp-route-q="@decision.DecisionNumber" data-sep-decision="@decision.DecisionNumber">@decision.DecisionNumber</a>
+                    <span> — صدر في @Html.HrDate(decision.IssuedDate)</span>
+                }
+                else
+                {
+                    <span>لم يصدر بعد.</span>
+                }
+            </dd>
+            <dt class="col-sm-3">تاريخ النفاذ</dt>
+            <dd class="col-sm-9">@Html.HrDate(r.EffectiveDate) <span class="text-muted">(اليوم بتوقيت دمشق: @Html.HrDate(Model.TodayInDamascus))</span></dd>
+        </dl>
+    </div>
+    <div class="card-footer d-flex flex-wrap gap-2">
+        @if (Model.CanSubmit)
+        {
+            <form asp-controller="SeparationRecords" asp-action="Submit" asp-route-id="@r.Id" method="post" data-sep-action="submit">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-primary">تقديم للاعتماد</button>
+            </form>
+        }
+        @if (Model.CanWithdraw)
+        {
+            <form asp-controller="SeparationRecords" asp-action="Withdraw" asp-route-id="@r.Id" method="post" class="d-flex gap-2" data-sep-action="withdraw"
+                  data-hr-confirm="سحب السجل من الاعتماد يعيده مسودة. هل أنت متأكد؟">
+                @Html.AntiForgeryToken()
+                <input name="reason" class="form-control form-control-sm" placeholder="سبب السحب (اختياري)" aria-label="سبب السحب" />
+                <button type="submit" class="btn btn-outline-secondary">سحب من الاعتماد</button>
+            </form>
+        }
+        @if (Model.CanReopen)
+        {
+            <form asp-controller="SeparationRecords" asp-action="Reopen" asp-route-id="@r.Id" method="post" data-sep-action="reopen">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-outline-primary">إعادة فتح مسودة</button>
+            </form>
+        }
+        @if (Model.CanIssueDecision)
+        {
+            <form asp-controller="SeparationRecords" asp-action="IssueDecision" asp-route-id="@r.Id" method="post" data-sep-action="issue-decision">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-success">إصدار قرار إنهاء الخدمة</button>
+            </form>
+        }
+        @if (Model.CanExecute && !(ViewData["HideExecute"] is true))
+        {
+            <form asp-controller="SeparationRecords" asp-action="Execute" asp-route-id="@r.Id" method="post" data-sep-action="execute"
+                  data-hr-confirm="التنفيذ يُنهي العقد ويبدأ رحلة الأطراف، ولا يُلغى بعده إلا بمسار التعويض. هل أنت متأكد؟">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-danger">تنفيذ</button>
+            </form>
+        }
+    </div>
+</div>
+
+<div class="card mb-3" data-sep-panel="checklist">
+    <div class="card-header"><h5 class="mb-0">قائمة الإخلاء</h5></div>
+    <div class="card-body p-0">
+        <table class="table table-sm mb-0">
+            <thead><tr><th>البند</th><th>نمط الإكمال</th><th>المالك أو الطرف</th><th>الحالة</th><th>الدليل</th><th>الإجراء</th></tr></thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr data-sep-step="@item.Step">
+                        <td>@Html.HrEnumDisplay(item.Step)@(item.IsRequired ? "" : " (اختياري)")</td>
+                        <td>@Html.HrEnumDisplay(item.CompletionMode)</td>
+                        <td>@(item.PartyName ?? item.OwnerRole ?? "—")</td>
+                        <td>
+                            @if (item.IsCompleted)
+                            {
+                                <span class="badge bg-success">مكتمل</span>
+                                @if (item.CompletedAt is not null) { <span class="text-muted"> @Html.HrDateTime(item.CompletedAt)</span> }
+                            }
+                            else if (item.IsExcepted)
+                            {
+                                <span class="badge bg-info text-dark">مستثنى باعتماد ثانٍ</span>
+                            }
+                            else if (item.ExceptionRequestedBy is not null)
+                            {
+                                <span class="badge bg-warning text-dark">طلب استثناء بانتظار اعتماد ثانٍ</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">قيد الانتظار</span>
+                            }
+                        </td>
+                        <td>@(item.EvidenceRef ?? item.ExceptionReason ?? "—")</td>
+                        <td>
+                            @if (Model.ItemsEditable && item.CompletionMode == SeparationStepCompletionMode.Manual && !item.IsCompleted && !item.IsExcepted)
+                            {
+                                @if (Model.CanWrite)
+                                {
+                                    <form asp-controller="SeparationRecords" asp-action="CompleteManualStep" asp-route-id="@r.Id" method="post" class="d-flex gap-1 mb-1" data-sep-action="complete" data-sep-form-step="@item.Step">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="step" value="@item.Step" />
+                                        <input name="evidenceRef" class="form-control form-control-sm" placeholder="مرجع الدليل" aria-label="مرجع الدليل" required minlength="5" />
+                                        <button type="submit" class="btn btn-sm btn-primary">إكمال بدليل</button>
+                                    </form>
+                                    @if (item.ExceptionRequestedBy is null)
+                                    {
+                                        <form asp-controller="SeparationRecords" asp-action="RequestStepException" asp-route-id="@r.Id" method="post" class="d-flex gap-1" data-sep-action="request-exception" data-sep-form-step="@item.Step">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="step" value="@item.Step" />
+                                            <input name="reason" class="form-control form-control-sm" placeholder="سبب الاستثناء (عشرون حرفاً على الأقل)" aria-label="سبب الاستثناء" required minlength="20" />
+                                            <button type="submit" class="btn btn-sm btn-outline-warning">طلب استثناء</button>
+                                        </form>
+                                    }
+                                }
+                                @if (Model.CanApprove && item.ExceptionRequestedBy is not null)
+                                {
+                                    <form asp-controller="SeparationRecords" asp-action="ApproveStepException" asp-route-id="@r.Id" method="post" data-sep-action="approve-exception" data-sep-form-step="@item.Step">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="step" value="@item.Step" />
+                                        <button type="submit" class="btn btn-sm btn-warning">اعتماد الاستثناء</button>
+                                    </form>
+                                }
+                            }
+                            else if (item.CompletionMode == SeparationStepCompletionMode.PartyAck && !item.IsCompleted)
+                            {
+                                <span class="text-muted">يكتمل بإقرار الطرف بعد التنفيذ</span>
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Items.Any())
+                {
+                    <tr><td colspan="6" class="text-center text-muted py-3">لا توجد بنود في قائمة الإخلاء</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@if (Model.CanCancel)
+{
+    <div class="card mb-3 border-danger" id="cancel" data-sep-panel="cancel">
+        <div class="card-header"><h5 class="mb-0">إلغاء سجل الفصل</h5></div>
+        <div class="card-body">
+            <form asp-controller="SeparationRecords" asp-action="Cancel" asp-route-id="@r.Id" method="post" data-sep-action="cancel"
+                  data-hr-confirm="إلغاء سجل الفصل نهائي، ويبقى السجل للتاريخ. هل أنت متأكد؟">
+                @Html.AntiForgeryToken()
+                <label for="cancel-reason" class="form-label">سبب الإلغاء (إلزامي)</label>
+                <textarea id="cancel-reason" name="reason" class="form-control mb-2" rows="2" required></textarea>
+                <button type="submit" class="btn btn-outline-danger">إلغاء السجل</button>
+            </form>
+            @if (r.DecisionId is not null)
+            {
+                <div class="form-text">القرار الصادر يبقى مرتبطاً بالسجل للتاريخ؛ القرار التصحيحي من الموجة الثانية.</div>
+            }
+        </div>
+    </div>
+}
